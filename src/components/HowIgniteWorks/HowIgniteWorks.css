@@ -1,0 +1,311 @@
+/* How IGNITE Works Section Styling */
+.how-ignite-works {
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  font-family: 'Manrope', sans-serif;
+  box-sizing: border-box;
+  padding: 60px 0 30px;
+  overflow: hidden;
+}
+
+.hiw__container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+}
+
+/* Background Side Dots */
+.hiw__bg-dots {
+  position: absolute;
+  top: 30px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+}
+
+.hiw__bg-dots--left {
+  left: -20px;
+}
+
+.hiw__bg-dots--right {
+  right: -20px;
+}
+
+/* Header */
+.hiw__header {
+  text-align: center;
+  margin-bottom: 85px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hiw__eyebrow-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.hiw__eyebrow {
+  color: #05705c;
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hiw__eyebrow-line {
+  width: 48px;
+  height: 2px;
+  background-color: #057861;
+  border-radius: 2px;
+  margin-top: 6px;
+}
+
+.hiw__title {
+  margin: 0 0 14px 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 52px;
+  word-wrap: break-word;
+}
+
+.hiw__title-dark {
+  color: #08172e;
+}
+
+.hiw__title-green {
+  color: #056e59;
+}
+
+.hiw__description {
+  color: #404a5e;
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 26px;
+  word-wrap: break-word;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Process Flow Grid & Connectors */
+.hiw__process-flow {
+  position: relative;
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 60px;
+  align-items: stretch;
+  padding-top: 65px;
+  /* space for top half of the medallion */
+}
+
+/* Connector Line & Arrow Badges */
+.hiw__connector {
+  position: absolute;
+  top: calc(65px + 145px);
+  /* centered along the cards height */
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hiw__connector-line {
+  position: absolute;
+  left: 10.6%;
+  right: 10.6%;
+  top: 50%;
+  border-top: 2px dashed #058c73;
+  opacity: 0.65;
+  transform: translateY(-50%);
+}
+
+.hiw__arrow-badge {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  background-color: #ff9200;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(255, 146, 0, 0.35);
+  z-index: 3;
+}
+
+.hiw__arrow-badge--1 {
+  left: 23.7%;
+}
+
+.hiw__arrow-badge--2 {
+  left: 50%;
+}
+
+.hiw__arrow-badge--3 {
+  left: 76.3%;
+}
+
+.hiw__arrow-icon {
+  width: 7px;
+  height: 12px;
+  display: block;
+}
+
+/* Individual Step Card Wrapper */
+.hiw__step-card-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 245px;
+  margin: 0 auto;
+}
+
+/* Floating Icon Medallion */
+.hiw__medallion {
+  position: absolute;
+  top: -65px;
+  width: 130px;
+  height: 130px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0px 6px 16px rgba(8, 31, 46, 0.1);
+  border: 1px solid #e8f0f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+
+.hiw__medallion-icon {
+  width: 112px;
+  height: 112px;
+  display: block;
+}
+
+/* Card Body */
+.hiw__card-body {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #e8f0f2;
+  box-shadow: 0px 8px 22px rgba(8, 31, 46, 0.07);
+  padding: 82px 24px 32px;
+  text-align: center;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hiw__step-num {
+  font-family: 'Manrope', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 28px;
+  word-wrap: break-word;
+  margin: 0 0 8px 0;
+}
+
+.hiw__step-num--teal {
+  color: #058c73;
+}
+
+.hiw__step-num--orange {
+  color: #ff8500;
+}
+
+.hiw__accent-bar {
+  width: 38px;
+  height: 2px;
+  border-radius: 1px;
+  margin-bottom: 16px;
+}
+
+.hiw__accent-bar--teal {
+  background-color: #058c73;
+}
+
+.hiw__accent-bar--orange {
+  background-color: #ff8500;
+}
+
+.hiw__step-title {
+  color: #081429;
+  font-family: 'Manrope', sans-serif;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 28px;
+  word-wrap: break-word;
+  margin: 0 0 14px 0;
+}
+
+.hiw__step-desc {
+  color: #334057;
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1100px) {
+  .hiw__process-flow {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 85px 28px;
+  }
+
+  .hiw__connector {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .how-ignite-works {
+    padding: 50px 0 65px;
+  }
+
+  .hiw__container {
+    padding: 0 20px;
+  }
+
+  .hiw__title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .hiw__description {
+    font-size: 15px;
+    line-height: 24px;
+  }
+
+  .hiw__header {
+    margin-bottom: 75px;
+  }
+
+  .hiw__process-flow {
+    grid-template-columns: 1fr;
+    gap: 85px;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+}

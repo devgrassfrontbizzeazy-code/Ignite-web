@@ -1,0 +1,438 @@
+/* Business Value & CTA Section Styling */
+.ignite-business-value {
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  font-family: 'Manrope', sans-serif;
+  box-sizing: border-box;
+  padding: 30px 0 100px;
+  overflow: hidden;
+}
+
+.ignite-bv__container {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+}
+
+/* Decorative Background Dots */
+.ignite-bv__bg-dots {
+  position: absolute;
+  top: 20px;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.8;
+}
+
+/* Header Section */
+.ignite-bv__header {
+  text-align: center;
+  margin-bottom: 56px;
+  position: relative;
+  z-index: 2;
+}
+
+.ignite-bv__tag-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ignite-bv__tag {
+  color: #087b67;
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.ignite-bv__tag-line {
+  width: 32px;
+  height: 2.5px;
+  background-color: #087b67;
+  border-radius: 2px;
+  margin-top: 4px;
+}
+
+.ignite-bv__title {
+  margin: 0 0 16px 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 58px;
+  word-wrap: break-word;
+}
+
+.ignite-bv__title-main {
+  color: #06152e;
+}
+
+.ignite-bv__title-accent {
+  color: #087b67;
+}
+
+.ignite-bv__subtitle {
+  color: #45536a;
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 27px;
+  word-wrap: break-word;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* 5 Cards Grid */
+.ignite-bv__cards-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  margin-bottom: 72px;
+  position: relative;
+  z-index: 2;
+}
+
+.ignite-bv__card {
+  background: #ffffff;
+  border: 1px solid #eef2f5;
+  border-radius: 18px;
+  padding: 36px 20px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 10px 30px rgba(6, 21, 46, 0.04);
+}
+
+.ignite-bv__card-icon-wrap {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.ignite-bv__card-icon {
+  width: 44px;
+  height: 44px;
+  display: block;
+}
+
+/* Custom background tints for card icons */
+.ignite-bv__card--teal .ignite-bv__card-icon-wrap {
+  background: #ebf8f5;
+}
+
+.ignite-bv__card--orange .ignite-bv__card-icon-wrap {
+  background: #fff3e5;
+}
+
+.ignite-bv__card--mint .ignite-bv__card-icon-wrap {
+  background: #e6f7f4;
+}
+
+.ignite-bv__card--purple .ignite-bv__card-icon-wrap {
+  background: #f4f0fd;
+}
+
+.ignite-bv__card--peach .ignite-bv__card-icon-wrap {
+  background: #fff3e5;
+}
+
+.ignite-bv__card-title {
+  color: #06152e;
+  font-family: 'Manrope', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+  word-wrap: break-word;
+  margin: 0 0 14px 0;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ignite-bv__card-desc {
+  color: #34425a;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 21px;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* ==========================================================================
+   CTA Banner Section
+   ========================================================================== */
+.ignite-cta-banner {
+  background: linear-gradient(135deg, #01382e 0%, #012821 100%);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  padding: 56px 56px 50px;
+  box-shadow: 0 20px 50px rgba(1, 56, 46, 0.25);
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 40px;
+  align-items: center;
+  z-index: 2;
+}
+
+/* CTA Background Details */
+.ignite-cta-banner__dots-art {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: radial-gradient(circle at right center, rgba(17, 185, 154, 0.15), transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ignite-cta-banner__left {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+}
+
+.ignite-cta-banner__title-wrap {
+  margin-bottom: 12px;
+}
+
+.ignite-cta-banner__title {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 29px;
+  font-weight: 700;
+  line-height: 42px;
+  word-wrap: break-word;
+}
+
+.ignite-cta-banner__title-white {
+  color: #ffffff;
+}
+
+.ignite-cta-banner__title-green {
+  color: #11b99a;
+}
+
+.ignite-cta-banner__title-line {
+  width: 36px;
+  height: 2px;
+  background: #11b99a;
+  border-radius: 2px;
+  margin-top: 6px;
+}
+
+.ignite-cta-banner__subtitle {
+  color: #e4f3f0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 24px;
+  word-wrap: break-word;
+  margin: 0 0 32px 0;
+  opacity: 0.95;
+}
+
+/* CTA Buttons */
+.ignite-cta-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.ignite-cta-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.ignite-cta-banner__btn-arrow {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s ease;
+}
+
+.ignite-cta-banner__btn:hover .ignite-cta-banner__btn-arrow {
+  transform: translateX(4px);
+}
+
+.ignite-cta-banner__btn--primary {
+  background: #ff7a00;
+  color: #ffffff;
+  border: 1px solid #ff7a00;
+  box-shadow: 0 4px 16px rgba(255, 122, 0, 0.35);
+}
+
+.ignite-cta-banner__btn--primary:hover {
+  background: #f06e00;
+  border-color: #f06e00;
+  box-shadow: 0 6px 20px rgba(255, 122, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.ignite-cta-banner__btn--secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+}
+
+.ignite-cta-banner__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: #11b99a;
+  transform: translateY(-2px);
+}
+
+/* Feature Badges Row */
+.ignite-cta-banner__badges {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ignite-cta-banner__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #ffffff;
+  font-family: 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 15px;
+  word-wrap: break-word;
+  white-space: nowrap;
+}
+
+.ignite-cta-banner__badge-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.ignite-cta-banner__badge-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Right Device Mockup Image */
+.ignite-cta-banner__right {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.ignite-cta-banner__mockup-img {
+  width: 100%;
+  max-width: 580px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
+  user-select: none;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1200px) {
+  .ignite-bv__cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ignite-cta-banner {
+    grid-template-columns: 1fr;
+    padding: 40px 32px;
+  }
+
+  .ignite-cta-banner__right {
+    margin-top: 20px;
+    justify-content: center;
+  }
+
+  .ignite-cta-banner__mockup-img {
+    max-width: 480px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ignite-business-value {
+    padding: 60px 0 70px;
+  }
+
+  .ignite-bv__container {
+    padding: 0 20px;
+  }
+
+  .ignite-bv__title {
+    font-size: 28px;
+    line-height: 40px;
+  }
+
+  .ignite-bv__subtitle {
+    font-size: 15px;
+    line-height: 24px;
+  }
+
+  .ignite-bv__cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .ignite-cta-banner {
+    padding: 32px 20px;
+    border-radius: 18px;
+  }
+
+  .ignite-cta-banner__title {
+    font-size: 24px;
+    line-height: 34px;
+  }
+
+  .ignite-cta-banner__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ignite-cta-banner__badges {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .ignite-cta-banner__mockup-img {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .ignite-bv__cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
