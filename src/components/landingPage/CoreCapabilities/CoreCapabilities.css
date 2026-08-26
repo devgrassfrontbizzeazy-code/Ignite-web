@@ -1,0 +1,244 @@
+/* Core Capabilities Section Styling */
+.core-capabilities {
+  position: relative;
+  width: 100%;
+  background: #ffffff;
+  font-family: 'Manrope', sans-serif;
+  box-sizing: border-box;
+  padding: 40px 0 60px;
+  overflow: hidden;
+}
+
+.cc__container {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 40px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+}
+
+/* Background Side Dots */
+.cc__bg-dots {
+  position: absolute;
+  top: 20px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+}
+
+.cc__bg-dots--left {
+  left: -20px;
+}
+
+.cc__bg-dots--right {
+  right: -20px;
+}
+
+/* Section Header */
+.cc__header {
+  text-align: center;
+  margin-bottom: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cc__eyebrow-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cc__eyebrow {
+  color: #05705c;
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.cc__eyebrow-line {
+  width: 48px;
+  height: 2px;
+  background-color: #057861;
+  border-radius: 2px;
+  margin-top: 6px;
+}
+
+.cc__title {
+  margin: 0 0 14px 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 52px;
+  word-wrap: break-word;
+}
+
+.cc__title-dark {
+  color: #08172e;
+}
+
+.cc__title-green {
+  color: #056e59;
+}
+
+.cc__description {
+  color: #404a5e;
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 28px;
+  word-wrap: break-word;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* 6 Cards Grid */
+.cc__cards-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+/* Individual Card Styling */
+.cc__card {
+  background: #ffffff;
+  border: 1px solid #e8f0f2;
+  border-radius: 16px;
+  box-shadow: 0px 6px 18px rgba(8, 31, 46, 0.07);
+  padding: 32px 18px 26px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-height: 440px;
+}
+
+/* Icon Container */
+.cc__icon-wrap {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.cc__icon {
+  width: 100px;
+  height: 100px;
+  display: block;
+}
+
+/* Accent Line */
+.cc__accent-line {
+  width: 38px;
+  height: 2px;
+  background-color: #059478;
+  border-radius: 1px;
+  margin-bottom: 16px;
+}
+
+/* Card Title */
+.cc__card-title {
+  color: #081429;
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 23px;
+  word-wrap: break-word;
+  margin: 0 0 14px 0;
+}
+
+/* Card Description */
+.cc__card-desc {
+  color: #2e3b4f;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 23px;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+/* Flexible Spacer */
+.cc__card-spacer {
+  flex: 1 1 auto;
+  min-height: 16px;
+}
+
+/* Number Badge */
+.cc__number-badge {
+  width: 50px;
+  height: 50px;
+  background-color: #fff1dd;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.cc__number-text {
+  color: #ff8500;
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  word-wrap: break-word;
+}
+
+/* Bottom Curve */
+.cc__bottom-curve {
+  width: 100%;
+  height: 60px;
+  margin-top: 40px;
+  overflow: hidden;
+}
+
+.cc__bottom-curve svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1200px) {
+  .cc__cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .core-capabilities {
+    padding: 30px 0 40px;
+  }
+
+  .cc__container {
+    padding: 0 20px;
+  }
+
+  .cc__title {
+    font-size: 28px;
+    line-height: 36px;
+  }
+
+  .cc__description {
+    font-size: 15px;
+    line-height: 24px;
+  }
+
+  .cc__cards-grid {
+    grid-template-columns: repeat(1, 1fr);
+    gap: 20px;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+}
