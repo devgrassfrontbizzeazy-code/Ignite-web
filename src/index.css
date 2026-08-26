@@ -3,22 +3,48 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {
   margin: 0;
   padding: 0;
   width: 100%;
+  max-width: 100vw;
   min-width: 320px;
   min-height: 100%;
+  overflow-x: hidden;
 }
 
 body {
-  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #ffffff;
   color: #102238;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+svg,
+picture,
+video,
+iframe {
+  max-width: 100%;
+  height: auto;
 }
 
 a {
   color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
 }

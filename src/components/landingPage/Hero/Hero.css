@@ -89,7 +89,7 @@
   order: 0;
   flex-grow: 0;
 }
- 
+
 .eyebrow {
   font-family: 'Manrope', sans-serif;
   font-style: normal;
@@ -119,7 +119,7 @@
 
 /* Hero Description */
 .hero-description {
-   width: 100%;
+  width: 100%;
   max-width: 560px;
   margin: 0;
   padding: 0;
@@ -261,6 +261,7 @@
   order: 0;
   flex-grow: 0;
 }
+
 .badge-icon img {
   width: 20px;
   height: 20px;
@@ -328,6 +329,7 @@
   object-fit: contain;
   object-position: center;
 }
+
 /* Mobile Mockup */
 .mobile-mockup {
   position: absolute;
@@ -516,12 +518,13 @@
   .hero-copy {
     width: 100%;
   }
+
   .eyebrow-pill {
     width: auto;
     max-width: 100%;
     padding: 6px 14px;
   }
- 
+
   .eyebrow {
     font-size: 13px;
     line-height: 15px;
@@ -583,7 +586,7 @@
     max-width: 100%;
     padding: 6px 14px;
   }
- 
+
   .eyebrow {
     font-size: 13px;
     line-height: 15px;
@@ -596,7 +599,10 @@
     line-height: 44px;
     letter-spacing: -0.8px;
   }
-  .headline-nowrap { white-space: normal; }
+
+  .headline-nowrap {
+    white-space: normal;
+  }
 
   .hero-description {
     width: 100%;
@@ -660,7 +666,7 @@
   .eyebrow-pill {
     padding: 5px 12px;
   }
- 
+
   .eyebrow {
     font-size: 11px;
     line-height: 14px;

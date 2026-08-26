@@ -5,7 +5,7 @@
   background: #ffffff;
   font-family: 'Manrope', sans-serif;
   box-sizing: border-box;
-  padding: 40px 0 60px;
+  padding: 40px 0 90px;
   overflow: hidden;
 }
 
@@ -196,15 +196,21 @@
 
 /* Bottom Curve */
 .cc__bottom-curve {
+  position: absolute;
+  bottom: 0;
+  left: 0;
   width: 100%;
-  height: 60px;
-  margin-top: 40px;
+  pointer-events: none;
+  z-index: 1;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
 }
 
-.cc__bottom-curve svg {
+.cc__bottom-curve-img {
   width: 100%;
-  height: 100%;
+  max-width: 1440px;
+  height: auto;
   display: block;
 }
 

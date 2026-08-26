@@ -127,11 +127,13 @@ export default function CoreCapabilities() {
         </div>
       </div>
 
-      {/* Decorative Bottom Wave Curve */}
+      {/* Decorative Bottom Curve Line */}
       <div className="cc__bottom-curve" aria-hidden="true">
-        <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-          <path d="M0 40 Q 360 80 720 40 T 1440 40" stroke="#D9F1ED" strokeWidth="2" fill="none" />
-        </svg>
+        <img
+          src="/images/Core Capabilities/Vector@2x.png"
+          alt=""
+          className="cc__bottom-curve-img"
+        />
       </div>
     </section>
   );

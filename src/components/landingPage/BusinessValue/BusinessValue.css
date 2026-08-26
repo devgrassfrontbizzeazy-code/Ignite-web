@@ -382,7 +382,7 @@
 
 @media (max-width: 768px) {
   .ignite-business-value {
-    padding: 60px 0 70px;
+    padding: 40px 0 50px;
   }
 
   .ignite-bv__container {
@@ -391,7 +391,7 @@
 
   .ignite-bv__title {
     font-size: 28px;
-    line-height: 40px;
+    line-height: 38px;
   }
 
   .ignite-bv__subtitle {
@@ -402,7 +402,7 @@
   .ignite-bv__cards-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    margin-bottom: 48px;
+    margin-bottom: 40px;
   }
 
   .ignite-cta-banner {
@@ -418,21 +418,50 @@
   .ignite-cta-banner__actions {
     flex-direction: column;
     align-items: stretch;
+    width: 100%;
+  }
+
+  .ignite-cta-banner__btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .ignite-cta-banner__badges {
     flex-wrap: wrap;
     gap: 10px;
+    justify-content: center;
   }
 
   .ignite-cta-banner__mockup-img {
     max-width: 100%;
+    height: auto;
   }
 }
 
 @media (max-width: 520px) {
   .ignite-bv__cards-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .ignite-bv__card {
+    min-height: auto;
+    padding: 24px 20px;
+  }
+
+  .ignite-cta-banner {
+    padding: 28px 16px;
+  }
+
+  .ignite-cta-banner__title {
+    font-size: 22px;
+    line-height: 30px;
+  }
+}
+
+@media (max-width: 400px) {
+  .ignite-bv__container {
+    padding: 0 16px;
   }
 }
 

@@ -24,8 +24,10 @@ const Navbar = () => {
 
         {/* Mobile Menu Toggle */}
         <button
-          className="mobile-menu-toggle"
+          className={`mobile-menu-toggle ${isMenuOpen ? "active" : ""}`}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-expanded={isMenuOpen}
+          aria-label="Toggle navigation menu"
         >
           <span></span>
           <span></span>
