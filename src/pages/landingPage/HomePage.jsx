@@ -2,9 +2,10 @@ import React from 'react';
 import Navbar from '../../components/landingPage/Navbar/Navbar';
 import Hero from '../../components/landingPage/Hero/Hero';
 import BusinessChallenges from '../../components/landingPage/BusinessChallenges/BusinessChallenges';
-import Footer from '../../components/landingPage/Footer/Footer';
-import BusinessValue from '../../components/landingPage/BusinessValue/BusinessValue';
+import CoreCapabilities from '../../components/landingPage/CoreCapabilities/CoreCapabilities';
 import HowIgniteWorks from '../../components/landingPage/HowIgniteWorks/HowIgniteWorks';
+import BusinessValue from '../../components/landingPage/BusinessValue/BusinessValue';
+import Footer from '../../components/landingPage/Footer/Footer';
 import './HomePage.css';
 
 const HomePage = () => {
@@ -13,6 +14,7 @@ const HomePage = () => {
       <Navbar />
       <Hero />
       <BusinessChallenges />
+      <CoreCapabilities />
       <HowIgniteWorks />
       <BusinessValue />
       <Footer />
