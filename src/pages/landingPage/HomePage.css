@@ -1,0 +1,36 @@
+/* Home Page */
+.home-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Ensure proper text rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reset default margins */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  padding: 0;
+}
+
+p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Global responsive adjustments */
+@media (max-width: 1440px) {
+  
+}

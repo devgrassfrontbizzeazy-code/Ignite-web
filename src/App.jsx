@@ -1,18 +1,8 @@
-import React from 'react'
-import HowIgniteWorks from './components/HowIgniteWorks/HowIgniteWorks'
-import BusinessValue from './components/BusinessValue/BusinessValue'
-import Footer from './components/Footer/Footer'
+import HomePage from './pages/landingPage/HomePage';
+import './App.css';
 
 function App() {
-  return (
-    <div className="app-layout">
-      <main>
-        <HowIgniteWorks />
-        <BusinessValue />
-      </main>
-      <Footer />
-    </div>
-  )
+  return <HomePage />;
 }
 
-export default App
+export default App;

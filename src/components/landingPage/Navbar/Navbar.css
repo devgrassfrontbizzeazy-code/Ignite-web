@@ -1,0 +1,571 @@
+/* =========================================================
+   NAVBAR
+========================================================= */
+
+.navbar {
+  width: 100%;
+  height: 112px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 40px;
+
+  background: #ffffff;
+
+  position: relative;
+  z-index: 100;
+
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+  box-sizing: border-box;
+}
+
+.navbar-container {
+  width: 100%;
+  max-width: 1440px;
+  height: 100%;
+
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: 220px 1fr 271px;
+  align-items: center;
+
+  column-gap: 40px;
+}
+
+/* =========================================================
+   LOGO
+========================================================= */
+
+
+.navbar-logo {
+  width: 220px;
+  height: 73.33px;
+
+  display: flex;
+  align-items: center;
+
+  flex-shrink: 0;
+}
+
+.navbar-logo-image {
+  width: 220px;
+  height: 73.33px;
+
+  display: block;
+
+  object-fit: contain;
+}
+
+
+/* =========================================================
+   DESKTOP NAVIGATION
+========================================================= */
+
+.navbar-nav {
+  display: contents;
+}
+.nav-items {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  grid-column: 2;
+
+  list-style: none;
+
+  margin: 0;
+  padding: 0;
+
+  gap: 40px;
+}
+
+.nav-item {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  flex-shrink: 0;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 8px 0;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+}
+
+.nav-label {
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+
+  font-size: 18px;
+  line-height: 24px;
+
+  color: #071629;
+
+  transition: color 0.25s ease;
+}
+
+.nav-item:hover .nav-label {
+  color: #007565;
+}
+
+
+/* Dropdown Chevron */
+
+.chevron-icon {
+  flex-shrink: 0;
+}
+
+.chevron-icon path {
+  transition: stroke 0.25s ease;
+}
+
+.nav-item:hover .chevron-icon path {
+  stroke: #007565;
+}
+
+
+/* =========================================================
+   HOVER UNDERLINE
+========================================================= */
+
+.nav-hover-indicator {
+  position: absolute;
+
+  left: 0;
+  bottom: -3px;
+
+  width: 100%;
+  height: 2px;
+
+  background: #007565;
+
+  border-radius: 2px;
+
+  transform: scaleX(0);
+  transform-origin: left center;
+
+  transition: transform 0.3s ease;
+}
+
+.nav-item:hover .nav-hover-indicator {
+  transform: scaleX(1);
+}
+
+
+/* =========================================================
+   HEADER ACTIONS
+========================================================= */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 16px;
+
+  width: 271px;
+  height: 50px;
+
+  grid-column: 3;
+
+  margin: 0;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   BUTTON BASE
+========================================================= */
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  height: 50px;
+
+  padding: 12px 20px;
+
+  border-radius: 8px;
+
+  font-family: 'Manrope', sans-serif;
+  font-style: normal;
+  font-weight: 600;
+
+  font-size: 16px;
+  line-height: 20px;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  transition:
+    background 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+.btn-login {
+  width: 90px;
+
+  background: #ffffff;
+
+  border: 1px solid #d7dee7;
+
+  color: #071629;
+
+  flex-shrink: 0;
+}
+
+.btn-login:hover {
+  background: #f7f9fb;
+  border-color: #b8c5d6;
+}
+
+
+/* =========================================================
+   GET STARTED
+========================================================= */
+
+.btn-get-started {
+  width: 165px;
+
+  background: #f2a000;
+
+  border: 1px solid #f2a000;
+
+  color: #071629;
+
+  flex-shrink: 0;
+}
+
+.btn-get-started:hover {
+  background: #e09100;
+  border-color: #e09100;
+}
+
+.btn-get-started svg {
+  width: 18px;
+  height: 18px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MOBILE MENU BUTTON
+========================================================= */
+
+.mobile-menu-toggle {
+  display: none;
+
+  width: 36px;
+  height: 36px;
+
+  padding: 0;
+
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  background: transparent;
+  border: none;
+
+  cursor: pointer;
+}
+
+.mobile-menu-toggle span {
+  width: 24px;
+  height: 2px;
+
+  background: #071629;
+
+  border-radius: 2px;
+
+  transition: all 0.25s ease;
+}
+
+
+/* =========================================================
+   TABLET
+   Keep complete navbar visible
+========================================================= */
+
+@media (max-width: 1100px) {
+
+  .navbar {
+    padding: 0 24px;
+  }
+
+  .navbar-container {
+    gap: 24px;
+    grid-template-columns: 170px minmax(0, 1fr) 226px;
+  }
+
+  .navbar-logo,
+  .navbar-logo-image {
+    width: 170px;
+    height: auto;
+  }
+
+  .nav-items {
+    gap: 14px;
+  }
+
+  .nav-label {
+    font-size: 15px;
+    line-height: 20px;
+  }
+
+  .header-actions {
+    width: 226px;
+    gap: 10px;
+  }
+
+  .btn {
+    height: 46px;
+
+    padding: 10px 12px;
+
+    font-size: 14px;
+  }
+
+  .btn-login {
+    width: 76px;
+  }
+
+  .btn-get-started {
+    width: 140px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   Only mobile switches to hamburger
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .navbar-container {
+    display: flex;
+    align-items: center;
+  }
+
+  .navbar {
+    height: 70px;
+
+    padding: 0 20px;
+  }
+
+  .navbar-container {
+    gap: 0;
+  }
+
+
+  /* Logo */
+
+  .navbar-logo {
+    width: auto;
+    height: auto;
+
+    flex: 1;
+  }
+
+  .navbar-logo-image {
+    width: 160px;
+    height: auto;
+  }
+
+
+  /* Hide desktop buttons */
+
+  .header-actions {
+    display: none;
+  }
+
+
+  /* Show hamburger */
+
+  .mobile-menu-toggle {
+    display: flex;
+
+    margin-left: auto;
+
+    flex-shrink: 0;
+  }
+
+
+  /* Mobile dropdown */
+
+  .navbar-nav {
+    position: absolute;
+
+    top: 70px;
+    left: 0;
+
+    width: 100%;
+
+    height: auto;
+
+    display: none;
+
+    flex-direction: column;
+    align-items: stretch;
+
+    margin: 0;
+
+    padding: 20px;
+
+    background: #ffffff;
+
+    box-sizing: border-box;
+
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .navbar-nav.active {
+    display: flex;
+  }
+
+
+  /* Mobile links */
+
+  .nav-items {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0;
+  }
+
+  .nav-item {
+    width: 100%;
+
+    padding: 15px 0;
+
+    border-bottom: 1px solid #f1f3f5;
+  }
+
+  .nav-item:last-child {
+    border-bottom: none;
+  }
+
+  .nav-link {
+    width: 100%;
+
+    padding: 0;
+  }
+
+  .nav-label {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+
+  /* Remove desktop hover line on mobile */
+
+  .nav-hover-indicator {
+    display: none;
+  }
+
+
+  /* =====================================================
+     IMPORTANT:
+     Mobile buttons are displayed inside the nav dropdown
+     ===================================================== */
+
+  .navbar-nav .header-actions {
+    display: flex;
+
+    width: 100%;
+    height: auto;
+
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 12px;
+
+    margin-top: 20px;
+    padding-top: 20px;
+
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .navbar-nav .header-actions .btn {
+    width: 100%;
+    height: 48px;
+
+    font-size: 15px;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .navbar {
+    height: 64px;
+
+    padding: 0 16px;
+  }
+
+  .navbar-logo-image {
+    width: 145px;
+  }
+
+  .navbar-nav {
+    top: 64px;
+
+    padding: 16px;
+  }
+
+  .nav-item {
+    padding: 14px 0;
+  }
+
+  .nav-label {
+    font-size: 15px;
+  }
+
+  .mobile-menu-toggle {
+    width: 34px;
+    height: 34px;
+  }
+}

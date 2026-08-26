@@ -1,0 +1,767 @@
+/* Business Challenges Section */
+
+.business-challenges {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 52px 26px;
+  gap: 20px;
+  isolation: isolate;
+  width: 100%;
+  max-width: 1440px;
+  height: auto;
+  background: #FFFFFF;
+  margin: 70px auto 0;
+}
+
+/* Background Decorative Dots */
+.challenges-background-dots {
+  position: absolute;
+  width: 1440px;
+  height: 180px;
+  left: 0;
+  top: 14px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Section Header */
+.challenges-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 1336px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 23px;
+  letter-spacing: 1.5px;
+  color: #056E59;
+  height: 23px;
+}
+
+.eyebrow-underline {
+  width: 42px;
+  height: 2px;
+  background: #05735E;
+  border-radius: 1px;
+}
+
+.section-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 50px;
+  font-weight: 600;
+  line-height: 48px;
+  color: #08172E;
+  margin: 0;
+  max-width: none;
+  width: max-content;
+  white-space: nowrap;
+  padding: 10px;
+}
+
+.section-title .highlight {
+  color: #056E59;
+}
+
+.section-description {
+  font-family: 'Manrope', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 27px;
+  color: #404A5E;
+  margin: 0;
+  max-width: 585px;
+}
+
+/* Challenges Frame Container */
+.challenges-frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 1336px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Challenge Cards Container */
+.challenge-cards-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  width: 100%;
+  flex-wrap: nowrap;
+  margin-bottom: 20px;
+}
+
+/* Individual Challenge Card */
+.challenge-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px;
+  width: 316px;
+  height: auto;
+  min-height: 356px;
+  background: #FFFFFF;
+  border: 1px solid #E8F0F2;
+  border-radius: 18px;
+  box-shadow: 0px 8px 24px rgba(8, 31, 51, 0.1);
+  flex-shrink: 0;
+}
+
+/* Card Illustration Area */
+.card-illustration {
+  width: 100%;
+  height: 150px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.illustration-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.illustration-content svg {
+  width: 100%;
+  height: 100%;
+}
+
+.challenge-illustration-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+}
+
+.illustration-content {
+  z-index: 0;
+}
+
+/* Card Content */
+.card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Card Title Row */
+.card-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 36px;
+}
+
+/* Number Badge */
+.number-badge {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+/* Card Title */
+.card-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 23px;
+  color: #081A33;
+  margin: 0;
+  flex-grow: 1;
+  word-wrap: break-word;
+}
+
+/* Card Description */
+.card-description {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 24px;
+  color: #334057;
+  margin: 0;
+  width: 100%;
+}
+
+/* IGNITE Overview Panel */
+.ignite-overview-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 32px;
+  padding: 34px 50px;
+  width: 100%;
+  max-width: 1336px;
+  height: auto;
+  background: linear-gradient(90deg, #033838 0%, #03262E 55%, #034240 100%);
+  box-shadow: 0px 10px 24px rgba(5, 26, 38, 0.18);
+  border-radius: 18px;
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+}
+
+/* Panel Dots Background */
+.panel-dots {
+  position: absolute;
+  width: 240px;
+  height: 180px;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 0;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+/* Overview Content */
+.overview-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  z-index: 1;
+}
+
+.overview-eyebrow {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 19px;
+  color: #08D4B0;
+  letter-spacing: 0.5px;
+}
+
+.overview-underline {
+  width: 36px;
+  height: 2px;
+  background: #08D4B0;
+  border-radius: 1px;
+}
+
+.overview-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 38px;
+  color: #FFFFFF;
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.overview-highlight {
+  color: #08D4B0;
+}
+
+.overview-description {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 23px;
+  color: #FFFFFF;
+  margin: 0;
+  max-width: 399px;
+}
+
+/* Feature Grid */
+.feature-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 34px;
+  width: 100%;
+  max-width: 389px;
+}
+
+.feature-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.feature-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  height: 20px;
+  color: #FFFFFF;
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 19px;
+}
+
+.feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #0EB29A;
+  border-radius: 3px;
+  flex-shrink: 0;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+/* Panel Divider */
+.panel-divider {
+  width: 1px;
+  height: 260px;
+  background: rgba(8, 191, 161, 0.35);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* Ecosystem Diagram */
+.ecosystem-diagram {
+  position: relative;
+  width: 100%;
+  max-width: 699px;
+  height: 274px;
+  flex-shrink: 0;
+  z-index: 3;
+}
+
+.ecosystem-illustration-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 5;
+}
+
+.ecosystem-diagram > :not(.ecosystem-illustration-image) {
+  visibility: hidden;
+}
+
+/* Solution Cards */
+.solution-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 22px 20px;
+  position: absolute;
+  width: 170px;
+  height: 230px;
+  border-radius: 18px;
+  z-index: 3;
+}
+
+.hrms-card {
+  background: rgba(3, 51, 48, 0.72);
+  border: 1px solid #05B89C;
+  left: 0;
+  top: 22px;
+}
+
+.field-sales-card {
+  background: rgba(56, 46, 13, 0.72);
+  border: 1px solid #FF9605;
+  right: 0;
+  top: 22px;
+}
+
+.product-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 44px;
+}
+
+.product-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hrms-icon {
+  background: #10B89E;
+}
+
+.field-sales-icon {
+  background: #FF9800;
+}
+
+.product-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.product-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+}
+
+.product-brand {
+  font-family: 'Manrope', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  color: #FFFFFF;
+}
+
+.product-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 17px;
+  color: #05B89C;
+}
+
+.field-sales-card .product-name {
+  color: #FF9605;
+}
+
+.product-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(5, 184, 156, 0.75);
+}
+
+.field-sales-card .product-divider {
+  background: rgba(255, 150, 5, 0.75);
+}
+
+.product-description {
+  font-family: 'Manrope', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 23px;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+/* IGNITE Hub */
+.ignite-hub {
+  position: absolute;
+  width: 230px;
+  height: 274px;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-rings {
+  position: absolute;
+  width: 230px;
+  height: 230px;
+  left: 0;
+  top: 20px;
+}
+
+.hub-ring {
+  position: absolute;
+  border-radius: 50%;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.35;
+}
+
+.ring-1 {
+  width: 230px;
+  height: 230px;
+  background: #063F43;
+  border: 1px solid #0E7D74;
+  left: 0;
+  top: 0;
+}
+
+.ring-2 {
+  width: 206px;
+  height: 206px;
+  background: #064D4C;
+  border: 1px solid #0B8B7C;
+  left: 12px;
+  top: 12px;
+}
+
+.ring-3 {
+  width: 180px;
+  height: 180px;
+  background: #087168;
+  border: 1px solid #18B7A2;
+  left: 25px;
+  top: 25px;
+  opacity: 0.32;
+}
+
+.hub-hexagon {
+  position: absolute;
+  width: 154px;
+  height: 180px;
+  left: 38px;
+  top: 47px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.hub-hexagon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ignite-mark {
+  position: absolute;
+  width: 61.52px;
+  height: 64.84px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ignite-mark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.ignite-label {
+  position: absolute;
+  width: 72px;
+  height: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 30px;
+  color: #081A2E;
+  text-align: center;
+  z-index: 2;
+}
+
+/* Network Connectors */
+.network-connectors {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  z-index: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .business-challenges {
+    padding: 24px 32px 20px;
+  }
+
+  .challenge-cards-container {
+    gap: 20px;
+  }
+
+  .challenge-card {
+    width: 280px;
+    min-height: 320px;
+  }
+
+  .ignite-overview-panel {
+    flex-direction: column;
+    gap: 20px;
+    padding: 28px 32px;
+  }
+
+  .panel-divider {
+    width: 100%;
+    height: 1px;
+    margin: 10px 0;
+  }
+
+  .ecosystem-diagram {
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .overview-content {
+    max-width: 100%;
+  }
+
+  .feature-grid {
+    width: 100%;
+    max-width: 100%;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .business-challenges {
+    padding: 20px 24px 16px;
+    gap: 16px;
+  }
+
+  .section-title {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  .section-description {
+    font-size: 15px;
+    line-height: 24px;
+  }
+
+  .challenge-cards-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .challenge-card {
+    width: 100%;
+    max-width: 316px;
+  }
+
+  .ignite-overview-panel {
+    padding: 20px 24px;
+    gap: 16px;
+  }
+
+  .ecosystem-diagram {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .hrms-card,
+  .field-sales-card {
+    position: relative;
+    width: 100%;
+    max-width: none;
+    left: 0;
+    right: 0;
+    top: 0;
+  }
+
+  .ignite-hub {
+    position: relative;
+    left: 0;
+    transform: none;
+    width: 100%;
+  }
+
+  .overview-title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .feature-grid {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .business-challenges {
+    padding: 16px 16px 12px;
+  }
+
+  .section-title {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .challenge-card {
+    padding: 16px;
+    min-height: auto;
+  }
+
+  .card-illustration {
+    height: 120px;
+  }
+
+  .ignite-overview-panel {
+    padding: 16px;
+  }
+
+  .panel-dots {
+    display: none;
+  }
+
+  .overview-content {
+    gap: 10px;
+  }
+
+  .overview-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .overview-description {
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .feature-item {
+    font-size: 13px;
+  }
+
+  .section-description br {
+    display: none;
+  }
+}
