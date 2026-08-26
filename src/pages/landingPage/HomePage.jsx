@@ -13,8 +13,8 @@ const HomePage = () => {
       <Navbar />
       <Hero />
       <BusinessChallenges />
-      <BusinessValue />
       <HowIgniteWorks />
+      <BusinessValue />
       <Footer />
     </div>
   );

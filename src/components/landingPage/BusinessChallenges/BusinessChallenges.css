@@ -12,13 +12,14 @@
   max-width: 1440px;
   height: auto;
   background: #FFFFFF;
-  margin: 70px auto 0;
+  margin: 20px auto 0;
 }
 
 /* Background Decorative Dots */
 .challenges-background-dots {
   position: absolute;
-  width: 1440px;
+  width: 100%;
+  max-width: 1440px;
   height: 180px;
   left: 0;
   top: 14px;
@@ -60,12 +61,13 @@
   font-family: 'Manrope', sans-serif;
   font-size: 50px;
   font-weight: 600;
-  line-height: 48px;
+  line-height: 42px;
   color: #08172E;
   margin: 0;
-  max-width: none;
-  width: max-content;
-  white-space: nowrap;
+  max-width: 100%;
+  width: 100%;
+  white-space: normal;
+  box-sizing: border-box;
   padding: 10px;
 }
 
@@ -101,10 +103,13 @@
   flex-direction: row;
   justify-content: center;
   align-items: flex-start;
-  gap: 24px;
+  gap: 20px;
   width: 100%;
+  max-width: 1336px;
   flex-wrap: nowrap;
   margin-bottom: 20px;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Individual Challenge Card */
@@ -115,14 +120,15 @@
   align-items: flex-start;
   gap: 12px;
   padding: 20px;
-  width: 316px;
+  width: 310px;
+  min-width: 0;
   height: auto;
   min-height: 356px;
   background: #FFFFFF;
   border: 1px solid #E8F0F2;
   border-radius: 18px;
   box-shadow: 0px 8px 24px rgba(8, 31, 51, 0.1);
-  flex-shrink: 0;
+  flex: 1 1 0;
 }
 
 /* Card Illustration Area */
@@ -225,12 +231,17 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 32px;
+  gap: 40px;
   padding: 34px 50px;
   width: 100%;
   max-width: 1336px;
-  height: auto;
-  background: linear-gradient(90deg, #033838 0%, #03262E 55%, #034240 100%);
+  min-height: 342px;
+  background: linear-gradient(
+    90deg,
+    #033838 0%,
+    #03262E 55%,
+    #034240 100%
+  );
   box-shadow: 0px 10px 24px rgba(5, 26, 38, 0.18);
   border-radius: 18px;
   position: relative;
@@ -257,8 +268,9 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 13px;
-  width: 100%;
-  max-width: 500px;
+  width: 420px;
+  max-width: 420px;
+  flex-shrink: 0;
   position: relative;
   z-index: 1;
 }
@@ -286,12 +298,12 @@
   line-height: 38px;
   color: #FFFFFF;
   margin: 0;
-  word-wrap: break-word;
+  max-width: 420px;
 }
-
 .overview-highlight {
   color: #08D4B0;
 }
+
 
 .overview-description {
   font-family: 'Manrope', sans-serif;
@@ -300,23 +312,21 @@
   line-height: 23px;
   color: #FFFFFF;
   margin: 0;
-  max-width: 399px;
+  max-width: 400px;
 }
 
 /* Feature Grid */
 .feature-grid {
-  display: flex;
-  flex-direction: row;
-  gap: 34px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 28px;
+  row-gap: 12px;
   width: 100%;
-  max-width: 389px;
+  max-width: 420px;
 }
 
 .feature-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
+  display: contents;
 }
 
 .feature-item {
@@ -330,6 +340,7 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 19px;
+  white-space: nowrap;
 }
 
 .feature-icon {
@@ -359,9 +370,9 @@
 /* Ecosystem Diagram */
 .ecosystem-diagram {
   position: relative;
-  width: 100%;
-  max-width: 699px;
-  height: 274px;
+  width: 590px;
+  max-width: 100%;
+  height: 235px;
   flex-shrink: 0;
   z-index: 3;
 }
@@ -623,6 +634,10 @@
     min-height: 320px;
   }
 
+  .challenges-background-dots {
+    width: 100%;
+  }
+
   .ignite-overview-panel {
     flex-direction: column;
     gap: 20px;
@@ -684,8 +699,10 @@
   }
 
   .ecosystem-diagram {
+    width: 100%;
     max-width: 100%;
     height: auto;
+    aspect-ratio: 590 / 235;
   }
 
   .hrms-card,

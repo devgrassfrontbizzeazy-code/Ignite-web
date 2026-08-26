@@ -32,32 +32,37 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 0;
   gap: 40px;
-  width: min(1478px, calc(100% - 96px));
-  max-width: 1478px;
+
+  width: min(1600px, calc(100% - 64px));
+  max-width: 1600px;
   margin: 0 auto;
+
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
+  padding: 0 32px;
 }
 
+/* Hero Copy */
 .hero-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 0;
   gap: 24px;
-  width: 650px;
-  min-width: 650px;
-  flex-shrink: 0;
+
+  width: 560px;
+  min-width: 560px;
+  flex: 0 1 560px;
 }
 
 .hero-headline {
-  width: 650px;
+  width: 560px;
+  max-width: 100%;
   margin: 0;
   padding: 0;
+
   font-family: 'Manrope', sans-serif;
-  font-style: normal;
   font-weight: 800;
   font-size: 58px;
   line-height: 68px;
@@ -65,21 +70,26 @@
   color: #071629;
 }
 
+
+
+
 /* Eyebrow Pill */
 .eyebrow-pill {
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
-  padding: 6px 12px;
-  width: 450px;
-  height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+  width: auto;
+  max-width: 100%;
+  height: auto;
   background: #E4F3F1;
   border-radius: 999px;
   flex: none;
   order: 0;
   flex-grow: 0;
 }
-
+ 
 .eyebrow {
   font-family: 'Manrope', sans-serif;
   font-style: normal;
@@ -90,6 +100,7 @@
   flex: none;
   order: 0;
   flex-grow: 0;
+  white-space: nowrap;
 }
 
 /* Hero Headline */
@@ -108,7 +119,8 @@
 
 /* Hero Description */
 .hero-description {
-  width: 650px;
+   width: 100%;
+  max-width: 560px;
   margin: 0;
   padding: 0;
   font-family: 'Manrope', sans-serif;
@@ -279,44 +291,43 @@
 
 /* Product Visual Stage */
 .product-visual-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 0;
-  width: 814px;
-  height: 604px;
-  flex: none;
-  order: 1;
-  flex-grow: 0;
   position: relative;
+
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+
+  height: auto;
+  aspect-ratio: 814 / 604;
+
   isolation: isolate;
 }
 
 /* Desktop Mockup */
 .desktop-mockup {
   position: absolute;
-  width: 814px;
-  height: 604px;
-  left: 0;
-  top: 0;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
   background: transparent;
   border: 0;
   box-shadow: none;
   border-radius: 0;
-  flex: none;
-  order: 0;
-  flex-grow: 0;
-  z-index: 0;
+
   overflow: visible;
 }
 
 .desktop-image {
+  display: block;
+
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  display: block;
-}
 
+  object-fit: contain;
+  object-position: center;
+}
 /* Mobile Mockup */
 .mobile-mockup {
   position: absolute;
@@ -349,7 +360,7 @@
 
 @media (max-width: 1500px) and (min-width: 1025px) {
   .hero-body {
-    width: calc(100% - 80px);
+    width: calc(100% - 64px);
     gap: 40px;
   }
 
@@ -373,13 +384,13 @@
 
   .product-visual-stage,
   .desktop-mockup {
-    width: 700px;
-    height: 520px;
+    width: auto;
+    height: auto;
   }
 
   .desktop-image {
-    width: 700px;
-    height: 520px;
+    width: 100%;
+    height: 100%;
   }
 
   .trust-points {
@@ -499,10 +510,22 @@
 
   .hero-body {
     gap: 30px;
+    padding: 0;
   }
 
   .hero-copy {
     width: 100%;
+  }
+  .eyebrow-pill {
+    width: auto;
+    max-width: 100%;
+    padding: 6px 14px;
+  }
+ 
+  .eyebrow {
+    font-size: 13px;
+    line-height: 15px;
+    white-space: normal;
   }
 
   .hero-headline {
@@ -522,6 +545,7 @@
     width: 100%;
     height: auto;
     min-height: 400px;
+    position: relative;
   }
 
   .mobile-mockup {
@@ -546,6 +570,7 @@
   .hero-body {
     flex-direction: column;
     gap: 40px;
+    padding: 0;
   }
 
   .hero-copy {
@@ -554,7 +579,15 @@
   }
 
   .eyebrow-pill {
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    padding: 6px 14px;
+  }
+ 
+  .eyebrow {
+    font-size: 13px;
+    line-height: 15px;
+    white-space: normal;
   }
 
   .hero-headline {
@@ -594,6 +627,7 @@
   .desktop-mockup {
     width: 100%;
     height: 300px;
+    position: relative;
   }
 
   .mobile-mockup {
@@ -616,14 +650,21 @@
 
   .hero-body {
     gap: 30px;
+    padding: 0;
   }
 
   .hero-copy {
     gap: 16px;
   }
 
+  .eyebrow-pill {
+    padding: 5px 12px;
+  }
+ 
   .eyebrow {
     font-size: 11px;
+    line-height: 14px;
+    white-space: normal;
   }
 
   .hero-headline {
@@ -669,6 +710,7 @@
 
   .desktop-mockup {
     height: 250px;
+    position: relative;
   }
 
   .solutions-card {
@@ -698,7 +740,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .hero-section {
     min-height: 0;
     padding: 48px 32px 64px;
@@ -710,6 +752,7 @@
     flex-direction: column;
     gap: 44px;
     align-items: stretch;
+    padding: 0;
   }
 
   .hero-copy {
@@ -784,6 +827,7 @@
 
   .hero-body {
     gap: 34px;
+    padding: 0;
   }
 
   .eyebrow-pill {
@@ -853,4 +897,3 @@
     display: none;
   }
 }
-

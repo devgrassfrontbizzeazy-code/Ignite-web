@@ -119,7 +119,7 @@ const BusinessChallenges = () => {
           <div className="overview-content">
             <div className="overview-eyebrow">IGNITE OVERVIEW</div>
             <div className="overview-underline"></div>
-            <h3 className="overview-title">One platform. <span className="overview-highlight">Connected ecosystem</span></h3>
+            <h3 className="overview-title">One platform. <br /><span className="overview-highlight">Connected ecosystem</span></h3>
             <p className="overview-description">
               IGNITE brings your people, processes and operations together in a single platform built to simplify the way businesses work.
             </p>
