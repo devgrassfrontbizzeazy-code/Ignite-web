@@ -188,13 +188,13 @@ export default function Footer() {
             </div>
           ))}
         </div>
-      </div>
 
-      {/* Bottom Bar */}
-      <div className="ignite-footer__bottom">
-        <p className="ignite-footer__copyright">
-          © {new Date().getFullYear()} IGNITE. All rights reserved.
-        </p>
+        {/* Bottom Bar */}
+        <div className="ignite-footer__bottom">
+          <p className="ignite-footer__copyright">
+            © {new Date().getFullYear()} IGNITE. All rights reserved.
+          </p>
+        </div>
       </div>
 
       {/* Decorative Dotted Wave */}
