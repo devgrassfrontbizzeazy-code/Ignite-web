@@ -1,6 +1,6 @@
 import React from "react";
 import "./Hero.css";
-import heroImage from "../../../assets/landing/hero.png";
+import heroImage from "../../../assets/landing/hero.jpg";
 import secureIcon from "../../../assets/landing/secure.png";
 import accessIcon from "../../../assets/landing/access.png";
 import scalableIcon from "../../../assets/landing/scalable.png";

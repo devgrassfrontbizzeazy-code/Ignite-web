@@ -1,0 +1,665 @@
+/* Our Solutions Section */
+.our-solutions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 52px 26px;
+  gap: 16px;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  background: #ffffff;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 1336px;
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  position: relative;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 22px;
+  letter-spacing: 1.5px;
+  color: #05705c;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.eyebrow-underline {
+  width: 42px;
+  height: 2px;
+  background: #05735E;
+  border-radius: 1px;
+}
+.section-title {
+  width: 702px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 44px;
+  line-height: 52px;
+  text-align: center;
+  color: #08172e;
+  margin: 0;
+}
+
+.section-title .highlight-teal {
+  color: #05856b;
+}
+
+.section-description {
+  width: 523px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 27px;
+  text-align: center;
+  color: #404a5e;
+  margin: 0;
+}
+
+/* Solution Cards */
+.our-solutions .solution-card {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 24px 15px 40px;
+  gap: 20px;
+  width: 1336px;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0px 6px 20px rgba(8, 31, 46, 0.06);
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* HRMS Card */
+.our-solutions .hrms-card {
+  border: 1px solid #bfe6de;
+  height: 438px;
+}
+
+/* Field Sales Card */
+.our-solutions .field-sales-card {
+  border: 1px solid #ffd4ab;
+  height: 500px;
+  padding: 15px 24px;
+}
+
+.our-solutions .card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 390px;
+  min-width: 0;
+  height: auto;
+  flex: 0 0 390px;
+  z-index: 1;
+}
+
+/* Product Header */
+.our-solutions .product-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+
+.our-solutions .icon-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.our-solutions .icon-image {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+}
+
+.our-solutions .hrms-icon {
+  background: #078c78;
+}
+
+.our-solutions .field-sales-icon {
+  background: #ff6a00;
+}
+
+.our-solutions .product-name {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.our-solutions .brand {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 29px;
+  color: #08172e;
+  margin: 0;
+}
+
+.our-solutions .product-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 34px;
+  margin: 0;
+}
+
+.our-solutions .hrms-title {
+  color: #05856b;
+}
+
+.our-solutions .field-sales-title {
+  color: #ff6605;
+}
+
+/* Product Description */
+.our-solutions .product-description {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 23px;
+  color: #384559;
+  margin: 8px 0 16px;
+  max-width: 100%;
+}
+
+/* Feature Grid */
+.our-solutions .feature-grid {
+  display: flex;
+  flex-direction: row;
+  gap: 28px;
+  margin-bottom: 16px;
+}
+
+.our-solutions .feature-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.our-solutions .feature-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+}
+
+.our-solutions .check-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.our-solutions .hrms-check {
+  background: #078c78;
+}
+
+.our-solutions .hrms-check::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 3px;
+  border: 1.8px solid white;
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg);
+}
+
+.our-solutions .field-sales-check {
+  background: #ff6a00;
+}
+
+.our-solutions .field-sales-check::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 3px;
+  border: 1.8px solid white;
+  border-top: none;
+  border-right: none;
+  transform: rotate(-45deg);
+}
+
+.our-solutions .feature-item span {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  line-height: 17px;
+  color: #141f30;
+}
+
+/* CTA Button */
+.our-solutions .cta-button {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 0;
+  width: 170px;
+  height: 44px;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 19px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: flex-start;
+}
+
+.our-solutions .cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.our-solutions .hrms-cta {
+  background: #05856b;
+  width: 170px;
+}
+
+.our-solutions .hrms-cta:hover {
+  background: #046d5b;
+}
+
+.our-solutions .field-sales-cta {
+  background: #ff6605;
+  width: 205px;
+}
+
+.our-solutions .field-sales-cta:hover {
+  background: #e55a04;
+}
+
+.our-solutions .cta-button svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Card Visual */
+/* HRMS Visual - 743 x 396 */
+
+.our-solutions .hrms-card .card-visual {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: min(743px, calc(100% - 450px));
+  aspect-ratio: 743 / 396;
+
+  z-index: 0;
+  min-width: 0;
+}
+
+.our-solutions .hrms-card .dashboard-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+
+  max-width: none;
+  max-height: none;
+
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Field Sales Visual */
+/* Field Sales Visual - 720 x 350 */
+
+.our-solutions .field-sales-visual {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: min(720px, calc(100% - 430px));
+  aspect-ratio: 720 / 350;
+
+  max-width: none;
+  z-index: 0;
+  padding: 0;
+}
+
+.our-solutions .workflow-container {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0;
+
+  width: 100%;
+  height: 100%;
+}
+
+.our-solutions .workflow-steps {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+  flex-wrap: nowrap;
+}
+
+.our-solutions .workflow-step {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+}
+
+.our-solutions .step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: #ff6605;
+  border-radius: 13px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 19px;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.our-solutions .step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.our-solutions .step-title {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 18px;
+  color: #0d1729;
+  margin: 0;
+}
+
+.our-solutions .step-description {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 400;
+  font-size: 9.5px;
+  line-height: 14px;
+  color: #4d5766;
+  margin: 0;
+}
+
+/* Workflow Phones Wrapper */
+.our-solutions .workflow-phones-wrapper {
+  position: relative;
+
+  width: 100%;
+  height: 350px;
+  min-height: 0;
+
+  flex: 1;
+  z-index: 2;
+}
+
+/* Workflow Connectors */
+.our-solutions .workflow-connectors {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  z-index: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* Mobile Phones */
+.our-solutions .workflow-phones {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+.our-solutions .mobile-phones-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 1440px) {
+  .our-solutions {
+    padding: 20px 32px;
+    width: 100%;
+  }
+
+  .section-header,
+  .our-solutions .solution-card {
+    width: 100%;
+  }
+
+  .section-title {
+    width: 100%;
+  }
+
+  .section-description {
+    width: 100%;
+  }
+
+}
+
+@media (max-width: 1024px) {
+  .our-solutions {
+    padding: 16px 24px;
+    gap: 12px;
+  }
+
+  .our-solutions .solution-card {
+    flex-direction: column;
+    height: auto;
+    padding: 24px;
+    width: 100%;
+  }
+
+  .our-solutions .card-content {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .our-solutions .card-visual,
+.our-solutions .hrms-card .card-visual,
+.our-solutions .field-sales-visual {
+  position: relative;
+  right: auto;
+  top: auto;
+  transform: none;
+
+  width: 100%;
+  max-width: 743px;
+
+  margin: 24px auto 0;
+}
+
+.our-solutions .hrms-card .card-visual {
+  aspect-ratio: 743 / 396;
+}
+
+.our-solutions .field-sales-visual {
+  max-width: 720px;
+  aspect-ratio: 720 / 350;
+}
+
+  .our-solutions .dashboard-image {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+}
+
+  .our-solutions .workflow-container {
+    gap: 24px;
+  }
+
+  .our-solutions .workflow-steps {
+    width: 100%;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .our-solutions .workflow-step {
+    width: 100%;
+  }
+
+  .our-solutions .workflow-connectors {
+    display: none;
+  }
+
+  .our-solutions .workflow-phones {
+    width: 100%;
+  }
+
+  .our-solutions .workflow-phones-wrapper {
+    height: 300px;
+  }
+
+  .section-title {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  .section-description {
+    font-size: 15px;
+    line-height: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .our-solutions {
+    padding: 12px 16px;
+  }
+
+  .section-header {
+    gap: 6px;
+    width: 100%;
+  }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+
+  .section-title {
+    font-size: 24px;
+    line-height: 32px;
+    width: 100%;
+  }
+
+  .section-description {
+    font-size: 13px;
+    line-height: 20px;
+    width: 100%;
+  }
+
+  .our-solutions .solution-card {
+    padding: 16px;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .our-solutions .product-header {
+    gap: 12px;
+  }
+
+  .our-solutions .icon-box {
+    width: 56px;
+    height: 56px;
+  }
+
+  .our-solutions .product-title {
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .our-solutions .brand {
+    font-size: 16px;
+  }
+
+  .our-solutions .feature-grid {
+    gap: 20px;
+  }
+
+  .our-solutions .cta-button {
+    font-size: 12px;
+    height: 40px;
+    width: auto;
+    padding: 0 16px;
+  }
+
+  .our-solutions .hrms-cta,
+  .our-solutions .field-sales-cta {
+    width: auto;
+  }
+
+  .our-solutions .workflow-steps {
+    gap: 16px;
+  }
+
+  .our-solutions .step-number {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .our-solutions .step-title {
+    font-size: 11px;
+  }
+
+  .our-solutions .step-description {
+    font-size: 8px;
+  }
+
+  .our-solutions .workflow-phones-wrapper {
+    height: 250px;
+  }
+}

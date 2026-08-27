@@ -6,6 +6,8 @@ import CoreCapabilities from '../../components/landingPage/CoreCapabilities/Core
 import HowIgniteWorks from '../../components/landingPage/HowIgniteWorks/HowIgniteWorks';
 import BusinessValue from '../../components/landingPage/BusinessValue/BusinessValue';
 import Footer from '../../components/landingPage/Footer/Footer';
+import OurSolutions from '../../components/landingPage/OurSolutions/OurSolutions';
+
 import './HomePage.css';
 
 const HomePage = () => {
@@ -14,6 +16,7 @@ const HomePage = () => {
       <Navbar />
       <Hero />
       <BusinessChallenges />
+      <OurSolutions />
       <CoreCapabilities />
       <HowIgniteWorks />
       <BusinessValue />

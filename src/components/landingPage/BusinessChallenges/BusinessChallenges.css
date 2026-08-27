@@ -206,7 +206,7 @@
 /* Card Title */
 .card-title {
   font-family: 'Manrope', sans-serif;
-  font-size: 16.5px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 23px;
   color: #081A33;
@@ -218,7 +218,7 @@
 /* Card Description */
 .card-description {
   font-family: 'Manrope', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 24px;
   color: #334057;
