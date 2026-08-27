@@ -1,0 +1,463 @@
+/* Import Montserrat Font */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+/* IGNITE Brand Colors */
+:root {
+  /* Primary Colors */
+  --ignite-deep-teal: #0f3d3e;
+  --ignite-emerald-green: #00a375;
+  --ignite-ignition-gold: #f5a623;
+  --ignite-charcoal: #1a1a1a;
+  
+  /* Supporting Colors */
+  --ignite-soft-gray: #f8f8f8;
+  --ignite-light-bg: #f8fafb;
+  
+  /* Additional */
+  --ignite-error: #e74c3c;
+  --ignite-border: #e0e0e0;
+  --ignite-text-muted: #666666;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: var(--ignite-light-bg);
+  color: var(--ignite-charcoal);
+}
+
+/* Login Container */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+}
+
+/* Background Decorative Elements */
+.login-background-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.background-shape {
+  position: absolute;
+  opacity: 0.05;
+}
+
+.bg-shape-1 {
+  width: 300px;
+  height: 300px;
+  background: linear-gradient(135deg, var(--ignite-emerald-green), var(--ignite-deep-teal));
+  border-radius: 50%;
+  top: -100px;
+  left: -100px;
+}
+
+.bg-shape-2 {
+  width: 200px;
+  height: 200px;
+  background: linear-gradient(45deg, var(--ignite-ignition-gold), var(--ignite-emerald-green));
+  border-radius: 50%;
+  bottom: -50px;
+  right: -50px;
+}
+
+/* Login Card */
+.login-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 60px 40px;
+  max-width: 480px;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+/* Logo Section */
+.login-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+
+.login-logo {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Welcome Section */
+.login-welcome {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.login-welcome h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ignite-charcoal);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.login-welcome p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ignite-text-muted);
+}
+
+/* Error Message */
+.error-message {
+  background-color: #fee;
+  color: var(--ignite-error);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  border-left: 4px solid var(--ignite-error);
+}
+
+/* Form Styling */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ignite-charcoal);
+  margin-bottom: 8px;
+  text-transform: capitalize;
+  letter-spacing: 0.3px;
+}
+
+/* Input Wrapper */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 16px;
+  color: var(--ignite-text-muted);
+  pointer-events: none;
+}
+
+/* Form Input */
+.form-input {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  border: 1.5px solid var(--ignite-border);
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ignite-charcoal);
+  transition: all 0.3s ease;
+  background-color: white;
+}
+
+.form-input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--ignite-emerald-green);
+  box-shadow: 0 0 0 3px rgba(0, 163, 117, 0.1);
+  background-color: #fafbfc;
+}
+
+.form-input:hover {
+  border-color: var(--ignite-text-muted);
+}
+
+/* Password Toggle Button */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ignite-text-muted);
+  transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--ignite-emerald-green);
+}
+
+/* Form Footer */
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  gap: 16px;
+}
+
+/* Remember Me Checkbox */
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--ignite-emerald-green);
+  border-radius: 4px;
+}
+
+.checkbox-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ignite-charcoal);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Links */
+.forgot-password-link,
+.signup-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ignite-emerald-green);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgot-password-link:hover,
+.signup-link:hover {
+  color: var(--ignite-deep-teal);
+}
+
+/* Primary Button (Log In) */
+.login-button {
+  width: 100%;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, var(--ignite-emerald-green) 0%, var(--ignite-deep-teal) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: capitalize;
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 163, 117, 0.15);
+}
+
+.login-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 163, 117, 0.25);
+}
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Divider */
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0;
+  color: var(--ignite-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.form-divider::before,
+.form-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--ignite-border);
+}
+
+/* SSO Button */
+.sso-button {
+  width: 100%;
+  padding: 14px 24px;
+  background: white;
+  color: var(--ignite-emerald-green);
+  border: 1.5px solid var(--ignite-emerald-green);
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: capitalize;
+}
+
+.sso-button:hover {
+  background-color: var(--ignite-light-bg);
+  color: var(--ignite-deep-teal);
+  border-color: var(--ignite-deep-teal);
+}
+
+.sso-button:active {
+  transform: scale(0.98);
+}
+
+.sso-icon {
+  font-size: 16px;
+}
+
+/* Sign Up Prompt */
+.signup-prompt {
+  text-align: center;
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--ignite-border);
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ignite-text-muted);
+}
+
+.signup-link {
+  font-size: 13px;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .login-card {
+    padding: 40px 24px;
+  }
+
+  .login-welcome h1 {
+    font-size: 24px;
+  }
+
+  .form-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .forgot-password-link {
+    align-self: flex-end;
+  }
+
+  .login-logo {
+    height: 40px;
+  }
+
+  .bg-shape-1 {
+    width: 200px;
+    height: 200px;
+    top: -80px;
+    left: -80px;
+  }
+
+  .bg-shape-2 {
+    width: 150px;
+    height: 150px;
+    bottom: -30px;
+    right: -30px;
+  }
+}
+
+@media (max-width: 400px) {
+  .login-card {
+    padding: 32px 16px;
+  }
+
+  .login-welcome h1 {
+    font-size: 20px;
+  }
+
+  .login-button,
+  .sso-button {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+
+  .form-input {
+    font-size: 13px;
+    padding: 10px 14px 10px 36px;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-card {
+  animation: slideIn 0.5s ease-out;
+}
+
+/* Accessibility */
+.form-input:focus-visible,
+.login-button:focus-visible,
+.sso-button:focus-visible {
+  outline: 2px solid var(--ignite-emerald-green);
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .login-background-elements {
+    display: none;
+  }
+}
