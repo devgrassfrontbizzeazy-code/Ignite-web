@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import "./Navbar.css";
 import LightLogo from "../../../assets/logo.png";
 
@@ -6,11 +7,11 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { label: "Home"},
-    { label: "Products", hasDropdown: true },
-    { label: "Features" },
-    { label: "About" },
-    { label: "Contact" },
+    { label: "Home", path: "/" },
+    { label: "Products", hasDropdown: true, path: "#" },
+    { label: "Features", path: "#" },
+    { label: "About", path: "#" },
+    { label: "Contact", path: "/contact" },
   ];
 
   return (
@@ -39,8 +40,8 @@ const Navbar = () => {
           <ul className="nav-items">
             {navItems.map((item, index) => (
               <li key={index} className="nav-item">
-                <a
-                  href="#"
+                <Link
+                  to={item.path || "#"}
                   className={`nav-link ${item.active ? "active" : ""}`}
                 >
                   <span className="nav-label">{item.label}</span>
@@ -62,7 +63,7 @@ const Navbar = () => {
                       />
                     </svg>
                   )}
-                </a>
+                </Link>
                 <div className="nav-hover-indicator"></div>
               </li>
             ))}
