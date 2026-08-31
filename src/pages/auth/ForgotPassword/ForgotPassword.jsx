@@ -1,47 +1,81 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/logo.png';
-import './ForgotPassword.css';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import logo from "../../../assets/logo.png";
+import "./ForgotPassword.css";
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+
+    setError("");
+
+    const trimmedEmail = email.trim();
+
+    // Frontend validation
+    if (!trimmedEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Add your password reset API call here
-      // Example: await sendPasswordResetEmail(email);
-      console.log('Password reset email sent to:', email);
-      setSubmitted(true);
+      /*
+       * Backend password reset API will be connected here.
+       *
+       * Example later:
+       *
+       * await sendPasswordResetEmail(trimmedEmail);
+       *
+       * The backend should return a generic success response
+       * regardless of whether the email exists.
+       */
 
-      // Optionally redirect after 5 seconds
-      // setTimeout(() => navigate('/login'), 5000);
+      console.log("Password reset requested for:", trimmedEmail);
+
+      // Temporary delay to test loading state
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      setEmail(trimmedEmail);
+      setSubmitted(true);
     } catch (err) {
-      setError('Failed to send reset email. Please try again.');
+      setError("Unable to process your request. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleBackToLogin = () => {
-    navigate('/login');
+    navigate("/login");
   };
+
+  const handleTryAnotherEmail = () => {
+    setSubmitted(false);
+    setEmail("");
+    setError("");
+  };
+
+  // ------------------------------------------
+  // SUCCESS STATE
+  // ------------------------------------------
 
   if (submitted) {
     return (
       <div className="forgot-password-container">
+        {/* Background Elements */}
         <div className="background-elements">
           <div className="background-shape bg-shape-1"></div>
           <div className="background-shape bg-shape-2"></div>
         </div>
 
+        {/* Success Card */}
         <div className="forgot-password-card success-card">
           {/* Logo */}
           <div className="card-header">
@@ -56,32 +90,48 @@ const ForgotPassword = () => {
           {/* Success Message */}
           <div className="success-content">
             <h1>Check your email</h1>
-            <p>We've sent a password reset link to:</p>
+
+            <p>
+              If an IGNITE account is associated with this email, we've sent
+              instructions to reset your password.
+            </p>
+
             <p className="email-display">{email}</p>
-            
+
+            {/* Security Information */}
             <div className="security-info">
               <div className="security-item">
                 <span className="security-icon">🔒</span>
+
                 <p>Link expires in 24 hours</p>
               </div>
+
               <div className="security-item">
                 <span className="security-icon">✓</span>
-                <p>Check spam folder if not found</p>
+
+                <p>Check your spam folder if you don't see it</p>
               </div>
             </div>
 
             <p className="help-text">
-              Didn't receive the email? Try checking your spam folder or contact support.
+              Didn't receive the email? Check your spam folder or try again with
+              another email address.
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="success-actions">
-            <button onClick={handleBackToLogin} className="primary-button">
+            <button
+              type="button"
+              onClick={handleBackToLogin}
+              className="primary-button"
+            >
               Back to Login
             </button>
-            <button 
-              onClick={() => setSubmitted(false)} 
+
+            <button
+              type="button"
+              onClick={handleTryAnotherEmail}
               className="secondary-button"
             >
               Try Another Email
@@ -92,90 +142,123 @@ const ForgotPassword = () => {
     );
   }
 
+  // ------------------------------------------
+  // FORGOT PASSWORD FORM
+  // ------------------------------------------
+
   return (
     <div className="forgot-password-container">
+      {/* Background Elements */}
       <div className="background-elements">
         <div className="background-shape bg-shape-1"></div>
         <div className="background-shape bg-shape-2"></div>
       </div>
-
+      {/* Page-level Back Link */}
+      <Link to="/login" className="back-home-link" title="Back to login">
+        <span className="back-arrow">←</span>
+        Back 
+      </Link>
+      {/* Forgot Password Card */}
       <div className="forgot-password-card">
-        {/* Header with Back Button */}
+        {/* Header */}
         <div className="card-header-with-back">
-          <Link to="/login" className="back-button" title="Back to login">
-            ← Back
-          </Link>
+
           <img src={logo} alt="IGNITE Logo" className="card-logo" />
         </div>
 
         {/* Welcome Section */}
         <div className="card-welcome">
           <h1>Forgot your password?</h1>
-          <p>No worries! Enter your email address and we'll send you a link to reset it.</p>
+
+          <p>
+            No worries! Enter your email address and we'll send you a link to
+            reset your password.
+          </p>
         </div>
 
         {/* Step Indicator */}
         <div className="step-indicator">
           <div className="step active">
             <span className="step-number">1</span>
+
             <span className="step-label">Enter Email</span>
           </div>
+
           <div className="step-line"></div>
+
           <div className="step">
             <span className="step-number">2</span>
+
             <span className="step-label">Verify Link</span>
           </div>
+
           <div className="step-line"></div>
+
           <div className="step">
             <span className="step-number">3</span>
+
             <span className="step-label">Reset Password</span>
           </div>
         </div>
 
         {/* Error Message */}
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div className="error-message" role="alert">
+            {error}
+          </div>
+        )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="reset-form">
+        <form onSubmit={handleSubmit} className="reset-form" noValidate>
+          {/* Email Field */}
           <div className="form-group">
             <label htmlFor="email">Email address</label>
+
             <div className="input-wrapper">
-              <span className="input-icon">✉</span>
+              <span className="input-icon" aria-hidden="true">
+                ✉
+              </span>
+
               <input
                 type="email"
                 id="email"
+                name="email"
                 placeholder="Enter your email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
+                autoComplete="email"
+                disabled={loading}
                 className="form-input"
               />
             </div>
+
             <p className="input-hint">
-              Enter the email address associated with your IGNITE account
+              Enter the email address associated with your IGNITE account.
             </p>
           </div>
 
           {/* Security Notice */}
           <div className="security-notice">
             <span className="notice-icon">🔒</span>
-            <p>Your email is safe with us. We'll never share it with anyone.</p>
+
+            <p>
+              We'll send a secure password reset link to this email address.
+            </p>
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={loading}
-          >
-            {loading ? 'Sending link...' : 'Send Reset Link'}
+          <button type="submit" className="submit-button" disabled={loading}>
+            {loading ? "Sending link..." : "Send Reset Link"}
           </button>
         </form>
 
-
-        {/* Support Link */}
+        {/* Support Section */}
         <div className="support-section">
           <p>Need immediate help?</p>
+
           <a href="mailto:support@ignite.com" className="support-link">
             Contact our support team
           </a>

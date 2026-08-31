@@ -1,0 +1,488 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+/* Reuses the IGNITE brand tokens defined in Login.css. Re-declared here so
+   these pages render correctly even if loaded on their own. */
+:root {
+  --ignite-deep-teal: #0f3d3e;
+  --ignite-emerald-green: #00a375;
+  --ignite-ignition-gold: #f5a623;
+  --ignite-charcoal: #1a1a1a;
+  --ignite-soft-gray: #f8f8f8;
+  --ignite-light-bg: #f8fafb;
+  --ignite-error: #e74c3c;
+  --ignite-border: #e0e0e0;
+  --ignite-text-muted: #666666;
+}
+
+/* ------------------------------------------------------------------ */
+/* Page shell                                                          */
+/* ------------------------------------------------------------------ */
+
+.setup-page {
+  min-height: 100vh;
+  background-color: var(--ignite-light-bg);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--ignite-charcoal);
+}
+
+.setup-topbar {
+  background: white;
+  border-bottom: 1px solid var(--ignite-border);
+}
+
+.setup-topbar-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.setup-logo {
+  height: 45px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.setup-content {
+  display: flex;
+  justify-content: center;
+  padding: 40px 24px 64px;
+}
+
+.setup-card {
+  background: white;
+  width: 100%;
+  max-width: 780px;
+  border: 1px solid var(--ignite-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  padding: 40px 44px 36px;
+}
+
+.setup-card--wide {
+  max-width: 860px;
+}
+
+.setup-card--centered {
+  max-width: 520px;
+  text-align: center;
+  padding: 56px 44px;
+}
+
+.setup-card-header {
+  margin-bottom: 32px;
+}
+
+.setup-card-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ignite-deep-teal);
+  letter-spacing: -0.3px;
+  margin-bottom: 6px;
+}
+
+.setup-card-header p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ignite-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Stepper                                                             */
+/* ------------------------------------------------------------------ */
+
+.setup-stepper {
+  display: flex;
+  align-items: flex-start;
+  list-style: none;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.setup-stepper::-webkit-scrollbar {
+  display: none;
+}
+
+.setup-step {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.setup-step-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setup-step-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--ignite-soft-gray);
+  color: var(--ignite-text-muted);
+  border: 1.5px solid var(--ignite-border);
+  transition: all 0.2s ease;
+}
+
+.setup-step--current .setup-step-indicator {
+  background: var(--ignite-emerald-green);
+  border-color: var(--ignite-emerald-green);
+  color: white;
+}
+
+.setup-step--completed .setup-step-indicator {
+  background: var(--ignite-emerald-green);
+  border-color: var(--ignite-emerald-green);
+}
+
+.setup-step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ignite-text-muted);
+  white-space: nowrap;
+}
+
+.setup-step--current .setup-step-label {
+  color: var(--ignite-deep-teal);
+}
+
+.setup-step--completed .setup-step-label {
+  color: var(--ignite-charcoal);
+}
+
+.setup-step-connector {
+  width: 32px;
+  height: 1.5px;
+  background: var(--ignite-border);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+.setup-step--completed + .setup-step .setup-step-connector,
+.setup-step--completed .setup-step-connector {
+  background: var(--ignite-emerald-green);
+}
+
+/* ------------------------------------------------------------------ */
+/* Shared form primitives                                              */
+/* ------------------------------------------------------------------ */
+.setup-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 24px;
+  width: 100%;
+}
+
+.setup-form-grid--single {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
+.setup-form-grid--single > .setup-field {
+  width: 100%;
+  min-width: 0;
+}
+
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.setup-field--full {
+  grid-column: 1 / -1;
+}
+
+.setup-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ignite-charcoal);
+  margin-bottom: 7px;
+}
+
+.setup-required {
+  color: var(--ignite-error);
+  margin-left: 2px;
+}
+
+.setup-input,
+.setup-select {
+  width: 100%;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 14px;
+  border: 1.5px solid var(--ignite-border);
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ignite-charcoal);
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.setup-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23666666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.setup-select:invalid,
+.setup-select[data-placeholder='true'] {
+  color: #999;
+}
+
+.setup-input::placeholder {
+  color: #999;
+  opacity: 1;
+  font-weight: 400;
+}
+
+.setup-input:hover,
+.setup-select:hover {
+  border-color: var(--ignite-text-muted);
+}
+
+.setup-input:focus,
+.setup-select:focus {
+  outline: none;
+  border-color: var(--ignite-emerald-green);
+  box-shadow: 0 0 0 3px rgba(0, 163, 117, 0.1);
+}
+
+.setup-field--error .setup-input,
+.setup-field--error .setup-select {
+  border-color: var(--ignite-error);
+}
+
+.setup-field--error .setup-input:focus,
+.setup-field--error .setup-select:focus {
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+}
+
+.setup-error-text {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ignite-error);
+}
+
+.setup-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ignite-deep-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 4px 0 4px;
+}
+
+/* Upload area */
+
+.setup-upload {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1.5px dashed var(--ignite-border);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--ignite-soft-gray);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.setup-upload:hover,
+.setup-upload:focus-within {
+  border-color: var(--ignite-emerald-green);
+  background: rgba(0, 163, 117, 0.04);
+}
+
+.setup-upload-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid var(--ignite-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setup-upload-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ignite-charcoal);
+}
+
+.setup-upload-text strong {
+  color: var(--ignite-emerald-green);
+  font-weight: 700;
+}
+
+.setup-upload-hint {
+  font-size: 12px;
+  color: var(--ignite-text-muted);
+  margin-top: 2px;
+}
+
+.setup-upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.setup-upload-preview {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ignite-deep-teal);
+}
+
+/* Buttons */
+
+.setup-actions {
+  grid-column: 1 / -1;
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--ignite-border);
+}
+
+.setup-actions--end {
+  justify-content: flex-end;
+}
+.setup-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
+}
+
+.setup-btn-primary {
+  background: var(--ignite-emerald-green);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 163, 117, 0.15);
+}
+
+.setup-btn-primary:hover {
+  background: var(--ignite-deep-teal);
+}
+
+.setup-btn-secondary {
+  background: white;
+  color: var(--ignite-deep-teal);
+  border-color: var(--ignite-border);
+}
+
+.setup-btn-secondary:hover {
+  border-color: var(--ignite-deep-teal);
+  background: var(--ignite-soft-gray);
+}
+
+.setup-btn:focus-visible {
+  outline: 2px solid var(--ignite-emerald-green);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Responsive                                                           */
+/* ------------------------------------------------------------------ */
+
+@media (max-width: 900px) {
+  .setup-topbar-inner {
+    gap: 24px;
+    padding: 16px 20px;
+  }
+
+  .setup-step-label {
+    display: none;
+  }
+
+  .setup-step--current .setup-step-label {
+    display: inline;
+  }
+
+  .setup-step-connector {
+    width: 18px;
+    margin: 0 6px;
+  }
+}
+
+@media (max-width: 720px) {
+  .setup-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-card {
+    padding: 28px 22px 26px;
+    border-radius: 10px;
+  }
+
+  .setup-content {
+    padding: 24px 16px 48px;
+  }
+}
+
+@media (max-width: 480px) {
+  .setup-topbar-inner {
+    padding: 14px 16px;
+    gap: 16px;
+  }
+
+  .setup-logo {
+    height: 30px;
+  }
+
+  .setup-step-indicator {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+
+  .setup-card-header h1 {
+    font-size: 20px;
+  }
+
+  .setup-actions {
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+
+  .setup-actions .setup-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

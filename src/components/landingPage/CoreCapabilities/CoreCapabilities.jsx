@@ -42,7 +42,7 @@ export default function CoreCapabilities() {
   ];
 
   return (
-    <section className="core-capabilities" aria-label="Core Capabilities">
+    <section className="core-capabilities" id="core-capabilities" aria-label="Core Capabilities">
       {/* Decorative Background Dots on Sides */}
       <img
         src="/images/Business Value/Background Dots.svg"

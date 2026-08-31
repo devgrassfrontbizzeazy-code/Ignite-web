@@ -7,7 +7,7 @@ import fieldSalesImage from "../../../assets/landing/field-sales.png";
 
 const OurSolutions = () => {
   return (
-    <section className="our-solutions">
+    <section id="our-solutions" className="our-solutions">
       {/* Section Header */}
       <div className="section-header">
         <div className="eyebrow">OUR SOLUTIONS</div>

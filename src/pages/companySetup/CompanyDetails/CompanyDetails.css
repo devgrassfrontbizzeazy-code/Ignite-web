@@ -1,0 +1,3 @@
+/* Company Details currently relies entirely on the shared primitives in
+   CompanySetupLayout.css. This file is kept so page-specific tweaks have
+   an obvious home without touching shared styles. */

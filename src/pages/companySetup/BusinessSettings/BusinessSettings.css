@@ -1,0 +1,6 @@
+/* Business Settings relies entirely on the shared primitives in
+   CompanySetupLayout.css. Kept for page-specific tweaks later. */
+
+.setup-form-grid--single {
+  grid-template-columns: 1fr;
+}

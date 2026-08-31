@@ -1,29 +1,27 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 import LightLogo from "../../../assets/logo.png";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navItems = [
     { label: "Home", path: "/" },
-    { label: "Products", hasDropdown: true, path: "#" },
-    { label: "Features", path: "#" },
-    { label: "About", path: "#" },
+    { label: "Products", path: "#our-solutions" },
+    { label: "Features", path: "#core-capabilities" },
+    { label: "About", path: "#business-value" },
     { label: "Contact", path: "/contact" },
   ];
 
   return (
     <header className="navbar">
       <div className="navbar-container">
-        {/* Logo */}
-
         <div className="navbar-logo">
           <img src={LightLogo} alt="IGNITE" className="navbar-logo-image" />
         </div>
 
-        {/* Mobile Menu Toggle */}
         <button
           className={`mobile-menu-toggle ${isMenuOpen ? "active" : ""}`}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -35,42 +33,73 @@ const Navbar = () => {
           <span></span>
         </button>
 
-        {/* Primary Navigation */}
         <nav className={`navbar-nav ${isMenuOpen ? "active" : ""}`}>
           <ul className="nav-items">
             {navItems.map((item, index) => (
               <li key={index} className="nav-item">
-                <Link
-                  to={item.path || "#"}
-                  className={`nav-link ${item.active ? "active" : ""}`}
-                >
-                  <span className="nav-label">{item.label}</span>
+                {item.path.startsWith("#") ? (
+                  <a
+                    href={item.path}
+                    onClick={(e) => {
+                      e.preventDefault();
 
-                  {item.hasDropdown && (
-                    <svg
-                      className="chevron-icon"
-                      width="12"
-                      height="12"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                    >
-                      <path
-                        d="M3 4.5L6 7.5L9 4.5"
-                        stroke="#08172A"
-                        strokeWidth="1.35"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                </Link>
+                      const sectionId = item.path.substring(1);
+                      const section = document.getElementById(sectionId);
+
+                      if (section) {
+                        section.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }
+
+                      setIsMenuOpen(false);
+                    }}
+                    className={`nav-link ${item.active ? "active" : ""}`}
+                  >
+                    <span className="nav-label">{item.label}</span>
+
+                    {item.hasDropdown && (
+                      <svg
+                        className="chevron-icon"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                      >
+                        <path
+                          d="M3 4.5L6 7.5L9 4.5"
+                          stroke="#08172A"
+                          strokeWidth="1.35"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </a>
+                ) : (
+                  <Link
+                    to={item.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`nav-link ${item.active ? "active" : ""}`}
+                  >
+                    <span className="nav-label">{item.label}</span>
+                  </Link>
+                )}
+
                 <div className="nav-hover-indicator"></div>
               </li>
             ))}
           </ul>
 
           <div className="header-actions">
-            <button className="btn btn-login">Login</button>
+            <button
+              className="btn btn-login"
+              onClick={() => navigate("/login")}
+            >
+              Login
+            </button>
+
             <button className="btn btn-get-started">
               Get Started
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">

@@ -1,0 +1,44 @@
+.success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--ignite-emerald-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: 0 0 0 8px rgba(0, 163, 117, 0.08);
+}
+
+.success-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.success-heading {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ignite-deep-teal);
+  letter-spacing: -0.3px;
+  margin-bottom: 10px;
+}
+
+.success-subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ignite-charcoal);
+  margin-bottom: 6px;
+}
+
+.success-note {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ignite-text-muted);
+  margin-bottom: 32px;
+}
+
+.success-btn {
+  justify-content: center;
+  width: 100%;
+  max-width: 260px;
+}
