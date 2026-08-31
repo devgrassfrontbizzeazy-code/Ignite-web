@@ -668,6 +668,7 @@
     height: 100%;
   }
 }
+
 @media (max-width: 480px) {
   .hero-section {
     padding: 40px 16px 30px;
@@ -733,7 +734,7 @@
     display: none;
   }
 
-  
+
 
   .solutions-card {
     padding: 16px 14px;
@@ -763,7 +764,7 @@
 }
 
 
-@@media (max-width: 600px) {
+@media (max-width: 600px) {
 
   .hero-section {
     padding: 36px 20px 48px;
