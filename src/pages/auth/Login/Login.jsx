@@ -1,6 +1,6 @@
-
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import logo from "../../../assets/logo.png";
 import "./Login.css";
 
@@ -12,14 +12,13 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Clear previous error
     setError("");
 
-    // Frontend validation
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail) {
@@ -36,17 +35,9 @@ const Login = () => {
 
     try {
       /*
-       * Backend authentication will be connected here.
+       * TEMPORARY FRONTEND AUTHENTICATION
        *
-       * Example later:
-       *
-       * const response = await loginUser({
-       *   email: trimmedEmail,
-       *   password,
-       *   rememberMe,
-       * });
-       *
-       * navigate("/dashboard");
+       * Backend / Supabase authentication will replace this later.
        */
 
       console.log({
@@ -55,8 +46,14 @@ const Login = () => {
         rememberMe,
       });
 
-      // Temporary delay to test loading state
+      // Simulate backend login request
       await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Mark user as authenticated
+      localStorage.setItem("ignite_authenticated", "true");
+
+      // Send user to company setup
+      navigate("/company-setup/company-details");
     } catch (err) {
       setError("Invalid email or password. Please try again.");
     } finally {
@@ -84,14 +81,9 @@ const Login = () => {
 
       {/* Login Card */}
       <div className="login-card">
-
         {/* Logo */}
         <div className="login-header">
-          <img
-            src={logo}
-            alt="IGNITE Logo"
-            className="login-logo"
-          />
+          <img src={logo} alt="IGNITE Logo" className="login-logo" />
         </div>
 
         {/* Welcome Text */}
@@ -102,29 +94,20 @@ const Login = () => {
 
         {/* Error Message */}
         {error && (
-          <div
-            className="error-message"
-            role="alert"
-          >
+          <div className="error-message" role="alert">
             {error}
           </div>
         )}
 
         {/* Login Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="login-form"
-          noValidate
-        >
+        <form onSubmit={handleSubmit} className="login-form" noValidate>
           {/* Email */}
           <div className="form-group">
-            <label htmlFor="email">
-              Email address
-            </label>
+            <label htmlFor="email">Email address</label>
 
             <div className="input-wrapper">
               <div className="input-icon" aria-hidden="true">
-                ✉
+                <Mail size={18} strokeWidth={2} />
               </div>
 
               <input
@@ -146,13 +129,11 @@ const Login = () => {
 
           {/* Password */}
           <div className="form-group">
-            <label htmlFor="password">
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
 
             <div className="input-wrapper">
               <div className="input-icon" aria-hidden="true">
-                🔒
+                <Lock size={18} strokeWidth={2} />
               </div>
 
               <input
@@ -174,56 +155,43 @@ const Login = () => {
                 type="button"
                 className="password-toggle"
                 onClick={togglePasswordVisibility}
-                aria-label={
-                  showPassword
-                    ? "Hide password"
-                    : "Show password"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 disabled={loading}
               >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
+                {showPassword ? (
+                  <EyeOff size={18} strokeWidth={2} />
+                ) : (
+                  <Eye size={18} strokeWidth={2} />
+                )}
               </button>
             </div>
           </div>
 
           {/* Remember Me & Forgot Password */}
           <div className="form-footer">
-
             <div className="remember-me">
               <input
                 type="checkbox"
                 id="remember"
                 name="rememberMe"
                 checked={rememberMe}
-                onChange={(e) =>
-                  setRememberMe(e.target.checked)
-                }
+                onChange={(e) => setRememberMe(e.target.checked)}
                 disabled={loading}
                 className="checkbox-input"
               />
 
-              <label
-                htmlFor="remember"
-                className="checkbox-label"
-              >
+              <label htmlFor="remember" className="checkbox-label">
                 Remember me
               </label>
             </div>
 
-            <Link
-              to="/forgot-password"
-              className="forgot-password-link"
-            >
+            <Link to="/forgot-password" className="forgot-password-link">
               Forgot password?
             </Link>
           </div>
 
           {/* Login Button */}
-          <button
-            type="submit"
-            className="login-button"
-            disabled={loading}
-          >
+          <button type="submit" className="login-button" disabled={loading}>
             {loading ? "Logging in..." : "Log in"}
           </button>
         </form>

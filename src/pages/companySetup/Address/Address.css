@@ -1,3 +1,157 @@
-/* Address relies entirely on the shared primitives in
-   CompanySetupLayout.css. This file is kept so page-specific tweaks have
-   an obvious home without touching shared styles. */
+/* ---------------------------------------------------------
+   Map Location
+--------------------------------------------------------- */
+
+.map-location-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.map-location-display {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid #d8e5e2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f3d3e;
+  font-size: 14px;
+}
+
+.map-location-placeholder {
+  color: #8a9a97;
+}
+
+.map-select-button {
+  min-height: 44px;
+  padding: 0 16px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  border: 1px solid #00a375;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #00a375;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.map-select-button:hover {
+  background: #00a375;
+  color: #ffffff;
+  border-color: #00a375;
+}
+
+.map-picker-wrapper {
+  width: 100%;
+  margin-top: 12px;
+
+  overflow: hidden;
+
+  border: 1px solid #b8ddd4;
+  border-radius: 10px;
+
+  background: #f4fbf9;
+}
+
+.map-picker-wrapper > div:first-child {
+  width: 100%;
+}
+
+.map-helper-text {
+  margin: 0;
+  padding: 10px 14px;
+
+  background: #ffffff;
+  border-top: 1px solid #d8ebe7;
+
+  color: #39716c;
+  font-size: 13px;
+}
+
+.map-loading,
+.map-error {
+  min-height: 320px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: #f4fbf9;
+
+  color: #0f3d3e;
+  font-size: 14px;
+}
+
+.map-error {
+  color: #b42318;
+  background: #fff8f7;
+}
+
+.coordinates-display {
+  display: flex;
+  gap: 24px;
+
+  margin-top: 10px;
+  padding: 10px 14px;
+
+  border-radius: 8px;
+
+  background: #eef9f6;
+  color: #0f3d3e;
+
+  font-size: 13px;
+}
+
+.coordinates-display strong {
+  font-weight: 600;
+}
+
+/* Full address textarea */
+
+.setup-textarea {
+  width: 100%;
+  min-height: 90px;
+
+  resize: vertical;
+
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+/* Responsive */
+
+@media (max-width: 640px) {
+  .map-location-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .map-select-button {
+    width: 100%;
+  }
+
+  .coordinates-display {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+

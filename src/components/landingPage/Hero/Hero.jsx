@@ -81,7 +81,7 @@ const Hero = () => {
             {/* Get Started */}
             <button
               className="cta-primary"
-              onClick={() => navigate("/subscription-plan")}
+              onClick={() => navigate("/signup")}
             >
               Get Started
               <svg

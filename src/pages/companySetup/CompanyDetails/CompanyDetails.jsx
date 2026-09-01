@@ -24,36 +24,12 @@ const INDUSTRY_OPTIONS = [
   "Other",
 ];
 
-const COMPANY_SIZE_OPTIONS = [
-  "1-10",
-  "11-50",
-  "51-100",
-  "101-500",
-  "501-1000",
-  "1000+",
-];
-
-const COUNTRY_OPTIONS = [
-  "India",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "Singapore",
-  "United Arab Emirates",
-  "Other",
-];
-
-const STATE_OPTIONS = [
-  "Maharashtra",
-  "Delhi",
-  "Karnataka",
-  "Haryana",
-  "Tamil Nadu",
-  "Telangana",
-  "Gujarat",
-  "West Bengal",
+const COMPANY_TYPE_OPTIONS = [
+  "Private Limited",
+  "Public Limited",
+  "LLP",
+  "Partnership",
+  "Sole Proprietorship",
   "Other",
 ];
 
@@ -64,16 +40,17 @@ function CompanyDetails() {
 
   const [form, setForm] = useState({
     companyName: companySetupData.companyName,
-    legalName: companySetupData.legalName,
+    companyCode: companySetupData.companyCode,
+    companyLogoName: companySetupData.companyLogoName,
+    companyLogoDataUrl: companySetupData.companyLogoDataUrl,
     industry: companySetupData.industry,
-    companySize: companySetupData.companySize,
     companyEmail: companySetupData.companyEmail,
     phone: companySetupData.phone,
-    country: companySetupData.country,
-    state: companySetupData.state,
-    city: companySetupData.city,
-    postalCode: companySetupData.postalCode,
+    website: companySetupData.website,
+    companyType: companySetupData.companyType,
+    registrationNumber: companySetupData.registrationNumber,
   });
+
   const [logoName, setLogoName] = useState(companySetupData.companyLogoName);
   const [logoError, setLogoError] = useState("");
   const [errors, setErrors] = useState({});
@@ -110,47 +87,52 @@ function CompanyDetails() {
   const validate = () => {
     const nextErrors = {};
 
-    if (isEmpty(form.companyName))
+    if (isEmpty(form.companyName)) {
       nextErrors.companyName = "Company name is required.";
-    if (isEmpty(form.legalName))
-      nextErrors.legalName = "Legal / registered name is required.";
-    if (isEmpty(form.industry))
-      nextErrors.industry = "Please select an industry.";
-    if (isEmpty(form.companySize))
-      nextErrors.companySize = "Please select a company size.";
+    }
 
-    if (!isEmpty(form.companyEmail) && !isValidEmail(form.companyEmail)) {
+    if (isEmpty(form.companyCode)) {
+      nextErrors.companyCode = "Company code is required.";
+    }
+
+    if (isEmpty(form.industry)) {
+      nextErrors.industry = "Please select an industry.";
+    }
+
+    if (isEmpty(form.companyEmail)) {
+      nextErrors.companyEmail = "Company email is required.";
+    } else if (!isValidEmail(form.companyEmail)) {
       nextErrors.companyEmail = "Enter a valid email address.";
     }
 
     if (isEmpty(form.phone)) {
       nextErrors.phone = "Phone number is required.";
     } else if (!isValidPhone(form.phone)) {
-      nextErrors.phone = "Enter a valid phone number.";
+      nextErrors.phone = "Phone number must be exactly 10 digits.";
     }
 
-
     setErrors(nextErrors);
+
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = (event) => {
-  event.preventDefault();
+    event.preventDefault();
 
-  const isValid = validate();
+    const isValid = validate();
 
-  console.log('Form submitted:', form);
-  console.log('Validation result:', isValid);
-  console.log('Errors:', errors);
+    console.log("Form submitted:", form);
+    console.log("Validation result:", isValid);
+    console.log("Errors:", errors);
 
-  if (!isValid) return;
+    if (!isValid) return;
 
-  updateCompanySetupData(form);
+    updateCompanySetupData(form);
 
-  console.log('Navigating to Address...');
+    console.log("Navigating to Address...");
 
-  navigate('/company-setup/address');
-};
+    navigate("/company-setup/address");
+  };
 
   return (
     <CompanySetupLayout
@@ -169,13 +151,13 @@ function CompanyDetails() {
           error={errors.companyName}
         />
         <Field
-          id="legalName"
-          label="Legal / Registered Name"
+          id="companyCode"
+          label="Company Code"
           required
-          placeholder="Enter legal name"
-          value={form.legalName}
-          onChange={handleChange("legalName")}
-          error={errors.legalName}
+          placeholder="Enter company code"
+          value={form.companyCode}
+          onChange={handleChange("companyCode")}
+          error={errors.companyCode}
         />
 
         <SelectField
@@ -189,20 +171,20 @@ function CompanyDetails() {
           error={errors.industry}
         />
         <SelectField
-          id="companySize"
-          label="Company Size"
-          required
-          placeholder="Select company size"
-          value={form.companySize}
-          onChange={handleChange("companySize")}
-          options={COMPANY_SIZE_OPTIONS}
-          error={errors.companySize}
+          id="companyType"
+          label="Company Type"
+          placeholder="Select company type"
+          value={form.companyType}
+          onChange={handleChange("companyType")}
+          options={COMPANY_TYPE_OPTIONS}
+          error={errors.companyType}
         />
 
         <Field
           id="companyEmail"
           label="Company Email"
           type="email"
+          required
           placeholder="Enter company email"
           value={form.companyEmail}
           onChange={handleChange("companyEmail")}
@@ -213,10 +195,41 @@ function CompanyDetails() {
           label="Phone"
           required
           type="tel"
-          placeholder="Enter phone number"
+          inputMode="numeric"
+          maxLength={10}
+          placeholder="Enter 10-digit phone number"
           value={form.phone}
-          onChange={handleChange("phone")}
+          onChange={(e) => {
+            const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+
+            setForm((prev) => ({
+              ...prev,
+              phone: value,
+            }));
+
+            setErrors((prev) => ({
+              ...prev,
+              phone: "",
+            }));
+          }}
           error={errors.phone}
+        />
+        <Field
+          id="website"
+          label="Website"
+          type="url"
+          placeholder="https://example.com"
+          value={form.website}
+          onChange={handleChange("website")}
+          error={errors.website}
+        />
+        <Field
+          id="registrationNumber"
+          label="GST/CIN/Registration No."
+          placeholder="Enter registration number"
+          value={form.registrationNumber}
+          onChange={handleChange("registrationNumber")}
+          error={errors.registrationNumber}
         />
 
         <div className="setup-field setup-field--full">

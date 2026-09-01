@@ -124,7 +124,7 @@ export default function BusinessValue() {
             {/* Action Buttons */}
             <div className="ignite-cta-banner__actions">
               <Link
-                to="/subscription-plan"
+                to="/signup"
                 className="ignite-cta-banner__btn ignite-cta-banner__btn--primary"
               >
                 <span>Get Started</span>

@@ -16,25 +16,25 @@ const CompanySetupContext = createContext(null);
 export const initialCompanySetupData = {
   // Company Details
   companyName: '',
-  legalName: '',
+  companyCode: '',
+  companyLogoName: '',
+  companyLogoDataUrl: '',
   industry: '',
-  companySize: '',
   companyEmail: '',
   phone: '',
-  country: '',
-  state: '',
-  city: '',
-  postalCode: '',
-  companyLogoName: '', // file name only – actual upload wiring comes later
-  companyLogoDataUrl: '', // local preview only, never sent anywhere yet
+  website: '',
+  companyType: '',
+  registrationNumber: '',
 
   // Address
-  addressLine1: '',
-  addressLine2: '',
+  fullAddress: '',
   addressCountry: '',
   addressState: '',
   addressCity: '',
   addressPostalCode: '',
+  mapLocation: '',
+  latitude: '',
+  longitude: '',
 
   // Business Settings
   financialYear: '',
@@ -84,7 +84,7 @@ export const isValidEmail = (value) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value).trim());
 
 export const isValidPhone = (value) =>
-  /^[+]?[\d\s()-]{7,16}$/.test(String(value).trim());
+  /^\d{10}$/.test(String(value).trim());
 
 export const isValidPostalCode = (value) =>
   /^[A-Za-z0-9][A-Za-z0-9\s-]{2,9}$/.test(String(value).trim());

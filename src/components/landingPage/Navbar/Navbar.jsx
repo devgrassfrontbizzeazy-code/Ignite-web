@@ -99,8 +99,10 @@ const Navbar = () => {
             >
               Login
             </button>
-
-            <button className="btn btn-get-started">
+            <button
+              className="btn btn-get-started"
+              onClick={() => navigate("/signup")}
+            >
               Get Started
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path
