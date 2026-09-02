@@ -12,7 +12,7 @@ import ResetPasswordPage from "./pages/auth/ResetPassword/ResetPassword";
 /* Authenticated Layout */
 import AppLayout from "./components/layout/AppLayout";
 
-import Card from "./components/common/card/card";
+import Card from "./components/common/Card/Card";
 import Button from "./components/common/Button/Button";
 import IconButton from "./components/common/IconButton/IconButton";
 import ProgressBar from "./components/common/ProgressBar/ProgressBar";
