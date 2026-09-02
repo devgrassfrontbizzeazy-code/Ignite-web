@@ -1,0 +1,155 @@
+/* ==========================================================================
+   IGNITE — DESIGN TOKENS
+   One Platform. Every Workforce in Motion.
+
+   Central source of truth for color, type, spacing, radius, shadow and
+   motion across the Ignite HRMS frontend. Every other stylesheet should
+   consume these variables rather than hardcoding values.
+   ========================================================================== */
+
+:root {
+  /* ---------------------------------------------------------------------
+     Brand palette (from the Ignite brand sheet)
+     --------------------------------------------------------------------- */
+  --ignite-deep-teal: #0F3D3E;      /* stability, trust, reliability, strength */
+  --ignite-emerald: #0BA37F;        /* growth, harmony, energy, balance */
+  --ignite-gold: #D4AF37;           /* action, positivity, motivation, success */
+  --ignite-charcoal: #1A1F24;       /* authority, sophistication, foundation */
+  --ignite-soft-gray: #E6EAEE;      /* supporting text, borders, UI elements */
+  --ignite-light-bg: #F8FAFB;       /* clean background for clarity + focus */
+  --ignite-white: #FFFFFF;
+
+  /* Tints/shades derived from the core palette — used for hover, subtle
+     fills and layered surfaces without introducing off-brand colors. */
+  --ignite-teal-050: #E7EEEE;
+  --ignite-teal-100: #CFDEDE;
+  --ignite-teal-700: #0C3233;
+  --ignite-emerald-050: #E4F6F1;
+  --ignite-emerald-100: #C1EBDE;
+  --ignite-emerald-600: #098F70;
+  --ignite-gold-050: #FBF3DD;
+  --ignite-gold-600: #B8952E;
+
+  /* ---------------------------------------------------------------------
+     Semantic color roles
+     --------------------------------------------------------------------- */
+  --color-primary: var(--ignite-emerald);
+  --color-primary-hover: var(--ignite-emerald-600);
+  --color-primary-soft: var(--ignite-emerald-050);
+
+  --color-secondary: var(--ignite-deep-teal);
+  --color-secondary-hover: var(--ignite-teal-700);
+  --color-secondary-soft: var(--ignite-teal-050);
+
+  --color-accent: var(--ignite-gold);
+  --color-accent-hover: var(--ignite-gold-600);
+  --color-accent-soft: var(--ignite-gold-050);
+
+  --color-success: var(--ignite-emerald);
+  --color-warning: var(--ignite-gold);
+  --color-danger: #C4423A;
+  --color-info: var(--ignite-deep-teal);
+
+  --color-bg: var(--ignite-light-bg);
+  --color-bg-surface: var(--ignite-white);
+  --color-bg-inverse: var(--ignite-charcoal);
+  --color-bg-inverse-elevated: #232A31;
+
+  --color-text-primary: var(--ignite-charcoal);
+  --color-text-secondary: #5B6672;
+  --color-text-muted: #8B96A3;
+  --color-text-inverse: var(--ignite-white);
+  --color-text-inverse-muted: #A9B4BE;
+
+  --color-border: var(--ignite-soft-gray);
+  --color-border-strong: #D3DAE1;
+  --color-border-inverse: rgba(255, 255, 255, 0.1);
+
+  --color-focus-ring: var(--ignite-emerald);
+
+  /* Brand gradient — reserved for the logo mark and rare hero moments,
+     never for buttons or generic decoration. */
+  --gradient-brand: linear-gradient(135deg, var(--ignite-deep-teal) 0%, var(--ignite-emerald) 100%);
+
+  /* ---------------------------------------------------------------------
+     Typography
+     --------------------------------------------------------------------- */
+  --font-family-base: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --font-size-xs: 0.75rem;     /* 12px */
+  --font-size-sm: 0.8125rem;   /* 13px */
+  --font-size-base: 0.9375rem; /* 15px */
+  --font-size-md: 1rem;        /* 16px */
+  --font-size-lg: 1.125rem;    /* 18px */
+  --font-size-xl: 1.375rem;    /* 22px */
+  --font-size-2xl: 1.75rem;    /* 28px */
+  --font-size-3xl: 2.25rem;    /* 36px */
+
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+  --line-height-relaxed: 1.7;
+
+  --letter-spacing-tight: -0.01em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.02em;
+
+  /* ---------------------------------------------------------------------
+     Spacing scale (4px base grid)
+     --------------------------------------------------------------------- */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
+  --space-16: 4rem;    /* 64px */
+
+  /* ---------------------------------------------------------------------
+     Radius
+     --------------------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* ---------------------------------------------------------------------
+     Shadows — teal-tinted rather than neutral black, to stay on-brand
+     --------------------------------------------------------------------- */
+  --shadow-sm: 0 1px 2px rgba(15, 61, 62, 0.08);
+  --shadow-md: 0 4px 12px rgba(15, 61, 62, 0.10);
+  --shadow-lg: 0 12px 28px rgba(15, 61, 62, 0.14);
+  --shadow-focus: 0 0 0 3px rgba(11, 163, 127, 0.35);
+
+  /* ---------------------------------------------------------------------
+     Motion
+     --------------------------------------------------------------------- */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 320ms ease;
+
+  /* ---------------------------------------------------------------------
+     Layout
+     --------------------------------------------------------------------- */
+  --sidebar-width: 264px;
+  --sidebar-width-collapsed: 80px;
+  --header-height: 64px;
+  --content-max-width: 1280px;
+
+  /* ---------------------------------------------------------------------
+     Z-index scale
+     --------------------------------------------------------------------- */
+  --z-sidebar: 100;
+  --z-header: 90;
+  --z-dropdown: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+}

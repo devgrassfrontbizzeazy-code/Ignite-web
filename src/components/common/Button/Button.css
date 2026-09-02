@@ -1,0 +1,230 @@
+/* ==========================================================================
+   IGNITE — BUTTON
+   ========================================================================== */
+
+.button {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+
+  cursor: pointer;
+  user-select: none;
+
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+/* ==========================================================================
+   SIZES
+   ========================================================================== */
+
+.button--sm {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.button--md {
+  min-height: 42px;
+  padding: 0 var(--space-4);
+}
+
+.button--lg {
+  min-height: 48px;
+  padding: 0 var(--space-5);
+  font-size: var(--font-size-base);
+}
+
+/* ==========================================================================
+   PRIMARY
+   ========================================================================== */
+
+.button--primary {
+  color: var(--color-text-inverse);
+  background: linear-gradient(
+    135deg,
+    var(--ignite-emerald) 0%,
+    var(--ignite-emerald-600) 100%
+  );
+  border-color: var(--ignite-emerald);
+
+  box-shadow: var(--shadow-sm);
+}
+
+.button--primary:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    var(--ignite-emerald-600) 0%,
+    var(--ignite-deep-teal) 100%
+  );
+
+  border-color: var(--ignite-emerald-600);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.button--primary:active:not(:disabled) {
+  background: var(--ignite-emerald-600);
+  border-color: var(--ignite-emerald-600);
+
+  box-shadow: var(--shadow-sm);
+  transform: translateY(0);
+}
+/* ==========================================================================
+   SECONDARY
+   ========================================================================== */
+
+.button--secondary {
+  color: var(--color-text-inverse);
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background-color: var(--color-secondary-hover);
+  border-color: var(--color-secondary-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.button--secondary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   OUTLINE
+   ========================================================================== */
+
+.button--outline {
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border-strong);
+}
+
+.button--outline:hover:not(:disabled) {
+  color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  background-color: var(--color-secondary-soft);
+}
+
+.button--outline:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   GHOST
+   ========================================================================== */
+
+.button--ghost {
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.button--ghost:hover:not(:disabled) {
+  color: var(--color-secondary);
+  background-color: var(--color-secondary-soft);
+}
+
+.button--ghost:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   DANGER
+   ========================================================================== */
+
+.button--danger {
+  color: var(--color-text-inverse);
+  background-color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.button--danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+  box-shadow: var(--shadow-sm);
+}
+
+.button--danger:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   FOCUS
+   ========================================================================== */
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ==========================================================================
+   DISABLED
+   ========================================================================== */
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   LOADING
+   ========================================================================== */
+
+.button--loading {
+  cursor: wait;
+}
+
+.button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button__spinner {
+  width: 14px;
+  height: 14px;
+
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+
+  animation: ignite-button-spin 700ms linear infinite;
+}
+
+@keyframes ignite-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+
+  .button__spinner {
+    animation: none;
+  }
+}

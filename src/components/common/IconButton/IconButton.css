@@ -1,0 +1,153 @@
+/* ==========================================================================
+   IGNITE — ICON BUTTON
+   ========================================================================== */
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  font-family: var(--font-family-base);
+
+  cursor: pointer;
+  user-select: none;
+
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+/* ==========================================================================
+   SIZES
+   ========================================================================== */
+
+.icon-button--sm {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-button--md {
+  width: 40px;
+  height: 40px;
+}
+
+.icon-button--lg {
+  width: 48px;
+  height: 48px;
+}
+
+/* ==========================================================================
+   ICON
+   ========================================================================== */
+
+.icon-button__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+}
+
+.icon-button__icon svg {
+  width: 20px;
+  height: 20px;
+
+  display: block;
+}
+
+/* ==========================================================================
+   DEFAULT
+   ========================================================================== */
+
+.icon-button--default {
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border);
+}
+
+.icon-button--default:hover:not(:disabled) {
+  color: var(--color-secondary);
+  background-color: var(--color-secondary-soft);
+  border-color: var(--color-border-strong);
+}
+
+.icon-button--default:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   GHOST
+   ========================================================================== */
+
+.icon-button--ghost {
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.icon-button--ghost:hover:not(:disabled) {
+  color: var(--color-secondary);
+  background-color: var(--color-secondary-soft);
+}
+
+.icon-button--ghost:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   DANGER
+   ========================================================================== */
+
+.icon-button--danger {
+  color: var(--color-danger);
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.icon-button--danger:hover:not(:disabled) {
+  color: var(--color-danger);
+  background-color: rgba(196, 66, 58, 0.08);
+}
+
+.icon-button--danger:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* ==========================================================================
+   FOCUS
+   ========================================================================== */
+
+.icon-button:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ==========================================================================
+   DISABLED
+   ========================================================================== */
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-button {
+    transition: none;
+  }
+}

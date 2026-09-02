@@ -1,0 +1,261 @@
+/* ==========================================================================
+   TOP NAVBAR
+   Sits at the top of the content column, to the right of the Sidebar.
+   Uses only existing design tokens from variables.css — no new colors.
+   ========================================================================== */
+
+.top-navbar {
+  height: var(--header-height);
+  min-height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  background: var(--color-bg-surface);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+}
+
+/* ---- Left: menu button + title/breadcrumb ---------------------------- */
+
+.top-navbar__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.top-navbar__menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.top-navbar__menu:hover {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.top-navbar__titles {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.top-navbar__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-navbar__breadcrumb {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Right: search, notifications, profile ---------------------------- */
+
+.top-navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.top-navbar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.top-navbar__search:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text-primary);
+}
+
+.top-navbar__search-label {
+  font-size: var(--font-size-sm);
+}
+
+.top-navbar__notification {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.top-navbar__notification:hover {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+.top-navbar__notification-dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-primary);
+  border: 1.5px solid var(--color-bg-surface);
+}
+
+/* ---- Profile ------------------------------------------------------------ */
+
+.top-navbar__profile-wrapper {
+  position: relative;
+}
+
+.top-navbar__profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.top-navbar__profile:hover {
+  background-color: var(--color-bg);
+}
+
+.top-navbar__avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-secondary);
+  color: var(--color-text-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.top-navbar__user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.top-navbar__user-name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.top-navbar__user-role {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.top-navbar__chevron {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-muted);
+}
+
+/* ---- Dropdown ------------------------------------------------------------ */
+
+.top-navbar__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 160px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: var(--z-dropdown);
+}
+
+.top-navbar__dropdown-item {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.top-navbar__dropdown-item:hover {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+/* ---- Mobile -------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .top-navbar {
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .top-navbar__menu {
+    display: flex;
+  }
+
+  .top-navbar__breadcrumb {
+    display: none;
+  }
+
+  .top-navbar__search-label {
+    display: none;
+  }
+
+  .top-navbar__search {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+    border: none;
+  }
+
+  .top-navbar__user-info {
+    display: none;
+  }
+
+  .top-navbar__actions {
+    gap: var(--space-2);
+  }
+}

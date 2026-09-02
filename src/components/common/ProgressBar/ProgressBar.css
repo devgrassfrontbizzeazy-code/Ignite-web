@@ -1,0 +1,78 @@
+/* ==========================================================================
+   IGNITE — PROGRESS BAR
+   ========================================================================== */
+
+.progress-bar {
+  width: 100%;
+}
+
+/* ==========================================================================
+   TRACK
+   ========================================================================== */
+
+.progress-bar__track {
+  width: 100%;
+  overflow: hidden;
+
+  background-color: var(--ignite-teal-050);
+  border-radius: var(--radius-pill);
+}
+
+/* ==========================================================================
+   FILL
+   ========================================================================== */
+
+.progress-bar__fill {
+  height: 100%;
+
+  background: linear-gradient(
+    90deg,
+    var(--ignite-emerald) 0%,
+    var(--ignite-emerald-600) 100%
+  );
+
+  border-radius: inherit;
+
+  transition: width var(--transition-slow);
+}
+
+/* ==========================================================================
+   SIZES
+   ========================================================================== */
+
+.progress-bar--sm .progress-bar__track {
+  height: 6px;
+}
+
+.progress-bar--md .progress-bar__track {
+  height: 8px;
+}
+
+.progress-bar--lg .progress-bar__track {
+  height: 12px;
+}
+
+/* ==========================================================================
+   LABEL
+   ========================================================================== */
+
+.progress-bar__label {
+  display: block;
+
+  margin-top: var(--space-2);
+
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-base);
+}
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar__fill {
+    transition: none;
+  }
+}

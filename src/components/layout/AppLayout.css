@@ -1,0 +1,36 @@
+/* ==========================================================================
+   APP LAYOUT
+   Authenticated application shell: Sidebar + content column (TopNavbar +
+   main). Flexbox handles the available width so the content column
+   adapts automatically to the Sidebar's own expanded/collapsed width.
+   ========================================================================== */
+
+.app-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.app-layout__content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-layout__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--color-bg);
+  padding: var(--space-6);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .app-layout__main {
+    padding: var(--space-4);
+  }
+}
