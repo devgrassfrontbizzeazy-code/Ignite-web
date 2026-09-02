@@ -8,14 +8,12 @@ import Contact from "./components/landingPage/Contact/Contact";
 import LoginPage from "./pages/auth/Login/Login";
 import ForgotPasswordPage from "./pages/auth/ForgotPassword/ForgotPassword";
 import ResetPasswordPage from "./pages/auth/ResetPassword/ResetPassword";
+import SignupPage from "./pages/auth/CreateAccount/CreateAccount";
 
 /* Authenticated Layout */
 import AppLayout from "./components/layout/AppLayout";
 
-import Card from "./components/common/card/card";
-import Button from "./components/common/Button/Button";
-import IconButton from "./components/common/IconButton/IconButton";
-import ProgressBar from "./components/common/ProgressBar/ProgressBar";
+import OrganizationSetup from "./pages/organizationSetup/OrganizationSetup";
 
 /* Temporary / Dashboard */
 function SearchIcon() {
@@ -48,45 +46,6 @@ function DashboardPreview() {
   );
 }
 
-function OrganizationSetup() {
-  return (
-    <Card
-      title="Organization Setup"
-      description="Complete the steps below to get your workspace ready."
-      headerAction={<Button size="sm">Continue</Button>}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: "12px",
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <Button>Primary</Button>
-
-        <Button variant="secondary">Secondary</Button>
-
-        <Button variant="outline">Outline</Button>
-
-        <Button variant="ghost">Ghost</Button>
-
-        <Button variant="danger">Delete</Button>
-
-        <Button loading>Saving...</Button>
-
-        {/* Icon Button */}
-        <IconButton icon={<SearchIcon />} label="Search" />
-
-        <ProgressBar value={25} />
-
-        <ProgressBar value={60} showLabel />
-
-        <ProgressBar value={85}  showLabel />
-      </div>
-    </Card>
-  );
-}
 
 function Departments() {
   return (
@@ -181,6 +140,8 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        <Route path="/signup" element={<SignupPage />} />
 
         {/* ================================================================
             AUTHENTICATED APPLICATION

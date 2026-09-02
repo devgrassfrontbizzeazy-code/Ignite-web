@@ -4,17 +4,16 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 function ProtectedRoute() {
   const location = useLocation();
 
-  // Temporary frontend authentication check.
-  // Later this will be replaced with Supabase Auth session checking.
-  const isAuthenticated =
-    localStorage.getItem("ignite_authenticated") === "true";
+  const accessToken = localStorage.getItem("accessToken");
 
-  if (!isAuthenticated) {
+  if (!accessToken) {
     return (
       <Navigate
         to="/login"
         replace
-        state={{ from: location.pathname }}
+        state={{
+          from: location.pathname,
+        }}
       />
     );
   }
@@ -23,4 +22,3 @@ function ProtectedRoute() {
 }
 
 export default ProtectedRoute;
-

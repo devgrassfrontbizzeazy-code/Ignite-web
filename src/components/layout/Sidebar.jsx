@@ -1,8 +1,7 @@
-
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import '../../styles/global.css';
-import darkLogo from '../../assets/dark_logo-removebg.png';
+import { useState } from "react";
+import { NavLink } from "react-router-dom";
+import "../../styles/global.css";
+import darkLogo from "../../assets/dark_logo-removebg.png";
 
 /* ==========================================================================
    Icons
@@ -11,12 +10,12 @@ import darkLogo from '../../assets/dark_logo-removebg.png';
 const iconProps = {
   width: 20,
   height: 20,
-  viewBox: '0 0 20 20',
-  fill: 'none',
-  stroke: 'currentColor',
+  viewBox: "0 0 20 20",
+  fill: "none",
+  stroke: "currentColor",
   strokeWidth: 1.6,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
 };
 
 const DashboardIcon = () => (
@@ -118,27 +117,31 @@ const ChevronIcon = () => (
    ========================================================================== */
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', path: '/dashboard', icon: DashboardIcon },
-  { label: 'Organization Setup', path: '/organization-setup', icon: OrganizationIcon },
-  { label: 'Departments', path: '/departments', icon: DepartmentsIcon },
-  { label: 'Designations', path: '/designations', icon: DesignationsIcon },
-  { label: 'Roles & Permissions', path: '/roles-permissions', icon: RolesIcon },
-  { label: 'Employees', path: '/employees', icon: EmployeesIcon },
-  { label: 'Attendance', path: '/attendance', icon: AttendanceIcon },
-  { label: 'Leaves', path: '/leaves', icon: LeavesIcon },
-  { label: 'Holidays', path: '/holidays', icon: HolidaysIcon },
-  { label: 'Settings', path: '/settings', icon: SettingsIcon },
+  { label: "Dashboard", path: "/dashboard", icon: DashboardIcon },
+  {
+    label: "Organization Setup",
+    path: "/organization-setup",
+    icon: OrganizationIcon,
+  },
+  { label: "Departments", path: "/departments", icon: DepartmentsIcon },
+  { label: "Designations", path: "/designations", icon: DesignationsIcon },
+  { label: "Roles & Permissions", path: "/roles-permissions", icon: RolesIcon },
+  { label: "Employees", path: "/employees", icon: EmployeesIcon },
+  { label: "Attendance", path: "/attendance", icon: AttendanceIcon },
+  { label: "Leaves", path: "/leaves", icon: LeavesIcon },
+  { label: "Holidays", path: "/holidays", icon: HolidaysIcon },
+  { label: "Settings", path: "/settings", icon: SettingsIcon },
 ];
 
 function getInitials(name) {
-  if (!name) return '';
+  if (!name) return "";
 
   return name
     .trim()
     .split(/\s+/)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
-    .join('');
+    .join("");
 }
 
 /* ==========================================================================
@@ -146,33 +149,29 @@ function getInitials(name) {
    ========================================================================== */
 
 export default function Sidebar({
-  userName = 'Guest User',
-  userRole = 'Member',
-  companyName = 'Your Company',
+  userName = "Guest User",
+  userRole = "Member",
+  companyName = "Your Company",
   defaultCollapsed = false,
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
   return (
     <aside
-      className={`sidebar${collapsed ? ' sidebar--collapsed' : ''}`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}
       aria-label="Primary navigation"
     >
       {/* Header */}
       <div className="sidebar__header">
         <div className="sidebar__brand">
-          <img
-            src={darkLogo}
-            alt="Ignite"
-            className="sidebar__logo"
-          />
+          <img src={darkLogo} alt="Ignite" className="sidebar__logo" />
         </div>
 
         <button
           type="button"
           className="sidebar__toggle"
           onClick={() => setCollapsed((prev) => !prev)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
         >
           <ChevronIcon />
@@ -186,7 +185,7 @@ export default function Sidebar({
             key={path}
             to={path}
             className={({ isActive }) =>
-              `sidebar__nav-item${isActive ? ' is-active' : ''}`
+              `sidebar__nav-item${isActive ? " is-active" : ""}`
             }
             title={collapsed ? label : undefined}
           >
@@ -194,36 +193,16 @@ export default function Sidebar({
               <Icon />
             </span>
 
-            <span className="sidebar__nav-label">
-              {label}
-            </span>
+            <span className="sidebar__nav-label">{label}</span>
           </NavLink>
         ))}
       </nav>
 
       {/* Footer */}
+      {/* Footer */}
       <div className="sidebar__footer">
-        <div className="sidebar__profile">
-          <span className="sidebar__avatar">
-            {getInitials(userName)}
-          </span>
-
-          <div className="sidebar__profile-info">
-            <p className="sidebar__profile-name">
-              {userName}
-            </p>
-
-            <p className="sidebar__profile-role">
-              {userRole}
-            </p>
-          </div>
-        </div>
-
-        <p className="sidebar__company">
-          {companyName}
-        </p>
+        <p className="sidebar__company">{companyName}</p>
       </div>
     </aside>
   );
 }
-

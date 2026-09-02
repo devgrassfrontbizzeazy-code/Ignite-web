@@ -1,0 +1,35 @@
+.setup-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.setup-progress__top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.setup-progress__top > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setup-progress__label {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.setup-progress__count {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.setup-progress__percentage {
+  color: var(--color-primary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}

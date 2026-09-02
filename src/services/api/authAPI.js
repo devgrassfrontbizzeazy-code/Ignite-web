@@ -1,15 +1,43 @@
-const authApi = {
-  verifyInvitation: async (token) => {
-    // Django API call will be implemented here
-  },
+import api from "./axios";
 
-  completeAccountSetup: async (data) => {
-    // Django API call will be implemented here
-  },
+export const sendSignupOtp = async (email) => {
+  const response = await api.post("/auth/signup/send-otp/", {
+    email,
+  });
 
-  getCurrentUser: async () => {
-    // Django API call will be implemented here
-  },
+  return response.data;
 };
 
-export default authApi;
+export const verifySignupOtp = async (email, otp) => {
+  const response = await api.post("/auth/signup/verify-otp/", {
+    email,
+    otp,
+  });
+
+  return response.data;
+};
+
+export const completeSignup = async (
+  email,
+  verificationToken,
+  password,
+  confirmPassword
+) => {
+  const response = await api.post("/auth/signup/complete/", {
+    email,
+    verification_token: verificationToken,
+    password,
+    confirm_password: confirmPassword,
+  });
+
+  return response.data;
+};
+
+export const loginUser = async (email, password) => {
+  const response = await api.post("/auth/login/", {
+    email,
+    password,
+  });
+
+  return response.data;
+};
