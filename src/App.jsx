@@ -15,6 +15,7 @@ import AppLayout from "./components/layout/AppLayout";
 
 import OrganizationSetup from "./pages/organizationSetup/OrganizationSetup";
 
+
 /* Temporary / Dashboard */
 function SearchIcon() {
   return (
