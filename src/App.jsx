@@ -13,7 +13,7 @@ import SignupPage from "./pages/auth/CreateAccount/CreateAccount";
 /* Authenticated Layout */
 import AppLayout from "./components/layout/AppLayout";
 
-import OrganizationSetup from "./pages/organizationSetup/OrganizationSetup";
+import OrganizationSetup from "./pages/OrganizationSetup/OrganizationSetup";
 
 
 /* Temporary / Dashboard */
