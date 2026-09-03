@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import logo from "../../../assets/logo.png";
 import "./Login.css";
+
+import { loginUser } from "../../../services/api/authAPI";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +14,9 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,28 +38,58 @@ const Login = () => {
     setLoading(true);
 
     try {
-      /*
-       * TEMPORARY FRONTEND AUTHENTICATION
-       *
-       * Backend / Supabase authentication will replace this later.
-       */
+      // Call Django login API
+      const response = await loginUser(trimmedEmail, password);
 
-      console.log({
-        email: trimmedEmail,
-        password,
-        rememberMe,
-      });
+      console.log("Login response:", response);
 
-      // Simulate backend login request
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Make sure login was successful
+      if (response.status !== "success") {
+        throw new Error(response.message || "Login failed.");
+      }
 
-      // Mark user as authenticated
+      const { user, tokens } = response;
+
+      // Save authentication data
+      localStorage.setItem("accessToken", tokens.access);
+      localStorage.setItem("refreshToken", tokens.refresh);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // Keep this temporarily because your current ProtectedRoute
+      // and other parts of the frontend may still use it.
       localStorage.setItem("ignite_authenticated", "true");
 
-      // Send user to company setup
-      navigate("/company-setup/company-details");
+      /*
+       * TEMPORARY SETUP CHECK
+       *
+       * Later this will come from a backend API such as:
+       * GET /company/setup/status/
+       *
+       * For now we use localStorage.
+       */
+      const companySetupComplete =
+        localStorage.getItem("companySetupComplete") === "true";
+
+      if (!companySetupComplete) {
+        navigate("/company-setup/company-details", { replace: true });
+      } else {
+        // If user was originally trying to access a protected page,
+        // send them there. Otherwise go to dashboard.
+        const from = location.state?.from;
+
+        navigate(from || "/dashboard", { replace: true });
+      }
     } catch (err) {
-      setError("Invalid email or password. Please try again.");
+      console.error("Login error:", err);
+
+      const backendMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message;
+
+      setError(
+        backendMessage || "Invalid email or password. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -155,7 +189,9 @@ const Login = () => {
                 type="button"
                 className="password-toggle"
                 onClick={togglePasswordVisibility}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={
+                  showPassword ? "Hide password" : "Show password"
+                }
                 disabled={loading}
               >
                 {showPassword ? (
@@ -185,13 +221,20 @@ const Login = () => {
               </label>
             </div>
 
-            <Link to="/forgot-password" className="forgot-password-link">
+            <Link
+              to="/forgot-password"
+              className="forgot-password-link"
+            >
               Forgot password?
             </Link>
           </div>
 
           {/* Login Button */}
-          <button type="submit" className="login-button" disabled={loading}>
+          <button
+            type="submit"
+            className="login-button"
+            disabled={loading}
+          >
             {loading ? "Logging in..." : "Log in"}
           </button>
         </form>

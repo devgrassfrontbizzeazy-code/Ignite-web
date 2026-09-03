@@ -4,6 +4,11 @@ import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import logo from "../../../assets/logo.png";
 import "./CreateAccount.css";
 
+import {
+  sendSignupOtp,
+  verifySignupOtp,
+  completeSignup,
+} from "../../../services/api/authAPI";
 /*
  * Public Create Account page.
  *
@@ -24,17 +29,35 @@ import "./CreateAccount.css";
 const OTP_LENGTH = 6;
 
 const PASSWORD_RULES = [
-  { id: "length", label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { id: "upper", label: "One uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
-  { id: "lower", label: "One lowercase letter", test: (pw) => /[a-z]/.test(pw) },
+  {
+    id: "length",
+    label: "At least 8 characters",
+    test: (pw) => pw.length >= 8,
+  },
+  {
+    id: "upper",
+    label: "One uppercase letter",
+    test: (pw) => /[A-Z]/.test(pw),
+  },
+  {
+    id: "lower",
+    label: "One lowercase letter",
+    test: (pw) => /[a-z]/.test(pw),
+  },
   { id: "number", label: "One number", test: (pw) => /\d/.test(pw) },
-  { id: "special", label: "One special character", test: (pw) => /[^A-Za-z0-9]/.test(pw) },
+  {
+    id: "special",
+    label: "One special character",
+    test: (pw) => /[^A-Za-z0-9]/.test(pw),
+  },
 ];
 
 const getPasswordStrength = (password) => {
   if (!password) return { score: 0, label: "" };
 
-  const passedRules = PASSWORD_RULES.filter((rule) => rule.test(password)).length;
+  const passedRules = PASSWORD_RULES.filter((rule) =>
+    rule.test(password),
+  ).length;
 
   if (passedRules <= 2) return { score: 1, label: "Weak" };
   if (passedRules <= 4) return { score: 2, label: "Medium" };
@@ -54,9 +77,11 @@ const CreateAccount = () => {
   const [emailError, setEmailError] = useState("");
 
   // OTP step
+  // OTP step
   const [otpDigits, setOtpDigits] = useState(Array(OTP_LENGTH).fill(""));
   const [otpError, setOtpError] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [verificationToken, setVerificationToken] = useState("");
   const otpInputRefs = useRef([]);
 
   // Password step
@@ -69,84 +94,66 @@ const CreateAccount = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
+  const passwordStrength = useMemo(
+    () => getPasswordStrength(password),
+    [password],
+  );
 
   /* ------------------------------------------------------------------ */
   /* Mock backend calls — replace bodies with real API calls later.     */
   /* ------------------------------------------------------------------ */
 
-  const mockSendVerificationCode = async (targetEmail) => {
-    /*
-     * Real call later:
-     *
-     * await sendSignupOtp({ email: targetEmail });
-     */
-    console.log("Sending verification code to:", targetEmail);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-  };
-
-  const mockVerifyCode = async (targetEmail, code) => {
-    /*
-     * Real call later:
-     *
-     * const response = await verifySignupOtp({ email: targetEmail, code });
-     * if (!response.valid) throw new Error("Invalid code");
-     */
-    console.log("Verifying code:", code, "for", targetEmail);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-
-    // Temporary mock rule so the flow is testable: any 6-digit code works
-    // except "000000", which simulates an invalid/expired code.
-    if (code === "000000") {
-      throw new Error("That code is incorrect or has expired.");
-    }
-  };
-
-  const mockCreateAccount = async (targetEmail, newPassword) => {
-    /*
-     * Real call later:
-     *
-     * const response = await createAccount({ email: targetEmail, password: newPassword });
-     */
-    console.log("Creating account for:", targetEmail);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  };
+  
 
   /* ------------------------------------------------------------------ */
   /* Email step                                                         */
   /* ------------------------------------------------------------------ */
 
-  const handleEmailSubmit = async (e) => {
-    e.preventDefault();
-    setEmailError("");
+ const handleEmailSubmit = async (e) => {
+  e.preventDefault();
+  setEmailError("");
 
-    const trimmedEmail = email.trim();
+  const trimmedEmail = email.trim();
 
-    if (!trimmedEmail) {
-      setEmailError("Please enter your email address.");
-      return;
-    }
+  if (!trimmedEmail) {
+    setEmailError("Please enter your email address.");
+    return;
+  }
 
-    if (!isValidEmail(trimmedEmail)) {
-      setEmailError("Please enter a valid email address.");
-      return;
-    }
+  if (!isValidEmail(trimmedEmail)) {
+    setEmailError("Please enter a valid email address.");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      await mockSendVerificationCode(trimmedEmail);
+  try {
+    const response = await sendSignupOtp(trimmedEmail);
+
+    console.log("Send OTP response:", response);
+
+    if (response.status === "success") {
       setEmail(trimmedEmail);
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       setOtpError("");
       setStep("otp");
       startResendCooldown();
-    } catch (err) {
-      setEmailError("We couldn't send a verification code. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      setEmailError(
+        response.message || "We couldn't send a verification code."
+      );
     }
-  };
+  } catch (err) {
+    console.error("Send OTP error:", err);
+
+    setEmailError(
+      err.response?.data?.message ||
+        "We couldn't send a verification code. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* ------------------------------------------------------------------ */
   /* OTP step                                                           */
@@ -188,7 +195,10 @@ const CreateAccount = () => {
   };
 
   const handleOtpPaste = (e) => {
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
     if (!pasted) return;
 
     e.preventDefault();
@@ -204,45 +214,73 @@ const CreateAccount = () => {
   };
 
   const handleOtpSubmit = async (e) => {
-    e.preventDefault();
-    setOtpError("");
+  e.preventDefault();
+  setOtpError("");
 
-    const code = otpDigits.join("");
+  const code = otpDigits.join("");
 
-    if (code.length !== OTP_LENGTH) {
-      setOtpError("Please enter the full 6-digit code.");
-      return;
-    }
+  if (code.length !== OTP_LENGTH) {
+    setOtpError("Please enter the full 6-digit code.");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      await mockVerifyCode(email, code);
+  try {
+    const response = await verifySignupOtp(email, code);
+
+    console.log("Verify OTP response:", response);
+
+    if (response.status === "success") {
+      setVerificationToken(response.verification_token);
       setStep("password");
-    } catch (err) {
-      setOtpError(err.message || "Invalid verification code. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      setOtpError(
+        response.message || "Invalid verification code."
+      );
     }
-  };
+  } catch (err) {
+    console.error("Verify OTP error:", err);
 
+    setOtpError(
+      err.response?.data?.message ||
+        "Invalid verification code. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   const handleResendCode = async () => {
-    if (resendCooldown > 0 || loading) return;
+  if (resendCooldown > 0 || loading) return;
 
-    setOtpError("");
-    setLoading(true);
+  setOtpError("");
+  setLoading(true);
 
-    try {
-      await mockSendVerificationCode(email);
+  try {
+    const response = await sendSignupOtp(email);
+
+    console.log("Resend OTP response:", response);
+
+    if (response.status === "success") {
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       otpInputRefs.current[0]?.focus();
       startResendCooldown();
-    } catch (err) {
-      setOtpError("We couldn't resend the code. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      setOtpError(
+        response.message || "We couldn't resend the code."
+      );
     }
-  };
+  } catch (err) {
+    console.error("Resend OTP error:", err);
+
+    setOtpError(
+      err.response?.data?.message ||
+        "We couldn't resend the code. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   /* ------------------------------------------------------------------ */
   /* Password step                                                      */
@@ -267,30 +305,57 @@ const CreateAccount = () => {
   };
 
   const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+  e.preventDefault();
+  setError("");
 
-    const errors = validatePasswordStep();
-    setFieldErrors(errors);
+  const errors = validatePasswordStep();
+  setFieldErrors(errors);
 
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
+  if (Object.keys(errors).length > 0) {
+    return;
+  }
 
-    setLoading(true);
+  if (!verificationToken) {
+    setError(
+      "Your verification session has expired. Please verify your email again."
+    );
+    return;
+  }
 
-    try {
-      await mockCreateAccount(email, password);
+  setLoading(true);
+
+  try {
+    const response = await completeSignup(
+      email,
+      verificationToken,
+      password,
+      confirmPassword
+    );
+
+    console.log("Complete signup response:", response);
+
+    if (response.status === "success") {
       setStep("success");
-    } catch (err) {
-      setError("We couldn't create your account. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      setError(
+        response.message || "We couldn't create your account."
+      );
     }
-  };
+  } catch (err) {
+    console.error("Complete signup error:", err);
+
+    setError(
+      err.response?.data?.message ||
+        "We couldn't create your account. Please try again."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
-  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword((prev) => !prev);
+  const toggleConfirmPasswordVisibility = () =>
+    setShowConfirmPassword((prev) => !prev);
 
   const handleGoToLogin = () => {
     navigate("/login");
@@ -326,7 +391,10 @@ const CreateAccount = () => {
           <>
             <div className="login-welcome">
               <h1>Create your Ignite account</h1>
-              <p>Get started by creating your account and setting up your organization.</p>
+              <p>
+                Get started by creating your account and setting up your
+                organization.
+              </p>
             </div>
 
             {emailError && (
@@ -335,7 +403,11 @@ const CreateAccount = () => {
               </div>
             )}
 
-            <form onSubmit={handleEmailSubmit} className="login-form" noValidate>
+            <form
+              onSubmit={handleEmailSubmit}
+              className="login-form"
+              noValidate
+            >
               <div className="form-group">
                 <label htmlFor="email">Email address</label>
 
@@ -381,7 +453,8 @@ const CreateAccount = () => {
             <div className="login-welcome">
               <h1>Verify your email</h1>
               <p>
-                We've sent a verification code to <strong className="signup-email">{email}</strong>.
+                We've sent a verification code to{" "}
+                <strong className="signup-email">{email}</strong>.
               </p>
             </div>
 
@@ -423,7 +496,9 @@ const CreateAccount = () => {
                   onClick={handleResendCode}
                   disabled={resendCooldown > 0 || loading}
                 >
-                  {resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : "Resend code"}
+                  {resendCooldown > 0
+                    ? `Resend code (${resendCooldown}s)`
+                    : "Resend code"}
                 </button>
               </div>
 
@@ -448,7 +523,11 @@ const CreateAccount = () => {
               </div>
             )}
 
-            <form onSubmit={handlePasswordSubmit} className="login-form" noValidate>
+            <form
+              onSubmit={handlePasswordSubmit}
+              className="login-form"
+              noValidate
+            >
               {/* Password */}
               <div className="form-group">
                 <label htmlFor="password">Password</label>
@@ -466,7 +545,10 @@ const CreateAccount = () => {
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
-                      setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        password: undefined,
+                      }));
                     }}
                     autoComplete="new-password"
                     disabled={loading}
@@ -477,7 +559,9 @@ const CreateAccount = () => {
                     type="button"
                     className="password-toggle"
                     onClick={togglePasswordVisibility}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     disabled={loading}
                   >
                     {showPassword ? (
@@ -499,7 +583,9 @@ const CreateAccount = () => {
                         className={`strength-bar-fill strength-${passwordStrength.score}`}
                       ></div>
                     </div>
-                    <span className={`strength-label strength-label-${passwordStrength.score}`}>
+                    <span
+                      className={`strength-label strength-label-${passwordStrength.score}`}
+                    >
                       {passwordStrength.label}
                     </span>
                   </div>
@@ -512,7 +598,9 @@ const CreateAccount = () => {
                     return (
                       <li
                         key={rule.id}
-                        className={passed ? "requirement-met" : "requirement-unmet"}
+                        className={
+                          passed ? "requirement-met" : "requirement-unmet"
+                        }
                       >
                         <span className="requirement-icon" aria-hidden="true">
                           {passed ? "✓" : "○"}
@@ -541,7 +629,10 @@ const CreateAccount = () => {
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
-                      setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                      setFieldErrors((prev) => ({
+                        ...prev,
+                        confirmPassword: undefined,
+                      }));
                     }}
                     autoComplete="new-password"
                     disabled={loading}
@@ -554,7 +645,9 @@ const CreateAccount = () => {
                     type="button"
                     className="password-toggle"
                     onClick={toggleConfirmPasswordVisibility}
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
                     disabled={loading}
                   >
                     {showConfirmPassword ? (
@@ -565,7 +658,9 @@ const CreateAccount = () => {
                   </button>
                 </div>
                 {fieldErrors.confirmPassword && (
-                  <span className="field-error">{fieldErrors.confirmPassword}</span>
+                  <span className="field-error">
+                    {fieldErrors.confirmPassword}
+                  </span>
                 )}
               </div>
 
@@ -583,8 +678,15 @@ const CreateAccount = () => {
               <CheckCircle2 size={30} strokeWidth={2} />
             </div>
             <h1>Account created!</h1>
-            <p>Your Ignite account is ready. Log in to start setting up your organization.</p>
-            <button type="button" className="login-button" onClick={handleGoToLogin}>
+            <p>
+              Your Ignite account is ready. Log in to start setting up your
+              organization.
+            </p>
+            <button
+              type="button"
+              className="login-button"
+              onClick={handleGoToLogin}
+            >
               Go to login
             </button>
           </div>
