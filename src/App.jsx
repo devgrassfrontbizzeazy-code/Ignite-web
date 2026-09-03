@@ -33,8 +33,8 @@ import {
 import AppLayout from "./components/layout/AppLayout";
 
 /* Guards */
-import ProtectedRoute from "./components/auth/ProtectedRoute/ProtectedRoute";
-import CompanySetupGuard from "./components/auth/CompanySetupGuard/CompanySetupGuard";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import CompanySetupGuard from "./components/auth/CompanySetupGuard";
 
 /* Organization */
 import OrganizationSetup from "./pages/organizationSetup/OrganizationSetup";
