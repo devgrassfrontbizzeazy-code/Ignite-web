@@ -1,10 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  GoogleMap,
-  Marker,
-  useJsApiLoader,
-} from "@react-google-maps/api";
+import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
 import CompanySetupLayout from "../CompanySetupLayout/CompanySetupLayout";
 import {
@@ -13,45 +9,35 @@ import {
   isValidPostalCode,
 } from "../CompanySetupContext";
 
+import { getCompanyOptions } from "../../../services/api/companyAPI";
+
 import "./Address.css";
-
-const COUNTRY_OPTIONS = [
-  "India",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "Singapore",
-  "United Arab Emirates",
-  "Other",
-];
-
-const STATE_OPTIONS = [
-  "Maharashtra",
-  "Delhi",
-  "Karnataka",
-  "Haryana",
-  "Tamil Nadu",
-  "Telangana",
-  "Gujarat",
-  "West Bengal",
-  "Other",
-];
-
-const DEFAULT_MAP_CENTER = {
-  lat: 20.5937,
-  lng: 78.9629,
-};
 
 const MAP_CONTAINER_STYLE = {
   width: "100%",
   height: "320px",
 };
+const DEFAULT_MAP_CENTER = {
+  lat: 20.5937,
+  lng: 78.9629,
+};
 
 function Address() {
   const navigate = useNavigate();
+
   const { companySetupData, updateCompanySetupData } = useCompanySetup();
+
+  /* ------------------------------------------------------------- */
+  /* Country options                                                */
+  /* ------------------------------------------------------------- */
+
+  const [countries, setCountries] = useState([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState("");
+
+  /* ------------------------------------------------------------- */
+  /* Form                                                           */
+  /* ------------------------------------------------------------- */
 
   const [form, setForm] = useState({
     fullAddress: companySetupData.fullAddress,
@@ -67,9 +53,44 @@ function Address() {
   const [errors, setErrors] = useState({});
   const [showMap, setShowMap] = useState(false);
 
+  /* ------------------------------------------------------------- */
+  /* Google Maps                                                    */
+  /* ------------------------------------------------------------- */
+
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
   });
+
+  /* ------------------------------------------------------------- */
+  /* Load countries from backend                                    */
+  /* ------------------------------------------------------------- */
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        setOptionsLoading(true);
+        setOptionsError("");
+
+        const response = await getCompanyOptions();
+
+        setCountries(response.data?.countries || []);
+      } catch (error) {
+        console.error("Failed to load address options:", error);
+
+        setOptionsError(
+          "Unable to load countries. Please refresh and try again.",
+        );
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadOptions();
+  }, []);
+
+  /* ------------------------------------------------------------- */
+  /* Form handlers                                                  */
+  /* ------------------------------------------------------------- */
 
   const handleChange = (field) => (event) => {
     setForm((prev) => ({
@@ -82,6 +103,10 @@ function Address() {
       [field]: "",
     }));
   };
+
+  /* ------------------------------------------------------------- */
+  /* Map handlers                                                   */
+  /* ------------------------------------------------------------- */
 
   const handleMapClick = (event) => {
     if (!event.latLng) return;
@@ -98,20 +123,28 @@ function Address() {
   };
 
   const getMapCenter = () => {
-    if (form.latitude && form.longitude) {
-      const lat = Number(form.latitude);
-      const lng = Number(form.longitude);
+    const lat = Number(form.latitude);
+    const lng = Number(form.longitude);
 
-      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-        return {
-          lat,
-          lng,
-        };
-      }
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lng >= -180 &&
+      lng <= 180
+    ) {
+      return {
+        lat,
+        lng,
+      };
     }
 
     return DEFAULT_MAP_CENTER;
   };
+  /* ------------------------------------------------------------- */
+  /* Validation                                                     */
+  /* ------------------------------------------------------------- */
 
   const validate = () => {
     const nextErrors = {};
@@ -125,7 +158,7 @@ function Address() {
     }
 
     if (isEmpty(form.addressState)) {
-      nextErrors.addressState = "Please select a state / province.";
+      nextErrors.addressState = "State / Province is required.";
     }
 
     if (isEmpty(form.addressCity)) {
@@ -143,8 +176,13 @@ function Address() {
     return Object.keys(nextErrors).length === 0;
   };
 
+  /* ------------------------------------------------------------- */
+  /* Navigation                                                     */
+  /* ------------------------------------------------------------- */
+
   const handleBack = () => {
     updateCompanySetupData(form);
+
     navigate("/company-setup/company-details");
   };
 
@@ -154,10 +192,15 @@ function Address() {
     if (!validate()) return;
 
     updateCompanySetupData(form);
+
     navigate("/company-setup/business-settings");
   };
 
   const mapCenter = getMapCenter();
+
+  /* ------------------------------------------------------------- */
+  /* UI                                                             */
+  /* ------------------------------------------------------------- */
 
   return (
     <CompanySetupLayout
@@ -166,8 +209,8 @@ function Address() {
       subtitle="Tell us where your company is located."
     >
       <form className="setup-form-grid" onSubmit={handleSubmit} noValidate>
-
         {/* Full Address */}
+
         <div className="setup-field setup-field--full">
           <label className="setup-label" htmlFor="fullAddress">
             Full Address
@@ -200,30 +243,35 @@ function Address() {
         </div>
 
         {/* Country */}
+
         <SelectField
           id="addressCountry"
           label="Country"
           required
-          placeholder="Select country"
+          placeholder={
+            optionsLoading ? "Loading countries..." : "Select country"
+          }
           value={form.addressCountry}
           onChange={handleChange("addressCountry")}
-          options={COUNTRY_OPTIONS}
+          options={countries}
           error={errors.addressCountry}
+          disabled={optionsLoading || countries.length === 0}
         />
 
-        {/* State */}
-        <SelectField
+        {/* State / Province */}
+
+        <Field
           id="addressState"
           label="State / Province"
           required
-          placeholder="Select state"
+          placeholder="Enter state / province"
           value={form.addressState}
           onChange={handleChange("addressState")}
-          options={STATE_OPTIONS}
           error={errors.addressState}
         />
 
         {/* City */}
+
         <Field
           id="addressCity"
           label="City"
@@ -235,6 +283,7 @@ function Address() {
         />
 
         {/* Pincode */}
+
         <Field
           id="addressPostalCode"
           label="Pincode"
@@ -249,17 +298,14 @@ function Address() {
         />
 
         {/* Map Location */}
+
         <div className="setup-field setup-field--full">
-          <label className="setup-label">
-            Map Location
-          </label>
+          <label className="setup-label">Map Location</label>
 
           <div className="map-location-row">
             <div className="map-location-display">
               {form.mapLocation ? (
-                <span>
-                  {form.mapLocation}
-                </span>
+                <span>{form.mapLocation}</span>
               ) : (
                 <span className="map-location-placeholder">
                   No location selected
@@ -273,31 +319,28 @@ function Address() {
               onClick={() => setShowMap((prev) => !prev)}
             >
               <MapPinIcon />
+
               {showMap ? "Hide Map" : "Select on Map"}
             </button>
           </div>
 
           {/* Map */}
+
           {showMap && (
             <div className="map-picker-wrapper">
-
               {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
                 <div className="map-error">
                   Google Maps API key is not configured.
                 </div>
               ) : loadError ? (
-                <div className="map-error">
-                  Unable to load Google Maps.
-                </div>
+                <div className="map-error">Unable to load Google Maps.</div>
               ) : !isLoaded ? (
-                <div className="map-loading">
-                  Loading map...
-                </div>
+                <div className="map-loading">Loading map...</div>
               ) : (
                 <GoogleMap
                   mapContainerStyle={MAP_CONTAINER_STYLE}
-                  center={mapCenter}
-                  zoom={form.latitude ? 16 : 5}
+                  {...(mapCenter ? { center: mapCenter } : {})}
+                  zoom={form.latitude && form.longitude ? 16 : 5}
                   onClick={handleMapClick}
                   options={{
                     streetViewControl: false,
@@ -390,6 +433,7 @@ function Address() {
           )}
 
           {/* Coordinates */}
+
           {(form.latitude || form.longitude) && (
             <div className="coordinates-display">
               <span>
@@ -403,7 +447,14 @@ function Address() {
           )}
         </div>
 
+        {/* API error */}
+
+        {optionsError && (
+          <p className="setup-error-text setup-field--full">{optionsError}</p>
+        )}
+
         {/* Actions */}
+
         <div className="setup-field setup-field--full setup-actions">
           <button
             type="button"
@@ -417,30 +468,25 @@ function Address() {
           <button
             type="submit"
             className="setup-btn setup-btn-primary"
+            disabled={optionsLoading}
           >
-            Continue
-            <ArrowIcon />
+            {optionsLoading ? "Loading..." : "Continue"}
+
+            {!optionsLoading && <ArrowIcon />}
           </button>
         </div>
-
       </form>
     </CompanySetupLayout>
   );
 }
 
-function Field({
-  id,
-  label,
-  required,
-  error,
-  ...inputProps
-}) {
+/* ------------------------------------------------------------- */
+/* Field                                                          */
+/* ------------------------------------------------------------- */
+
+function Field({ id, label, required, error, ...inputProps }) {
   return (
-    <div
-      className={`setup-field ${
-        error ? "setup-field--error" : ""
-      }`.trim()}
-    >
+    <div className={`setup-field ${error ? "setup-field--error" : ""}`.trim()}>
       <label className="setup-label" htmlFor={id}>
         {label}
 
@@ -456,23 +502,22 @@ function Field({
         className="setup-input"
         aria-required={required || undefined}
         aria-invalid={Boolean(error)}
-        aria-describedby={
-          error ? `${id}-error` : undefined
-        }
+        aria-describedby={error ? `${id}-error` : undefined}
         {...inputProps}
       />
 
       {error && (
-        <p
-          id={`${id}-error`}
-          className="setup-error-text"
-        >
+        <p id={`${id}-error`} className="setup-error-text">
           {error}
         </p>
       )}
     </div>
   );
 }
+
+/* ------------------------------------------------------------- */
+/* Select Field                                                   */
+/* ------------------------------------------------------------- */
 
 function SelectField({
   id,
@@ -483,21 +528,15 @@ function SelectField({
   placeholder,
   value,
   onChange,
+  disabled,
 }) {
   return (
-    <div
-      className={`setup-field ${
-        error ? "setup-field--error" : ""
-      }`.trim()}
-    >
+    <div className={`setup-field ${error ? "setup-field--error" : ""}`.trim()}>
       <label className="setup-label" htmlFor={id}>
         {label}
 
         {required && (
-          <span
-            className="setup-required"
-            aria-hidden="true"
-          >
+          <span className="setup-required" aria-hidden="true">
             *
           </span>
         )}
@@ -508,40 +547,35 @@ function SelectField({
         className="setup-select"
         value={value}
         onChange={onChange}
-        data-placeholder={
-          value === "" ? "true" : "false"
-        }
+        disabled={disabled}
+        data-placeholder={value === "" ? "true" : "false"}
         aria-required={required || undefined}
         aria-invalid={Boolean(error)}
-        aria-describedby={
-          error ? `${id}-error` : undefined
-        }
+        aria-describedby={error ? `${id}-error` : undefined}
       >
         <option value="" disabled>
           {placeholder}
         </option>
 
         {options.map((option) => (
-          <option
-            key={option}
-            value={option}
-          >
+          <option key={option} value={option}>
             {option}
           </option>
         ))}
       </select>
 
       {error && (
-        <p
-          id={`${id}-error`}
-          className="setup-error-text"
-        >
+        <p id={`${id}-error`} className="setup-error-text">
           {error}
         </p>
       )}
     </div>
   );
 }
+
+/* ------------------------------------------------------------- */
+/* Icons                                                          */
+/* ------------------------------------------------------------- */
 
 function MapPinIcon() {
   return (
@@ -558,13 +592,8 @@ function MapPinIcon() {
         stroke="currentColor"
         strokeWidth="2"
       />
-      <circle
-        cx="12"
-        cy="10"
-        r="3"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
+
+      <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" />
     </svg>
   );
 }
@@ -612,4 +641,3 @@ function ArrowIcon() {
 }
 
 export default Address;
-

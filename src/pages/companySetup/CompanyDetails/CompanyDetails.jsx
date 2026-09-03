@@ -1,42 +1,33 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import CompanySetupLayout from "../CompanySetupLayout/CompanySetupLayout";
 import {
   useCompanySetup,
   isEmpty,
   isValidEmail,
   isValidPhone,
-  isValidPostalCode,
   isValidLogoFile,
 } from "../CompanySetupContext";
+
+import { getCompanyOptions } from "../../../services/api/companyAPI";
+
 import "./CompanyDetails.css";
-
-const INDUSTRY_OPTIONS = [
-  "Technology",
-  "Finance & Banking",
-  "Healthcare",
-  "Manufacturing",
-  "Retail & E-commerce",
-  "Education",
-  "Real Estate",
-  "Hospitality",
-  "Construction",
-  "Other",
-];
-
-const COMPANY_TYPE_OPTIONS = [
-  "Private Limited",
-  "Public Limited",
-  "LLP",
-  "Partnership",
-  "Sole Proprietorship",
-  "Other",
-];
 
 function CompanyDetails() {
   const navigate = useNavigate();
+
   const { companySetupData, updateCompanySetupData } = useCompanySetup();
+
   const fileInputRef = useRef(null);
+
+  const [options, setOptions] = useState({
+    industries: [],
+    company_types: [],
+  });
+
+  const [optionsLoading, setOptionsLoading] = useState(true);
+  const [optionsError, setOptionsError] = useState("");
 
   const [form, setForm] = useState({
     companyName: companySetupData.companyName,
@@ -52,20 +43,64 @@ function CompanyDetails() {
   });
 
   const [logoName, setLogoName] = useState(companySetupData.companyLogoName);
+
   const [logoError, setLogoError] = useState("");
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
+  /* ------------------------------------------------------------- */
+  /* Load company options from backend                             */
+  /* ------------------------------------------------------------- */
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        setOptionsLoading(true);
+        setOptionsError("");
+
+        const data = await getCompanyOptions();
+
+        setOptions({
+          industries: data.data?.industries || [],
+          company_types: data.data?.company_types || [],
+        });
+      } catch (error) {
+        console.error("Failed to load company options:", error);
+
+        setOptionsError(
+          "Unable to load company options. Please refresh and try again.",
+        );
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+
+    loadOptions();
+  }, []);
+
+  /* ------------------------------------------------------------- */
+  /* Form handlers                                                  */
+  /* ------------------------------------------------------------- */
+
   const handleChange = (field) => (event) => {
-    setForm((prev) => ({ ...prev, [field]: event.target.value }));
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setForm((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [field]: "",
+    }));
   };
 
   const handleLogoSelect = (event) => {
     const file = event.target.files?.[0];
+
     if (!file) return;
 
     const result = isValidLogoFile(file);
+
     if (!result.valid) {
       setLogoError(result.message);
       return;
@@ -75,14 +110,21 @@ function CompanyDetails() {
     setLogoName(file.name);
 
     const reader = new FileReader();
+
     reader.onload = () => {
       updateCompanySetupData({
         companyLogoName: file.name,
         companyLogoDataUrl: reader.result,
+        companyLogoFile: file,
       });
     };
+
     reader.readAsDataURL(file);
   };
+
+  /* ------------------------------------------------------------- */
+  /* Validation                                                     */
+  /* ------------------------------------------------------------- */
 
   const validate = () => {
     const nextErrors = {};
@@ -116,23 +158,25 @@ function CompanyDetails() {
     return Object.keys(nextErrors).length === 0;
   };
 
+  /* ------------------------------------------------------------- */
+  /* Submit                                                         */
+  /* ------------------------------------------------------------- */
+
   const handleSubmit = (event) => {
     event.preventDefault();
 
     const isValid = validate();
 
-    console.log("Form submitted:", form);
-    console.log("Validation result:", isValid);
-    console.log("Errors:", errors);
-
     if (!isValid) return;
 
     updateCompanySetupData(form);
 
-    console.log("Navigating to Address...");
-
     navigate("/company-setup/address");
   };
+
+  /* ------------------------------------------------------------- */
+  /* UI                                                             */
+  /* ------------------------------------------------------------- */
 
   return (
     <CompanySetupLayout
@@ -150,6 +194,7 @@ function CompanyDetails() {
           onChange={handleChange("companyName")}
           error={errors.companyName}
         />
+
         <Field
           id="companyCode"
           label="Company Code"
@@ -167,16 +212,17 @@ function CompanyDetails() {
           placeholder="Select industry"
           value={form.industry}
           onChange={handleChange("industry")}
-          options={INDUSTRY_OPTIONS}
+          options={options.industries}
           error={errors.industry}
         />
+
         <SelectField
           id="companyType"
           label="Company Type"
           placeholder="Select company type"
           value={form.companyType}
           onChange={handleChange("companyType")}
-          options={COMPANY_TYPE_OPTIONS}
+          options={options.company_types}
           error={errors.companyType}
         />
 
@@ -190,6 +236,7 @@ function CompanyDetails() {
           onChange={handleChange("companyEmail")}
           error={errors.companyEmail}
         />
+
         <Field
           id="phone"
           label="Phone"
@@ -199,8 +246,8 @@ function CompanyDetails() {
           maxLength={10}
           placeholder="Enter 10-digit phone number"
           value={form.phone}
-          onChange={(e) => {
-            const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+          onChange={(event) => {
+            const value = event.target.value.replace(/\D/g, "").slice(0, 10);
 
             setForm((prev) => ({
               ...prev,
@@ -214,6 +261,7 @@ function CompanyDetails() {
           }}
           error={errors.phone}
         />
+
         <Field
           id="website"
           label="Website"
@@ -223,6 +271,7 @@ function CompanyDetails() {
           onChange={handleChange("website")}
           error={errors.website}
         />
+
         <Field
           id="registrationNumber"
           label="GST/CIN/Registration No."
@@ -252,20 +301,21 @@ function CompanyDetails() {
             <span className="setup-upload-icon" aria-hidden="true">
               <UploadIcon />
             </span>
+
             <span>
               <span className="setup-upload-text">
                 {logoName ? (
                   <span className="setup-upload-preview">{logoName}</span>
                 ) : (
-                  <>
-                    <strong>Click to upload</strong>
-                  </>
+                  <strong>Click to upload</strong>
                 )}
               </span>
+
               <span className="setup-upload-hint" style={{ display: "block" }}>
                 PNG, JPG or SVG (max. 2MB)
               </span>
             </span>
+
             <input
               ref={fileInputRef}
               id="companyLogo"
@@ -276,17 +326,21 @@ function CompanyDetails() {
               onChange={handleLogoSelect}
             />
           </div>
+
           {logoError && <p className="setup-error-text">{logoError}</p>}
         </div>
+
+        {optionsError && <p className="setup-error-text">{optionsError}</p>}
 
         <div className="setup-field setup-field--full setup-actions setup-actions--end">
           <button
             type="submit"
             className="setup-btn setup-btn-primary"
-            disabled={loading}
+            disabled={loading || optionsLoading}
           >
-            {loading ? "Saving..." : "Continue"}
-            {!loading && <ArrowIcon />}
+            {loading || optionsLoading ? "Loading..." : "Continue"}
+
+            {!loading && !optionsLoading && <ArrowIcon />}
           </button>
         </div>
       </form>
@@ -294,17 +348,23 @@ function CompanyDetails() {
   );
 }
 
+/* ------------------------------------------------------------- */
+/* Reusable Field                                                */
+/* ------------------------------------------------------------- */
+
 function Field({ id, label, required, error, ...inputProps }) {
   return (
     <div className={`setup-field ${error ? "setup-field--error" : ""}`.trim()}>
       <label className="setup-label" htmlFor={id}>
         {label}
+
         {required && (
           <span className="setup-required" aria-hidden="true">
             *
           </span>
         )}
       </label>
+
       <input
         id={id}
         className="setup-input"
@@ -313,6 +373,7 @@ function Field({ id, label, required, error, ...inputProps }) {
         aria-describedby={error ? `${id}-error` : undefined}
         {...inputProps}
       />
+
       {error && (
         <p id={`${id}-error`} className="setup-error-text">
           {error}
@@ -321,6 +382,10 @@ function Field({ id, label, required, error, ...inputProps }) {
     </div>
   );
 }
+
+/* ------------------------------------------------------------- */
+/* Reusable Select                                               */
+/* ------------------------------------------------------------- */
 
 function SelectField({
   id,
@@ -336,12 +401,14 @@ function SelectField({
     <div className={`setup-field ${error ? "setup-field--error" : ""}`.trim()}>
       <label className="setup-label" htmlFor={id}>
         {label}
+
         {required && (
           <span className="setup-required" aria-hidden="true">
             *
           </span>
         )}
       </label>
+
       <select
         id={id}
         className="setup-select"
@@ -355,12 +422,14 @@ function SelectField({
         <option value="" disabled>
           {placeholder}
         </option>
+
         {options.map((option) => (
           <option key={option} value={option}>
             {option}
           </option>
         ))}
       </select>
+
       {error && (
         <p id={`${id}-error`} className="setup-error-text">
           {error}
@@ -369,6 +438,10 @@ function SelectField({
     </div>
   );
 }
+
+/* ------------------------------------------------------------- */
+/* Icons                                                          */
+/* ------------------------------------------------------------- */
 
 function UploadIcon() {
   return (
@@ -386,6 +459,7 @@ function UploadIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+
       <path
         d="M3.5 13.5V15a1.5 1.5 0 001.5 1.5h10a1.5 1.5 0 001.5-1.5v-1.5"
         stroke="#00A375"

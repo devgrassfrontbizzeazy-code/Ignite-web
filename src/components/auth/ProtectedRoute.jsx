@@ -1,10 +1,15 @@
 import React from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import {
+  Navigate,
+  Outlet,
+  useLocation,
+} from "react-router-dom";
 
-function ProtectedRoute() {
+const ProtectedRoute = () => {
   const location = useLocation();
 
-  const accessToken = localStorage.getItem("accessToken");
+  const accessToken =
+    localStorage.getItem("accessToken");
 
   if (!accessToken) {
     return (
@@ -19,6 +24,7 @@ function ProtectedRoute() {
   }
 
   return <Outlet />;
-}
+};
 
 export default ProtectedRoute;
+

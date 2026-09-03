@@ -1,20 +1,34 @@
+import React, { useEffect, useState } from "react";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import logo from "../../../assets/logo.png";
 import "./ResetPassword.css";
 
+import {
+  resetPassword,
+} from "../../../services/api/authAPI";
+
 const ResetPassword = () => {
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const token = searchParams.get("token");
+  /*
+   * These values are passed from ForgotPassword
+   * after successful OTP verification.
+   */
+  const email = location.state?.email;
+  const resetToken = location.state?.resetToken;
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -22,9 +36,13 @@ const ResetPassword = () => {
 
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // Password match
+  // ------------------------------------------
+  // PASSWORD MATCH
+  // ------------------------------------------
+
   const passwordMatch =
-    !confirmPassword || password === confirmPassword;
+    !confirmPassword ||
+    password === confirmPassword;
 
   // ------------------------------------------
   // PASSWORD STRENGTH
@@ -66,6 +84,38 @@ const ResetPassword = () => {
   };
 
   // ------------------------------------------
+  // ERROR MESSAGE HELPER
+  // ------------------------------------------
+
+  const getErrorMessage = (err, fallback) => {
+    const data = err.response?.data;
+
+    if (!data) {
+      return "Unable to connect to the server. Please try again.";
+    }
+
+    if (typeof data.detail === "string") {
+      return data.detail;
+    }
+
+    if (typeof data.message === "string") {
+      return data.message;
+    }
+
+    if (typeof data === "object") {
+      const firstError = Object.values(data)
+        .flat()
+        .find((value) => typeof value === "string");
+
+      if (firstError) {
+        return firstError;
+      }
+    }
+
+    return fallback;
+  };
+
+  // ------------------------------------------
   // SUBMIT
   // ------------------------------------------
 
@@ -74,17 +124,25 @@ const ResetPassword = () => {
 
     setError("");
 
-    // Token validation
-    if (!token) {
+    // ----------------------------------------
+    // TOKEN / EMAIL VALIDATION
+    // ----------------------------------------
+
+    if (!email || !resetToken) {
       setError(
-        "Invalid or expired reset link. Please request a new password reset."
+        "Your password reset session is invalid or has expired. Please request a new verification code."
       );
       return;
     }
 
-    // Password validation
+    // ----------------------------------------
+    // PASSWORD VALIDATION
+    // ----------------------------------------
+
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      setError(
+        "Password must be at least 8 characters long."
+      );
       return;
     }
 
@@ -103,31 +161,38 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      /*
-       * Backend password reset API will be connected here.
-       *
-       * Example later:
-       *
-       * await resetPassword({
-       *   token,
-       *   password,
-       * });
-       */
+      const response = await resetPassword(
+        email,
+        resetToken,
+        password,
+        confirmPassword
+      );
 
-      console.log("Password reset requested.");
-
-      // Temporary delay to test loading state
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log(
+        "Password reset successful:",
+        response
+      );
 
       setSuccess(true);
 
-      // Redirect after 3 seconds
+      /*
+       * Redirect after 3 seconds.
+       */
       setTimeout(() => {
         navigate("/login");
       }, 3000);
+
     } catch (err) {
+      console.error(
+        "Password reset failed:",
+        err
+      );
+
       setError(
-        "Unable to reset your password. The link may have expired."
+        getErrorMessage(
+          err,
+          "Unable to reset your password. The verification session may have expired."
+        )
       );
     } finally {
       setLoading(false);
@@ -135,10 +200,10 @@ const ResetPassword = () => {
   };
 
   // ------------------------------------------
-  // INVALID TOKEN STATE
+  // INVALID RESET SESSION
   // ------------------------------------------
 
-  if (!token) {
+  if (!email || !resetToken) {
     return (
       <div className="reset-password-container">
 
@@ -154,7 +219,10 @@ const ResetPassword = () => {
           className="back-home-link"
           title="Back to login"
         >
-          <span className="back-arrow">←</span>
+          <span className="back-arrow">
+            ←
+          </span>
+
           Back
         </Link>
 
@@ -162,28 +230,33 @@ const ResetPassword = () => {
         <div className="reset-password-card error-card">
 
           <div className="card-header">
+
             <img
               src={logo}
               alt="IGNITE Logo"
               className="card-logo"
             />
+
           </div>
 
           <div className="error-icon-wrapper">
+
             <div className="error-icon">
               ⚠
             </div>
+
           </div>
 
           <div className="error-content">
 
             <h1>
-              Invalid Reset Link
+              Invalid Reset Session
             </h1>
 
             <p>
-              The reset link is invalid or has expired.
-              Please request a new password reset link.
+              Your password reset session is invalid
+              or has expired. Please request a new
+              verification code.
             </p>
 
             <div className="error-actions">
@@ -192,20 +265,21 @@ const ResetPassword = () => {
                 to="/forgot-password"
                 className="primary-button"
               >
-                Request New Reset Link
+                Request New Code
               </Link>
 
             </div>
 
           </div>
+
         </div>
       </div>
     );
   }
 
-  // ------------------------------------------
+  // ==========================================
   // SUCCESS STATE
-  // ------------------------------------------
+  // ==========================================
 
   if (success) {
     return (
@@ -221,17 +295,21 @@ const ResetPassword = () => {
         <div className="reset-password-card success-card">
 
           <div className="card-header">
+
             <img
               src={logo}
               alt="IGNITE Logo"
               className="card-logo"
             />
+
           </div>
 
           <div className="success-icon-wrapper">
+
             <div className="success-icon">
               ✓
             </div>
+
           </div>
 
           <div className="success-content">
@@ -241,7 +319,8 @@ const ResetPassword = () => {
             </h1>
 
             <p>
-              Your password has been successfully updated.
+              Your password has been successfully
+              updated.
             </p>
 
             <p className="success-message">
@@ -255,8 +334,10 @@ const ResetPassword = () => {
               </h3>
 
               <ul>
+
                 <li>
-                  Use a unique password you haven't used before.
+                  Use a unique password you haven't
+                  used before.
                 </li>
 
                 <li>
@@ -264,8 +345,10 @@ const ResetPassword = () => {
                 </li>
 
                 <li>
-                  Enable two-factor authentication for extra security.
+                  Enable two-factor authentication
+                  for extra security.
                 </li>
+
               </ul>
 
             </div>
@@ -292,9 +375,9 @@ const ResetPassword = () => {
     );
   }
 
-  // ------------------------------------------
+  // ==========================================
   // RESET PASSWORD FORM
-  // ------------------------------------------
+  // ==========================================
 
   return (
     <div className="reset-password-container">
@@ -311,7 +394,10 @@ const ResetPassword = () => {
         className="back-button"
         title="Back to login"
       >
-        <span className="back-arrow">←</span>
+        <span className="back-arrow">
+          ←
+        </span>
+
         Back to Login
       </Link>
 
@@ -320,11 +406,13 @@ const ResetPassword = () => {
 
         {/* Logo */}
         <div className="card-header">
+
           <img
             src={logo}
             alt="IGNITE Logo"
             className="card-logo"
           />
+
         </div>
 
         {/* Welcome Section */}
@@ -335,7 +423,8 @@ const ResetPassword = () => {
           </h1>
 
           <p>
-            Enter a strong password to secure your IGNITE account.
+            Enter a strong password to secure your
+            IGNITE account.
           </p>
 
         </div>
@@ -403,7 +492,11 @@ const ResetPassword = () => {
               </span>
 
               <input
-                type={showPassword ? "text" : "password"}
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
                 id="password"
                 name="password"
                 placeholder="Enter new password"
@@ -422,7 +515,9 @@ const ResetPassword = () => {
                 type="button"
                 className="password-toggle"
                 onClick={() =>
-                  setShowPassword((prev) => !prev)
+                  setShowPassword(
+                    (prev) => !prev
+                  )
                 }
                 aria-label={
                   showPassword
@@ -431,7 +526,9 @@ const ResetPassword = () => {
                 }
                 disabled={loading}
               >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
+                {showPassword
+                  ? "👁️"
+                  : "👁️‍🗨️"}
               </button>
 
             </div>
@@ -491,7 +588,9 @@ const ResetPassword = () => {
                       : "check-icon-empty"
                   }
                 >
-                  {password.length >= 8 ? "✓" : "○"}
+                  {password.length >= 8
+                    ? "✓"
+                    : "○"}
                 </span>
 
                 <span>
@@ -509,7 +608,9 @@ const ResetPassword = () => {
                       : "check-icon-empty"
                   }
                 >
-                  {/[A-Z]/.test(password) ? "✓" : "○"}
+                  {/[A-Z]/.test(password)
+                    ? "✓"
+                    : "○"}
                 </span>
 
                 <span>
@@ -527,7 +628,9 @@ const ResetPassword = () => {
                       : "check-icon-empty"
                   }
                 >
-                  {/[a-z]/.test(password) ? "✓" : "○"}
+                  {/[a-z]/.test(password)
+                    ? "✓"
+                    : "○"}
                 </span>
 
                 <span>
@@ -545,7 +648,9 @@ const ResetPassword = () => {
                       : "check-icon-empty"
                   }
                 >
-                  {/[0-9]/.test(password) ? "✓" : "○"}
+                  {/[0-9]/.test(password)
+                    ? "✓"
+                    : "○"}
                 </span>
 
                 <span>
@@ -604,7 +709,9 @@ const ResetPassword = () => {
                 placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={(e) => {
-                  setConfirmPassword(e.target.value);
+                  setConfirmPassword(
+                    e.target.value
+                  );
                   setError("");
                 }}
                 autoComplete="new-password"
@@ -641,17 +748,19 @@ const ResetPassword = () => {
             </div>
 
             {/* Match Message */}
-            {confirmPassword && !passwordMatch && (
-              <p className="error-text">
-                Passwords do not match.
-              </p>
-            )}
+            {confirmPassword &&
+              !passwordMatch && (
+                <p className="error-text">
+                  Passwords do not match.
+                </p>
+              )}
 
-            {confirmPassword && passwordMatch && (
-              <p className="success-text">
-                ✓ Passwords match
-              </p>
-            )}
+            {confirmPassword &&
+              passwordMatch && (
+                <p className="success-text">
+                  ✓ Passwords match
+                </p>
+              )}
 
           </div>
 
@@ -663,8 +772,8 @@ const ResetPassword = () => {
             </span>
 
             <p>
-              Your password will be encrypted and never
-              shared. Keep it safe and unique.
+              Your password will be encrypted and
+              never shared. Keep it safe and unique.
             </p>
 
           </div>

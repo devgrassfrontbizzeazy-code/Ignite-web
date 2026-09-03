@@ -1,0 +1,83 @@
+.designations-page {
+  width: 100%;
+  min-height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.designations-page__header {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.designations-page__header > *:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.designations-page__header > button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.designations-page__content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.designations-page__table {
+  width: 100%;
+}
+
+.designations-page__empty {
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.designations-page__empty .empty-state {
+  min-height: 240px;
+  padding: 24px 16px;
+  box-shadow: none;
+}
+
+/* -------------------------------------------------------
+   Responsive
+   ------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .designations-page {
+    padding: 20px;
+  }
+
+  .designations-page__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .designations-page__header > button {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 480px) {
+  .designations-page {
+    padding: 16px;
+  }
+
+  .designations-page__header {
+    gap: 14px;
+  }
+
+  .designations-page__header > button {
+    width: 100%;
+  }
+}

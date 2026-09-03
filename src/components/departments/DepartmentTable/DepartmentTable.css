@@ -1,0 +1,108 @@
+.department-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.department-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+}
+
+.department-table th {
+  padding: 14px 18px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.department-table td {
+  padding: 16px 18px;
+  font-size: 14px;
+  color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  white-space: nowrap;
+}
+
+.department-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.department-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.department-table__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.department-table__name-text {
+  font-weight: 600;
+  color: #111827;
+}
+
+.department-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.department-table__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.department-table__status--active {
+  color: #059669;
+}
+
+.department-table__status--active .department-table__status-dot {
+  background: #10b981;
+}
+
+.department-table__status--inactive {
+  color: #6b7280;
+}
+
+.department-table__status--inactive .department-table__status-dot {
+  background: #9ca3af;
+}
+
+.department-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.department-table__actions button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.department-table__actions button:hover {
+  color: #111827;
+}
+
+@media (max-width: 768px) {
+  .department-table-wrapper {
+    border-radius: 10px;
+  }
+}

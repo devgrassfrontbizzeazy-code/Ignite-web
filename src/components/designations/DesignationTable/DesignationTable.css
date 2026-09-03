@@ -1,0 +1,105 @@
+.designation-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  background: var(--color-bg-surface);
+}
+
+.designation-table {
+  width: 100%;
+  min-width: 760px;
+
+  border-collapse: collapse;
+
+  font-family: inherit;
+}
+
+.designation-table th {
+  padding: 14px 16px;
+
+  border-bottom: 1px solid var(--color-border);
+
+  background: var(--color-bg-subtle);
+
+  color: var(--color-text-secondary);
+
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+
+  text-align: left;
+  white-space: nowrap;
+}
+
+.designation-table td {
+  padding: 16px;
+
+  border-bottom: 1px solid var(--color-border);
+
+  color: var(--color-text-secondary);
+
+  font-size: var(--font-size-sm);
+
+  vertical-align: middle;
+}
+
+.designation-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.designation-table tbody tr {
+  transition:
+    background-color var(--transition-base);
+}
+
+.designation-table tbody tr:hover {
+  background-color: var(--color-bg-subtle);
+}
+
+/* Designation name */
+
+.designation-table__name {
+  display: flex;
+  align-items: center;
+
+  min-width: 180px;
+}
+
+.designation-table__name-text {
+  color: var(--color-text-primary);
+
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Status */
+
+.designation-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.designation-table__status--active {
+  color: var(--color-success);
+}
+
+.designation-table__status--inactive {
+  color: var(--color-danger);
+}
+
+.designation-table__status-dot {
+  width: 7px;
+  height: 7px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  background: currentColor;
+}

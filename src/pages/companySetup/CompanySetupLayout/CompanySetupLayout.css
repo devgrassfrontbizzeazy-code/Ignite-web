@@ -112,14 +112,18 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
 }
 
 .setup-step-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
-
 .setup-step-indicator {
   display: flex;
   align-items: center;
@@ -169,7 +173,6 @@
   margin: 0 12px;
   flex-shrink: 0;
 }
-
 .setup-step--completed + .setup-step .setup-step-connector,
 .setup-step--completed .setup-step-connector {
   background: var(--ignite-emerald-green);
@@ -485,4 +488,51 @@
     width: 100%;
     justify-content: center;
   }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Stepper override                                                    */
+/* ------------------------------------------------------------------ */
+
+.setup-page .setup-step {
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.setup-page .setup-step-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.setup-page .setup-step-connector {
+  width: 32px !important;
+  height: 1.5px !important;
+
+  margin: 0 12px !important;
+  padding: 0 !important;
+
+  border: none !important;
+  border-radius: 0 !important;
+  background: var(--ignite-border) !important;
+}
+
+.setup-page .setup-step--completed .setup-step-connector {
+  background: var(--ignite-emerald-green) !important;
 }
