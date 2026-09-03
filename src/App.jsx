@@ -37,7 +37,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import CompanySetupGuard from "./components/auth/CompanySetupGuard";
 
 /* Organization */
-import OrganizationSetup from "./pages/organizationSetup/OrganizationSetup";
+import OrganizationSetup from "./pages/OrganizationSetup/OrganizationSetup";
 import DepartmentsPage from "./pages/departments/Departments";
 import DesignationsPage from "./pages/designations/Designations";
 
