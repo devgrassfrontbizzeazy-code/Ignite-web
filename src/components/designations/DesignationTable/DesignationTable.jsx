@@ -1,3 +1,4 @@
+
 import DesignationRowActions from "../DesignationRowActions/DesignationRowActions";
 
 import "./DesignationTable.css";
@@ -7,6 +8,7 @@ const DesignationTable = ({
   onView,
   onEdit,
   onDelete,
+  onToggleStatus,
 }) => {
   if (!designations.length) {
     return null;
@@ -17,9 +19,9 @@ const DesignationTable = ({
       <table className="designation-table">
         <thead>
           <tr>
-            <th>Designation</th>
+            <th>Designation Code</th>
+            <th>Designation Name</th>
             <th>Department</th>
-            <th>Employees</th>
             <th>Status</th>
             <th>Created At</th>
             <th>Actions</th>
@@ -27,54 +29,75 @@ const DesignationTable = ({
         </thead>
 
         <tbody>
-          {designations.map((designation) => (
-            <tr key={designation.id}>
-              <td>
-                <div className="designation-table__name">
-                  <span className="designation-table__name-text">
-                    {designation.name}
-                  </span>
-                </div>
-              </td>
+          {designations.map(
+            (designation) => {
+              const isActive =
+                designation.status ===
+                "active";
 
-              <td>
-                {designation.departmentName || "—"}
-              </td>
-
-              <td>
-                {designation.employeeCount ?? 0}
-              </td>
-
-              <td>
-                <span
-                  className={`designation-table__status designation-table__status--${
-                    designation.status === "active"
-                      ? "active"
-                      : "inactive"
-                  }`}
+              return (
+                <tr
+                  key={designation.id}
                 >
-                  <span className="designation-table__status-dot" />
+                  <td>
+                    {designation.designationCode ||
+                      "—"}
+                  </td>
 
-                  {designation.status === "active"
-                    ? "Active"
-                    : "Inactive"}
-                </span>
-              </td>
+                  <td>
+                    <div className="designation-table__name">
+                      <span className="designation-table__name-text">
+                        {designation.designationName ||
+                          "—"}
+                      </span>
+                    </div>
+                  </td>
 
-              <td>
-                {designation.createdAt || "—"}
-              </td>
+                  <td>
+                    {designation.departmentName ||
+                      "—"}
+                  </td>
 
-              <td>
-                <DesignationRowActions
-                  designation={designation}
-                  onView={onView}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                />
-              </td>
-            </tr>
-          ))}
+                  <td>
+                    <span
+                      className={`designation-table__status designation-table__status--${
+                        isActive
+                          ? "active"
+                          : "inactive"
+                      }`}
+                    >
+                      <span className="designation-table__status-dot" />
+
+                      {isActive
+                        ? "Active"
+                        : "Inactive"}
+                    </span>
+                  </td>
+
+                  <td>
+                    {designation.createdAt ||
+                      "—"}
+                  </td>
+
+                  <td>
+                    <DesignationRowActions
+                      designation={
+                        designation
+                      }
+                      onView={onView}
+                      onEdit={onEdit}
+                      onDelete={
+                        onDelete
+                      }
+                      onToggleStatus={
+                        onToggleStatus
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            },
+          )}
         </tbody>
       </table>
     </div>
@@ -82,3 +105,4 @@ const DesignationTable = ({
 };
 
 export default DesignationTable;
+

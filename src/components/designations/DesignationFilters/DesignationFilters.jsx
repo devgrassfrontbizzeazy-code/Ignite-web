@@ -1,3 +1,4 @@
+
 import SearchInput from "../../common/SearchInput/SearchInput";
 import Select from "../../common/Select/Select";
 
@@ -20,7 +21,10 @@ const DesignationFilters = ({
       value: "all",
     },
     ...departments.map((item) => ({
-      label: item.name,
+      label:
+        item.departmentName ||
+        item.name ||
+        "Unnamed Department",
       value: item.id,
     })),
   ];
@@ -53,10 +57,6 @@ const DesignationFilters = ({
       label: "Oldest",
       value: "oldest",
     },
-    {
-      label: "Employees",
-      value: "employees",
-    },
   ];
 
   return (
@@ -65,7 +65,7 @@ const DesignationFilters = ({
         <SearchInput
           value={search}
           onChange={onSearch}
-          placeholder="Search designations..."
+          placeholder="Search by code or designation name..."
         />
       </div>
 
@@ -93,3 +93,4 @@ const DesignationFilters = ({
 };
 
 export default DesignationFilters;
+

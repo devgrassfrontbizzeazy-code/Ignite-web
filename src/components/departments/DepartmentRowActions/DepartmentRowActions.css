@@ -84,13 +84,10 @@
   background-color: var(--color-bg-subtle);
 }
 
-.department-row-actions__menu
-  .department-row-actions__delete {
+.department-row-actions__menu .department-row-actions__delete {
   color: var(--color-danger);
 }
 
-.department-row-actions__menu
-  .department-row-actions__delete:hover {
+.department-row-actions__menu .department-row-actions__delete:hover {
   background-color: var(--color-danger-soft);
 }
-

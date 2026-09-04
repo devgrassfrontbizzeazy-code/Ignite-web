@@ -94,12 +94,10 @@
   background-color: var(--color-bg-subtle);
 }
 
-.designation-row-actions__menu
-  .designation-row-actions__delete {
+.designation-row-actions__menu .designation-row-actions__delete {
   color: var(--color-danger);
 }
 
-.designation-row-actions__menu
-  .designation-row-actions__delete:hover {
+.designation-row-actions__menu .designation-row-actions__delete:hover {
   background-color: var(--color-danger-soft);
 }

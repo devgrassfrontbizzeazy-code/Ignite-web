@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 
 import {
@@ -31,18 +32,32 @@ const Departments = () => {
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [selectedDepartment, setSelectedDepartment] =
+    useState(null);
+
   const [loading, setLoading] = useState(false);
 
-  const stats = useMemo(() => {
-    const total = departments.length;
+  /*
+   * Only non-deleted departments are counted
+   * in the dashboard statistics.
+   */
+  const activeDepartments = useMemo(() => {
+    return departments.filter(
+      (department) => !department.deletedAt,
+    );
+  }, [departments]);
 
-    const active = departments.filter(
-      (department) => department.status === "active",
+  const stats = useMemo(() => {
+    const total = activeDepartments.length;
+
+    const active = activeDepartments.filter(
+      (department) =>
+        department.status === "active",
     ).length;
 
-    const inactive = departments.filter(
-      (department) => department.status === "inactive",
+    const inactive = activeDepartments.filter(
+      (department) =>
+        department.status === "inactive",
     ).length;
 
     return {
@@ -50,56 +65,83 @@ const Departments = () => {
       active,
       inactive,
     };
-  }, [departments]);
+  }, [activeDepartments]);
 
   const filteredDepartments = useMemo(() => {
-    let result = [...departments];
+    let result = [...activeDepartments];
 
+    /*
+     * Search by:
+     * - Department Code
+     * - Department Name
+     * - Description
+     */
     if (search.trim()) {
-      const searchValue = search.toLowerCase().trim();
+      const searchValue =
+        search.toLowerCase().trim();
 
       result = result.filter((department) => {
         return (
-          department.name.toLowerCase().includes(searchValue) ||
-          department.head?.toLowerCase().includes(searchValue)
+          department.departmentCode
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          department.departmentName
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          department.description
+            ?.toLowerCase()
+            .includes(searchValue)
         );
       });
     }
 
+    /*
+     * Status filter
+     */
     if (status !== "all") {
       result = result.filter(
-        (department) => department.status === status,
+        (department) =>
+          department.status === status,
       );
     }
 
+    /*
+     * Sorting
+     */
     result.sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return b.id - a.id;
+          return (
+            new Date(b.createdAt) -
+            new Date(a.createdAt)
+          );
 
         case "oldest":
-          return a.id - b.id;
-
-        case "employees":
-          return b.employeeCount - a.employeeCount;
+          return (
+            new Date(a.createdAt) -
+            new Date(b.createdAt)
+          );
 
         case "name":
         default:
-          return a.name.localeCompare(b.name);
+          return (
+            a.departmentName || ""
+          ).localeCompare(
+            b.departmentName || "",
+          );
       }
     });
 
     return result;
-  }, [departments, search, status, sortBy]);
+  }, [
+    activeDepartments,
+    search,
+    status,
+    sortBy,
+  ]);
 
   const handleAddDepartment = () => {
     setSelectedDepartment(null);
-    setShowForm(true);
-  };
-
-  const handleEditDepartment = (department) => {
-    setShowDetails(false);
-    setSelectedDepartment(department);
     setShowForm(true);
   };
 
@@ -108,37 +150,120 @@ const Departments = () => {
     setShowDetails(true);
   };
 
+  const handleEditDepartment = (department) => {
+    setShowDetails(false);
+    setSelectedDepartment(department);
+    setShowForm(true);
+  };
+
   const handleCloseDetails = () => {
     setShowDetails(false);
     setSelectedDepartment(null);
   };
 
+  /*
+   * Soft delete:
+   * The record stays in state but gets deletedAt.
+   * It is excluded from the normal department list.
+   */
   const handleDeleteDepartment = (department) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${department.name}"?`,
+      `Are you sure you want to delete "${department.departmentName}"?`,
     );
 
     if (!confirmed) {
       return;
     }
 
+    const deletedAt =
+      new Date().toISOString();
+
     setDepartments((previous) =>
-      previous.filter((item) => item.id !== department.id),
+      previous.map((item) =>
+        item.id === department.id
+          ? {
+              ...item,
+              deletedAt,
+            }
+          : item,
+      ),
     );
+
+    if (
+      selectedDepartment?.id ===
+      department.id
+    ) {
+      setSelectedDepartment(null);
+      setShowDetails(false);
+    }
   };
 
-  const handleSubmitDepartment = (formData) => {
+  /*
+   * Activate / Deactivate department
+   */
+  const handleToggleDepartmentStatus = (
+    department,
+  ) => {
+    setDepartments((previous) =>
+      previous.map((item) =>
+        item.id === department.id
+          ? {
+              ...item,
+              status:
+                item.status === "active"
+                  ? "inactive"
+                  : "active",
+              updatedAt:
+                new Date().toISOString(),
+            }
+          : item,
+      ),
+    );
+
+    /*
+     * Keep the details modal in sync
+     * if the same department is currently open.
+     */
+    setSelectedDepartment((previous) => {
+      if (
+        previous?.id !== department.id
+      ) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        status:
+          previous.status === "active"
+            ? "inactive"
+            : "active",
+        updatedAt:
+          new Date().toISOString(),
+      };
+    });
+  };
+
+  /*
+   * Add / Edit Department
+   */
+  const handleSubmitDepartment = (
+    formData,
+  ) => {
     setLoading(true);
 
     setTimeout(() => {
+      const now =
+        new Date().toISOString();
+
       if (selectedDepartment) {
         setDepartments((previous) =>
           previous.map((department) =>
-            department.id === selectedDepartment.id
+            department.id ===
+            selectedDepartment.id
               ? {
                   ...department,
                   ...formData,
-                  head: formData.head || department.head,
+                  updatedAt: now,
                 }
               : department,
           ),
@@ -146,16 +271,23 @@ const Departments = () => {
       } else {
         const newDepartment = {
           id: Date.now(),
-          name: formData.name,
-          head: formData.head,
-          description: formData.description,
-          employeeCount: 0,
-          status: formData.status,
-          createdAt: new Date().toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }),
+
+          departmentCode:
+            formData.departmentCode,
+
+          departmentName:
+            formData.departmentName,
+
+          description:
+            formData.description,
+
+          status:
+            formData.status,
+
+          createdAt: now,
+          updatedAt: now,
+
+          deletedAt: null,
         };
 
         setDepartments((previous) => [
@@ -180,7 +312,7 @@ const Departments = () => {
       <div className="departments-page__header">
         <PageHeader
           title="Departments"
-          description="Manage your organization's departments, department heads and workforce structure."
+          description="Manage your organization's departments and structure."
         />
 
         <Button
@@ -198,12 +330,14 @@ const Departments = () => {
           inactive={stats.inactive}
         />
 
-        {departments.length > 0 && (
+        {activeDepartments.length > 0 && (
           <DepartmentFilters
             search={search}
             onSearch={(value) =>
               setSearch(
-                value?.target?.value ?? value ?? "",
+                value?.target?.value ??
+                  value ??
+                  "",
               )
             }
             status={status}
@@ -213,7 +347,7 @@ const Departments = () => {
           />
         )}
 
-        {departments.length === 0 ? (
+        {activeDepartments.length === 0 ? (
           <div className="departments-page__empty">
             <EmptyState
               title="No departments yet"
@@ -238,10 +372,17 @@ const Departments = () => {
         ) : (
           <div className="departments-page__table">
             <DepartmentTable
-              departments={filteredDepartments}
+              departments={
+                filteredDepartments
+              }
               onView={handleViewDepartment}
               onEdit={handleEditDepartment}
-              onDelete={handleDeleteDepartment}
+              onDelete={
+                handleDeleteDepartment
+              }
+              onToggleStatus={
+                handleToggleDepartmentStatus
+              }
             />
           </div>
         )}
@@ -249,7 +390,10 @@ const Departments = () => {
 
       {/* Department Details */}
       <Modal
-        open={showDetails && !!selectedDepartment}
+        open={
+          showDetails &&
+          !!selectedDepartment
+        }
         onClose={handleCloseDetails}
         size="medium"
       >
@@ -277,9 +421,12 @@ const Departments = () => {
         size="medium"
       >
         <DepartmentForm
-          initialData={selectedDepartment || {}}
-          employees={[]}
-          onSubmit={handleSubmitDepartment}
+          initialData={
+            selectedDepartment || {}
+          }
+          onSubmit={
+            handleSubmitDepartment
+          }
           onCancel={handleCancelForm}
           loading={loading}
         />
@@ -289,3 +436,4 @@ const Departments = () => {
 };
 
 export default Departments;
+

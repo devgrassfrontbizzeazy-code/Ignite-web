@@ -1,5 +1,6 @@
 
 import { useMemo, useState } from "react";
+
 import {
   useOrganization,
 } from "../../context/OrganizationContext/OrganizationContext";
@@ -18,21 +19,20 @@ import DesignationDetails from "../../components/designations/DesignationDetails
 import "./Designations.css";
 
 const Designations = () => {
-  const {
-    departments,
-  } = useOrganization();
+  const { departments } = useOrganization();
 
   const [designations, setDesignations] =
     useState([]);
- 
 
   const [search, setSearch] = useState("");
-  const [department, setDepartment] = useState("all");
+  const [department, setDepartment] =
+    useState("all");
   const [status, setStatus] = useState("all");
   const [sortBy, setSortBy] = useState("name");
 
   const [showForm, setShowForm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [showDetails, setShowDetails] =
+    useState(false);
 
   const [selectedDesignation, setSelectedDesignation] =
     useState(null);
@@ -41,19 +41,31 @@ const Designations = () => {
 
   /*
    * -------------------------------------------------------
+   * Non-deleted designations
+   * -------------------------------------------------------
+   */
+
+  const activeDesignations = useMemo(() => {
+    return designations.filter(
+      (designation) => !designation.deletedAt,
+    );
+  }, [designations]);
+
+  /*
+   * -------------------------------------------------------
    * Stats
    * -------------------------------------------------------
    */
 
   const stats = useMemo(() => {
-    const total = designations.length;
+    const total = activeDesignations.length;
 
-    const active = designations.filter(
+    const active = activeDesignations.filter(
       (designation) =>
         designation.status === "active",
     ).length;
 
-    const inactive = designations.filter(
+    const inactive = activeDesignations.filter(
       (designation) =>
         designation.status === "inactive",
     ).length;
@@ -63,7 +75,7 @@ const Designations = () => {
       active,
       inactive,
     };
-  }, [designations]);
+  }, [activeDesignations]);
 
   /*
    * -------------------------------------------------------
@@ -72,29 +84,37 @@ const Designations = () => {
    */
 
   const filteredDesignations = useMemo(() => {
-    let result = [...designations];
+    let result = [...activeDesignations];
 
     /*
-     * Search
+     * Search by:
+     * - Designation Code
+     * - Designation Name
+     * - Department Name
+     * - Description
      */
     if (search.trim()) {
-      const searchValue = search
-        .toLowerCase()
-        .trim();
+      const searchValue =
+        search.toLowerCase().trim();
 
-      result = result.filter((designation) => {
-        return (
-          designation.name
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          designation.departmentName
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          designation.description
-            ?.toLowerCase()
-            .includes(searchValue)
-        );
-      });
+      result = result.filter(
+        (designation) => {
+          return (
+            designation.designationCode
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            designation.designationName
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            designation.departmentName
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            designation.description
+              ?.toLowerCase()
+              .includes(searchValue)
+          );
+        },
+      );
     }
 
     /*
@@ -103,8 +123,9 @@ const Designations = () => {
     if (department !== "all") {
       result = result.filter(
         (designation) =>
-          String(designation.departmentId) ===
-          String(department),
+          String(
+            designation.departmentId,
+          ) === String(department),
       );
     }
 
@@ -135,23 +156,19 @@ const Designations = () => {
             new Date(b.createdAt)
           );
 
-        case "employees":
-          return (
-            (b.employeeCount ?? 0) -
-            (a.employeeCount ?? 0)
-          );
-
         case "name":
         default:
-          return (a.name || "").localeCompare(
-            b.name || "",
+          return (
+            a.designationName || ""
+          ).localeCompare(
+            b.designationName || "",
           );
       }
     });
 
     return result;
   }, [
-    designations,
+    activeDesignations,
     search,
     department,
     status,
@@ -175,7 +192,9 @@ const Designations = () => {
    * -------------------------------------------------------
    */
 
-  const handleViewDesignation = (designation) => {
+  const handleViewDesignation = (
+    designation,
+  ) => {
     setSelectedDesignation(designation);
     setShowDetails(true);
   };
@@ -186,7 +205,9 @@ const Designations = () => {
    * -------------------------------------------------------
    */
 
-  const handleEditDesignation = (designation) => {
+  const handleEditDesignation = (
+    designation,
+  ) => {
     setShowDetails(false);
     setSelectedDesignation(designation);
     setShowForm(true);
@@ -194,22 +215,33 @@ const Designations = () => {
 
   /*
    * -------------------------------------------------------
-   * Delete
+   * Delete - Soft Delete
    * -------------------------------------------------------
    */
 
-  const handleDeleteDesignation = (designation) => {
+  const handleDeleteDesignation = (
+    designation,
+  ) => {
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${designation.name}"?`,
+      `Are you sure you want to delete "${designation.designationName}"?`,
     );
 
     if (!confirmed) {
       return;
     }
 
+    const deletedAt =
+      new Date().toISOString();
+
     setDesignations((previous) =>
-      previous.filter(
-        (item) => item.id !== designation.id,
+      previous.map((item) =>
+        item.id === designation.id
+          ? {
+              ...item,
+              deletedAt,
+              updatedAt: deletedAt,
+            }
+          : item,
       ),
     );
 
@@ -224,32 +256,87 @@ const Designations = () => {
 
   /*
    * -------------------------------------------------------
-   * Submit
+   * Activate / Deactivate
    * -------------------------------------------------------
    */
 
-  const handleSubmitDesignation = (formData) => {
+  const handleToggleDesignationStatus = (
+    designation,
+  ) => {
+    const updatedAt =
+      new Date().toISOString();
+
+    const nextStatus =
+      designation.status === "active"
+        ? "inactive"
+        : "active";
+
+    setDesignations((previous) =>
+      previous.map((item) =>
+        item.id === designation.id
+          ? {
+              ...item,
+              status: nextStatus,
+              updatedAt,
+            }
+          : item,
+      ),
+    );
+
+    /*
+     * Keep details modal synchronized
+     * if this designation is currently open.
+     */
+    setSelectedDesignation((previous) => {
+      if (
+        previous?.id !==
+        designation.id
+      ) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        status: nextStatus,
+        updatedAt,
+      };
+    });
+  };
+
+  /*
+   * -------------------------------------------------------
+   * Add / Edit Submit
+   * -------------------------------------------------------
+   */
+
+  const handleSubmitDesignation = (
+    formData,
+  ) => {
     setLoading(true);
 
     /*
      * Temporary mock delay.
-     *
-     * This will later become an API request.
+     * Will later be replaced by API request.
      */
     setTimeout(() => {
+      const now =
+        new Date().toISOString();
+
       if (selectedDesignation) {
         /*
          * EDIT
          */
         setDesignations((previous) =>
-          previous.map((designation) =>
-            designation.id ===
-            selectedDesignation.id
-              ? {
-                  ...designation,
-                  ...formData,
-                }
-              : designation,
+          previous.map(
+            (designation) =>
+              designation.id ===
+              selectedDesignation.id
+                ? {
+                    ...designation,
+                    ...formData,
+                    updatedAt: now,
+                  }
+                : designation,
           ),
         );
       } else {
@@ -259,7 +346,11 @@ const Designations = () => {
         const newDesignation = {
           id: Date.now(),
 
-          name: formData.name,
+          designationCode:
+            formData.designationCode,
+
+          designationName:
+            formData.designationName,
 
           departmentId:
             formData.departmentId,
@@ -270,19 +361,13 @@ const Designations = () => {
           description:
             formData.description,
 
-          employeeCount: 0,
+          status:
+            formData.status,
 
-          status: formData.status,
+          createdAt: now,
+          updatedAt: now,
 
-          createdAt:
-            new Date().toLocaleDateString(
-              "en-GB",
-              {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              },
-            ),
+          deletedAt: null,
         };
 
         setDesignations((previous) => [
@@ -330,7 +415,7 @@ const Designations = () => {
       <div className="designations-page__header">
         <PageHeader
           title="Designations"
-          description="Manage job titles and positions across your organization's departments."
+          description="Manage your organization's designations and their department assignments."
         />
 
         <Button
@@ -348,7 +433,7 @@ const Designations = () => {
           inactive={stats.inactive}
         />
 
-        {designations.length > 0 && (
+        {activeDesignations.length > 0 && (
           <DesignationFilters
             search={search}
             onSearch={(value) =>
@@ -359,7 +444,9 @@ const Designations = () => {
               )
             }
             department={department}
-            onDepartmentChange={setDepartment}
+            onDepartmentChange={
+              setDepartment
+            }
             status={status}
             onStatusChange={setStatus}
             sortBy={sortBy}
@@ -368,7 +455,8 @@ const Designations = () => {
           />
         )}
 
-        {designations.length === 0 ? (
+        {activeDesignations.length ===
+        0 ? (
           <div className="designations-page__empty">
             <EmptyState
               title="No designations yet"
@@ -376,14 +464,17 @@ const Designations = () => {
               action={
                 <Button
                   variant="primary"
-                  onClick={handleAddDesignation}
+                  onClick={
+                    handleAddDesignation
+                  }
                 >
                   + Add Designation
                 </Button>
               }
             />
           </div>
-        ) : filteredDesignations.length === 0 ? (
+        ) : filteredDesignations.length ===
+          0 ? (
           <div className="designations-page__empty">
             <EmptyState
               title="No designations found"
@@ -404,6 +495,9 @@ const Designations = () => {
               }
               onDelete={
                 handleDeleteDesignation
+              }
+              onToggleStatus={
+                handleToggleDesignationStatus
               }
             />
           </div>
@@ -427,8 +521,12 @@ const Designations = () => {
           designation={
             selectedDesignation
           }
-          onClose={handleCloseDetails}
-          onEdit={handleEditDesignation}
+          onClose={
+            handleCloseDetails
+          }
+          onEdit={
+            handleEditDesignation
+          }
         />
       </Modal>
 
@@ -459,7 +557,9 @@ const Designations = () => {
           onSubmit={
             handleSubmitDesignation
           }
-          onCancel={handleCancelForm}
+          onCancel={
+            handleCancelForm
+          }
           loading={loading}
         />
       </Modal>
@@ -468,3 +568,4 @@ const Designations = () => {
 };
 
 export default Designations;
+

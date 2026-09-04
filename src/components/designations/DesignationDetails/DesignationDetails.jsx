@@ -1,3 +1,4 @@
+
 import Button from "../../common/Button/Button";
 
 import "./DesignationDetails.css";
@@ -11,7 +12,8 @@ const DesignationDetails = ({
     return null;
   }
 
-  const isActive = designation.status === "active";
+  const isActive =
+    designation.status === "active";
 
   return (
     <div className="designation-details">
@@ -23,22 +25,28 @@ const DesignationDetails = ({
 
           <div>
             <h3 className="designation-details__name">
-              {designation.name}
+              {designation.designationName || "—"}
             </h3>
 
             <p className="designation-details__department">
-              {designation.departmentName || "No department"}
+              {designation.departmentName ||
+                "No department"}
             </p>
           </div>
         </div>
 
         <span
           className={`designation-details__status designation-details__status--${
-            isActive ? "active" : "inactive"
+            isActive
+              ? "active"
+              : "inactive"
           }`}
         >
           <span className="designation-details__status-dot" />
-          {isActive ? "Active" : "Inactive"}
+
+          {isActive
+            ? "Active"
+            : "Inactive"}
         </span>
       </div>
 
@@ -48,11 +56,23 @@ const DesignationDetails = ({
         <div className="designation-details__grid">
           <div className="designation-details__item">
             <span className="designation-details__label">
-              Designation
+              Designation Code
             </span>
 
             <span className="designation-details__value">
-              {designation.name || "—"}
+              {designation.designationCode ||
+                "—"}
+            </span>
+          </div>
+
+          <div className="designation-details__item">
+            <span className="designation-details__label">
+              Designation Name
+            </span>
+
+            <span className="designation-details__value">
+              {designation.designationName ||
+                "—"}
             </span>
           </div>
 
@@ -62,17 +82,8 @@ const DesignationDetails = ({
             </span>
 
             <span className="designation-details__value">
-              {designation.departmentName || "—"}
-            </span>
-          </div>
-
-          <div className="designation-details__item">
-            <span className="designation-details__label">
-              Employees
-            </span>
-
-            <span className="designation-details__value">
-              {designation.employeeCount ?? 0}
+              {designation.departmentName ||
+                "—"}
             </span>
           </div>
 
@@ -92,7 +103,9 @@ const DesignationDetails = ({
             </span>
 
             <span className="designation-details__value">
-              {isActive ? "Active" : "Inactive"}
+              {isActive
+                ? "Active"
+                : "Inactive"}
             </span>
           </div>
         </div>
@@ -119,7 +132,9 @@ const DesignationDetails = ({
         <Button
           type="button"
           variant="primary"
-          onClick={() => onEdit?.(designation)}
+          onClick={() =>
+            onEdit?.(designation)
+          }
         >
           Edit Designation
         </Button>
@@ -129,3 +144,4 @@ const DesignationDetails = ({
 };
 
 export default DesignationDetails;
+

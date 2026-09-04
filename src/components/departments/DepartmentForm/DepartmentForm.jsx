@@ -1,7 +1,7 @@
+
 import { useState } from "react";
 
 import FormField from "../../common/FormField/FormField";
-import Select from "../../common/Select/Select";
 import Toggle from "../../common/Toggle/Toggle";
 import Button from "../../common/Button/Button";
 
@@ -9,24 +9,18 @@ import "./DepartmentForm.css";
 
 const DepartmentForm = ({
   initialData = {},
-  employees = [],
   onSubmit,
   onCancel,
   loading = false,
 }) => {
   const [formData, setFormData] = useState({
-    name: initialData.name || "",
-    head: initialData.head || "",
+    departmentCode: initialData.departmentCode || "",
+    departmentName: initialData.departmentName || "",
     description: initialData.description || "",
     status: initialData.status || "active",
   });
 
   const [errors, setErrors] = useState({});
-
-  const employeeOptions = employees.map((employee) => ({
-    label: employee.name,
-    value: employee.id,
-  }));
 
   const handleChange = (field, value) => {
     setFormData((previous) => ({
@@ -45,8 +39,14 @@ const DepartmentForm = ({
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Department name is required.";
+    if (!formData.departmentCode.trim()) {
+      newErrors.departmentCode =
+        "Department code is required.";
+    }
+
+    if (!formData.departmentName.trim()) {
+      newErrors.departmentName =
+        "Department name is required.";
     }
 
     setErrors(newErrors);
@@ -68,32 +68,45 @@ const DepartmentForm = ({
     <form className="department-form" onSubmit={handleSubmit}>
       <div className="department-form__fields">
         <FormField
-          label="Department Name"
-          htmlFor="department-name"
+          label="Department Code"
+          htmlFor="department-code"
           required
-          error={errors.name}
+          error={errors.departmentCode}
+          hint="Enter a unique code for this department."
         >
           <input
-            id="department-name"
+            id="department-code"
             type="text"
-            value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            placeholder="e.g. Human Resources"
+            value={formData.departmentCode}
+            onChange={(e) =>
+              handleChange(
+                "departmentCode",
+                e.target.value.toUpperCase()
+              )
+            }
+            placeholder="e.g. HR"
             disabled={loading}
+            maxLength={50}
           />
         </FormField>
 
         <FormField
-          label="Department Head"
-          htmlFor="department-head"
-          error={errors.head}
+          label="Department Name"
+          htmlFor="department-name"
+          required
+          error={errors.departmentName}
         >
-          <Select
-            id="department-head"
-            value={formData.head}
-            onChange={(value) => handleChange("head", value)}
-            options={employeeOptions}
-            placeholder="Select department head"
+          <input
+            id="department-name"
+            type="text"
+            value={formData.departmentName}
+            onChange={(e) =>
+              handleChange(
+                "departmentName",
+                e.target.value
+              )
+            }
+            placeholder="e.g. Human Resources"
             disabled={loading}
           />
         </FormField>
@@ -107,7 +120,10 @@ const DepartmentForm = ({
             id="department-description"
             value={formData.description}
             onChange={(e) =>
-              handleChange("description", e.target.value)
+              handleChange(
+                "description",
+                e.target.value
+              )
             }
             placeholder="Enter department description..."
             rows={4}
@@ -160,3 +176,4 @@ const DepartmentForm = ({
 };
 
 export default DepartmentForm;
+

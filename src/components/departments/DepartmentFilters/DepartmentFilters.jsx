@@ -1,5 +1,7 @@
+
 import SearchInput from "../../common/SearchInput/SearchInput";
 import Select from "../../common/Select/Select";
+
 import "./DepartmentFilters.css";
 
 const DepartmentFilters = ({
@@ -20,7 +22,6 @@ const DepartmentFilters = ({
     { label: "Name", value: "name" },
     { label: "Newest", value: "newest" },
     { label: "Oldest", value: "oldest" },
-    { label: "Employees", value: "employees" },
   ];
 
   return (
@@ -29,7 +30,7 @@ const DepartmentFilters = ({
         <SearchInput
           value={search}
           onChange={onSearch}
-          placeholder="Search departments..."
+          placeholder="Search by code or department name..."
         />
       </div>
 
@@ -51,3 +52,4 @@ const DepartmentFilters = ({
 };
 
 export default DepartmentFilters;
+

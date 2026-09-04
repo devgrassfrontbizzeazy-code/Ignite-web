@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 
 import "./DepartmentRowActions.css";
@@ -7,6 +8,7 @@ const DepartmentRowActions = ({
   onView,
   onEdit,
   onDelete,
+  onToggleStatus,
 }) => {
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({
@@ -23,22 +25,28 @@ const DepartmentRowActions = ({
       return;
     }
 
-    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const triggerRect =
+      triggerRef.current.getBoundingClientRect();
 
-    const menuWidth = 140;
-    const menuHeight = 130;
+    const menuWidth = 150;
+    const menuHeight = 165;
     const gap = 6;
     const viewportPadding = 8;
 
     let left = triggerRect.right - menuWidth;
 
-    // Keep menu inside horizontal viewport
     if (left < viewportPadding) {
       left = viewportPadding;
     }
 
-    if (left + menuWidth > window.innerWidth - viewportPadding) {
-      left = window.innerWidth - menuWidth - viewportPadding;
+    if (
+      left + menuWidth >
+      window.innerWidth - viewportPadding
+    ) {
+      left =
+        window.innerWidth -
+        menuWidth -
+        viewportPadding;
     }
 
     const spaceBelow =
@@ -49,21 +57,23 @@ const DepartmentRowActions = ({
     let top;
     let placement;
 
-    // Prefer opening below
     if (spaceBelow >= menuHeight + gap) {
       top = triggerRect.bottom + gap;
       placement = "bottom";
     } else if (spaceAbove >= menuHeight + gap) {
-      // Open above when there isn't enough room below
-      top = triggerRect.top - menuHeight - gap;
+      top =
+        triggerRect.top -
+        menuHeight -
+        gap;
       placement = "top";
     } else {
-      // Very small viewport: keep it inside the viewport
       top = Math.max(
         viewportPadding,
         Math.min(
           triggerRect.bottom + gap,
-          window.innerHeight - menuHeight - viewportPadding,
+          window.innerHeight -
+          menuHeight -
+          viewportPadding,
         ),
       );
 
@@ -112,7 +122,10 @@ const DepartmentRowActions = ({
       updateMenuPosition();
     };
 
-    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick,
+    );
 
     window.addEventListener(
       "scroll",
@@ -152,6 +165,8 @@ const DepartmentRowActions = ({
     }
   };
 
+  const isActive = department.status === "active";
+
   return (
     <div className="department-row-actions">
       <button
@@ -159,7 +174,9 @@ const DepartmentRowActions = ({
         type="button"
         className="department-row-actions__trigger"
         onClick={handleToggle}
-        aria-label={`Actions for ${department.name}`}
+        aria-label={`Actions for ${department.departmentName ||
+          "department"
+          }`}
         aria-expanded={open}
       >
         ⋮
@@ -186,6 +203,17 @@ const DepartmentRowActions = ({
             onClick={() => handleAction(onEdit)}
           >
             Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              handleAction(onToggleStatus)
+            }
+          >
+            {isActive
+              ? "Deactivate"
+              : "Activate"}
           </button>
 
           <button

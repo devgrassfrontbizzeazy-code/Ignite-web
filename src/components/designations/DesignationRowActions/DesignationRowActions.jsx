@@ -7,14 +7,16 @@ const DesignationRowActions = ({
   onView,
   onEdit,
   onDelete,
+  onToggleStatus,
 }) => {
   const [open, setOpen] = useState(false);
 
-  const [menuPosition, setMenuPosition] = useState({
-    top: 0,
-    left: 0,
-    placement: "bottom",
-  });
+  const [menuPosition, setMenuPosition] =
+    useState({
+      top: 0,
+      left: 0,
+      placement: "bottom",
+    });
 
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
@@ -27,12 +29,13 @@ const DesignationRowActions = ({
     const triggerRect =
       triggerRef.current.getBoundingClientRect();
 
-    const menuWidth = 140;
-    const menuHeight = 130;
+    const menuWidth = 150;
+    const menuHeight = 165;
     const gap = 6;
     const viewportPadding = 8;
 
-    let left = triggerRect.right - menuWidth;
+    let left =
+      triggerRect.right - menuWidth;
 
     if (left < viewportPadding) {
       left = viewportPadding;
@@ -40,7 +43,8 @@ const DesignationRowActions = ({
 
     if (
       left + menuWidth >
-      window.innerWidth - viewportPadding
+      window.innerWidth -
+      viewportPadding
     ) {
       left =
         window.innerWidth -
@@ -49,18 +53,30 @@ const DesignationRowActions = ({
     }
 
     const spaceBelow =
-      window.innerHeight - triggerRect.bottom;
+      window.innerHeight -
+      triggerRect.bottom;
 
-    const spaceAbove = triggerRect.top;
+    const spaceAbove =
+      triggerRect.top;
 
     let top;
     let placement;
 
-    if (spaceBelow >= menuHeight + gap) {
-      top = triggerRect.bottom + gap;
+    if (
+      spaceBelow >=
+      menuHeight + gap
+    ) {
+      top =
+        triggerRect.bottom + gap;
       placement = "bottom";
-    } else if (spaceAbove >= menuHeight + gap) {
-      top = triggerRect.top - menuHeight - gap;
+    } else if (
+      spaceAbove >=
+      menuHeight + gap
+    ) {
+      top =
+        triggerRect.top -
+        menuHeight -
+        gap;
       placement = "top";
     } else {
       top = Math.max(
@@ -68,8 +84,8 @@ const DesignationRowActions = ({
         Math.min(
           triggerRect.bottom + gap,
           window.innerHeight -
-            menuHeight -
-            viewportPadding,
+          menuHeight -
+          viewportPadding,
         ),
       );
 
@@ -96,17 +112,23 @@ const DesignationRowActions = ({
       return;
     }
 
-    const handleOutsideClick = (event) => {
+    const handleOutsideClick = (
+      event,
+    ) => {
       if (
         triggerRef.current &&
-        triggerRef.current.contains(event.target)
+        triggerRef.current.contains(
+          event.target,
+        )
       ) {
         return;
       }
 
       if (
         menuRef.current &&
-        menuRef.current.contains(event.target)
+        menuRef.current.contains(
+          event.target,
+        )
       ) {
         return;
       }
@@ -114,9 +136,10 @@ const DesignationRowActions = ({
       setOpen(false);
     };
 
-    const handlePositionUpdate = () => {
-      updateMenuPosition();
-    };
+    const handlePositionUpdate =
+      () => {
+        updateMenuPosition();
+      };
 
     document.addEventListener(
       "mousedown",
@@ -153,13 +176,21 @@ const DesignationRowActions = ({
     };
   }, [open]);
 
-  const handleAction = (callback) => {
+  const handleAction = (
+    callback,
+  ) => {
     setOpen(false);
 
-    if (typeof callback === "function") {
+    if (
+      typeof callback ===
+      "function"
+    ) {
       callback(designation);
     }
   };
+
+  const isActive =
+    designation.status === "active";
 
   return (
     <div className="designation-row-actions">
@@ -168,7 +199,9 @@ const DesignationRowActions = ({
         type="button"
         className="designation-row-actions__trigger"
         onClick={handleToggle}
-        aria-label={`Actions for ${designation.name}`}
+        aria-label={`Actions for ${designation.designationName ||
+          "designation"
+          }`}
         aria-expanded={open}
       >
         ⋮
@@ -185,22 +218,41 @@ const DesignationRowActions = ({
         >
           <button
             type="button"
-            onClick={() => handleAction(onView)}
+            onClick={() =>
+              handleAction(onView)
+            }
           >
             View
           </button>
 
           <button
             type="button"
-            onClick={() => handleAction(onEdit)}
+            onClick={() =>
+              handleAction(onEdit)
+            }
           >
             Edit
           </button>
 
           <button
             type="button"
+            onClick={() =>
+              handleAction(
+                onToggleStatus,
+              )
+            }
+          >
+            {isActive
+              ? "Deactivate"
+              : "Activate"}
+          </button>
+
+          <button
+            type="button"
             className="designation-row-actions__delete"
-            onClick={() => handleAction(onDelete)}
+            onClick={() =>
+              handleAction(onDelete)
+            }
           >
             Delete
           </button>
@@ -211,3 +263,4 @@ const DesignationRowActions = ({
 };
 
 export default DesignationRowActions;
+
