@@ -36,9 +36,15 @@ const CompanySetupGuard = () => {
           err?.response?.status;
 
         if (mounted) {
-
           if (status === 404) {
             setCompanyExists(false);
+          } else if (status === 401) {
+            // Token expired or invalid — clear auth state and redirect to login
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("user");
+            localStorage.removeItem("ignite_authenticated");
+            window.location.href = "/login";
           } else {
             /*
              * Don't treat server/network errors as
