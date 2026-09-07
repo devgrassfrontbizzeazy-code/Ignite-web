@@ -1,0 +1,56 @@
+.role-row-actions {
+    position: relative;
+}
+
+.role-row-actions__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.role-row-actions__trigger:hover {
+    background: var(--color-bg);
+    color: var(--color-text-primary);
+}
+
+.role-row-actions__menu {
+    position: fixed;
+    z-index: 1000;
+    width: 140px;
+    padding: var(--space-2);
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+}
+
+.role-row-actions__menu button {
+    display: block;
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-primary);
+    text-align: left;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+}
+
+.role-row-actions__menu button:hover {
+    background: var(--color-bg);
+}
+
+.role-row-actions__menu .role-row-actions__delete {
+    color: var(--color-danger);
+}

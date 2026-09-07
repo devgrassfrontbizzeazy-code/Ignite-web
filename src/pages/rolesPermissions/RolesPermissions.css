@@ -1,0 +1,34 @@
+.roles-permissions-page {
+    width: 100%;
+    min-width: 0;
+}
+
+.roles-permissions-page__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.roles-permissions-page__content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.roles-permissions-page__table {
+    width: 100%;
+    min-width: 0;
+}
+
+.roles-permissions-page__empty {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .roles-permissions-page__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

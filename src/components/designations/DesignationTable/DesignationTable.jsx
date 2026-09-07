@@ -1,6 +1,5 @@
-
 import DesignationRowActions from "../DesignationRowActions/DesignationRowActions";
-
+import { formatDate } from "../../../utils/dateUtils";
 import "./DesignationTable.css";
 
 const DesignationTable = ({
@@ -29,75 +28,53 @@ const DesignationTable = ({
         </thead>
 
         <tbody>
-          {designations.map(
-            (designation) => {
-              const isActive =
-                designation.status ===
-                "active";
+          {designations.map((designation) => {
+            const isActive = designation.status === "active";
 
-              return (
-                <tr
-                  key={designation.id}
-                >
-                  <td>
-                    {designation.designationCode ||
-                      "—"}
-                  </td>
+            return (
+              <tr key={designation.id}>
+                <td>
+                  {designation.designationCode || "—"}
+                </td>
 
-                  <td>
-                    <div className="designation-table__name">
-                      <span className="designation-table__name-text">
-                        {designation.designationName ||
-                          "—"}
-                      </span>
-                    </div>
-                  </td>
-
-                  <td>
-                    {designation.departmentName ||
-                      "—"}
-                  </td>
-
-                  <td>
-                    <span
-                      className={`designation-table__status designation-table__status--${
-                        isActive
-                          ? "active"
-                          : "inactive"
-                      }`}
-                    >
-                      <span className="designation-table__status-dot" />
-
-                      {isActive
-                        ? "Active"
-                        : "Inactive"}
+                <td>
+                  <div className="designation-table__name">
+                    <span className="designation-table__name-text">
+                      {designation.designationName || "—"}
                     </span>
-                  </td>
+                  </div>
+                </td>
 
-                  <td>
-                    {designation.createdAt ||
-                      "—"}
-                  </td>
+                <td>
+                  {designation.departmentName || "—"}
+                </td>
 
-                  <td>
-                    <DesignationRowActions
-                      designation={
-                        designation
-                      }
-                      onView={onView}
-                      onEdit={onEdit}
-                      onDelete={
-                        onDelete
-                      }
-                      onToggleStatus={
-                        onToggleStatus
-                      }
-                    />
-                  </td>
-                </tr>
-              );
-            },
-          )}
+                <td>
+                  <span
+                    className={`designation-table__status designation-table__status--${isActive ? "active" : "inactive"
+                      }`}
+                  >
+                    <span className="designation-table__status-dot" />
+                    {isActive ? "Active" : "Inactive"}
+                  </span>
+                </td>
+
+                <td>
+                  {formatDate(designation.createdAt)}
+                </td>
+
+                <td>
+                  <DesignationRowActions
+                    designation={designation}
+                    onView={onView}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onToggleStatus={onToggleStatus}
+                  />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -105,4 +82,3 @@ const DesignationTable = ({
 };
 
 export default DesignationTable;
-

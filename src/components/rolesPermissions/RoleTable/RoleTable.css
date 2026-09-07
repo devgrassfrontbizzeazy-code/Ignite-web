@@ -1,0 +1,108 @@
+.role-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.role-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.role-table th,
+.role-table td {
+    padding: var(--space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.role-table th {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+}
+
+.role-table td {
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.role-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.role-table tbody tr:hover {
+    background: var(--color-bg);
+}
+
+.role-table__name {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 160px;
+}
+
+.role-table__avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-text-on-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+}
+
+.role-table__name-text {
+    font-weight: var(--font-weight-medium);
+}
+
+.role-table__description {
+    display: block;
+    max-width: 280px;
+    overflow: hidden;
+    color: var(--color-text-secondary);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-table__permission-count {
+    font-weight: var(--font-weight-semibold);
+}
+
+.role-table__status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+}
+
+.role-table__status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.role-table__status--active {
+    color: var(--color-success);
+}
+
+.role-table__status--active .role-table__status-dot {
+    background: var(--color-success);
+}
+
+.role-table__status--inactive {
+    color: var(--color-text-secondary);
+}
+
+.role-table__status--inactive .role-table__status-dot {
+    background: var(--color-text-secondary);
+}

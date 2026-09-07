@@ -1,6 +1,6 @@
 
 import DepartmentRowActions from "../DepartmentRowActions/DepartmentRowActions";
-
+import { formatDate } from "../../../utils/dateUtils";
 import "./DepartmentTable.css";
 
 const DepartmentTable = ({
@@ -48,11 +48,10 @@ const DepartmentTable = ({
 
                 <td>
                   <span
-                    className={`department-table__status department-table__status--${
-                      isActive
+                    className={`department-table__status department-table__status--${isActive
                         ? "active"
                         : "inactive"
-                    }`}
+                      }`}
                   >
                     <span className="department-table__status-dot" />
 
@@ -62,9 +61,7 @@ const DepartmentTable = ({
                   </span>
                 </td>
 
-                <td>
-                  {department.createdAt || "—"}
-                </td>
+                <td>{formatDate(department.createdAt)}</td>
 
                 <td>
                   <DepartmentRowActions

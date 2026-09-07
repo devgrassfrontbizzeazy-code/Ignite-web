@@ -11,12 +11,18 @@
   /* ---------------------------------------------------------------------
      Brand palette (from the Ignite brand sheet)
      --------------------------------------------------------------------- */
-  --ignite-deep-teal: #0F3D3E;      /* stability, trust, reliability, strength */
-  --ignite-emerald: #0BA37F;        /* growth, harmony, energy, balance */
-  --ignite-gold: #D4AF37;           /* action, positivity, motivation, success */
-  --ignite-charcoal: #1A1F24;       /* authority, sophistication, foundation */
-  --ignite-soft-gray: #E6EAEE;      /* supporting text, borders, UI elements */
-  --ignite-light-bg: #F8FAFB;       /* clean background for clarity + focus */
+  --ignite-deep-teal: #0F3D3E;
+  /* stability, trust, reliability, strength */
+  --ignite-emerald: #0BA37F;
+  /* growth, harmony, energy, balance */
+  --ignite-gold: #D4AF37;
+  /* action, positivity, motivation, success */
+  --ignite-charcoal: #1A1F24;
+  /* authority, sophistication, foundation */
+  --ignite-soft-gray: #E6EAEE;
+  /* supporting text, borders, UI elements */
+  --ignite-light-bg: #F8FAFB;
+  /* clean background for clarity + focus */
   --ignite-white: #FFFFFF;
 
   /* Tints/shades derived from the core palette — used for hover, subtle
@@ -54,6 +60,8 @@
   --color-bg-surface: var(--ignite-white);
   --color-bg-inverse: var(--ignite-charcoal);
   --color-bg-inverse-elevated: #232A31;
+  --color-bg-subtle: #F3F6F7;
+  --color-danger-soft: #FDECEA;
 
   --color-text-primary: var(--ignite-charcoal);
   --color-text-secondary: #5B6672;
@@ -81,14 +89,22 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  --font-size-xs: 0.75rem;     /* 12px */
-  --font-size-sm: 0.8125rem;   /* 13px */
-  --font-size-base: 0.9375rem; /* 15px */
-  --font-size-md: 1rem;        /* 16px */
-  --font-size-lg: 1.125rem;    /* 18px */
-  --font-size-xl: 1.375rem;    /* 22px */
-  --font-size-2xl: 1.75rem;    /* 28px */
-  --font-size-3xl: 2.25rem;    /* 36px */
+  --font-size-xs: 0.75rem;
+  /* 12px */
+  --font-size-sm: 0.8125rem;
+  /* 13px */
+  --font-size-base: 0.9375rem;
+  /* 15px */
+  --font-size-md: 1rem;
+  /* 16px */
+  --font-size-lg: 1.125rem;
+  /* 18px */
+  --font-size-xl: 1.375rem;
+  /* 22px */
+  --font-size-2xl: 1.75rem;
+  /* 28px */
+  --font-size-3xl: 2.25rem;
+  /* 36px */
 
   --line-height-tight: 1.2;
   --line-height-base: 1.5;
@@ -101,16 +117,26 @@
   /* ---------------------------------------------------------------------
      Spacing scale (4px base grid)
      --------------------------------------------------------------------- */
-  --space-1: 0.25rem;  /* 4px */
-  --space-2: 0.5rem;   /* 8px */
-  --space-3: 0.75rem;  /* 12px */
-  --space-4: 1rem;     /* 16px */
-  --space-5: 1.25rem;  /* 20px */
-  --space-6: 1.5rem;   /* 24px */
-  --space-8: 2rem;     /* 32px */
-  --space-10: 2.5rem;  /* 40px */
-  --space-12: 3rem;    /* 48px */
-  --space-16: 4rem;    /* 64px */
+  --space-1: 0.25rem;
+  /* 4px */
+  --space-2: 0.5rem;
+  /* 8px */
+  --space-3: 0.75rem;
+  /* 12px */
+  --space-4: 1rem;
+  /* 16px */
+  --space-5: 1.25rem;
+  /* 20px */
+  --space-6: 1.5rem;
+  /* 24px */
+  --space-8: 2rem;
+  /* 32px */
+  --space-10: 2.5rem;
+  /* 40px */
+  --space-12: 3rem;
+  /* 48px */
+  --space-16: 4rem;
+  /* 64px */
 
   /* ---------------------------------------------------------------------
      Radius

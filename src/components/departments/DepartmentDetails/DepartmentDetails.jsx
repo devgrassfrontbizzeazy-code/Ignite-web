@@ -1,6 +1,6 @@
 
 import "./DepartmentDetails.css";
-
+import { formatDate } from "../../../utils/dateUtils";
 const DepartmentDetails = ({
   department,
   onClose,
@@ -26,9 +26,8 @@ const DepartmentDetails = ({
             <h2>{department.departmentName}</h2>
 
             <span
-              className={`department-details__status department-details__status--${
-                isActive ? "active" : "inactive"
-              }`}
+              className={`department-details__status department-details__status--${isActive ? "active" : "inactive"
+                }`}
             >
               <span className="department-details__status-dot" />
 
@@ -71,7 +70,7 @@ const DepartmentDetails = ({
               <span>Created At</span>
 
               <strong>
-                {department.createdAt || "—"}
+                {formatDate(department.createdAt)}
               </strong>
             </div>
           </div>

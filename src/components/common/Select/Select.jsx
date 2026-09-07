@@ -1,4 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 import "./Select.css";
@@ -24,16 +29,26 @@ export default function Select({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [menuPosition, setMenuPosition] = useState(null);
 
-  const selectClassName = ["select", className].filter(Boolean).join(" ");
+  const selectClassName = ["select", className]
+    .filter(Boolean)
+    .join(" ");
 
   const selectedOption = options.find(
     (option) => String(option.value) === String(value)
   );
 
-  const displayValue = selectedOption?.label || placeholder || "";
+  const displayValue =
+    selectedOption?.label || placeholder || "";
+
+  const availableOptions = options.filter(
+    (option) => !option.disabled
+  );
 
   const getFirstAvailableIndex = () => {
-    const index = options.findIndex((option) => !option.disabled);
+    const index = options.findIndex(
+      (option) => !option.disabled
+    );
+
     return index >= 0 ? index : -1;
   };
 
@@ -42,11 +57,15 @@ export default function Select({
       return;
     }
 
-    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const triggerRect =
+      triggerRef.current.getBoundingClientRect();
+
     const viewportWidth =
-      document.documentElement.clientWidth || window.innerWidth;
+      document.documentElement.clientWidth;
+
     const viewportHeight =
-      document.documentElement.clientHeight || window.innerHeight;
+      document.documentElement.clientHeight;
+
     const viewportPadding = 8;
     const gap = 4;
 
@@ -55,35 +74,56 @@ export default function Select({
       viewportWidth - viewportPadding * 2
     );
 
-    const estimatedOptionHeight = 40;
+    const estimatedOptionHeight = 42;
+
     const estimatedMenuHeight = Math.min(
-      Math.max(options.length * estimatedOptionHeight + 8, 44),
+      Math.max(options.length * estimatedOptionHeight, 44),
       Math.max(viewportHeight - viewportPadding * 2, 44)
     );
 
     let left = triggerRect.left;
 
-    if (left + menuWidth > viewportWidth - viewportPadding) {
-      left = viewportWidth - menuWidth - viewportPadding;
+    if (
+      left + menuWidth >
+      viewportWidth - viewportPadding
+    ) {
+      left =
+        viewportWidth -
+        menuWidth -
+        viewportPadding;
     }
 
     if (left < viewportPadding) {
       left = viewportPadding;
     }
 
-    const spaceBelow = viewportHeight - triggerRect.bottom;
+    const spaceBelow =
+      viewportHeight - triggerRect.bottom;
+
     const spaceAbove = triggerRect.top;
 
     let top;
 
-    if (spaceBelow >= estimatedMenuHeight + gap || spaceBelow >= spaceAbove) {
+    if (
+      spaceBelow >= estimatedMenuHeight + gap ||
+      spaceBelow >= spaceAbove
+    ) {
       top = triggerRect.bottom + gap;
     } else {
-      top = triggerRect.top - estimatedMenuHeight - gap;
+      top =
+        triggerRect.top -
+        estimatedMenuHeight -
+        gap;
     }
 
-    if (top + estimatedMenuHeight > viewportHeight - viewportPadding) {
-      top = viewportHeight - estimatedMenuHeight - viewportPadding;
+    if (
+      top + estimatedMenuHeight >
+      viewportHeight - viewportPadding
+    ) {
+      top =
+        viewportHeight -
+        estimatedMenuHeight -
+        viewportPadding;
     }
 
     if (top < viewportPadding) {
@@ -91,9 +131,9 @@ export default function Select({
     }
 
     setMenuPosition({
-      top: Math.round(top),
-      left: Math.round(left),
-      width: Math.round(menuWidth),
+      top,
+      left,
+      width: menuWidth,
     });
   };
 
@@ -102,38 +142,64 @@ export default function Select({
       return;
     }
 
-    const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuRect = menuRef.current.getBoundingClientRect();
+    const triggerRect =
+      triggerRef.current.getBoundingClientRect();
+
+    const menuRect =
+      menuRef.current.getBoundingClientRect();
+
     const viewportWidth =
-      document.documentElement.clientWidth || window.innerWidth;
+      document.documentElement.clientWidth;
+
     const viewportHeight =
-      document.documentElement.clientHeight || window.innerHeight;
+      document.documentElement.clientHeight;
+
     const viewportPadding = 8;
     const gap = 4;
 
     let left = triggerRect.left;
 
-    if (left + menuRect.width > viewportWidth - viewportPadding) {
-      left = viewportWidth - menuRect.width - viewportPadding;
+    if (
+      left + menuRect.width >
+      viewportWidth - viewportPadding
+    ) {
+      left =
+        viewportWidth -
+        menuRect.width -
+        viewportPadding;
     }
 
     if (left < viewportPadding) {
       left = viewportPadding;
     }
 
-    const spaceBelow = viewportHeight - triggerRect.bottom;
+    const spaceBelow =
+      viewportHeight - triggerRect.bottom;
+
     const spaceAbove = triggerRect.top;
 
     let top;
 
-    if (spaceBelow >= menuRect.height + gap || spaceBelow >= spaceAbove) {
+    if (
+      spaceBelow >= menuRect.height + gap ||
+      spaceBelow >= spaceAbove
+    ) {
       top = triggerRect.bottom + gap;
     } else {
-      top = triggerRect.top - menuRect.height - gap;
+      top =
+        triggerRect.top -
+        menuRect.height -
+        gap;
     }
 
-    if (top + menuRect.height > viewportHeight - viewportPadding) {
-      top = viewportHeight - menuRect.height - viewportPadding;
+    if (
+      top + menuRect.height >
+      viewportHeight - viewportPadding
+    ) {
+      top =
+        viewportHeight -
+        menuRect.height -
+        viewportPadding;
     }
 
     if (top < viewportPadding) {
@@ -141,9 +207,9 @@ export default function Select({
     }
 
     setMenuPosition({
-      top: Math.round(top),
-      left: Math.round(left),
-      width: Math.round(Math.max(menuRect.width, triggerRect.width)),
+      top,
+      left,
+      width: menuRect.width,
     });
   };
 
@@ -153,11 +219,14 @@ export default function Select({
     }
 
     const selectedIndex = options.findIndex(
-      (option) => String(option.value) === String(value)
+      (option) =>
+        String(option.value) === String(value)
     );
 
     setHighlightedIndex(
-      selectedIndex >= 0 ? selectedIndex : getFirstAvailableIndex()
+      selectedIndex >= 0
+        ? selectedIndex
+        : getFirstAvailableIndex()
     );
 
     setOpen(true);
@@ -295,11 +364,14 @@ export default function Select({
         return;
       }
 
-      const rect = triggerRef.current.getBoundingClientRect();
+      const rect =
+        triggerRef.current.getBoundingClientRect();
+
       const viewportWidth =
-        document.documentElement.clientWidth || window.innerWidth;
+        document.documentElement.clientWidth;
+
       const viewportHeight =
-        document.documentElement.clientHeight || window.innerHeight;
+        document.documentElement.clientHeight;
 
       const isCompletelyOffScreen =
         rect.bottom < 0 ||
@@ -319,102 +391,153 @@ export default function Select({
       });
     };
 
-    document.addEventListener("mousedown", handleOutsideClick);
-    document.addEventListener("keydown", handleEscape);
-    window.addEventListener("resize", handleViewportChange);
-    window.addEventListener("scroll", handleViewportChange, true);
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick
+    );
+
+    document.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    window.addEventListener(
+      "resize",
+      handleViewportChange
+    );
+
+    window.addEventListener(
+      "scroll",
+      handleViewportChange,
+      true
+    );
 
     return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      document.removeEventListener("keydown", handleEscape);
-      window.removeEventListener("resize", handleViewportChange);
-      window.removeEventListener("scroll", handleViewportChange, true);
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick
+      );
+
+      document.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+
+      window.removeEventListener(
+        "resize",
+        handleViewportChange
+      );
+
+      window.removeEventListener(
+        "scroll",
+        handleViewportChange,
+        true
+      );
     };
   }, [open]);
 
-  const menu =
-    open && menuPosition
-      ? createPortal(
-          <div
-            ref={menuRef}
-            id={`${selectId}-menu`}
-            className="select__menu"
-            role="listbox"
-            aria-labelledby={selectId}
-            style={{
-              top: `${menuPosition.top}px`,
-              left: `${menuPosition.left}px`,
-              width: `${menuPosition.width}px`,
+  const menu = open && menuPosition
+    ? createPortal(
+      <div
+        ref={menuRef}
+        className="select__menu"
+        role="listbox"
+        aria-labelledby={selectId}
+        style={{
+          top: `${menuPosition.top}px`,
+          left: `${menuPosition.left}px`,
+          width: `${menuPosition.width}px`,
+        }}
+      >
+        {placeholder && (
+          <button
+            type="button"
+            className={[
+              "select__option",
+              value === ""
+                ? "select__option--selected"
+                : "",
+              highlightedIndex === -1
+                ? "select__option--highlighted"
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            role="option"
+            aria-selected={value === ""}
+            onMouseDown={(event) => {
+              event.preventDefault();
+            }}
+            onClick={() => {
+              onChange?.("");
+              closeMenu();
+              triggerRef.current?.focus();
             }}
           >
-            {placeholder && (
-              <button
-                type="button"
-                className={[
-                  "select__option",
-                  value === "" ? "select__option--selected" : "",
-                  highlightedIndex === -1 ? "select__option--highlighted" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                role="option"
-                aria-selected={value === ""}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                }}
-                onClick={() => {
-                  onChange?.("");
-                  closeMenu();
-                  triggerRef.current?.focus();
-                }}
-              >
-                {placeholder}
-              </button>
-            )}
+            {placeholder}
+          </button>
+        )}
 
-            {options.map((option, index) => {
-              const isSelected = String(option.value) === String(value);
-              const isHighlighted = index === highlightedIndex;
+        {options.map((option, index) => {
+          const isSelected =
+            String(option.value) === String(value);
 
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={[
-                    "select__option",
-                    isSelected ? "select__option--selected" : "",
-                    isHighlighted ? "select__option--highlighted" : "",
-                    option.disabled ? "select__option--disabled" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  role="option"
-                  aria-selected={isSelected}
-                  disabled={option.disabled}
-                  onMouseEnter={() => {
-                    if (!option.disabled) {
-                      setHighlightedIndex(index);
-                    }
-                  }}
-                  onMouseDown={(event) => {
-                    event.preventDefault();
-                  }}
-                  onClick={() => handleOptionSelect(option)}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>,
-          document.body
-        )
-      : null;
+          const isHighlighted =
+            index === highlightedIndex;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={[
+                "select__option",
+                isSelected
+                  ? "select__option--selected"
+                  : "",
+                isHighlighted
+                  ? "select__option--highlighted"
+                  : "",
+                option.disabled
+                  ? "select__option--disabled"
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              role="option"
+              aria-selected={isSelected}
+              disabled={option.disabled}
+              onMouseEnter={() => {
+                if (!option.disabled) {
+                  setHighlightedIndex(index);
+                }
+              }}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={() =>
+                handleOptionSelect(option)
+              }
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>,
+      document.body
+    )
+    : null;
 
   return (
     <>
-      <div ref={wrapperRef} className="select-wrapper">
+      <div
+        ref={wrapperRef}
+        className="select-wrapper"
+      >
         {label && (
-          <label htmlFor={selectId} className="select__label">
+          <label
+            htmlFor={selectId}
+            className="select__label"
+          >
             {label}
           </label>
         )}
@@ -429,7 +552,9 @@ export default function Select({
             disabled={disabled}
             aria-haspopup="listbox"
             aria-expanded={open}
-            aria-controls={open ? `${selectId}-menu` : undefined}
+            aria-controls={
+              open ? `${selectId}-menu` : undefined
+            }
             onClick={() => {
               if (open) {
                 closeMenu();
@@ -439,10 +564,13 @@ export default function Select({
             }}
             onKeyDown={handleTriggerKeyDown}
           >
-            <span className="select__field-text">{displayValue}</span>
+            {displayValue}
           </button>
 
-          <span className="select__icon" aria-hidden="true">
+          <span
+            className="select__icon"
+            aria-hidden="true"
+          >
             <svg
               viewBox="0 0 24 24"
               fill="none"

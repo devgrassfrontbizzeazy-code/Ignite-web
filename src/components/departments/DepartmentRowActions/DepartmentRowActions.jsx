@@ -28,7 +28,7 @@ const DepartmentRowActions = ({
     const triggerRect =
       triggerRef.current.getBoundingClientRect();
 
-    const menuWidth = 150;
+    const menuWidth = 140;
     const menuHeight = 165;
     const gap = 6;
     const viewportPadding = 8;

@@ -5,6 +5,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 
+import { Lock, Eye, EyeOff } from "lucide-react";
+
 import logo from "../../../assets/logo.png";
 import "./ResetPassword.css";
 
@@ -16,10 +18,6 @@ const ResetPassword = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  /*
-   * These values are passed from ForgotPassword
-   * after successful OTP verification.
-   */
   const email = location.state?.email;
   const resetToken = location.state?.resetToken;
 
@@ -124,20 +122,12 @@ const ResetPassword = () => {
 
     setError("");
 
-    // ----------------------------------------
-    // TOKEN / EMAIL VALIDATION
-    // ----------------------------------------
-
     if (!email || !resetToken) {
       setError(
         "Your password reset session is invalid or has expired. Please request a new verification code."
       );
       return;
     }
-
-    // ----------------------------------------
-    // PASSWORD VALIDATION
-    // ----------------------------------------
 
     if (password.length < 8) {
       setError(
@@ -175,9 +165,6 @@ const ResetPassword = () => {
 
       setSuccess(true);
 
-      /*
-       * Redirect after 3 seconds.
-       */
       setTimeout(() => {
         navigate("/login");
       }, 3000);
@@ -199,52 +186,36 @@ const ResetPassword = () => {
     }
   };
 
-  // ------------------------------------------
+  // ==========================================
   // INVALID RESET SESSION
-  // ------------------------------------------
+  // ==========================================
 
   if (!email || !resetToken) {
     return (
       <div className="reset-password-container">
 
-        {/* Background */}
         <div className="background-elements">
           <div className="background-shape bg-shape-1"></div>
           <div className="background-shape bg-shape-2"></div>
         </div>
 
-        {/* Page-level Back */}
         <Link
           to="/login"
           className="back-home-link"
           title="Back to login"
         >
-          <span className="back-arrow">
-            ←
-          </span>
-
+          <span className="back-arrow">←</span>
           Back
         </Link>
 
-        {/* Error Card */}
         <div className="reset-password-card error-card">
 
           <div className="card-header">
-
             <img
               src={logo}
               alt="IGNITE Logo"
               className="card-logo"
             />
-
-          </div>
-
-          <div className="error-icon-wrapper">
-
-            <div className="error-icon">
-              ⚠
-            </div>
-
           </div>
 
           <div className="error-content">
@@ -260,18 +231,15 @@ const ResetPassword = () => {
             </p>
 
             <div className="error-actions">
-
               <Link
                 to="/forgot-password"
                 className="primary-button"
               >
                 Request New Code
               </Link>
-
             </div>
 
           </div>
-
         </div>
       </div>
     );
@@ -285,37 +253,29 @@ const ResetPassword = () => {
     return (
       <div className="reset-password-container">
 
-        {/* Background */}
         <div className="background-elements">
           <div className="background-shape bg-shape-1"></div>
           <div className="background-shape bg-shape-2"></div>
         </div>
 
-        {/* Success Card */}
         <div className="reset-password-card success-card">
 
           <div className="card-header">
-
             <img
               src={logo}
               alt="IGNITE Logo"
               className="card-logo"
             />
-
-          </div>
-
-          <div className="success-icon-wrapper">
-
-            <div className="success-icon">
-              ✓
-            </div>
-
           </div>
 
           <div className="success-content">
 
+            <div className="success-check">
+              ✓
+            </div>
+
             <h1>
-              Password reset successful!
+              Password reset successful
             </h1>
 
             <p>
@@ -326,32 +286,6 @@ const ResetPassword = () => {
             <p className="success-message">
               You can now log in with your new password.
             </p>
-
-            <div className="security-tips">
-
-              <h3>
-                Security Tips:
-              </h3>
-
-              <ul>
-
-                <li>
-                  Use a unique password you haven't
-                  used before.
-                </li>
-
-                <li>
-                  Store your password securely.
-                </li>
-
-                <li>
-                  Enable two-factor authentication
-                  for extra security.
-                </li>
-
-              </ul>
-
-            </div>
 
           </div>
 
@@ -382,40 +316,34 @@ const ResetPassword = () => {
   return (
     <div className="reset-password-container">
 
-      {/* Background */}
       <div className="background-elements">
         <div className="background-shape bg-shape-1"></div>
         <div className="background-shape bg-shape-2"></div>
       </div>
 
-      {/* PAGE-LEVEL BACK LINK */}
+      {/* Back */}
       <Link
         to="/login"
         className="back-button"
         title="Back to login"
       >
-        <span className="back-arrow">
-          ←
-        </span>
-
+        <span className="back-arrow">←</span>
         Back to Login
       </Link>
 
-      {/* Reset Password Card */}
+      {/* Card */}
       <div className="reset-password-card">
 
         {/* Logo */}
         <div className="card-header">
-
           <img
             src={logo}
             alt="IGNITE Logo"
             className="card-logo"
           />
-
         </div>
 
-        {/* Welcome Section */}
+        {/* Heading */}
         <div className="card-welcome">
 
           <h1>
@@ -429,7 +357,7 @@ const ResetPassword = () => {
 
         </div>
 
-        {/* Step Indicator */}
+        {/* Progress */}
         <div className="step-indicator-minimal">
 
           <div className="step-item active">
@@ -484,12 +412,15 @@ const ResetPassword = () => {
 
             <div className="input-wrapper">
 
-              <span
+              <div
                 className="input-icon"
                 aria-hidden="true"
               >
-                🔒
-              </span>
+                <Lock
+                  size={18}
+                  strokeWidth={2}
+                />
+              </div>
 
               <input
                 type={
@@ -526,14 +457,22 @@ const ResetPassword = () => {
                 }
                 disabled={loading}
               >
-                {showPassword
-                  ? "👁️"
-                  : "👁️‍🗨️"}
+                {showPassword ? (
+                  <EyeOff
+                    size={18}
+                    strokeWidth={2}
+                  />
+                ) : (
+                  <Eye
+                    size={18}
+                    strokeWidth={2}
+                  />
+                )}
               </button>
 
             </div>
 
-            {/* Password Strength */}
+            {/* Strength */}
             {password && (
               <div className="password-strength-wrapper">
 
@@ -554,9 +493,7 @@ const ResetPassword = () => {
                 </div>
 
                 <p className="strength-label">
-
                   Strength:
-
                   <span
                     style={{
                       color:
@@ -566,13 +503,12 @@ const ResetPassword = () => {
                     {" "}
                     {getPasswordStrengthLabel()}
                   </span>
-
                 </p>
 
               </div>
             )}
 
-            {/* Password Requirements */}
+            {/* Requirements */}
             <div className="password-requirements">
 
               <p className="requirements-title">
@@ -691,12 +627,15 @@ const ResetPassword = () => {
 
             <div className="input-wrapper">
 
-              <span
+              <div
                 className="input-icon"
                 aria-hidden="true"
               >
-                🔒
-              </span>
+                <Lock
+                  size={18}
+                  strokeWidth={2}
+                />
+              </div>
 
               <input
                 type={
@@ -717,12 +656,11 @@ const ResetPassword = () => {
                 autoComplete="new-password"
                 disabled={loading}
                 required
-                className={`form-input ${
-                  confirmPassword &&
-                  !passwordMatch
+                className={`form-input ${confirmPassword &&
+                    !passwordMatch
                     ? "error"
                     : ""
-                }`}
+                  }`}
               />
 
               <button
@@ -740,14 +678,21 @@ const ResetPassword = () => {
                 }
                 disabled={loading}
               >
-                {showConfirmPassword
-                  ? "👁️"
-                  : "👁️‍🗨️"}
+                {showConfirmPassword ? (
+                  <EyeOff
+                    size={18}
+                    strokeWidth={2}
+                  />
+                ) : (
+                  <Eye
+                    size={18}
+                    strokeWidth={2}
+                  />
+                )}
               </button>
 
             </div>
 
-            {/* Match Message */}
             {confirmPassword &&
               !passwordMatch && (
                 <p className="error-text">
@@ -764,16 +709,12 @@ const ResetPassword = () => {
 
           </div>
 
-          {/* Security Notice */}
+          {/* Simple Notice */}
           <div className="security-notice">
-
-            <span className="notice-icon">
-              🔐
-            </span>
 
             <p>
               Your password will be encrypted and
-              never shared. Keep it safe and unique.
+              securely stored.
             </p>
 
           </div>

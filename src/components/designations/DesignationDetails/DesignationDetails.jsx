@@ -1,6 +1,6 @@
 
 import Button from "../../common/Button/Button";
-
+import { formatDate } from "../../../utils/dateUtils";
 import "./DesignationDetails.css";
 
 const DesignationDetails = ({
@@ -36,11 +36,10 @@ const DesignationDetails = ({
         </div>
 
         <span
-          className={`designation-details__status designation-details__status--${
-            isActive
-              ? "active"
-              : "inactive"
-          }`}
+          className={`designation-details__status designation-details__status--${isActive
+            ? "active"
+            : "inactive"
+            }`}
         >
           <span className="designation-details__status-dot" />
 
@@ -93,7 +92,7 @@ const DesignationDetails = ({
             </span>
 
             <span className="designation-details__value">
-              {designation.createdAt || "—"}
+              {formatDate(designation.createdAt)}
             </span>
           </div>
 

@@ -40,6 +40,7 @@ import CompanySetupGuard from "./components/auth/CompanySetupGuard";
 import OrganizationSetup from "./pages/OrganizationSetup/OrganizationSetup";
 import DepartmentsPage from "./pages/departments/Departments";
 import DesignationsPage from "./pages/designations/Designations";
+import RolesPermissions from "./pages/rolesPermissions/RolesPermissions";
 
 /* Temporary / Dashboard */
 function DashboardPreview() {
@@ -56,17 +57,7 @@ function DashboardPreview() {
   );
 }
 
-function RolesPermissions() {
-  return (
-    <div style={{ padding: "32px" }}>
-      <h1>Roles & Permissions</h1>
 
-      <p>
-        Roles and permissions page.
-      </p>
-    </div>
-  );
-}
 
 function Employees() {
   return (
