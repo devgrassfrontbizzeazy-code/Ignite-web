@@ -1,6 +1,6 @@
-
 import DepartmentRowActions from "../DepartmentRowActions/DepartmentRowActions";
 import { formatDate } from "../../../utils/dateUtils";
+
 import "./DepartmentTable.css";
 
 const DepartmentTable = ({
@@ -19,8 +19,8 @@ const DepartmentTable = ({
       <table className="department-table">
         <thead>
           <tr>
-            <th>Department Code</th>
             <th>Department Name</th>
+            <th>Description</th>
             <th>Status</th>
             <th>Created At</th>
             <th>Actions</th>
@@ -33,11 +33,12 @@ const DepartmentTable = ({
               department.status === "active";
 
             return (
-              <tr key={department.id}>
-                <td>
-                  {department.departmentCode || "—"}
-                </td>
-
+              <tr
+                key={
+                  department.id ??
+                  `department-${department.departmentName}`
+                }
+              >
                 <td>
                   <div className="department-table__name">
                     <span className="department-table__name-text">
@@ -47,11 +48,16 @@ const DepartmentTable = ({
                 </td>
 
                 <td>
+                  {department.description || "—"}
+                </td>
+
+                <td>
                   <span
-                    className={`department-table__status department-table__status--${isActive
+                    className={`department-table__status department-table__status--${
+                      isActive
                         ? "active"
                         : "inactive"
-                      }`}
+                    }`}
                   >
                     <span className="department-table__status-dot" />
 
@@ -61,7 +67,9 @@ const DepartmentTable = ({
                   </span>
                 </td>
 
-                <td>{formatDate(department.createdAt)}</td>
+                <td>
+                  {formatDate(department.createdAt)}
+                </td>
 
                 <td>
                   <DepartmentRowActions
@@ -84,4 +92,3 @@ const DepartmentTable = ({
 };
 
 export default DepartmentTable;
-

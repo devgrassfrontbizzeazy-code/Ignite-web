@@ -1,6 +1,6 @@
-
 import Button from "../../common/Button/Button";
 import { formatDate } from "../../../utils/dateUtils";
+
 import "./DesignationDetails.css";
 
 const DesignationDetails = ({
@@ -25,7 +25,8 @@ const DesignationDetails = ({
 
           <div>
             <h3 className="designation-details__name">
-              {designation.designationName || "—"}
+              {designation.designationName ||
+                "—"}
             </h3>
 
             <p className="designation-details__department">
@@ -36,10 +37,11 @@ const DesignationDetails = ({
         </div>
 
         <span
-          className={`designation-details__status designation-details__status--${isActive
-            ? "active"
-            : "inactive"
-            }`}
+          className={`designation-details__status designation-details__status--${
+            isActive
+              ? "active"
+              : "inactive"
+          }`}
         >
           <span className="designation-details__status-dot" />
 
@@ -53,17 +55,6 @@ const DesignationDetails = ({
         <h4>Designation Information</h4>
 
         <div className="designation-details__grid">
-          <div className="designation-details__item">
-            <span className="designation-details__label">
-              Designation Code
-            </span>
-
-            <span className="designation-details__value">
-              {designation.designationCode ||
-                "—"}
-            </span>
-          </div>
-
           <div className="designation-details__item">
             <span className="designation-details__label">
               Designation Name
@@ -88,16 +79,6 @@ const DesignationDetails = ({
 
           <div className="designation-details__item">
             <span className="designation-details__label">
-              Created At
-            </span>
-
-            <span className="designation-details__value">
-              {formatDate(designation.createdAt)}
-            </span>
-          </div>
-
-          <div className="designation-details__item">
-            <span className="designation-details__label">
               Status
             </span>
 
@@ -105,6 +86,30 @@ const DesignationDetails = ({
               {isActive
                 ? "Active"
                 : "Inactive"}
+            </span>
+          </div>
+
+          <div className="designation-details__item">
+            <span className="designation-details__label">
+              Created At
+            </span>
+
+            <span className="designation-details__value">
+              {formatDate(
+                designation.createdAt
+              )}
+            </span>
+          </div>
+
+          <div className="designation-details__item">
+            <span className="designation-details__label">
+              Last Updated
+            </span>
+
+            <span className="designation-details__value">
+              {formatDate(
+                designation.updatedAt
+              )}
             </span>
           </div>
         </div>
@@ -143,4 +148,3 @@ const DesignationDetails = ({
 };
 
 export default DesignationDetails;
-

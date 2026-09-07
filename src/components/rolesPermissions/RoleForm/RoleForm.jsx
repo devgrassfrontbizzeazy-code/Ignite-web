@@ -11,245 +11,146 @@ const PERMISSION_MODULES = [
         key: "employee",
         label: "Employees",
         permissions: [
-            {
-                code: "employee.view",
-                label: "View",
-            },
-            {
-                code: "employee.create",
-                label: "Create",
-            },
-            {
-                code: "employee.update",
-                label: "Update",
-            },
-            {
-                code: "employee.delete",
-                label: "Delete",
-            },
-            {
-                code: "employee.export",
-                label: "Export",
-            },
+            { code: "employee.view", label: "View" },
+            { code: "employee.create", label: "Create" },
+            { code: "employee.update", label: "Update" },
+            { code: "employee.delete", label: "Delete" },
+            { code: "employee.export", label: "Export" },
         ],
     },
-
     {
         key: "department",
         label: "Departments",
         permissions: [
-            {
-                code: "department.view",
-                label: "View",
-            },
-            {
-                code: "department.create",
-                label: "Create",
-            },
-            {
-                code: "department.update",
-                label: "Update",
-            },
-            {
-                code: "department.delete",
-                label: "Delete",
-            },
+            { code: "department.view", label: "View" },
+            { code: "department.create", label: "Create" },
+            { code: "department.update", label: "Update" },
+            { code: "department.delete", label: "Delete" },
         ],
     },
-
     {
         key: "designation",
         label: "Designations",
         permissions: [
-            {
-                code: "designation.view",
-                label: "View",
-            },
-            {
-                code: "designation.create",
-                label: "Create",
-            },
-            {
-                code: "designation.update",
-                label: "Update",
-            },
-            {
-                code: "designation.delete",
-                label: "Delete",
-            },
+            { code: "designation.view", label: "View" },
+            { code: "designation.create", label: "Create" },
+            { code: "designation.update", label: "Update" },
+            { code: "designation.delete", label: "Delete" },
         ],
     },
-
     {
         key: "attendance",
         label: "Attendance",
         permissions: [
-            {
-                code: "attendance.view",
-                label: "View",
-            },
-            {
-                code: "attendance.create",
-                label: "Create",
-            },
-            {
-                code: "attendance.update",
-                label: "Update",
-            },
-            {
-                code: "attendance.delete",
-                label: "Delete",
-            },
-            {
-                code: "attendance.export",
-                label: "Export",
-            },
+            { code: "attendance.view", label: "View" },
+            { code: "attendance.create", label: "Create" },
+            { code: "attendance.update", label: "Update" },
+            { code: "attendance.delete", label: "Delete" },
+            { code: "attendance.export", label: "Export" },
         ],
     },
-
     {
         key: "leave",
         label: "Leave Management",
         permissions: [
-            {
-                code: "leave.view",
-                label: "View",
-            },
-            {
-                code: "leave.create",
-                label: "Create",
-            },
-            {
-                code: "leave.update",
-                label: "Update",
-            },
-            {
-                code: "leave.delete",
-                label: "Delete",
-            },
-            {
-                code: "leave.approve",
-                label: "Approve",
-            },
+            { code: "leave.view", label: "View" },
+            { code: "leave.create", label: "Create" },
+            { code: "leave.update", label: "Update" },
+            { code: "leave.delete", label: "Delete" },
+            { code: "leave.approve", label: "Approve" },
         ],
     },
-
     {
         key: "payroll",
         label: "Payroll",
         permissions: [
-            {
-                code: "payroll.view",
-                label: "View",
-            },
-            {
-                code: "payroll.create",
-                label: "Create",
-            },
-            {
-                code: "payroll.update",
-                label: "Update",
-            },
-            {
-                code: "payroll.delete",
-                label: "Delete",
-            },
-            {
-                code: "payroll.export",
-                label: "Export",
-            },
+            { code: "payroll.view", label: "View" },
+            { code: "payroll.create", label: "Create" },
+            { code: "payroll.update", label: "Update" },
+            { code: "payroll.delete", label: "Delete" },
+            { code: "payroll.export", label: "Export" },
         ],
     },
-
     {
         key: "recruitment",
         label: "Recruitment",
         permissions: [
-            {
-                code: "recruitment.view",
-                label: "View",
-            },
-            {
-                code: "recruitment.create",
-                label: "Create",
-            },
-            {
-                code: "recruitment.update",
-                label: "Update",
-            },
-            {
-                code: "recruitment.delete",
-                label: "Delete",
-            },
+            { code: "recruitment.view", label: "View" },
+            { code: "recruitment.create", label: "Create" },
+            { code: "recruitment.update", label: "Update" },
+            { code: "recruitment.delete", label: "Delete" },
         ],
     },
-
     {
         key: "performance",
         label: "Performance",
         permissions: [
-            {
-                code: "performance.view",
-                label: "View",
-            },
-            {
-                code: "performance.create",
-                label: "Create",
-            },
-            {
-                code: "performance.update",
-                label: "Update",
-            },
-            {
-                code: "performance.delete",
-                label: "Delete",
-            },
+            { code: "performance.view", label: "View" },
+            { code: "performance.create", label: "Create" },
+            { code: "performance.update", label: "Update" },
+            { code: "performance.delete", label: "Delete" },
         ],
     },
 ];
 
 const RoleForm = ({
+    initialData = null,
     onSubmit,
     onCancel,
     loading = false,
 }) => {
-    const [roleName, setRoleName] =
-        useState("");
+    const isEditMode = Boolean(initialData);
 
-    const [roleCode, setRoleCode] =
-        useState("");
+    /*
+     * Convert existing role permissions into
+     * the permission-code format used by the form.
+     */
+    const initialPermissions = useMemo(() => {
+        if (!initialData?.permissions) {
+            return [];
+        }
 
-    const [description, setDescription] =
-        useState("");
+        return initialData.permissions.map((permission) =>
+            typeof permission === "string"
+                ? permission
+                : permission.code,
+        );
+    }, [initialData]);
 
-    const [status, setStatus] =
-        useState(true);
+    const [roleName, setRoleName] = useState(
+        initialData?.roleName || "",
+    );
+
+    const [roleCode, setRoleCode] = useState(
+        initialData?.roleCode || "",
+    );
+
+    const [description, setDescription] = useState(
+        initialData?.description || "",
+    );
+
+    const [status, setStatus] = useState(
+        initialData?.status !== "inactive",
+    );
 
     const [permissions, setPermissions] =
-        useState([]);
+        useState(initialPermissions);
 
-    const [errors, setErrors] =
-        useState({});
+    const [errors, setErrors] = useState({});
 
     const allPermissionCodes = useMemo(
         () =>
-            PERMISSION_MODULES.flatMap(
-                (module) =>
-                    module.permissions.map(
-                        (permission) =>
-                            permission.code,
-                    ),
+            PERMISSION_MODULES.flatMap((module) =>
+                module.permissions.map(
+                    (permission) => permission.code,
+                ),
             ),
         [],
     );
 
-    const handleRoleNameChange = (
-        event,
-    ) => {
+    const handleRoleNameChange = (event) => {
         const value =
-            event?.target?.value ??
-            event ??
-            "";
+            event?.target?.value ?? event ?? "";
 
         setRoleName(value);
 
@@ -261,21 +162,14 @@ const RoleForm = ({
         }
     };
 
-    const handleRoleCodeChange = (
-        event,
-    ) => {
+    const handleRoleCodeChange = (event) => {
         const value =
-            event?.target?.value ??
-            event ??
-            "";
+            event?.target?.value ?? event ?? "";
 
         const formattedValue = value
             .toUpperCase()
             .replace(/\s+/g, "_")
-            .replace(
-                /[^A-Z0-9_]/g,
-                "",
-            );
+            .replace(/[^A-Z0-9_]/g, "");
 
         setRoleCode(formattedValue);
 
@@ -287,37 +181,25 @@ const RoleForm = ({
         }
     };
 
-    const handleDescriptionChange = (
-        event,
-    ) => {
+    const handleDescriptionChange = (event) => {
         const value =
-            event?.target?.value ??
-            event ??
-            "";
+            event?.target?.value ?? event ?? "";
 
         setDescription(value);
     };
 
-    const togglePermission = (
-        permissionCode,
-    ) => {
+    /*
+     * Assign / remove one permission.
+     */
+    const togglePermission = (permissionCode) => {
         setPermissions((previous) => {
-            if (
-                previous.includes(
-                    permissionCode,
-                )
-            ) {
+            if (previous.includes(permissionCode)) {
                 return previous.filter(
-                    (code) =>
-                        code !==
-                        permissionCode,
+                    (code) => code !== permissionCode,
                 );
             }
 
-            return [
-                ...previous,
-                permissionCode,
-            ];
+            return [...previous, permissionCode];
         });
 
         if (errors.permissions) {
@@ -328,42 +210,32 @@ const RoleForm = ({
         }
     };
 
-    const toggleModulePermissions = (
-        module,
-    ) => {
-        const moduleCodes =
-            module.permissions.map(
-                (permission) =>
-                    permission.code,
-            );
+    /*
+     * Assign / remove all permissions
+     * belonging to one module.
+     */
+    const toggleModulePermissions = (module) => {
+        const moduleCodes = module.permissions.map(
+            (permission) => permission.code,
+        );
 
-        const allSelected =
-            moduleCodes.every(
-                (code) =>
-                    permissions.includes(
-                        code,
-                    ),
-            );
+        const allSelected = moduleCodes.every(
+            (code) => permissions.includes(code),
+        );
 
         if (allSelected) {
-            setPermissions(
-                (previous) =>
-                    previous.filter(
-                        (code) =>
-                            !moduleCodes.includes(
-                                code,
-                            ),
-                    ),
+            setPermissions((previous) =>
+                previous.filter(
+                    (code) => !moduleCodes.includes(code),
+                ),
             );
         } else {
-            setPermissions(
-                (previous) => [
-                    ...new Set([
-                        ...previous,
-                        ...moduleCodes,
-                    ]),
-                ],
-            );
+            setPermissions((previous) => [
+                ...new Set([
+                    ...previous,
+                    ...moduleCodes,
+                ]),
+            ]);
         }
 
         if (errors.permissions) {
@@ -374,21 +246,18 @@ const RoleForm = ({
         }
     };
 
+    /*
+     * Assign / remove every available permission.
+     */
     const toggleAllPermissions = () => {
-        const allSelected =
-            allPermissionCodes.every(
-                (code) =>
-                    permissions.includes(
-                        code,
-                    ),
-            );
+        const allSelected = allPermissionCodes.every(
+            (code) => permissions.includes(code),
+        );
 
         if (allSelected) {
             setPermissions([]);
         } else {
-            setPermissions([
-                ...allPermissionCodes,
-            ]);
+            setPermissions([...allPermissionCodes]);
         }
 
         if (errors.permissions) {
@@ -411,9 +280,7 @@ const RoleForm = ({
             newErrors.roleCode =
                 "Role code is required.";
         } else if (
-            !/^[A-Z0-9_]+$/.test(
-                roleCode,
-            )
+            !/^[A-Z0-9_]+$/.test(roleCode)
         ) {
             newErrors.roleCode =
                 "Use only letters, numbers and underscores.";
@@ -426,10 +293,7 @@ const RoleForm = ({
 
         setErrors(newErrors);
 
-        return (
-            Object.keys(newErrors)
-                .length === 0
-        );
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (event) => {
@@ -439,29 +303,19 @@ const RoleForm = ({
             return;
         }
 
-        const roleData = {
+        onSubmit({
             roleName: roleName.trim(),
             roleCode: roleCode.trim(),
-            description:
-                description.trim(),
-            status: status
-                ? "active"
-                : "inactive",
-            permissions: [
-                ...permissions,
-            ],
-        };
-
-        onSubmit(roleData);
+            description: description.trim(),
+            status: status ? "active" : "inactive",
+            permissions: [...permissions],
+        });
     };
 
     const allPermissionsSelected =
         allPermissionCodes.length > 0 &&
-        allPermissionCodes.every(
-            (code) =>
-                permissions.includes(
-                    code,
-                ),
+        allPermissionCodes.every((code) =>
+            permissions.includes(code),
         );
 
     return (
@@ -474,97 +328,84 @@ const RoleForm = ({
             <div className="role-form-section">
                 <div className="role-form-section-header">
                     <div>
-                        <h3>
-                            Role Information
-                        </h3>
+                        <h3>Role Information</h3>
 
                         <p>
-                            Define the basic
-                            information for
-                            this role.
+                            Define the basic information
+                            for this role.
                         </p>
                     </div>
                 </div>
 
                 <div className="role-form-grid">
-                    <div className="role-form-field">
-                        <FormField
-                            label="Role Name"
+                    <FormField
+                        label="Role Name"
+                        htmlFor="roleName"
+                        required
+                        error={errors.roleName}
+                    >
+                        <input
+                            id="roleName"
                             name="roleName"
-                            value={
-                                roleName
-                            }
+                            type="text"
+                            value={roleName}
                             onChange={
                                 handleRoleNameChange
                             }
                             placeholder="e.g. HR Manager"
-                            required
+                            className="role-form__input"
                         />
+                    </FormField>
 
-                        {errors.roleName && (
-                            <span className="role-form-error">
-                                {
-                                    errors.roleName
-                                }
-                            </span>
-                        )}
-                    </div>
-
-                    <div className="role-form-field">
-                        <FormField
-                            label="Role Code"
+                    <FormField
+                        label="Role Code"
+                        htmlFor="roleCode"
+                        required
+                        error={errors.roleCode}
+                        hint="Use uppercase letters, numbers and underscores."
+                    >
+                        <input
+                            id="roleCode"
                             name="roleCode"
-                            value={
-                                roleCode
-                            }
+                            type="text"
+                            value={roleCode}
                             onChange={
                                 handleRoleCodeChange
                             }
                             placeholder="e.g. HR_MANAGER"
-                            required
+                            className="role-form__input"
                         />
-
-                        {errors.roleCode && (
-                            <span className="role-form-error">
-                                {
-                                    errors.roleCode
-                                }
-                            </span>
-                        )}
-                    </div>
+                    </FormField>
 
                     <div className="role-form-field-full">
                         <FormField
                             label="Description"
-                            name="description"
-                            value={
-                                description
-                            }
-                            onChange={
-                                handleDescriptionChange
-                            }
-                            placeholder="Describe what this role is responsible for..."
-                            textarea
-                            rows={4}
-                        />
+                            htmlFor="description"
+                        >
+                            <textarea
+                                id="description"
+                                name="description"
+                                value={description}
+                                onChange={
+                                    handleDescriptionChange
+                                }
+                                placeholder="Describe what this role is responsible for..."
+                                rows={4}
+                                className="role-form__textarea"
+                            />
+                        </FormField>
                     </div>
 
                     <div className="role-form-status">
                         <Toggle
-                            checked={
-                                status
-                            }
-                            onChange={
-                                setStatus
-                            }
+                            checked={status}
+                            onChange={setStatus}
                             label="Active Role"
                         />
 
                         <span className="role-form-status-help">
-                            Inactive roles
-                            cannot be
-                            assigned to
-                            employees.
+                            Inactive roles cannot be
+                            assigned to employees.
                         </span>
                     </div>
                 </div>
@@ -574,15 +415,11 @@ const RoleForm = ({
             <div className="role-form-section">
                 <div className="role-form-permissions-header">
                     <div>
-                        <h3>
-                            Permissions
-                        </h3>
+                        <h3>Permissions</h3>
 
                         <p>
-                            Select the
-                            permissions
-                            this role
-                            should have.
+                            Select the permissions this
+                            role should have.
                         </p>
                     </div>
 
@@ -601,156 +438,142 @@ const RoleForm = ({
 
                 {errors.permissions && (
                     <div className="role-form-permission-error">
-                        {
-                            errors.permissions
-                        }
+                        {errors.permissions}
                     </div>
                 )}
 
                 <div className="role-permissions-list">
-                    {PERMISSION_MODULES.map(
-                        (
-                            module,
-                        ) => {
-                            const moduleCodes =
-                                module.permissions.map(
-                                    (
-                                        permission,
-                                    ) =>
-                                        permission.code,
-                                );
+                    {PERMISSION_MODULES.map((module) => {
+                        const moduleCodes =
+                            module.permissions.map(
+                                (permission) =>
+                                    permission.code,
+                            );
 
-                            const selectedCount =
-                                moduleCodes.filter(
-                                    (
+                        const selectedCount =
+                            moduleCodes.filter(
+                                (code) =>
+                                    permissions.includes(
                                         code,
-                                    ) =>
-                                        permissions.includes(
-                                            code,
-                                        ),
-                                ).length;
+                                    ),
+                            ).length;
 
-                            const moduleSelected =
-                                selectedCount ===
-                                moduleCodes.length;
+                        const moduleSelected =
+                            selectedCount ===
+                            moduleCodes.length;
 
-                            return (
-                                <div
-                                    className="role-permission-module"
-                                    key={
-                                        module.key
-                                    }
-                                >
-                                    <div className="role-permission-module-header">
-                                        <div className="role-permission-module-title">
-                                            <div className="role-permission-module-checkbox">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={
-                                                        moduleSelected
-                                                    }
-                                                    onChange={() =>
-                                                        toggleModulePermissions(
-                                                            module,
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <h4>
-                                                    {
-                                                        module.label
-                                                    }
-                                                </h4>
-
-                                                <span>
-                                                    {
-                                                        selectedCount
-                                                    }{" "}
-                                                    of{" "}
-                                                    {
-                                                        moduleCodes.length
-                                                    }{" "}
-                                                    selected
-                                                </span>
-                                            </div>
+                        return (
+                            <div
+                                className="role-permission-module"
+                                key={module.key}
+                            >
+                                <div className="role-permission-module-header">
+                                    <div className="role-permission-module-title">
+                                        <div className="role-permission-module-checkbox">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    moduleSelected
+                                                }
+                                                onChange={() =>
+                                                    toggleModulePermissions(
+                                                        module,
+                                                    )
+                                                }
+                                            />
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            className="role-permission-module-select"
-                                            onClick={() =>
-                                                toggleModulePermissions(
-                                                    module,
-                                                )
-                                            }
-                                        >
-                                            {moduleSelected
-                                                ? "Clear"
-                                                : "Select All"}
-                                        </button>
+                                        <div>
+                                            <h4>
+                                                {
+                                                    module.label
+                                                }
+                                            </h4>
+
+                                            <span>
+                                                {
+                                                    selectedCount
+                                                }{" "}
+                                                of{" "}
+                                                {
+                                                    moduleCodes.length
+                                                }{" "}
+                                                selected
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <div className="role-permission-options">
-                                        {module.permissions.map(
-                                            (
-                                                permission,
-                                            ) => {
-                                                const selected =
-                                                    permissions.includes(
-                                                        permission.code,
-                                                    );
-
-                                                return (
-                                                    <label
-                                                        className={`role-permission-option ${selected
-                                                                ? "is-selected"
-                                                                : ""
-                                                            }`}
-                                                        key={
-                                                            permission.code
-                                                        }
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={
-                                                                selected
-                                                            }
-                                                            onChange={() =>
-                                                                togglePermission(
-                                                                    permission.code,
-                                                                )
-                                                            }
-                                                        />
-
-                                                        <span>
-                                                            {
-                                                                permission.label
-                                                            }
-                                                        </span>
-                                                    </label>
-                                                );
-                                            },
-                                        )}
-                                    </div>
+                                    <button
+                                        type="button"
+                                        className="role-permission-module-select"
+                                        onClick={() =>
+                                            toggleModulePermissions(
+                                                module,
+                                            )
+                                        }
+                                    >
+                                        {moduleSelected
+                                            ? "Clear"
+                                            : "Select All"}
+                                    </button>
                                 </div>
-                            );
-                        },
-                    )}
+
+                                <div className="role-permission-options">
+                                    {module.permissions.map(
+                                        (
+                                            permission,
+                                        ) => {
+                                            const selected =
+                                                permissions.includes(
+                                                    permission.code,
+                                                );
+
+                                            return (
+                                                <label
+                                                    className={`role-permission-option ${
+                                                        selected
+                                                            ? "is-selected"
+                                                            : ""
+                                                    }`}
+                                                    key={
+                                                        permission.code
+                                                    }
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={
+                                                            selected
+                                                        }
+                                                        onChange={() =>
+                                                            togglePermission(
+                                                                permission.code,
+                                                            )
+                                                        }
+                                                    />
+
+                                                    <span>
+                                                        {
+                                                            permission.label
+                                                        }
+                                                    </span>
+                                                </label>
+                                            );
+                                        },
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="role-form-permission-summary">
                     <strong>
-                        {
-                            permissions.length
-                        }
+                        {permissions.length}
                     </strong>
 
                     <span>
                         permission
-                        {permissions.length ===
-                            1
+                        {permissions.length === 1
                             ? ""
                             : "s"}{" "}
                         selected
@@ -763,12 +586,8 @@ const RoleForm = ({
                 <Button
                     type="button"
                     variant="secondary"
-                    onClick={
-                        onCancel
-                    }
-                    disabled={
-                        loading
-                    }
+                    onClick={onCancel}
+                    disabled={loading}
                 >
                     Cancel
                 </Button>
@@ -776,13 +595,15 @@ const RoleForm = ({
                 <Button
                     type="submit"
                     variant="primary"
-                    disabled={
-                        loading
-                    }
+                    disabled={loading}
                 >
                     {loading
-                        ? "Creating..."
-                        : "Create Role"}
+                        ? isEditMode
+                            ? "Saving..."
+                            : "Creating..."
+                        : isEditMode
+                            ? "Save Changes"
+                            : "Create Role"}
                 </Button>
             </div>
         </form>

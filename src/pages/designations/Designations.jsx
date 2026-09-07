@@ -1,9 +1,4 @@
-
-import { useMemo, useState } from "react";
-
-import {
-  useOrganization,
-} from "../../context/OrganizationContext/OrganizationContext";
+import { useEffect, useMemo, useState } from "react";
 
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
@@ -16,58 +11,242 @@ import DesignationTable from "../../components/designations/DesignationTable/Des
 import DesignationForm from "../../components/designations/DesignationForm/DesignationForm";
 import DesignationDetails from "../../components/designations/DesignationDetails/DesignationDetails";
 
+import {
+  getDesignations,
+  createDesignation,
+  updateDesignation,
+  patchDesignation,
+  deleteDesignation,
+} from "../../services/api/designationAPI";
+
+import { getDepartments } from "../../services/api/departmentAPI";
+
 import "./Designations.css";
 
-const Designations = () => {
-  const { departments } = useOrganization();
+const normalizeDesignation = (designation) => {
+  if (!designation) {
+    return null;
+  }
 
-  const [designations, setDesignations] =
-    useState([]);
+  return {
+    id:
+      designation.id ??
+      designation.designation_id ??
+      designation.pk,
+
+    designationName:
+      designation.name ??
+      designation.designation_name ??
+      designation.title ??
+      "",
+
+    departmentId:
+      typeof designation.department === "object"
+        ? designation.department?.id
+        : designation.department ??
+          designation.department_id ??
+          "",
+
+    departmentName:
+      designation.department_name ??
+      designation.department?.name ??
+      "",
+
+    description:
+      designation.description ?? "",
+
+    status: String(
+      designation.status ??
+        (designation.is_active ? "Active" : "Inactive")
+    ).toLowerCase(),
+
+    isActive:
+      designation.is_active ??
+      String(designation.status).toLowerCase() === "active",
+
+    company: designation.company,
+
+    companyName: designation.company_name,
+
+    createdAt:
+      designation.created_at ??
+      designation.createdAt,
+
+    updatedAt:
+      designation.updated_at ??
+      designation.updatedAt,
+  };
+};
+
+const extractList = (response) => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  return [];
+};
+
+const normalizeDepartment = (department) => {
+  if (!department) {
+    return null;
+  }
+
+  return {
+    id:
+      department.id ??
+      department.department_id ??
+      department.pk,
+
+    departmentName:
+      department.departmentName ??
+      department.name ??
+      "",
+
+    name:
+      department.name ??
+      department.departmentName ??
+      "",
+
+    description:
+      department.description ?? "",
+
+    status: String(
+      department.status ??
+        (department.is_active ? "Active" : "Inactive")
+    ).toLowerCase(),
+
+    isActive:
+      department.is_active ??
+      String(department.status).toLowerCase() === "active",
+
+    company: department.company,
+
+    companyName: department.company_name,
+
+    createdAt:
+      department.created_at ??
+      department.createdAt,
+
+    updatedAt:
+      department.updated_at ??
+      department.updatedAt,
+  };
+};
+
+const Designations = () => {
+  const [designations, setDesignations] = useState([]);
+
+  const [departments, setDepartments] = useState([]);
 
   const [search, setSearch] = useState("");
-  const [department, setDepartment] =
-    useState("all");
+  const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState("all");
   const [sortBy, setSortBy] = useState("name");
 
   const [showForm, setShowForm] = useState(false);
-  const [showDetails, setShowDetails] =
-    useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const [selectedDesignation, setSelectedDesignation] =
     useState(null);
 
   const [loading, setLoading] = useState(false);
+  const [departmentsLoading, setDepartmentsLoading] =
+    useState(false);
+
+  const [error, setError] = useState("");
 
   /*
-   * -------------------------------------------------------
-   * Non-deleted designations
-   * -------------------------------------------------------
+   * Load Departments
    */
+  const loadDepartments = async () => {
+    try {
+      setDepartmentsLoading(true);
 
-  const activeDesignations = useMemo(() => {
-    return designations.filter(
-      (designation) => !designation.deletedAt,
-    );
-  }, [designations]);
+      const response = await getDepartments();
+
+      const departmentList = extractList(response);
+
+      const normalizedDepartments = departmentList
+        .map(normalizeDepartment)
+        .filter(Boolean);
+
+      setDepartments(normalizedDepartments);
+    } catch (error) {
+      console.error(
+        "Failed to load departments:",
+        error
+      );
+
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to load departments."
+      );
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
 
   /*
-   * -------------------------------------------------------
+   * Load Designations
+   */
+  const loadDesignations = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await getDesignations();
+
+      const designationList = extractList(response);
+
+      const normalizedDesignations = designationList
+        .map(normalizeDesignation)
+        .filter(Boolean);
+
+      setDesignations(normalizedDesignations);
+    } catch (error) {
+      console.error(
+        "Failed to load designations:",
+        error
+      );
+
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to load designations."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDepartments();
+    loadDesignations();
+  }, []);
+
+  /*
    * Stats
-   * -------------------------------------------------------
    */
-
   const stats = useMemo(() => {
-    const total = activeDesignations.length;
+    const total = designations.length;
 
-    const active = activeDesignations.filter(
+    const active = designations.filter(
       (designation) =>
-        designation.status === "active",
+        designation.status === "active"
     ).length;
 
-    const inactive = activeDesignations.filter(
+    const inactive = designations.filter(
       (designation) =>
-        designation.status === "inactive",
+        designation.status === "inactive"
     ).length;
 
     return {
@@ -75,73 +254,47 @@ const Designations = () => {
       active,
       inactive,
     };
-  }, [activeDesignations]);
+  }, [designations]);
 
   /*
-   * -------------------------------------------------------
-   * Filtering + Sorting
-   * -------------------------------------------------------
+   * Filters + Sorting
    */
-
   const filteredDesignations = useMemo(() => {
-    let result = [...activeDesignations];
+    let result = [...designations];
 
-    /*
-     * Search by:
-     * - Designation Code
-     * - Designation Name
-     * - Department Name
-     * - Description
-     */
     if (search.trim()) {
       const searchValue =
         search.toLowerCase().trim();
 
       result = result.filter(
-        (designation) => {
-          return (
-            designation.designationCode
-              ?.toLowerCase()
-              .includes(searchValue) ||
-            designation.designationName
-              ?.toLowerCase()
-              .includes(searchValue) ||
-            designation.departmentName
-              ?.toLowerCase()
-              .includes(searchValue) ||
-            designation.description
-              ?.toLowerCase()
-              .includes(searchValue)
-          );
-        },
+        (designation) =>
+          designation.designationName
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          designation.departmentName
+            ?.toLowerCase()
+            .includes(searchValue) ||
+          designation.description
+            ?.toLowerCase()
+            .includes(searchValue)
       );
     }
 
-    /*
-     * Department filter
-     */
     if (department !== "all") {
       result = result.filter(
         (designation) =>
-          String(
-            designation.departmentId,
-          ) === String(department),
+          String(designation.departmentId) ===
+          String(department)
       );
     }
 
-    /*
-     * Status filter
-     */
     if (status !== "all") {
       result = result.filter(
         (designation) =>
-          designation.status === status,
+          designation.status === status
       );
     }
 
-    /*
-     * Sorting
-     */
     result.sort((a, b) => {
       switch (sortBy) {
         case "newest":
@@ -161,14 +314,14 @@ const Designations = () => {
           return (
             a.designationName || ""
           ).localeCompare(
-            b.designationName || "",
+            b.designationName || ""
           );
       }
     });
 
     return result;
   }, [
-    activeDesignations,
+    designations,
     search,
     department,
     status,
@@ -176,239 +329,232 @@ const Designations = () => {
   ]);
 
   /*
-   * -------------------------------------------------------
    * Add
-   * -------------------------------------------------------
    */
-
   const handleAddDesignation = () => {
+    setError("");
     setSelectedDesignation(null);
     setShowForm(true);
   };
 
   /*
-   * -------------------------------------------------------
    * View
-   * -------------------------------------------------------
    */
-
   const handleViewDesignation = (
-    designation,
+    designation
   ) => {
+    setError("");
     setSelectedDesignation(designation);
     setShowDetails(true);
   };
 
   /*
-   * -------------------------------------------------------
    * Edit
-   * -------------------------------------------------------
    */
-
   const handleEditDesignation = (
-    designation,
+    designation
   ) => {
+    setError("");
     setShowDetails(false);
     setSelectedDesignation(designation);
     setShowForm(true);
   };
 
   /*
-   * -------------------------------------------------------
-   * Delete - Soft Delete
-   * -------------------------------------------------------
+   * Delete
    */
-
-  const handleDeleteDesignation = (
-    designation,
+  const handleDeleteDesignation = async (
+    designation
   ) => {
+    if (!designation?.id) {
+      setError(
+        "Unable to delete designation: designation ID is missing."
+      );
+      return;
+    }
+
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${designation.designationName}"?`,
+      `Are you sure you want to delete "${designation.designationName}"?`
     );
 
     if (!confirmed) {
       return;
     }
 
-    const deletedAt =
-      new Date().toISOString();
+    try {
+      setLoading(true);
+      setError("");
 
-    setDesignations((previous) =>
-      previous.map((item) =>
-        item.id === designation.id
-          ? {
-              ...item,
-              deletedAt,
-              updatedAt: deletedAt,
-            }
-          : item,
-      ),
-    );
+      await deleteDesignation(
+        designation.id
+      );
 
-    if (
-      selectedDesignation?.id ===
-      designation.id
-    ) {
-      setSelectedDesignation(null);
-      setShowDetails(false);
+      setDesignations((previous) =>
+        previous.filter(
+          (item) =>
+            item.id !== designation.id
+        )
+      );
+
+      if (
+        selectedDesignation?.id ===
+        designation.id
+      ) {
+        setSelectedDesignation(null);
+        setShowDetails(false);
+      }
+    } catch (error) {
+      console.error(
+        "Failed to delete designation:",
+        error
+      );
+
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to delete designation."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   /*
-   * -------------------------------------------------------
-   * Activate / Deactivate
-   * -------------------------------------------------------
+   * Toggle Status
    */
-
-  const handleToggleDesignationStatus = (
-    designation,
-  ) => {
-    const updatedAt =
-      new Date().toISOString();
-
-    const nextStatus =
-      designation.status === "active"
-        ? "inactive"
-        : "active";
-
-    setDesignations((previous) =>
-      previous.map((item) =>
-        item.id === designation.id
-          ? {
-              ...item,
-              status: nextStatus,
-              updatedAt,
-            }
-          : item,
-      ),
-    );
-
-    /*
-     * Keep details modal synchronized
-     * if this designation is currently open.
-     */
-    setSelectedDesignation((previous) => {
-      if (
-        previous?.id !==
-        designation.id
-      ) {
-        return previous;
+  const handleToggleDesignationStatus =
+    async (designation) => {
+      if (!designation?.id) {
+        setError(
+          "Unable to update designation: designation ID is missing."
+        );
+        return;
       }
 
-      return {
-        ...previous,
-        status: nextStatus,
-        updatedAt,
-      };
-    });
-  };
+      try {
+        setLoading(true);
+        setError("");
+
+        const newStatus =
+          designation.status === "active"
+            ? "Inactive"
+            : "Active";
+
+        await patchDesignation(
+          designation.id,
+          {
+            status: newStatus,
+            is_active:
+              newStatus === "Active",
+          }
+        );
+
+        await loadDesignations();
+
+        const updatedDesignation =
+          designations.find(
+            (item) =>
+              item.id === designation.id
+          );
+
+        if (updatedDesignation) {
+          setSelectedDesignation(
+            updatedDesignation
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Failed to update designation status:",
+          error
+        );
+
+        setError(
+          error.response?.data?.detail ||
+            error.response?.data?.message ||
+            "Failed to update designation status."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   /*
-   * -------------------------------------------------------
-   * Add / Edit Submit
-   * -------------------------------------------------------
+   * Submit Add/Edit
    */
+  const handleSubmitDesignation =
+    async (formData) => {
+      try {
+        setLoading(true);
+        setError("");
 
-  const handleSubmitDesignation = (
-    formData,
-  ) => {
-    setLoading(true);
+        const payload = {
+          name:
+            formData.designationName
+              ?.trim() || "",
 
-    /*
-     * Temporary mock delay.
-     * Will later be replaced by API request.
-     */
-    setTimeout(() => {
-      const now =
-        new Date().toISOString();
-
-      if (selectedDesignation) {
-        /*
-         * EDIT
-         */
-        setDesignations((previous) =>
-          previous.map(
-            (designation) =>
-              designation.id ===
-              selectedDesignation.id
-                ? {
-                    ...designation,
-                    ...formData,
-                    updatedAt: now,
-                  }
-                : designation,
-          ),
-        );
-      } else {
-        /*
-         * CREATE
-         */
-        const newDesignation = {
-          id: Date.now(),
-
-          designationCode:
-            formData.designationCode,
-
-          designationName:
-            formData.designationName,
-
-          departmentId:
-            formData.departmentId,
-
-          departmentName:
-            formData.departmentName,
+          department:
+            Number(formData.departmentId),
 
           description:
-            formData.description,
+            formData.description
+              ?.trim() || "",
 
           status:
-            formData.status,
+            formData.status === "active"
+              ? "Active"
+              : "Inactive",
 
-          createdAt: now,
-          updatedAt: now,
-
-          deletedAt: null,
+          is_active:
+            formData.status === "active",
         };
 
-        setDesignations((previous) => [
-          ...previous,
-          newDesignation,
-        ]);
-      }
+        if (selectedDesignation) {
+          await updateDesignation(
+            selectedDesignation.id,
+            payload
+          );
+        } else {
+          await createDesignation(
+            payload
+          );
+        }
 
-      setLoading(false);
-      setShowForm(false);
-      setSelectedDesignation(null);
-    }, 500);
-  };
+        await loadDesignations();
+
+        setShowForm(false);
+        setSelectedDesignation(null);
+      } catch (error) {
+        console.error(
+          "Failed to save designation:",
+          error
+        );
+
+        setError(
+          error.response?.data?.detail ||
+            error.response?.data?.message ||
+            "Failed to save designation."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
 
   /*
-   * -------------------------------------------------------
    * Close Details
-   * -------------------------------------------------------
    */
-
   const handleCloseDetails = () => {
     setShowDetails(false);
     setSelectedDesignation(null);
   };
 
   /*
-   * -------------------------------------------------------
    * Cancel Form
-   * -------------------------------------------------------
    */
-
   const handleCancelForm = () => {
     setShowForm(false);
     setSelectedDesignation(null);
+    setError("");
   };
-
-  /*
-   * -------------------------------------------------------
-   * Render
-   * -------------------------------------------------------
-   */
 
   return (
     <div className="designations-page">
@@ -427,20 +573,29 @@ const Designations = () => {
       </div>
 
       <div className="designations-page__content">
+        {error && (
+          <div
+            className="designations-page__error"
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
         <DesignationStats
           total={stats.total}
           active={stats.active}
           inactive={stats.inactive}
         />
 
-        {activeDesignations.length > 0 && (
+        {designations.length > 0 && (
           <DesignationFilters
             search={search}
             onSearch={(value) =>
               setSearch(
                 value?.target?.value ??
                   value ??
-                  "",
+                  ""
               )
             }
             department={department}
@@ -455,8 +610,16 @@ const Designations = () => {
           />
         )}
 
-        {activeDesignations.length ===
-        0 ? (
+        {loading &&
+        designations.length === 0 ? (
+          <div className="designations-page__empty">
+            <EmptyState
+              title="Loading designations..."
+              description="Please wait while we load your designations."
+            />
+          </div>
+        ) : designations.length ===
+          0 ? (
           <div className="designations-page__empty">
             <EmptyState
               title="No designations yet"
@@ -504,10 +667,6 @@ const Designations = () => {
         )}
       </div>
 
-      {/* --------------------------------------------------
-          Designation Details Modal
-         -------------------------------------------------- */}
-
       <Modal
         open={
           showDetails &&
@@ -529,10 +688,6 @@ const Designations = () => {
           }
         />
       </Modal>
-
-      {/* --------------------------------------------------
-          Add / Edit Designation Modal
-         -------------------------------------------------- */}
 
       <Modal
         open={showForm}
@@ -560,7 +715,10 @@ const Designations = () => {
           onCancel={
             handleCancelForm
           }
-          loading={loading}
+          loading={
+            loading ||
+            departmentsLoading
+          }
         />
       </Modal>
     </div>
@@ -568,4 +726,3 @@ const Designations = () => {
 };
 
 export default Designations;
-

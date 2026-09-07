@@ -38,11 +38,7 @@ const RoleTable = ({
                             <tr key={role.id}>
                                 <td>
                                     <div className="role-table__name">
-                                        <div className="role-table__avatar">
-                                            {role.roleName
-                                                ?.charAt(0)
-                                                ?.toUpperCase() || "R"}
-                                        </div>
+                                        
 
                                         <span className="role-table__name-text">
                                             {role.roleName || "—"}

@@ -1,9 +1,4 @@
-
-import { useMemo, useState } from "react";
-
-import {
-  useOrganization,
-} from "../../context/OrganizationContext/OrganizationContext";
+import { useEffect, useMemo, useState } from "react";
 
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
@@ -17,298 +12,587 @@ import DepartmentTable from "../../components/departments/DepartmentTable/Depart
 import DepartmentForm from "../../components/departments/DepartmentForm/DepartmentForm";
 import DepartmentDetails from "../../components/departments/DepartmentDetails/DepartmentDetails";
 
+import {
+  getDepartments,
+  createDepartment,
+  updateDepartment,
+  patchDepartment,
+  deleteDepartment,
+} from "../../services/api/departmentAPI";
+
 import "./Departments.css";
 
+/*
+ * Convert backend department data into
+ * the structure expected by frontend components.
+ */
+const normalizeDepartment = (department) => {
+  if (!department) {
+    return null;
+  }
+
+  return {
+    id:
+      department.id ??
+      department.department_id ??
+      department.pk,
+
+    departmentName:
+      department.name ??
+      department.department_name ??
+      "",
+
+    description:
+      department.description ?? "",
+
+    status: (
+      department.status ??
+      (department.is_active
+        ? "Active"
+        : "Inactive")
+    ).toLowerCase(),
+
+    isActive:
+      Boolean(department.is_active),
+
+    company:
+      department.company,
+
+    companyName:
+      department.company_name,
+
+    createdAt:
+      department.created_at ??
+      department.createdAt,
+
+    updatedAt:
+      department.updated_at ??
+      department.updatedAt,
+  };
+};
+
+/*
+ * Extract department array from the API response.
+ *
+ * Supports:
+ * - Direct array
+ * - { results: [] }
+ * - { data: [] }
+ */
+const extractDepartmentList = (response) => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  return [];
+};
+
 const Departments = () => {
-  const {
-    departments,
-    setDepartments,
-  } = useOrganization();
+  const [departments, setDepartments] =
+    useState([]);
 
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
-  const [sortBy, setSortBy] = useState("name");
+  const [search, setSearch] =
+    useState("");
 
-  const [showForm, setShowForm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const [status, setStatus] =
+    useState("all");
+
+  const [sortBy, setSortBy] =
+    useState("name");
+
+  const [showForm, setShowForm] =
+    useState(false);
+
+  const [showDetails, setShowDetails] =
+    useState(false);
 
   const [selectedDepartment, setSelectedDepartment] =
     useState(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
 
   /*
-   * Only non-deleted departments are counted
-   * in the dashboard statistics.
+   * Load all departments.
    */
-  const activeDepartments = useMemo(() => {
-    return departments.filter(
-      (department) => !department.deletedAt,
-    );
-  }, [departments]);
+  const loadDepartments = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
+      const response =
+        await getDepartments();
+
+      const departmentList =
+        extractDepartmentList(response);
+
+      const normalizedDepartments =
+        departmentList
+          .map(normalizeDepartment)
+          .filter(Boolean);
+
+      setDepartments(
+        normalizedDepartments
+      );
+    } catch (error) {
+      console.error(
+        "Failed to load departments:",
+        error
+      );
+
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to load departments."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*
+   * Load departments when page mounts.
+   */
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  /*
+   * Department statistics.
+   */
   const stats = useMemo(() => {
-    const total = activeDepartments.length;
+    const total =
+      departments.length;
 
-    const active = activeDepartments.filter(
-      (department) =>
-        department.status === "active",
-    ).length;
+    const active =
+      departments.filter(
+        (department) =>
+          department.status ===
+          "active"
+      ).length;
 
-    const inactive = activeDepartments.filter(
-      (department) =>
-        department.status === "inactive",
-    ).length;
+    const inactive =
+      departments.filter(
+        (department) =>
+          department.status ===
+          "inactive"
+      ).length;
 
     return {
       total,
       active,
       inactive,
     };
-  }, [activeDepartments]);
+  }, [departments]);
 
-  const filteredDepartments = useMemo(() => {
-    let result = [...activeDepartments];
+  /*
+   * Search, filter and sort departments.
+   */
+  const filteredDepartments =
+    useMemo(() => {
+      let result = [
+        ...departments,
+      ];
 
-    /*
-     * Search by:
-     * - Department Code
-     * - Department Name
-     * - Description
-     */
-    if (search.trim()) {
-      const searchValue =
-        search.toLowerCase().trim();
+      /*
+       * Search by department name
+       * or description.
+       */
+      if (search.trim()) {
+        const searchValue =
+          search
+            .toLowerCase()
+            .trim();
 
-      result = result.filter((department) => {
-        return (
-          department.departmentCode
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          department.departmentName
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          department.description
-            ?.toLowerCase()
-            .includes(searchValue)
+        result = result.filter(
+          (department) =>
+            department.departmentName
+              ?.toLowerCase()
+              .includes(
+                searchValue
+              ) ||
+            department.description
+              ?.toLowerCase()
+              .includes(
+                searchValue
+              )
         );
-      });
-    }
+      }
 
-    /*
-     * Status filter
-     */
-    if (status !== "all") {
-      result = result.filter(
-        (department) =>
-          department.status === status,
-      );
-    }
-
-    /*
-     * Sorting
-     */
-    result.sort((a, b) => {
-      switch (sortBy) {
-        case "newest":
-          return (
-            new Date(b.createdAt) -
-            new Date(a.createdAt)
-          );
-
-        case "oldest":
-          return (
-            new Date(a.createdAt) -
-            new Date(b.createdAt)
-          );
-
-        case "name":
-        default:
-          return (
-            a.departmentName || ""
-          ).localeCompare(
-            b.departmentName || "",
+      /*
+       * Status filter.
+       */
+      if (status !== "all") {
+        result =
+          result.filter(
+            (department) =>
+              department.status ===
+              status
           );
       }
-    });
 
-    return result;
-  }, [
-    activeDepartments,
-    search,
-    status,
-    sortBy,
-  ]);
+      /*
+       * Sorting.
+       */
+      result.sort((a, b) => {
+        switch (sortBy) {
+          case "newest":
+            return (
+              new Date(
+                b.createdAt
+              ) -
+              new Date(
+                a.createdAt
+              )
+            );
 
+          case "oldest":
+            return (
+              new Date(
+                a.createdAt
+              ) -
+              new Date(
+                b.createdAt
+              )
+            );
+
+          case "name":
+          default:
+            return (
+              a.departmentName ||
+              ""
+            ).localeCompare(
+              b.departmentName ||
+                ""
+            );
+        }
+      });
+
+      return result;
+    }, [
+      departments,
+      search,
+      status,
+      sortBy,
+    ]);
+
+  /*
+   * Open Add Department form.
+   */
   const handleAddDepartment = () => {
+    setError("");
     setSelectedDepartment(null);
     setShowForm(true);
-  };
-
-  const handleViewDepartment = (department) => {
-    setSelectedDepartment(department);
-    setShowDetails(true);
-  };
-
-  const handleEditDepartment = (department) => {
-    setShowDetails(false);
-    setSelectedDepartment(department);
-    setShowForm(true);
-  };
-
-  const handleCloseDetails = () => {
-    setShowDetails(false);
-    setSelectedDepartment(null);
   };
 
   /*
-   * Soft delete:
-   * The record stays in state but gets deletedAt.
-   * It is excluded from the normal department list.
+   * View Department.
+   *
+   * Fetches the latest department
+   * details from the backend.
    */
-  const handleDeleteDepartment = (department) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${department.departmentName}"?`,
-    );
+  const handleViewDepartment = (department) => {
+  setError("");
+  setSelectedDepartment(department);
+  setShowDetails(true);
+};
 
-    if (!confirmed) {
+  /*
+   * Open Edit Department form.
+   */
+  const handleEditDepartment =
+    (department) => {
+      setError("");
+      setShowDetails(false);
+      setSelectedDepartment(
+        department
+      );
+      setShowForm(true);
+    };
+
+  /*
+   * Close Details modal.
+   */
+  const handleCloseDetails =
+    () => {
+      setShowDetails(false);
+      setSelectedDepartment(null);
+    };
+
+  /*
+   * Delete Department.
+   */
+  const handleDeleteDepartment =
+    async (department) => {
+      if (!department?.id) {
+        setError(
+          "Unable to delete department: department ID is missing."
+        );
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          `Are you sure you want to delete "${department.departmentName}"?`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+
+        await deleteDepartment(
+          department.id
+        );
+
+        /*
+         * Remove deleted department
+         * from local state.
+         */
+        setDepartments(
+          (previous) =>
+            previous.filter(
+              (item) =>
+                item.id !==
+                department.id
+            )
+        );
+
+        /*
+         * Close details if the
+         * deleted department was open.
+         */
+        if (
+          selectedDepartment?.id ===
+          department.id
+        ) {
+          setSelectedDepartment(
+            null
+          );
+          setShowDetails(false);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to delete department:",
+          error
+        );
+
+        setError(
+          error.response?.data
+            ?.detail ||
+            error.response?.data
+              ?.message ||
+            "Failed to delete department."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  /*
+   * Activate / Deactivate Department.
+   */
+  const handleToggleDepartmentStatus =
+  async (department) => {
+    if (!department?.id) {
+      setError(
+        "Unable to update department: department ID is missing."
+      );
       return;
     }
 
-    const deletedAt =
-      new Date().toISOString();
+    try {
+      setLoading(true);
+      setError("");
 
-    setDepartments((previous) =>
-      previous.map((item) =>
-        item.id === department.id
-          ? {
-              ...item,
-              deletedAt,
-            }
-          : item,
-      ),
-    );
+      const newStatus =
+        department.status === "active"
+          ? "Inactive"
+          : "Active";
 
-    if (
-      selectedDepartment?.id ===
-      department.id
-    ) {
-      setSelectedDepartment(null);
-      setShowDetails(false);
+      await patchDepartment(
+        department.id,
+        {
+          status: newStatus,
+          is_active:
+            newStatus === "Active",
+        }
+      );
+
+      /*
+       * Reload departments from backend
+       * so the UI always reflects the
+       * actual saved state.
+       */
+      const response =
+        await getDepartments();
+
+      const departmentList =
+        extractDepartmentList(response);
+
+      const normalizedDepartments =
+        departmentList
+          .map(normalizeDepartment)
+          .filter(Boolean);
+
+      setDepartments(
+        normalizedDepartments
+      );
+
+      /*
+       * Keep details modal synchronized.
+       */
+      const updatedDepartment =
+        normalizedDepartments.find(
+          (item) =>
+            item.id === department.id
+        );
+
+      if (updatedDepartment) {
+        setSelectedDepartment(
+          updatedDepartment
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to update department status:",
+        error
+      );
+
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to update department status."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   /*
-   * Activate / Deactivate department
+   * Add / Edit Department.
    */
-  const handleToggleDepartmentStatus = (
-    department,
-  ) => {
-    setDepartments((previous) =>
-      previous.map((item) =>
-        item.id === department.id
-          ? {
-              ...item,
-              status:
-                item.status === "active"
-                  ? "inactive"
-                  : "active",
-              updatedAt:
-                new Date().toISOString(),
-            }
-          : item,
-      ),
-    );
+  const handleSubmitDepartment =
+    async (formData) => {
+      try {
+        setLoading(true);
+        setError("");
 
-    /*
-     * Keep the details modal in sync
-     * if the same department is currently open.
-     */
-    setSelectedDepartment((previous) => {
-      if (
-        previous?.id !== department.id
-      ) {
-        return previous;
-      }
-
-      return {
-        ...previous,
-        status:
-          previous.status === "active"
-            ? "inactive"
-            : "active",
-        updatedAt:
-          new Date().toISOString(),
-      };
-    });
-  };
-
-  /*
-   * Add / Edit Department
-   */
-  const handleSubmitDepartment = (
-    formData,
-  ) => {
-    setLoading(true);
-
-    setTimeout(() => {
-      const now =
-        new Date().toISOString();
-
-      if (selectedDepartment) {
-        setDepartments((previous) =>
-          previous.map((department) =>
-            department.id ===
-            selectedDepartment.id
-              ? {
-                  ...department,
-                  ...formData,
-                  updatedAt: now,
-                }
-              : department,
-          ),
-        );
-      } else {
-        const newDepartment = {
-          id: Date.now(),
-
-          departmentCode:
-            formData.departmentCode,
-
-          departmentName:
-            formData.departmentName,
+        const payload = {
+          name:
+            formData.departmentName
+              ?.trim() || "",
 
           description:
-            formData.description,
+            formData.description
+              ?.trim() || "",
 
           status:
-            formData.status,
+            formData.status ===
+            "active"
+              ? "Active"
+              : "Inactive",
 
-          createdAt: now,
-          updatedAt: now,
-
-          deletedAt: null,
+          is_active:
+            formData.status ===
+            "active",
         };
 
-        setDepartments((previous) => [
-          ...previous,
-          newDepartment,
-        ]);
+        /*
+         * Edit existing department.
+         */
+        if (selectedDepartment) {
+          await updateDepartment(
+            selectedDepartment.id,
+            payload
+          );
+        }
+
+        /*
+         * Create new department.
+         */
+        else {
+          await createDepartment(
+            payload
+          );
+        }
+
+        /*
+         * Always reload from backend
+         * after create/update.
+         *
+         * This guarantees that the
+         * frontend uses the same data
+         * structure as a page refresh.
+         */
+        const response =
+          await getDepartments();
+
+        const departmentList =
+          extractDepartmentList(
+            response
+          );
+
+        const normalizedDepartments =
+          departmentList
+            .map(normalizeDepartment)
+            .filter(Boolean);
+
+        setDepartments(
+          normalizedDepartments
+        );
+
+        /*
+         * Close form.
+         */
+        setShowForm(false);
+        setSelectedDepartment(
+          null
+        );
+      } catch (error) {
+        console.error(
+          "Failed to save department:",
+          error
+        );
+
+        setError(
+          error.response?.data
+            ?.detail ||
+            error.response?.data
+              ?.message ||
+            "Failed to save department."
+        );
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setLoading(false);
-      setShowForm(false);
-      setSelectedDepartment(null);
-    }, 500);
-  };
-
+  /*
+   * Cancel Add / Edit form.
+   */
   const handleCancelForm = () => {
     setShowForm(false);
     setSelectedDepartment(null);
+    setError("");
   };
 
   return (
     <div className="departments-page">
+      {/* Page Header */}
       <div className="departments-page__header">
         <PageHeader
           title="Departments"
@@ -317,37 +601,69 @@ const Departments = () => {
 
         <Button
           variant="primary"
-          onClick={handleAddDepartment}
+          onClick={
+            handleAddDepartment
+          }
         >
           + Add Department
         </Button>
       </div>
 
       <div className="departments-page__content">
+        {/* Error */}
+        {error && (
+          <div
+            className="departments-page__error"
+            role="alert"
+          >
+            {error}
+          </div>
+        )}
+
+        {/* Statistics */}
         <DepartmentStats
           total={stats.total}
           active={stats.active}
           inactive={stats.inactive}
         />
 
-        {activeDepartments.length > 0 && (
+        {/* Filters */}
+        {departments.length >
+          0 && (
           <DepartmentFilters
             search={search}
             onSearch={(value) =>
               setSearch(
-                value?.target?.value ??
+                value?.target
+                  ?.value ??
                   value ??
-                  "",
+                  ""
               )
             }
             status={status}
-            onStatusChange={setStatus}
+            onStatusChange={
+              setStatus
+            }
             sortBy={sortBy}
-            onSortChange={setSortBy}
+            onSortChange={
+              setSortBy
+            }
           />
         )}
 
-        {activeDepartments.length === 0 ? (
+        {/* Loading */}
+        {loading &&
+        departments.length ===
+          0 ? (
+          <div className="departments-page__empty">
+            <EmptyState
+              title="Loading departments..."
+              description="Please wait while we load your departments."
+            />
+          </div>
+        ) : departments.length ===
+          0 ? (
+          /* No Departments */
           <div className="departments-page__empty">
             <EmptyState
               title="No departments yet"
@@ -355,14 +671,18 @@ const Departments = () => {
               action={
                 <Button
                   variant="primary"
-                  onClick={handleAddDepartment}
+                  onClick={
+                    handleAddDepartment
+                  }
                 >
                   + Add Department
                 </Button>
               }
             />
           </div>
-        ) : filteredDepartments.length === 0 ? (
+        ) : filteredDepartments.length ===
+          0 ? (
+          /* No Search Results */
           <div className="departments-page__empty">
             <EmptyState
               title="No departments found"
@@ -370,13 +690,18 @@ const Departments = () => {
             />
           </div>
         ) : (
+          /* Department Table */
           <div className="departments-page__table">
             <DepartmentTable
               departments={
                 filteredDepartments
               }
-              onView={handleViewDepartment}
-              onEdit={handleEditDepartment}
+              onView={
+                handleViewDepartment
+              }
+              onEdit={
+                handleEditDepartment
+              }
               onDelete={
                 handleDeleteDepartment
               }
@@ -388,26 +713,36 @@ const Departments = () => {
         )}
       </div>
 
-      {/* Department Details */}
+      {/* Department Details Modal */}
       <Modal
         open={
           showDetails &&
           !!selectedDepartment
         }
-        onClose={handleCloseDetails}
+        onClose={
+          handleCloseDetails
+        }
         size="medium"
       >
         <DepartmentDetails
-          department={selectedDepartment}
-          onClose={handleCloseDetails}
-          onEdit={handleEditDepartment}
+          department={
+            selectedDepartment
+          }
+          onClose={
+            handleCloseDetails
+          }
+          onEdit={
+            handleEditDepartment
+          }
         />
       </Modal>
 
-      {/* Add / Edit Department */}
+      {/* Add / Edit Modal */}
       <Modal
         open={showForm}
-        onClose={handleCancelForm}
+        onClose={
+          handleCancelForm
+        }
         title={
           selectedDepartment
             ? "Edit Department"
@@ -427,7 +762,9 @@ const Departments = () => {
           onSubmit={
             handleSubmitDepartment
           }
-          onCancel={handleCancelForm}
+          onCancel={
+            handleCancelForm
+          }
           loading={loading}
         />
       </Modal>
@@ -436,4 +773,3 @@ const Departments = () => {
 };
 
 export default Departments;
-

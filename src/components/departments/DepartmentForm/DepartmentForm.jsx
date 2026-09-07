@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import FormField from "../../common/FormField/FormField";
 import Toggle from "../../common/Toggle/Toggle";
@@ -14,13 +14,29 @@ const DepartmentForm = ({
   loading = false,
 }) => {
   const [formData, setFormData] = useState({
-    departmentCode: initialData.departmentCode || "",
     departmentName: initialData.departmentName || "",
     description: initialData.description || "",
     status: initialData.status || "active",
   });
 
   const [errors, setErrors] = useState({});
+
+  /*
+   * Update form data whenever a different department
+   * is selected for editing.
+   */
+  useEffect(() => {
+    setFormData({
+      departmentName:
+        initialData.departmentName || "",
+      description:
+        initialData.description || "",
+      status:
+        initialData.status || "active",
+    });
+
+    setErrors({});
+  }, [initialData]);
 
   const handleChange = (field, value) => {
     setFormData((previous) => ({
@@ -38,11 +54,6 @@ const DepartmentForm = ({
 
   const validate = () => {
     const newErrors = {};
-
-    if (!formData.departmentCode.trim()) {
-      newErrors.departmentCode =
-        "Department code is required.";
-    }
 
     if (!formData.departmentName.trim()) {
       newErrors.departmentName =
@@ -65,31 +76,12 @@ const DepartmentForm = ({
   };
 
   return (
-    <form className="department-form" onSubmit={handleSubmit}>
+    <form
+      className="department-form"
+      onSubmit={handleSubmit}
+    >
       <div className="department-form__fields">
-        <FormField
-          label="Department Code"
-          htmlFor="department-code"
-          required
-          error={errors.departmentCode}
-          hint="Enter a unique code for this department."
-        >
-          <input
-            id="department-code"
-            type="text"
-            value={formData.departmentCode}
-            onChange={(e) =>
-              handleChange(
-                "departmentCode",
-                e.target.value.toUpperCase()
-              )
-            }
-            placeholder="e.g. HR"
-            disabled={loading}
-            maxLength={50}
-          />
-        </FormField>
-
+        {/* Department Name */}
         <FormField
           label="Department Name"
           htmlFor="department-name"
@@ -108,9 +100,11 @@ const DepartmentForm = ({
             }
             placeholder="e.g. Human Resources"
             disabled={loading}
+            maxLength={100}
           />
         </FormField>
 
+        {/* Description */}
         <FormField
           label="Description"
           htmlFor="department-description"
@@ -128,9 +122,11 @@ const DepartmentForm = ({
             placeholder="Enter department description..."
             rows={4}
             disabled={loading}
+            maxLength={500}
           />
         </FormField>
 
+        {/* Status */}
         <FormField
           label="Status"
           hint="Inactive departments won't be available for new assignments."
@@ -153,6 +149,7 @@ const DepartmentForm = ({
         </FormField>
       </div>
 
+      {/* Form Actions */}
       <div className="department-form__footer">
         <Button
           type="button"
@@ -168,7 +165,9 @@ const DepartmentForm = ({
           variant="primary"
           disabled={loading}
         >
-          {loading ? "Saving..." : "Save Department"}
+          {loading
+            ? "Saving..."
+            : "Save Department"}
         </Button>
       </div>
     </form>

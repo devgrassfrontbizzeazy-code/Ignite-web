@@ -17,11 +17,7 @@ const RoleDetails = ({
         <div className="role-details">
             <div className="role-details__header">
                 <div className="role-details__identity">
-                    <div className="role-details__icon">
-                        {role.roleName
-                            ?.charAt(0)
-                            ?.toUpperCase() || "R"}
-                    </div>
+                    
 
                     <div>
                         <h2>{role.roleName}</h2>

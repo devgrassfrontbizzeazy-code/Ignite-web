@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 import FormField from "../../common/FormField/FormField";
@@ -16,16 +15,19 @@ const DesignationForm = ({
   loading = false,
 }) => {
   const [formData, setFormData] = useState({
-    designationCode:
-      initialData.designationCode || "",
     designationName:
-      initialData.designationName || "",
+      initialData.designationName ||
+      initialData.name ||
+      "",
+
     departmentId:
       initialData.departmentId ??
-      initialData.department?.id ??
+      initialData.department ??
       "",
+
     description:
       initialData.description || "",
+
     status:
       initialData.status || "active",
   });
@@ -34,16 +36,19 @@ const DesignationForm = ({
 
   useEffect(() => {
     setFormData({
-      designationCode:
-        initialData.designationCode || "",
       designationName:
-        initialData.designationName || "",
+        initialData.designationName ||
+        initialData.name ||
+        "",
+
       departmentId:
         initialData.departmentId ??
-        initialData.department?.id ??
+        initialData.department ??
         "",
+
       description:
         initialData.description || "",
+
       status:
         initialData.status || "active",
     });
@@ -51,18 +56,29 @@ const DesignationForm = ({
     setErrors({});
   }, [initialData]);
 
-  const departmentOptions =
-    departments.map((department) => ({
-      label:
-        department.departmentName ||
-        department.name ||
-        "Unnamed Department",
-      value: department.id,
-    }));
+  const departmentOptions = departments
+  .filter(
+    (department) =>
+      String(department.status).toLowerCase() !==
+      "inactive"
+  )
+  .map((department) => ({
+    value: String(department.id),
+    label:
+      department.departmentName ||
+      department.name ||
+      department.department_name ||
+      "Unnamed Department",
+  }))
+  .filter(
+    (option) =>
+      option.value &&
+      option.label !== "Unnamed Department"
+  );
 
   const handleChange = (
     field,
-    value,
+    value
   ) => {
     setFormData((previous) => ({
       ...previous,
@@ -80,12 +96,9 @@ const DesignationForm = ({
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.designationCode.trim()) {
-      newErrors.designationCode =
-        "Designation code is required.";
-    }
-
-    if (!formData.designationName.trim()) {
+    if (
+      !formData.designationName.trim()
+    ) {
       newErrors.designationName =
         "Designation name is required.";
     }
@@ -109,34 +122,23 @@ const DesignationForm = ({
       return;
     }
 
-    const selectedDepartment =
-      departments.find(
-        (department) =>
-          String(department.id) ===
-          String(formData.departmentId),
-      );
-
     onSubmit?.({
-      ...formData,
-
-      designationCode:
-        formData.designationCode.toUpperCase(),
-
       designationName:
         formData.designationName.trim(),
 
       departmentId:
         formData.departmentId,
 
-      departmentName:
-        selectedDepartment?.departmentName ||
-        selectedDepartment?.name ||
-        "",
+      description:
+        formData.description.trim(),
+
+      status:
+        formData.status,
     });
   };
 
   const hasDepartments =
-    departments.length > 0;
+    departmentOptions.length > 0;
 
   return (
     <form
@@ -145,35 +147,12 @@ const DesignationForm = ({
     >
       <div className="designation-form__fields">
         <FormField
-          label="Designation Code"
-          htmlFor="designation-code"
-          required
-          error={errors.designationCode}
-          hint="Enter a unique code for this designation."
-        >
-          <input
-            id="designation-code"
-            type="text"
-            value={
-              formData.designationCode
-            }
-            onChange={(event) =>
-              handleChange(
-                "designationCode",
-                event.target.value.toUpperCase(),
-              )
-            }
-            placeholder="e.g. SE"
-            maxLength={50}
-            disabled={loading}
-          />
-        </FormField>
-
-        <FormField
           label="Designation Name"
           htmlFor="designation-name"
           required
-          error={errors.designationName}
+          error={
+            errors.designationName
+          }
         >
           <input
             id="designation-name"
@@ -184,10 +163,11 @@ const DesignationForm = ({
             onChange={(event) =>
               handleChange(
                 "designationName",
-                event.target.value,
+                event.target.value
               )
             }
             placeholder="e.g. Software Engineer"
+            maxLength={100}
             disabled={loading}
           />
         </FormField>
@@ -196,10 +176,12 @@ const DesignationForm = ({
           label="Department"
           htmlFor="designation-department"
           required
-          error={errors.departmentId}
+          error={
+            errors.departmentId
+          }
           hint={
             !hasDepartments
-              ? "Create a department first before adding a designation."
+              ? "Create an active department first before adding a designation."
               : "Select the department this designation belongs to."
           }
         >
@@ -211,10 +193,12 @@ const DesignationForm = ({
             onChange={(value) =>
               handleChange(
                 "departmentId",
-                value,
+                value
               )
             }
-            options={departmentOptions}
+            options={
+              departmentOptions
+            }
             placeholder={
               hasDepartments
                 ? "Select department"
@@ -240,11 +224,12 @@ const DesignationForm = ({
             onChange={(event) =>
               handleChange(
                 "description",
-                event.target.value,
+                event.target.value
               )
             }
             placeholder="Enter designation description..."
             rows={4}
+            maxLength={500}
             disabled={loading}
           />
         </FormField>
@@ -255,18 +240,20 @@ const DesignationForm = ({
         >
           <Toggle
             checked={
-              formData.status === "active"
+              formData.status ===
+              "active"
             }
             onChange={(checked) =>
               handleChange(
                 "status",
                 checked
                   ? "active"
-                  : "inactive",
+                  : "inactive"
               )
             }
             label={
-              formData.status === "active"
+              formData.status ===
+              "active"
                 ? "Active"
                 : "Inactive"
             }
@@ -289,7 +276,8 @@ const DesignationForm = ({
           type="submit"
           variant="primary"
           disabled={
-            loading || !hasDepartments
+            loading ||
+            !hasDepartments
           }
         >
           {loading
@@ -302,4 +290,3 @@ const DesignationForm = ({
 };
 
 export default DesignationForm;
-

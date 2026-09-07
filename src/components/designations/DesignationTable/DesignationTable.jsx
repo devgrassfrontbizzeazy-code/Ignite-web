@@ -1,5 +1,6 @@
 import DesignationRowActions from "../DesignationRowActions/DesignationRowActions";
 import { formatDate } from "../../../utils/dateUtils";
+
 import "./DesignationTable.css";
 
 const DesignationTable = ({
@@ -18,9 +19,9 @@ const DesignationTable = ({
       <table className="designation-table">
         <thead>
           <tr>
-            <th>Designation Code</th>
             <th>Designation Name</th>
             <th>Department</th>
+            <th>Description</th>
             <th>Status</th>
             <th>Created At</th>
             <th>Actions</th>
@@ -28,53 +29,77 @@ const DesignationTable = ({
         </thead>
 
         <tbody>
-          {designations.map((designation) => {
-            const isActive = designation.status === "active";
+          {designations.map(
+            (designation) => {
+              const isActive =
+                designation.status ===
+                "active";
 
-            return (
-              <tr key={designation.id}>
-                <td>
-                  {designation.designationCode || "—"}
-                </td>
+              return (
+                <tr
+                  key={
+                    designation.id ??
+                    `designation-${designation.designationName}`
+                  }
+                >
+                  <td>
+                    <div className="designation-table__name">
+                      <span className="designation-table__name-text">
+                        {designation.designationName ||
+                          "—"}
+                      </span>
+                    </div>
+                  </td>
 
-                <td>
-                  <div className="designation-table__name">
-                    <span className="designation-table__name-text">
-                      {designation.designationName || "—"}
-                    </span>
-                  </div>
-                </td>
+                  <td>
+                    {designation.departmentName ||
+                      "—"}
+                  </td>
 
-                <td>
-                  {designation.departmentName || "—"}
-                </td>
+                  <td>
+                    {designation.description ||
+                      "—"}
+                  </td>
 
-                <td>
-                  <span
-                    className={`designation-table__status designation-table__status--${isActive ? "active" : "inactive"
+                  <td>
+                    <span
+                      className={`designation-table__status designation-table__status--${
+                        isActive
+                          ? "active"
+                          : "inactive"
                       }`}
-                  >
-                    <span className="designation-table__status-dot" />
-                    {isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
+                    >
+                      <span className="designation-table__status-dot" />
 
-                <td>
-                  {formatDate(designation.createdAt)}
-                </td>
+                      {isActive
+                        ? "Active"
+                        : "Inactive"}
+                    </span>
+                  </td>
 
-                <td>
-                  <DesignationRowActions
-                    designation={designation}
-                    onView={onView}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onToggleStatus={onToggleStatus}
-                  />
-                </td>
-              </tr>
-            );
-          })}
+                  <td>
+                    {formatDate(
+                      designation.createdAt
+                    )}
+                  </td>
+
+                  <td>
+                    <DesignationRowActions
+                      designation={
+                        designation
+                      }
+                      onView={onView}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onToggleStatus={
+                        onToggleStatus
+                      }
+                    />
+                  </td>
+                </tr>
+              );
+            }
+          )}
         </tbody>
       </table>
     </div>

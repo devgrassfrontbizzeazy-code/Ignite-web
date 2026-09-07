@@ -1,6 +1,6 @@
-
 import "./DepartmentDetails.css";
 import { formatDate } from "../../../utils/dateUtils";
+
 const DepartmentDetails = ({
   department,
   onClose,
@@ -10,7 +10,8 @@ const DepartmentDetails = ({
     return null;
   }
 
-  const isActive = department.status === "active";
+  const isActive =
+    department.status === "active";
 
   return (
     <div className="department-details">
@@ -23,15 +24,23 @@ const DepartmentDetails = ({
           </div>
 
           <div>
-            <h2>{department.departmentName}</h2>
+            <h2>
+              {department.departmentName ||
+                "Department"}
+            </h2>
 
             <span
-              className={`department-details__status department-details__status--${isActive ? "active" : "inactive"
-                }`}
+              className={`department-details__status department-details__status--${
+                isActive
+                  ? "active"
+                  : "inactive"
+              }`}
             >
               <span className="department-details__status-dot" />
 
-              {isActive ? "Active" : "Inactive"}
+              {isActive
+                ? "Active"
+                : "Inactive"}
             </span>
           </div>
         </div>
@@ -39,22 +48,19 @@ const DepartmentDetails = ({
 
       <div className="department-details__body">
         <div className="department-details__section">
-          <h3>Department Information</h3>
+          <h3>
+            Department Information
+          </h3>
 
           <div className="department-details__grid">
             <div className="department-details__field">
-              <span>Department Code</span>
+              <span>
+                Department Name
+              </span>
 
               <strong>
-                {department.departmentCode || "—"}
-              </strong>
-            </div>
-
-            <div className="department-details__field">
-              <span>Department Name</span>
-
-              <strong>
-                {department.departmentName || "—"}
+                {department.departmentName ||
+                  "—"}
               </strong>
             </div>
 
@@ -62,7 +68,9 @@ const DepartmentDetails = ({
               <span>Status</span>
 
               <strong>
-                {isActive ? "Active" : "Inactive"}
+                {isActive
+                  ? "Active"
+                  : "Inactive"}
               </strong>
             </div>
 
@@ -70,7 +78,19 @@ const DepartmentDetails = ({
               <span>Created At</span>
 
               <strong>
-                {formatDate(department.createdAt)}
+                {formatDate(
+                  department.createdAt
+                )}
+              </strong>
+            </div>
+
+            <div className="department-details__field">
+              <span>Last Updated</span>
+
+              <strong>
+                {formatDate(
+                  department.updatedAt
+                )}
               </strong>
             </div>
           </div>
@@ -98,7 +118,9 @@ const DepartmentDetails = ({
         <button
           type="button"
           className="department-details__button department-details__button--primary"
-          onClick={() => onEdit?.(department)}
+          onClick={() =>
+            onEdit?.(department)
+          }
         >
           Edit Department
         </button>
@@ -108,4 +130,3 @@ const DepartmentDetails = ({
 };
 
 export default DepartmentDetails;
-
