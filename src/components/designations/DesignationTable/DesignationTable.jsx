@@ -19,6 +19,7 @@ const DesignationTable = ({
       <table className="designation-table">
         <thead>
           <tr>
+            <th>Designation Code</th>
             <th>Designation Name</th>
             <th>Department</th>
             <th>Description</th>
@@ -42,6 +43,10 @@ const DesignationTable = ({
                     `designation-${designation.designationName}`
                   }
                 >
+                  <td>
+                    {designation.designationCode || "—"}
+                  </td>
+
                   <td>
                     <div className="designation-table__name">
                       <span className="designation-table__name-text">

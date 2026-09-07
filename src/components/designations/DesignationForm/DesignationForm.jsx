@@ -13,8 +13,14 @@ const DesignationForm = ({
   onSubmit,
   onCancel,
   loading = false,
+  fieldErrors = {}, // Backend validation errors
 }) => {
   const [formData, setFormData] = useState({
+    designationCode:
+      initialData.designationCode ||
+      initialData.designation_code ||
+      "",
+
     designationName:
       initialData.designationName ||
       initialData.name ||
@@ -32,10 +38,16 @@ const DesignationForm = ({
       initialData.status || "active",
   });
 
-  const [errors, setErrors] = useState({});
+  // Merge local validation errors with backend errors
+  const [localErrors, setLocalErrors] = useState({});
 
   useEffect(() => {
     setFormData({
+      designationCode:
+        initialData.designationCode ||
+        initialData.designation_code ||
+        "",
+
       designationName:
         initialData.designationName ||
         initialData.name ||
@@ -53,40 +65,46 @@ const DesignationForm = ({
         initialData.status || "active",
     });
 
-    setErrors({});
+    setLocalErrors({});
   }, [initialData]);
 
-  const departmentOptions = departments
-  .filter(
-    (department) =>
-      String(department.status).toLowerCase() !==
-      "inactive"
-  )
-  .map((department) => ({
-    value: String(department.id),
-    label:
-      department.departmentName ||
-      department.name ||
-      department.department_name ||
-      "Unnamed Department",
-  }))
-  .filter(
-    (option) =>
-      option.value &&
-      option.label !== "Unnamed Department"
-  );
+  // Compute combined errors: local validation + backend errors
+  // Backend errors take precedence
+  const errors = {
+    ...localErrors,
+    ...fieldErrors,
+  };
 
-  const handleChange = (
-    field,
-    value
-  ) => {
+  const departmentOptions = departments
+    .filter(
+      (department) =>
+        String(department.status).toLowerCase() !==
+        "inactive"
+    )
+    .map((department) => ({
+      value: String(department.id),
+      label:
+        department.departmentName ||
+        department.name ||
+        department.department_name ||
+        "Unnamed Department",
+    }))
+    .filter(
+      (option) =>
+        option.value &&
+        option.label !== "Unnamed Department"
+    );
+
+  const handleChange = (field, value) => {
     setFormData((previous) => ({
       ...previous,
       [field]: value,
     }));
 
-    if (errors[field]) {
-      setErrors((previous) => ({
+    // Clear only local validation errors for this field
+    // Backend errors are handled separately
+    if (localErrors[field]) {
+      setLocalErrors((previous) => ({
         ...previous,
         [field]: "",
       }));
@@ -96,9 +114,12 @@ const DesignationForm = ({
   const validate = () => {
     const newErrors = {};
 
-    if (
-      !formData.designationName.trim()
-    ) {
+    if (!formData.designationCode.trim()) {
+      newErrors.designationCode =
+        "Designation code is required.";
+    }
+
+    if (!formData.designationName.trim()) {
       newErrors.designationName =
         "Designation name is required.";
     }
@@ -108,11 +129,9 @@ const DesignationForm = ({
         "Department is required.";
     }
 
-    setErrors(newErrors);
+    setLocalErrors(newErrors);
 
-    return (
-      Object.keys(newErrors).length === 0
-    );
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (event) => {
@@ -123,6 +142,11 @@ const DesignationForm = ({
     }
 
     onSubmit?.({
+      designationCode:
+        formData.designationCode
+          .trim()
+          .toUpperCase(),
+
       designationName:
         formData.designationName.trim(),
 
@@ -146,20 +170,42 @@ const DesignationForm = ({
       onSubmit={handleSubmit}
     >
       <div className="designation-form__fields">
+
+        {/* Designation Code */}
+        <FormField
+          label="Designation Code"
+          htmlFor="designation-code"
+          required
+          error={errors.designationCode}
+          hint="Enter a unique code for this designation."
+        >
+          <input
+            id="designation-code"
+            type="text"
+            value={formData.designationCode}
+            onChange={(event) =>
+              handleChange(
+                "designationCode",
+                event.target.value.toUpperCase()
+              )
+            }
+            placeholder="e.g. SE, HRM, MGR"
+            maxLength={50}
+            disabled={loading}
+          />
+        </FormField>
+
+        {/* Designation Name */}
         <FormField
           label="Designation Name"
           htmlFor="designation-name"
           required
-          error={
-            errors.designationName
-          }
+          error={errors.designationName}
         >
           <input
             id="designation-name"
             type="text"
-            value={
-              formData.designationName
-            }
+            value={formData.designationName}
             onChange={(event) =>
               handleChange(
                 "designationName",
@@ -172,13 +218,12 @@ const DesignationForm = ({
           />
         </FormField>
 
+        {/* Department */}
         <FormField
           label="Department"
           htmlFor="designation-department"
           required
-          error={
-            errors.departmentId
-          }
+          error={errors.departmentId}
           hint={
             !hasDepartments
               ? "Create an active department first before adding a designation."
@@ -187,18 +232,14 @@ const DesignationForm = ({
         >
           <Select
             id="designation-department"
-            value={
-              formData.departmentId
-            }
+            value={formData.departmentId}
             onChange={(value) =>
               handleChange(
                 "departmentId",
                 value
               )
             }
-            options={
-              departmentOptions
-            }
+            options={departmentOptions}
             placeholder={
               hasDepartments
                 ? "Select department"
@@ -211,6 +252,7 @@ const DesignationForm = ({
           />
         </FormField>
 
+        {/* Description */}
         <FormField
           label="Description"
           htmlFor="designation-description"
@@ -218,9 +260,7 @@ const DesignationForm = ({
         >
           <textarea
             id="designation-description"
-            value={
-              formData.description
-            }
+            value={formData.description}
             onChange={(event) =>
               handleChange(
                 "description",
@@ -234,14 +274,14 @@ const DesignationForm = ({
           />
         </FormField>
 
+        {/* Status */}
         <FormField
           label="Status"
           hint="Inactive designations won't be available for new assignments."
         >
           <Toggle
             checked={
-              formData.status ===
-              "active"
+              formData.status === "active"
             }
             onChange={(checked) =>
               handleChange(
@@ -252,8 +292,7 @@ const DesignationForm = ({
               )
             }
             label={
-              formData.status ===
-              "active"
+              formData.status === "active"
                 ? "Active"
                 : "Inactive"
             }
@@ -262,6 +301,7 @@ const DesignationForm = ({
         </FormField>
       </div>
 
+      {/* Form Actions */}
       <div className="designation-form__footer">
         <Button
           type="button"

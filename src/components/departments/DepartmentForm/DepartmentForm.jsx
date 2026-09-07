@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 import FormField from "../../common/FormField/FormField";
@@ -12,21 +11,26 @@ const DepartmentForm = ({
   onSubmit,
   onCancel,
   loading = false,
+  fieldErrors = {}, // Backend validation errors
 }) => {
   const [formData, setFormData] = useState({
-    departmentName: initialData.departmentName || "",
-    description: initialData.description || "",
-    status: initialData.status || "active",
+    departmentCode:
+      initialData.departmentCode || "",
+    departmentName:
+      initialData.departmentName || "",
+    description:
+      initialData.description || "",
+    status:
+      initialData.status || "active",
   });
 
-  const [errors, setErrors] = useState({});
+  // Merge local validation errors with backend errors
+  const [localErrors, setLocalErrors] = useState({});
 
-  /*
-   * Update form data whenever a different department
-   * is selected for editing.
-   */
   useEffect(() => {
     setFormData({
+      departmentCode:
+        initialData.departmentCode || "",
       departmentName:
         initialData.departmentName || "",
       description:
@@ -35,8 +39,15 @@ const DepartmentForm = ({
         initialData.status || "active",
     });
 
-    setErrors({});
+    setLocalErrors({});
   }, [initialData]);
+
+  // Compute combined errors: local validation + backend errors
+  // Backend errors take precedence
+  const errors = {
+    ...localErrors,
+    ...fieldErrors,
+  };
 
   const handleChange = (field, value) => {
     setFormData((previous) => ({
@@ -44,8 +55,10 @@ const DepartmentForm = ({
       [field]: value,
     }));
 
-    if (errors[field]) {
-      setErrors((previous) => ({
+    // Clear only local validation errors for this field
+    // Backend errors are handled separately
+    if (localErrors[field]) {
+      setLocalErrors((previous) => ({
         ...previous,
         [field]: "",
       }));
@@ -55,12 +68,17 @@ const DepartmentForm = ({
   const validate = () => {
     const newErrors = {};
 
+    if (!formData.departmentCode.trim()) {
+      newErrors.departmentCode =
+        "Department code is required.";
+    }
+
     if (!formData.departmentName.trim()) {
       newErrors.departmentName =
         "Department name is required.";
     }
 
-    setErrors(newErrors);
+    setLocalErrors(newErrors);
 
     return Object.keys(newErrors).length === 0;
   };
@@ -72,7 +90,15 @@ const DepartmentForm = ({
       return;
     }
 
-    onSubmit?.(formData);
+    onSubmit?.({
+      ...formData,
+      departmentCode:
+        formData.departmentCode.trim(),
+      departmentName:
+        formData.departmentName.trim(),
+      description:
+        formData.description.trim(),
+    });
   };
 
   return (
@@ -81,6 +107,31 @@ const DepartmentForm = ({
       onSubmit={handleSubmit}
     >
       <div className="department-form__fields">
+
+        {/* Department Code */}
+        <FormField
+          label="Department Code"
+          htmlFor="department-code"
+          required
+          error={errors.departmentCode}
+          hint="Enter a unique code for this department."
+        >
+          <input
+            id="department-code"
+            type="text"
+            value={formData.departmentCode}
+            onChange={(e) =>
+              handleChange(
+                "departmentCode",
+                e.target.value.toUpperCase()
+              )
+            }
+            placeholder="e.g. HR, IT, FIN"
+            disabled={loading}
+            maxLength={50}
+          />
+        </FormField>
+
         {/* Department Name */}
         <FormField
           label="Department Name"
@@ -132,11 +183,15 @@ const DepartmentForm = ({
           hint="Inactive departments won't be available for new assignments."
         >
           <Toggle
-            checked={formData.status === "active"}
+            checked={
+              formData.status === "active"
+            }
             onChange={(checked) =>
               handleChange(
                 "status",
-                checked ? "active" : "inactive"
+                checked
+                  ? "active"
+                  : "inactive"
               )
             }
             label={
@@ -175,4 +230,3 @@ const DepartmentForm = ({
 };
 
 export default DepartmentForm;
-

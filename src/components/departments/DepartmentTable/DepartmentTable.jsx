@@ -19,6 +19,7 @@ const DepartmentTable = ({
       <table className="department-table">
         <thead>
           <tr>
+            <th>Department Code</th>
             <th>Department Name</th>
             <th>Description</th>
             <th>Status</th>
@@ -33,12 +34,14 @@ const DepartmentTable = ({
               department.status === "active";
 
             return (
+              
               <tr
                 key={
                   department.id ??
                   `department-${department.departmentName}`
                 }
               >
+                <td>{department.departmentCode || "—"}</td>
                 <td>
                   <div className="department-table__name">
                     <span className="department-table__name-text">

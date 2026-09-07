@@ -57,6 +57,17 @@ const DesignationDetails = ({
         <div className="designation-details__grid">
           <div className="designation-details__item">
             <span className="designation-details__label">
+              Designation Code
+            </span>
+
+            <span className="designation-details__value">
+              {designation.designationCode ||
+                "—"}
+            </span>
+          </div>
+
+          <div className="designation-details__item">
+            <span className="designation-details__label">
               Designation Name
             </span>
 

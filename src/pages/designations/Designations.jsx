@@ -21,6 +21,8 @@ import {
 
 import { getDepartments } from "../../services/api/departmentAPI";
 
+import { extractApiError } from "../../utils/apiErrorUtils";
+
 import "./Designations.css";
 
 const normalizeDesignation = (designation) => {
@@ -29,10 +31,10 @@ const normalizeDesignation = (designation) => {
   }
 
   return {
-    id:
-      designation.id ??
-      designation.designation_id ??
-      designation.pk,
+    id: designation.id ?? designation.designation_id ?? designation.pk,
+
+    designationCode:
+      designation.designation_code ?? designation.designationCode ?? "",
 
     designationName:
       designation.name ??
@@ -43,21 +45,15 @@ const normalizeDesignation = (designation) => {
     departmentId:
       typeof designation.department === "object"
         ? designation.department?.id
-        : designation.department ??
-          designation.department_id ??
-          "",
+        : (designation.department ?? designation.department_id ?? ""),
 
     departmentName:
-      designation.department_name ??
-      designation.department?.name ??
-      "",
+      designation.department_name ?? designation.department?.name ?? "",
 
-    description:
-      designation.description ?? "",
+    description: designation.description ?? "",
 
     status: String(
-      designation.status ??
-        (designation.is_active ? "Active" : "Inactive")
+      designation.status ?? (designation.is_active ? "Active" : "Inactive"),
     ).toLowerCase(),
 
     isActive:
@@ -68,13 +64,11 @@ const normalizeDesignation = (designation) => {
 
     companyName: designation.company_name,
 
-    createdAt:
-      designation.created_at ??
-      designation.createdAt,
+    createdAt: designation.created_at ?? designation.createdAt,
 
-    updatedAt:
-      designation.updated_at ??
-      designation.updatedAt,
+    updatedAt: designation.updated_at ?? designation.updatedAt,
+
+    deletedAt: designation.deleted_at ?? designation.deletedAt,
   };
 };
 
@@ -100,27 +94,16 @@ const normalizeDepartment = (department) => {
   }
 
   return {
-    id:
-      department.id ??
-      department.department_id ??
-      department.pk,
+    id: department.id ?? department.department_id ?? department.pk,
 
-    departmentName:
-      department.departmentName ??
-      department.name ??
-      "",
+    departmentName: department.departmentName ?? department.name ?? "",
 
-    name:
-      department.name ??
-      department.departmentName ??
-      "",
+    name: department.name ?? department.departmentName ?? "",
 
-    description:
-      department.description ?? "",
+    description: department.description ?? "",
 
     status: String(
-      department.status ??
-        (department.is_active ? "Active" : "Inactive")
+      department.status ?? (department.is_active ? "Active" : "Inactive"),
     ).toLowerCase(),
 
     isActive:
@@ -131,13 +114,9 @@ const normalizeDepartment = (department) => {
 
     companyName: department.company_name,
 
-    createdAt:
-      department.created_at ??
-      department.createdAt,
+    createdAt: department.created_at ?? department.createdAt,
 
-    updatedAt:
-      department.updated_at ??
-      department.updatedAt,
+    updatedAt: department.updated_at ?? department.updatedAt,
   };
 };
 
@@ -154,14 +133,14 @@ const Designations = () => {
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  const [selectedDesignation, setSelectedDesignation] =
-    useState(null);
+  const [selectedDesignation, setSelectedDesignation] = useState(null);
 
   const [loading, setLoading] = useState(false);
-  const [departmentsLoading, setDepartmentsLoading] =
-    useState(false);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   const [error, setError] = useState("");
+
+  const [formFieldErrors, setFormFieldErrors] = useState({});
 
   /*
    * Load Departments
@@ -180,16 +159,14 @@ const Designations = () => {
 
       setDepartments(normalizedDepartments);
     } catch (error) {
-      console.error(
-        "Failed to load departments:",
-        error
-      );
+      console.error("Failed to load departments:", error);
 
-      setError(
-        error.response?.data?.detail ||
-          error.response?.data?.message ||
-          "Failed to load departments."
-      );
+      const { generalError } = extractApiError(error, {
+        context: "department",
+        action: "load",
+      });
+
+      setError(generalError || "Failed to load departments. Please try again.");
     } finally {
       setDepartmentsLoading(false);
     }
@@ -213,16 +190,14 @@ const Designations = () => {
 
       setDesignations(normalizedDesignations);
     } catch (error) {
-      console.error(
-        "Failed to load designations:",
-        error
-      );
+      console.error("Failed to load designations:", error);
 
-      setError(
-        error.response?.data?.detail ||
-          error.response?.data?.message ||
-          "Failed to load designations."
-      );
+      const { generalError } = extractApiError(error, {
+        context: "designation",
+        action: "load",
+      });
+
+      setError(generalError || "Failed to load designations. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -240,13 +215,11 @@ const Designations = () => {
     const total = designations.length;
 
     const active = designations.filter(
-      (designation) =>
-        designation.status === "active"
+      (designation) => designation.status === "active",
     ).length;
 
     const inactive = designations.filter(
-      (designation) =>
-        designation.status === "inactive"
+      (designation) => designation.status === "inactive",
     ).length;
 
     return {
@@ -263,76 +236,52 @@ const Designations = () => {
     let result = [...designations];
 
     if (search.trim()) {
-      const searchValue =
-        search.toLowerCase().trim();
+      const searchValue = search.toLowerCase().trim();
 
       result = result.filter(
         (designation) =>
-          designation.designationName
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          designation.departmentName
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          designation.description
-            ?.toLowerCase()
-            .includes(searchValue)
+          designation.designationName?.toLowerCase().includes(searchValue) ||
+          designation.departmentName?.toLowerCase().includes(searchValue) ||
+          designation.description?.toLowerCase().includes(searchValue),
       );
     }
 
     if (department !== "all") {
       result = result.filter(
         (designation) =>
-          String(designation.departmentId) ===
-          String(department)
+          String(designation.departmentId) === String(department),
       );
     }
 
     if (status !== "all") {
-      result = result.filter(
-        (designation) =>
-          designation.status === status
-      );
+      result = result.filter((designation) => designation.status === status);
     }
 
     result.sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return (
-            new Date(b.createdAt) -
-            new Date(a.createdAt)
-          );
+          return new Date(b.createdAt) - new Date(a.createdAt);
 
         case "oldest":
-          return (
-            new Date(a.createdAt) -
-            new Date(b.createdAt)
-          );
+          return new Date(a.createdAt) - new Date(b.createdAt);
 
         case "name":
         default:
-          return (
-            a.designationName || ""
-          ).localeCompare(
-            b.designationName || ""
+          return (a.designationName || "").localeCompare(
+            b.designationName || "",
           );
       }
     });
 
     return result;
-  }, [
-    designations,
-    search,
-    department,
-    status,
-    sortBy,
-  ]);
+  }, [designations, search, department, status, sortBy]);
 
   /*
    * Add
    */
   const handleAddDesignation = () => {
     setError("");
+    setFormFieldErrors({});
     setSelectedDesignation(null);
     setShowForm(true);
   };
@@ -340,9 +289,7 @@ const Designations = () => {
   /*
    * View
    */
-  const handleViewDesignation = (
-    designation
-  ) => {
+  const handleViewDesignation = (designation) => {
     setError("");
     setSelectedDesignation(designation);
     setShowDetails(true);
@@ -351,10 +298,9 @@ const Designations = () => {
   /*
    * Edit
    */
-  const handleEditDesignation = (
-    designation
-  ) => {
+  const handleEditDesignation = (designation) => {
     setError("");
+    setFormFieldErrors({});
     setShowDetails(false);
     setSelectedDesignation(designation);
     setShowForm(true);
@@ -363,18 +309,14 @@ const Designations = () => {
   /*
    * Delete
    */
-  const handleDeleteDesignation = async (
-    designation
-  ) => {
+  const handleDeleteDesignation = async (designation) => {
     if (!designation?.id) {
-      setError(
-        "Unable to delete designation: designation ID is missing."
-      );
+      setError("Unable to delete designation: designation ID is missing.");
       return;
     }
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${designation.designationName}"?`
+      `Are you sure you want to delete "${designation.designationName}"?`,
     );
 
     if (!confirmed) {
@@ -385,35 +327,25 @@ const Designations = () => {
       setLoading(true);
       setError("");
 
-      await deleteDesignation(
-        designation.id
-      );
+      await deleteDesignation(designation.id);
 
       setDesignations((previous) =>
-        previous.filter(
-          (item) =>
-            item.id !== designation.id
-        )
+        previous.filter((item) => item.id !== designation.id),
       );
 
-      if (
-        selectedDesignation?.id ===
-        designation.id
-      ) {
+      if (selectedDesignation?.id === designation.id) {
         setSelectedDesignation(null);
         setShowDetails(false);
       }
     } catch (error) {
-      console.error(
-        "Failed to delete designation:",
-        error
-      );
+      console.error("Failed to delete designation:", error);
 
-      setError(
-        error.response?.data?.detail ||
-          error.response?.data?.message ||
-          "Failed to delete designation."
-      );
+      const { generalError } = extractApiError(error, {
+        context: "designation",
+        action: "delete",
+      });
+
+      setError(generalError || "Failed to delete designation. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -422,122 +354,90 @@ const Designations = () => {
   /*
    * Toggle Status
    */
-  const handleToggleDesignationStatus =
-    async (designation) => {
-      if (!designation?.id) {
-        setError(
-          "Unable to update designation: designation ID is missing."
-        );
-        return;
+  const handleToggleDesignationStatus = async (designation) => {
+    if (!designation?.id) {
+      setError("Unable to update designation: designation ID is missing.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const newStatus = designation.status === "active" ? "Inactive" : "Active";
+
+      await patchDesignation(designation.id, {
+        status: newStatus,
+        is_active: newStatus === "Active",
+      });
+
+      await loadDesignations();
+
+      const updatedDesignation = designations.find(
+        (item) => item.id === designation.id,
+      );
+
+      if (updatedDesignation) {
+        setSelectedDesignation(updatedDesignation);
       }
+    } catch (error) {
+      console.error("Failed to update designation status:", error);
 
-      try {
-        setLoading(true);
-        setError("");
+      const { generalError } = extractApiError(error, {
+        context: "designation",
+        action: "toggle",
+      });
 
-        const newStatus =
-          designation.status === "active"
-            ? "Inactive"
-            : "Active";
-
-        await patchDesignation(
-          designation.id,
-          {
-            status: newStatus,
-            is_active:
-              newStatus === "Active",
-          }
-        );
-
-        await loadDesignations();
-
-        const updatedDesignation =
-          designations.find(
-            (item) =>
-              item.id === designation.id
-          );
-
-        if (updatedDesignation) {
-          setSelectedDesignation(
-            updatedDesignation
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Failed to update designation status:",
-          error
-        );
-
-        setError(
-          error.response?.data?.detail ||
-            error.response?.data?.message ||
-            "Failed to update designation status."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+      setError(generalError || "Failed to update designation status. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /*
    * Submit Add/Edit
    */
-  const handleSubmitDesignation =
-    async (formData) => {
-      try {
-        setLoading(true);
-        setError("");
+  const handleSubmitDesignation = async (formData) => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const payload = {
-          name:
-            formData.designationName
-              ?.trim() || "",
+      const payload = {
+        designation_code: formData.designationCode?.trim().toUpperCase() || "",
 
-          department:
-            Number(formData.departmentId),
+        name: formData.designationName?.trim() || "",
 
-          description:
-            formData.description
-              ?.trim() || "",
+        department: Number(formData.departmentId),
 
-          status:
-            formData.status === "active"
-              ? "Active"
-              : "Inactive",
+        description: formData.description?.trim() || "",
 
-          is_active:
-            formData.status === "active",
-        };
+        status: formData.status === "active" ? "Active" : "Inactive",
 
-        if (selectedDesignation) {
-          await updateDesignation(
-            selectedDesignation.id,
-            payload
-          );
-        } else {
-          await createDesignation(
-            payload
-          );
-        }
+        is_active: formData.status === "active",
+      };
 
-        await loadDesignations();
-
-        setShowForm(false);
-        setSelectedDesignation(null);
-      } catch (error) {
-        console.error(
-          "Failed to save designation:",
-          error
-        );
-
-        setError(
-          error.response?.data?.detail ||
-            error.response?.data?.message ||
-            "Failed to save designation."
-        );
-      } finally {
-        setLoading(false);
+      if (selectedDesignation) {
+        await updateDesignation(selectedDesignation.id, payload);
+      } else {
+        await createDesignation(payload);
       }
-    };
+
+      await loadDesignations();
+
+      setShowForm(false);
+      setSelectedDesignation(null);
+    } catch (error) {
+      console.error("Failed to save designation:", error);
+
+      setError(
+        error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Failed to save designation.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /*
    * Close Details
@@ -564,20 +464,14 @@ const Designations = () => {
           description="Manage your organization's designations and their department assignments."
         />
 
-        <Button
-          variant="primary"
-          onClick={handleAddDesignation}
-        >
+        <Button variant="primary" onClick={handleAddDesignation}>
           + Add Designation
         </Button>
       </div>
 
       <div className="designations-page__content">
         {error && (
-          <div
-            className="designations-page__error"
-            role="alert"
-          >
+          <div className="designations-page__error" role="alert">
             {error}
           </div>
         )}
@@ -591,17 +485,9 @@ const Designations = () => {
         {designations.length > 0 && (
           <DesignationFilters
             search={search}
-            onSearch={(value) =>
-              setSearch(
-                value?.target?.value ??
-                  value ??
-                  ""
-              )
-            }
+            onSearch={(value) => setSearch(value?.target?.value ?? value ?? "")}
             department={department}
-            onDepartmentChange={
-              setDepartment
-            }
+            onDepartmentChange={setDepartment}
             status={status}
             onStatusChange={setStatus}
             sortBy={sortBy}
@@ -610,34 +496,26 @@ const Designations = () => {
           />
         )}
 
-        {loading &&
-        designations.length === 0 ? (
+        {loading && designations.length === 0 ? (
           <div className="designations-page__empty">
             <EmptyState
               title="Loading designations..."
               description="Please wait while we load your designations."
             />
           </div>
-        ) : designations.length ===
-          0 ? (
+        ) : designations.length === 0 ? (
           <div className="designations-page__empty">
             <EmptyState
               title="No designations yet"
               description="Create your first designation to start defining job positions in your organization."
               action={
-                <Button
-                  variant="primary"
-                  onClick={
-                    handleAddDesignation
-                  }
-                >
+                <Button variant="primary" onClick={handleAddDesignation}>
                   + Add Designation
                 </Button>
               }
             />
           </div>
-        ) : filteredDesignations.length ===
-          0 ? (
+        ) : filteredDesignations.length === 0 ? (
           <div className="designations-page__empty">
             <EmptyState
               title="No designations found"
@@ -647,56 +525,33 @@ const Designations = () => {
         ) : (
           <div className="designations-page__table">
             <DesignationTable
-              designations={
-                filteredDesignations
-              }
-              onView={
-                handleViewDesignation
-              }
-              onEdit={
-                handleEditDesignation
-              }
-              onDelete={
-                handleDeleteDesignation
-              }
-              onToggleStatus={
-                handleToggleDesignationStatus
-              }
+              designations={filteredDesignations}
+              onView={handleViewDesignation}
+              onEdit={handleEditDesignation}
+              onDelete={handleDeleteDesignation}
+              onToggleStatus={handleToggleDesignationStatus}
             />
           </div>
         )}
       </div>
 
       <Modal
-        open={
-          showDetails &&
-          !!selectedDesignation
-        }
+        open={showDetails && !!selectedDesignation}
         onClose={handleCloseDetails}
         title="Designation Details"
         size="medium"
       >
         <DesignationDetails
-          designation={
-            selectedDesignation
-          }
-          onClose={
-            handleCloseDetails
-          }
-          onEdit={
-            handleEditDesignation
-          }
+          designation={selectedDesignation}
+          onClose={handleCloseDetails}
+          onEdit={handleEditDesignation}
         />
       </Modal>
 
       <Modal
         open={showForm}
         onClose={handleCancelForm}
-        title={
-          selectedDesignation
-            ? "Edit Designation"
-            : "Add Designation"
-        }
+        title={selectedDesignation ? "Edit Designation" : "Add Designation"}
         description={
           selectedDesignation
             ? "Update the designation details below."
@@ -705,20 +560,11 @@ const Designations = () => {
         size="medium"
       >
         <DesignationForm
-          initialData={
-            selectedDesignation || {}
-          }
+          initialData={selectedDesignation || {}}
           departments={departments}
-          onSubmit={
-            handleSubmitDesignation
-          }
-          onCancel={
-            handleCancelForm
-          }
-          loading={
-            loading ||
-            departmentsLoading
-          }
+          onSubmit={handleSubmitDesignation}
+          onCancel={handleCancelForm}
+          loading={loading || departmentsLoading}
         />
       </Modal>
     </div>
