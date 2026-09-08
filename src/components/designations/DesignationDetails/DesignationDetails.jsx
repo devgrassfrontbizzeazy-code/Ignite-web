@@ -15,6 +15,36 @@ const DesignationDetails = ({
   const isActive =
     designation.status === "active";
 
+  const permissions =
+    Array.isArray(designation.permissionsDetail)
+      ? designation.permissionsDetail
+      : Array.isArray(designation.permissions_detail)
+        ? designation.permissions_detail
+        : [];
+
+  const defaultRoleName =
+    designation.defaultRoleName ||
+    designation.default_role_name ||
+    designation.defaultRole?.name ||
+    "No role assigned";
+
+  // Group permissions by module
+  const permissionsByModule = permissions.reduce(
+    (groups, permission) => {
+      const moduleName =
+        permission.module || "Other";
+
+      if (!groups[moduleName]) {
+        groups[moduleName] = [];
+      }
+
+      groups[moduleName].push(permission);
+
+      return groups;
+    },
+    {},
+  );
+
   return (
     <div className="designation-details">
       <div className="designation-details__top">
@@ -51,6 +81,7 @@ const DesignationDetails = ({
         </span>
       </div>
 
+      {/* Designation Information */}
       <div className="designation-details__section">
         <h4>Designation Information</h4>
 
@@ -85,6 +116,16 @@ const DesignationDetails = ({
             <span className="designation-details__value">
               {designation.departmentName ||
                 "—"}
+            </span>
+          </div>
+
+          <div className="designation-details__item">
+            <span className="designation-details__label">
+              Default Role
+            </span>
+
+            <span className="designation-details__value">
+              {defaultRoleName}
             </span>
           </div>
 
@@ -126,6 +167,7 @@ const DesignationDetails = ({
         </div>
       </div>
 
+      {/* Description */}
       <div className="designation-details__section">
         <h4>Description</h4>
 
@@ -135,6 +177,74 @@ const DesignationDetails = ({
         </p>
       </div>
 
+      {/* Permissions */}
+      <div className="designation-details__section">
+        <div className="designation-details__section-header">
+          <h4>Permissions</h4>
+
+          <span className="designation-details__permission-count">
+            {permissions.length} permission
+            {permissions.length === 1
+              ? ""
+              : "s"}
+          </span>
+        </div>
+
+        {permissions.length === 0 ? (
+          <div className="designation-details__permissions-empty">
+            No permissions have been assigned
+            to this designation.
+          </div>
+        ) : (
+          <div className="designation-details__permission-groups">
+            {Object.entries(
+              permissionsByModule,
+            ).map(
+              ([moduleName, modulePermissions]) => (
+                <div
+                  className="designation-details__permission-group"
+                  key={moduleName}
+                >
+                  <div className="designation-details__permission-group-header">
+                    {moduleName}
+                  </div>
+
+                  <div className="designation-details__permission-list">
+                    {modulePermissions.map(
+                      (permission) => (
+                        <div
+                          className="designation-details__permission"
+                          key={permission.id}
+                        >
+                          <span className="designation-details__permission-check">
+                            ✓
+                          </span>
+
+                          <div className="designation-details__permission-content">
+                            <span className="designation-details__permission-name">
+                              {permission.name ||
+                                permission.codename ||
+                                "Unnamed Permission"}
+                            </span>
+
+                            {permission.action && (
+                              <span className="designation-details__permission-action">
+                                {permission.action}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
       <div className="designation-details__footer">
         <Button
           type="button"

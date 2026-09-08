@@ -9,52 +9,47 @@ export const getDesignations = async (params = {}) => {
 };
 
 export const getDesignation = async (id) => {
-  const response = await api.get(
-    `/designation/${id}/`
-  );
+  const response = await api.get(`/designation/${id}/`);
 
   return response.data;
 };
 
-export const createDesignation = async (
-  designationData
-) => {
-  const response = await api.post(
-    "/designation/",
-    designationData
-  );
+export const getDesignationPermissions = async () => {
+  const response = await api.get("/designation/permissions/");
+  return response.data;
+};
+
+export const getDesignationRoles = async () => {
+  const response = await api.get("/designation/roles/");
+  return response.data;
+};
+
+export const createDesignation = async (designationData) => {
+  const response = await api.post("/designation/", designationData);
 
   return response.data;
 };
 
-export const updateDesignation = async (
-  id,
-  designationData
-) => {
+export const updateDesignation = async (id, designationData) => {
   const response = await api.put(
     `/designation/${id}/`,
-    designationData
+    designationData,
   );
 
   return response.data;
 };
 
-export const patchDesignation = async (
-  id,
-  designationData
-) => {
+export const patchDesignation = async (id, designationData) => {
   const response = await api.patch(
     `/designation/${id}/`,
-    designationData
+    designationData,
   );
 
   return response.data;
 };
 
 export const deleteDesignation = async (id) => {
-  const response = await api.delete(
-    `/designation/${id}/`
-  );
+  const response = await api.delete(`/designation/${id}/`);
 
   return response.data;
 };

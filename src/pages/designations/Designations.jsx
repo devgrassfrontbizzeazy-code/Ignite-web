@@ -10,9 +10,11 @@ import DesignationFilters from "../../components/designations/DesignationFilters
 import DesignationTable from "../../components/designations/DesignationTable/DesignationTable";
 import DesignationForm from "../../components/designations/DesignationForm/DesignationForm";
 import DesignationDetails from "../../components/designations/DesignationDetails/DesignationDetails";
-import initialRoles from "../../data/roles";
+
 import {
   getDesignations,
+  getDesignationPermissions,
+  getDesignationRoles,
   createDesignation,
   updateDesignation,
   patchDesignation,
@@ -63,12 +65,6 @@ const normalizeDesignation = (designation) => {
     company: designation.company,
 
     companyName: designation.company_name,
-
-    createdAt: designation.created_at ?? designation.createdAt,
-
-    updatedAt: designation.updated_at ?? designation.updatedAt,
-
-    deletedAt: designation.deleted_at ?? designation.deletedAt,
     defaultRoleId:
       designation.default_role ??
       designation.default_role_id ??
@@ -77,6 +73,24 @@ const normalizeDesignation = (designation) => {
       "",
     defaultRoleName:
       designation.default_role_name ?? designation.defaultRole?.name ?? "",
+
+    permissionsList: Array.isArray(designation.permissions_list)
+      ? designation.permissions_list
+      : [],
+
+    permissionCodenames: Array.isArray(designation.permission_codenames)
+      ? designation.permission_codenames
+      : [],
+
+    permissionsDetail: Array.isArray(designation.permissions_detail)
+      ? designation.permissions_detail
+      : [],
+
+    createdAt: designation.created_at ?? designation.createdAt,
+
+    updatedAt: designation.updated_at ?? designation.updatedAt,
+
+    deletedAt: designation.deleted_at ?? designation.deletedAt,
   };
 };
 
@@ -132,6 +146,8 @@ const Designations = () => {
   const [designations, setDesignations] = useState([]);
 
   const [departments, setDepartments] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [permissions, setPermissions] = useState([]);
 
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("all");
@@ -149,7 +165,6 @@ const Designations = () => {
   const [error, setError] = useState("");
 
   const [formFieldErrors, setFormFieldErrors] = useState({});
-  const [roles] = useState(initialRoles);
 
   /*
    * Load Departments
@@ -178,6 +193,29 @@ const Designations = () => {
       setError(generalError || "Failed to load departments. Please try again.");
     } finally {
       setDepartmentsLoading(false);
+    }
+  };
+  const loadDesignationAccessData = async () => {
+    try {
+      const [rolesResponse, permissionsResponse] = await Promise.all([
+        getDesignationRoles(),
+        getDesignationPermissions(),
+      ]);
+
+      setRoles(extractList(rolesResponse));
+      setPermissions(extractList(permissionsResponse));
+    } catch (error) {
+      console.error("Failed to load designation access data:", error);
+
+      const { generalError } = extractApiError(error, {
+        context: "designation",
+        action: "load",
+      });
+
+      setError(
+        generalError ||
+          "Failed to load designation roles and permissions. Please try again.",
+      );
     }
   };
 
@@ -217,6 +255,7 @@ const Designations = () => {
   useEffect(() => {
     loadDepartments();
     loadDesignations();
+    loadDesignationAccessData();
   }, []);
 
   /*
@@ -384,7 +423,7 @@ const Designations = () => {
         is_active: newStatus === "Active",
       });
 
-      await loadDesignations();
+      
 
       const updatedDesignation = designations.find(
         (item) => item.id === designation.id,
@@ -430,6 +469,14 @@ const Designations = () => {
         status: formData.status === "active" ? "Active" : "Inactive",
 
         is_active: formData.status === "active",
+
+        default_role: formData.defaultRoleId
+          ? Number(formData.defaultRoleId)
+          : null,
+
+        permission_ids: Array.isArray(formData.permissionIds)
+          ? formData.permissionIds.map(Number)
+          : [],
       };
 
       if (selectedDesignation) {
@@ -576,13 +623,14 @@ const Designations = () => {
         size="medium"
       >
         <DesignationForm
-          initialData={selectedDesignation || {}}
-          departments={departments}
-          roles={roles}
-          onSubmit={handleSubmitDesignation}
-          onCancel={handleCancelForm}
-          loading={loading || departmentsLoading}
-        />
+  initialData={selectedDesignation || {}}
+  departments={departments}
+  roles={roles}
+  permissions={permissions}
+  onSubmit={handleSubmitDesignation}
+  onCancel={handleCancelForm}
+  loading={loading || departmentsLoading}
+/>
       </Modal>
     </div>
   );
