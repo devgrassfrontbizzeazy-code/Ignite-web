@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import FormField from "../../common/FormField/FormField";
@@ -10,10 +11,11 @@ import "./DesignationForm.css";
 const DesignationForm = ({
   initialData = {},
   departments = [],
+  roles = [],
   onSubmit,
   onCancel,
   loading = false,
-  fieldErrors = {}, // Backend validation errors
+  fieldErrors = {},
 }) => {
   const [formData, setFormData] = useState({
     designationCode:
@@ -31,6 +33,12 @@ const DesignationForm = ({
       initialData.department ??
       "",
 
+    defaultRoleId:
+      initialData.defaultRoleId ??
+      initialData.default_role ??
+      initialData.defaultRole?.id ??
+      "",
+
     description:
       initialData.description || "",
 
@@ -38,7 +46,6 @@ const DesignationForm = ({
       initialData.status || "active",
   });
 
-  // Merge local validation errors with backend errors
   const [localErrors, setLocalErrors] = useState({});
 
   useEffect(() => {
@@ -58,6 +65,12 @@ const DesignationForm = ({
         initialData.department ??
         "",
 
+      defaultRoleId:
+        initialData.defaultRoleId ??
+        initialData.default_role ??
+        initialData.defaultRole?.id ??
+        "",
+
       description:
         initialData.description || "",
 
@@ -68,8 +81,7 @@ const DesignationForm = ({
     setLocalErrors({});
   }, [initialData]);
 
-  // Compute combined errors: local validation + backend errors
-  // Backend errors take precedence
+  // Local validation + backend validation errors
   const errors = {
     ...localErrors,
     ...fieldErrors,
@@ -78,8 +90,7 @@ const DesignationForm = ({
   const departmentOptions = departments
     .filter(
       (department) =>
-        String(department.status).toLowerCase() !==
-        "inactive"
+        String(department.status).toLowerCase() !== "inactive"
     )
     .map((department) => ({
       value: String(department.id),
@@ -95,14 +106,40 @@ const DesignationForm = ({
         option.label !== "Unnamed Department"
     );
 
+  /*
+   * Only active roles should be available as a designation's
+   * default role.
+   *
+   * We intentionally do not hardcode role names here.
+   */
+  const roleOptions = roles
+    .filter((role) => {
+      const roleStatus = String(
+        role.status ?? ""
+      ).toLowerCase();
+
+      return roleStatus === "active";
+    })
+    .map((role) => ({
+      value: String(role.id),
+      label:
+        role.roleName ||
+        role.name ||
+        role.role_name ||
+        "Unnamed Role",
+    }))
+    .filter(
+      (option) =>
+        option.value &&
+        option.label !== "Unnamed Role"
+    );
+
   const handleChange = (field, value) => {
     setFormData((previous) => ({
       ...previous,
       [field]: value,
     }));
 
-    // Clear only local validation errors for this field
-    // Backend errors are handled separately
     if (localErrors[field]) {
       setLocalErrors((previous) => ({
         ...previous,
@@ -152,6 +189,9 @@ const DesignationForm = ({
 
       departmentId:
         formData.departmentId,
+
+      defaultRoleId:
+        formData.defaultRoleId || "",
 
       description:
         formData.description.trim(),
@@ -252,6 +292,39 @@ const DesignationForm = ({
           />
         </FormField>
 
+        {/* Default Role */}
+        <FormField
+          label="Default Role"
+          htmlFor="designation-default-role"
+          error={errors.defaultRoleId}
+          hint={
+            roleOptions.length > 0
+              ? "Employees with this designation will use this role by default."
+              : "Create an active role first to assign a default role."
+          }
+        >
+          <Select
+            id="designation-default-role"
+            value={formData.defaultRoleId}
+            onChange={(value) =>
+              handleChange(
+                "defaultRoleId",
+                value
+              )
+            }
+            options={roleOptions}
+            placeholder={
+              roleOptions.length > 0
+                ? "Select default role"
+                : "No active roles available"
+            }
+            disabled={
+              loading ||
+              roleOptions.length === 0
+            }
+          />
+        </FormField>
+
         {/* Description */}
         <FormField
           label="Description"
@@ -330,3 +403,4 @@ const DesignationForm = ({
 };
 
 export default DesignationForm;
+

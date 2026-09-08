@@ -10,7 +10,7 @@ import DesignationFilters from "../../components/designations/DesignationFilters
 import DesignationTable from "../../components/designations/DesignationTable/DesignationTable";
 import DesignationForm from "../../components/designations/DesignationForm/DesignationForm";
 import DesignationDetails from "../../components/designations/DesignationDetails/DesignationDetails";
-
+import initialRoles from "../../data/roles";
 import {
   getDesignations,
   createDesignation,
@@ -69,6 +69,14 @@ const normalizeDesignation = (designation) => {
     updatedAt: designation.updated_at ?? designation.updatedAt,
 
     deletedAt: designation.deleted_at ?? designation.deletedAt,
+    defaultRoleId:
+      designation.default_role ??
+      designation.default_role_id ??
+      designation.defaultRoleId ??
+      designation.defaultRole?.id ??
+      "",
+    defaultRoleName:
+      designation.default_role_name ?? designation.defaultRole?.name ?? "",
   };
 };
 
@@ -141,6 +149,7 @@ const Designations = () => {
   const [error, setError] = useState("");
 
   const [formFieldErrors, setFormFieldErrors] = useState({});
+  const [roles] = useState(initialRoles);
 
   /*
    * Load Departments
@@ -197,7 +206,9 @@ const Designations = () => {
         action: "load",
       });
 
-      setError(generalError || "Failed to load designations. Please try again.");
+      setError(
+        generalError || "Failed to load designations. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -345,7 +356,9 @@ const Designations = () => {
         action: "delete",
       });
 
-      setError(generalError || "Failed to delete designation. Please try again.");
+      setError(
+        generalError || "Failed to delete designation. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -388,7 +401,10 @@ const Designations = () => {
         action: "toggle",
       });
 
-      setError(generalError || "Failed to update designation status. Please try again.");
+      setError(
+        generalError ||
+          "Failed to update designation status. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -562,6 +578,7 @@ const Designations = () => {
         <DesignationForm
           initialData={selectedDesignation || {}}
           departments={departments}
+          roles={roles}
           onSubmit={handleSubmitDesignation}
           onCancel={handleCancelForm}
           loading={loading || departmentsLoading}

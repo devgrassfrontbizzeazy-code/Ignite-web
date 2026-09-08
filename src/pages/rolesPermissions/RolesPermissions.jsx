@@ -10,171 +10,9 @@ import RoleFilters from "../../components/rolesPermissions/RoleFilters/RoleFilte
 import RoleTable from "../../components/rolesPermissions/RoleTable/RoleTable";
 import RoleDetails from "../../components/rolesPermissions/RoleDetails/RoleDetails";
 import RoleForm from "../../components/rolesPermissions/RoleForm/RoleForm";
-
+import initialRoles from "../../data/roles";
 import "./RolesPermissions.css";
 
-const initialRoles = [
-  {
-    id: 1,
-    roleName: "Super Admin",
-    description: "Full access to all organization features and settings.",
-    employeeCount: 2,
-    permissionCount: 32,
-    status: "active",
-    createdAt: "2026-01-10T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-      {
-        code: "employee.create",
-        name: "Create Employees",
-      },
-      {
-        code: "employee.update",
-        name: "Update Employees",
-      },
-      {
-        code: "employee.delete",
-        name: "Delete Employees",
-      },
-    ],
-  },
-
-  {
-    id: 2,
-    roleName: "HR Manager",
-    description: "Manages employees, attendance, leave and HR operations.",
-    employeeCount: 23,
-    permissionCount: 18,
-    status: "active",
-    createdAt: "2026-01-18T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-      {
-        code: "employee.create",
-        name: "Create Employees",
-      },
-      {
-        code: "employee.update",
-        name: "Update Employees",
-      },
-    ],
-  },
-
-  {
-    id: 3,
-    roleName: "HR Executive",
-    description: "Handles day-to-day HR administration and employee records.",
-    employeeCount: 14,
-    permissionCount: 12,
-    status: "active",
-    createdAt: "2026-02-02T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-      {
-        code: "employee.create",
-        name: "Create Employees",
-      },
-    ],
-  },
-
-  {
-    id: 4,
-    roleName: "Department Head",
-    description:
-      "Manages employees and activities within assigned departments.",
-    employeeCount: 8,
-    permissionCount: 10,
-    status: "active",
-    createdAt: "2026-02-14T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-      {
-        code: "employee.update",
-        name: "Update Employees",
-      },
-    ],
-  },
-
-  {
-    id: 5,
-    roleName: "Team Lead",
-    description: "Manages team-level employee activities and access.",
-    employeeCount: 31,
-    permissionCount: 8,
-    status: "active",
-    createdAt: "2026-03-01T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-      {
-        code: "employee.update",
-        name: "Update Employees",
-      },
-    ],
-  },
-
-  {
-    id: 6,
-    roleName: "Employee",
-    description: "Standard employee access.",
-    employeeCount: 72,
-    permissionCount: 4,
-    status: "active",
-    createdAt: "2026-03-12T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-    ],
-  },
-
-  {
-    id: 7,
-    roleName: "Recruiter",
-    description: "Manages recruitment and candidate-related operations.",
-    employeeCount: 4,
-    permissionCount: 9,
-    status: "active",
-    createdAt: "2026-04-04T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-    ],
-  },
-
-  {
-    id: 8,
-    roleName: "Finance Manager",
-    description: "Manages payroll and finance-related operations.",
-    employeeCount: 2,
-    permissionCount: 11,
-    status: "inactive",
-    createdAt: "2026-04-18T10:00:00.000Z",
-    permissions: [
-      {
-        code: "employee.view",
-        name: "View Employees",
-      },
-    ],
-  },
-];
 
 const RolesPermissions = () => {
   const [roles, setRoles] = useState(initialRoles);
@@ -342,12 +180,14 @@ const RolesPermissions = () => {
    * Toggle role active/inactive status.
    */
   const handleToggleRoleStatus = (role) => {
+    const newStatus = role.status === "active" ? "inactive" : "active";
+
     setRoles((previousRoles) =>
       previousRoles.map((item) =>
         item.id === role.id
           ? {
               ...item,
-              status: item.status === "active" ? "inactive" : "active",
+              status: newStatus,
               updatedAt: new Date().toISOString(),
             }
           : item,
@@ -361,9 +201,175 @@ const RolesPermissions = () => {
 
       return {
         ...previous,
-        status: previous.status === "active" ? "inactive" : "active",
+        status: newStatus,
       };
     });
+  };
+  const handleAssignUserToRole = (role, user) => {
+  const roleStatus = role.status?.toString().trim().toLowerCase();
+
+  if (roleStatus !== "active") {
+    alert("Inactive roles cannot be assigned to employees.");
+    return;
+  }
+
+  setRoles((prevRoles) =>
+    prevRoles.map((item) => {
+      if (item.id !== role.id) {
+        return item;
+      }
+
+      const assignedUsers = item.assignedUsers || [];
+
+      const alreadyAssigned = assignedUsers.some(
+        (assignedUser) => assignedUser.id === user.id,
+      );
+
+      if (alreadyAssigned) {
+        return item;
+      }
+
+      const updatedUsers = [...assignedUsers, user];
+
+      return {
+        ...item,
+        assignedUsers: updatedUsers,
+        employeeCount: updatedUsers.length,
+      };
+    }),
+  );
+
+  setSelectedRole((prevRole) => {
+    if (!prevRole || prevRole.id !== role.id) {
+      return prevRole;
+    }
+
+    const assignedUsers = prevRole.assignedUsers || [];
+
+    if (
+      assignedUsers.some(
+        (assignedUser) => assignedUser.id === user.id,
+      )
+    ) {
+      return prevRole;
+    }
+
+    const updatedUsers = [...assignedUsers, user];
+
+    return {
+      ...prevRole,
+      assignedUsers: updatedUsers,
+      employeeCount: updatedUsers.length,
+    };
+  });
+};
+  const handleRemoveUserFromRole = (role, userId) => {
+    setRoles((prevRoles) =>
+      prevRoles.map((item) => {
+        if (item.id !== role.id) {
+          return item;
+        }
+
+        const assignedUsers = item.assignedUsers || [];
+
+        const updatedUsers = assignedUsers.filter((user) => user.id !== userId);
+
+        return {
+          ...item,
+          assignedUsers: updatedUsers,
+          employeeCount: updatedUsers.length,
+        };
+      }),
+    );
+
+    setSelectedRole((prevRole) => {
+      if (!prevRole || prevRole.id !== role.id) {
+        return prevRole;
+      }
+
+      const assignedUsers = prevRole.assignedUsers || [];
+
+      const updatedUsers = assignedUsers.filter((user) => user.id !== userId);
+
+      return {
+        ...prevRole,
+        assignedUsers: updatedUsers,
+        employeeCount: updatedUsers.length,
+      };
+    });
+  };
+  const handleCloneRole = (role) => {
+    const shouldClone = window.confirm(
+      `Are you sure you want to clone "${role.roleName}"?`,
+    );
+
+    if (!shouldClone) {
+      return;
+    }
+
+    const baseName = `${role.roleName} Copy`;
+
+    let clonedName = baseName;
+    let counter = 2;
+
+    while (
+      roles.some(
+        (item) =>
+          !item.deletedAt &&
+          item.roleName.toLowerCase() === clonedName.toLowerCase(),
+      )
+    ) {
+      clonedName = `${role.roleName} Copy ${counter}`;
+      counter++;
+    }
+
+    const baseCode =
+      role.roleCode ||
+      role.roleName.replace(/[^a-zA-Z0-9]/g, "_").toUpperCase();
+
+    let clonedCode = `${baseCode}_COPY`;
+    counter = 2;
+
+    while (
+      roles.some(
+        (item) =>
+          !item.deletedAt &&
+          item.roleCode?.toLowerCase() === clonedCode.toLowerCase(),
+      )
+    ) {
+      clonedCode = `${baseCode}_COPY_${counter}`;
+      counter++;
+    }
+
+    const clonedRole = {
+      ...role,
+
+      id: Date.now(),
+
+      roleName: clonedName,
+      roleCode: clonedCode,
+
+      employeeCount: 0,
+
+      assignedUsers: [],
+
+      permissions: role.permissions
+        ? role.permissions.map((permission) => ({
+            ...permission,
+          }))
+        : [],
+
+      permissionCount: role.permissions?.length || role.permissionCount || 0,
+
+      createdAt: new Date().toISOString(),
+
+      deletedAt: null,
+    };
+
+    setRoles((prevRoles) => [clonedRole, ...prevRoles]);
+
+    setSelectedRole(clonedRole);
+    setShowDetails(true);
   };
 
   /*
@@ -564,6 +570,9 @@ const RolesPermissions = () => {
           role={selectedRole}
           onClose={handleCloseDetails}
           onEdit={handleEditRole}
+          onAssignUser={handleAssignUserToRole}
+          onRemoveUser={handleRemoveUserFromRole}
+          onClone={handleCloneRole}
         />
       </Modal>
 
