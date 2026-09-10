@@ -1,3 +1,4 @@
+
 .designation-form {
   width: 100%;
 }
@@ -8,7 +9,10 @@
   gap: 20px;
 }
 
-/* Input + Textarea */
+
+/* =========================================================
+   Input + Textarea
+   ========================================================= */
 
 .designation-form input,
 .designation-form textarea {
@@ -45,43 +49,72 @@
   resize: vertical;
 }
 
-/* Placeholder */
+
+/* =========================================================
+   Placeholder
+   ========================================================= */
 
 .designation-form input::placeholder,
 .designation-form textarea::placeholder {
   color: var(--color-text-muted);
 }
 
-/* Hover */
+
+/* =========================================================
+   Hover
+   ========================================================= */
 
 .designation-form input:hover,
 .designation-form textarea:hover {
   border-color: var(--color-text-muted);
 }
 
-/* Focus */
+
+/* =========================================================
+   Focus
+   ========================================================= */
 
 .designation-form input:focus,
 .designation-form textarea:focus {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
+
+  box-shadow:
+    0 0 0 3px var(--color-primary-soft);
 }
 
-/* Disabled */
+
+/* =========================================================
+   Disabled
+   ========================================================= */
 
 .designation-form input:disabled,
 .designation-form textarea:disabled {
   cursor: not-allowed;
   opacity: 0.7;
+
   background: var(--color-bg-subtle);
 }
 
-/* Footer */
+
+/* =========================================================
+   Access Profile
+   ========================================================= */
+
+.designation-form
+  .access-profile {
+  width: 100%;
+}
+
+
+/* =========================================================
+   Form Footer
+   ========================================================= */
 
 .designation-form__footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+
   gap: 12px;
 
   margin-top: 24px;
@@ -89,108 +122,11 @@
 
   border-top: 1px solid var(--color-border);
 }
-.designation-form__permissions {
-width: 100%;
-border: 1px solid var(--color-border);
-border-radius: var(--radius-md);
-background: var(--color-bg-surface);
-overflow: hidden;
-}
 
-.designation-form__permissions-header {
-display: flex;
-align-items: center;
-justify-content: flex-end;
-padding: 10px 14px;
-border-bottom: 1px solid var(--color-border);
-color: var(--color-text-muted);
-font-size: var(--font-size-sm);
-}
 
-.designation-form__permissions-empty {
-padding: 18px;
-text-align: center;
-color: var(--color-text-muted);
-font-size: var(--font-size-sm);
-}
-
-.designation-form__permission-group {
-border-bottom: 1px solid var(--color-border);
-}
-
-.designation-form__permission-group:last-child {
-border-bottom: none;
-}
-
-.designation-form__permission-group-header {
-padding: 12px 14px;
-background: var(--color-bg-subtle);
-}
-
-.designation-form__module-select {
-display: flex;
-align-items: center;
-gap: 10px;
-color: var(--color-text-primary);
-font-size: var(--font-size-sm);
-font-weight: 600;
-cursor: pointer;
-}
-
-.designation-form__permission-list {
-display: flex;
-flex-direction: column;
-}
-
-.designation-form__permission {
-display: flex;
-align-items: center;
-gap: 10px;
-padding: 11px 14px;
-cursor: pointer;
-transition: background-color var(--transition-base);
-}
-
-.designation-form__permission:hover {
-background: var(--color-bg-subtle);
-}
-
-.designation-form__permission input,
-.designation-form__module-select input {
-width: 16px;
-height: 16px;
-flex-shrink: 0;
-accent-color: var(--color-primary);
-}
-
-.designation-form__permission-content {
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: 12px;
-width: 100%;
-}
-
-.designation-form__permission-name {
-color: var(--color-text-primary);
-font-size: var(--font-size-sm);
-}
-
-.designation-form__permission-action {
-color: var(--color-text-muted);
-font-size: 12px;
-text-transform: capitalize;
-}
-
-@media (max-width: 480px) {
-.designation-form__permission-content {
-align-items: flex-start;
-flex-direction: column;
-gap: 2px;
-}
-}
-
-/* Mobile */
+/* =========================================================
+   Mobile
+   ========================================================= */
 
 @media (max-width: 480px) {
   .designation-form__footer {
@@ -202,3 +138,4 @@ gap: 2px;
     width: 100%;
   }
 }
+

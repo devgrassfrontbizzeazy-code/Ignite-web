@@ -41,6 +41,8 @@ import OrganizationSetup from "./pages/OrganizationSetup/OrganizationSetup";
 import DepartmentsPage from "./pages/departments/Departments";
 import DesignationsPage from "./pages/designations/Designations";
 import RolesPermissions from "./pages/rolesPermissions/RolesPermissions";
+import Employees from "./pages/employees/Employees";
+import Attendance from "./pages/attendance/Attendance";
 
 /* Temporary / Dashboard */
 function DashboardPreview() {
@@ -59,29 +61,7 @@ function DashboardPreview() {
 
 
 
-function Employees() {
-  return (
-    <div style={{ padding: "32px" }}>
-      <h1>Employees</h1>
 
-      <p>
-        Employees page.
-      </p>
-    </div>
-  );
-}
-
-function Attendance() {
-  return (
-    <div style={{ padding: "32px" }}>
-      <h1>Attendance</h1>
-
-      <p>
-        Attendance page.
-      </p>
-    </div>
-  );
-}
 
 function Leaves() {
   return (

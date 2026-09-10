@@ -1,0 +1,184 @@
+.employee-details {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.employee-details__header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.employee-details__avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #fff1e8;
+  color: #f47c20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.employee-details__header-info h2 {
+  margin: 0 0 4px;
+  color: #0f2b46;
+  font-size: 20px;
+}
+
+.employee-details__header-info p {
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.employee-details__status {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.employee-details__status--active {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.employee-details__status--inactive {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.employee-details__status--terminated {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.employee-details__status--resigned {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.employee-details__section {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.employee-details__section h3 {
+  margin: 0 0 14px;
+  color: #0f2b46;
+  font-size: 15px;
+}
+
+.employee-details__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.employee-details__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-details__label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.employee-details__value {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.employee-details__access {
+  border: 1px solid #fed7aa;
+  background: #fffaf5;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.employee-details__access-header h3 {
+  margin: 0 0 5px;
+  color: #0f2b46;
+  font-size: 15px;
+}
+
+.employee-details__access-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.employee-details__access-flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.employee-details__access-flow > div {
+  flex: 1;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.employee-details__access-flow span {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+
+.employee-details__access-flow strong {
+  color: #0f2b46;
+  font-size: 12px;
+}
+
+.employee-details__arrow {
+  color: #f47c20 !important;
+  font-size: 18px !important;
+  font-weight: 700;
+}
+
+.employee-details__access-note {
+  margin-top: 12px;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 7px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 650px) {
+  .employee-details__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-details__access-flow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .employee-details__arrow {
+    text-align: center;
+    transform: rotate(90deg);
+  }
+}

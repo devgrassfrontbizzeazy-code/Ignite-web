@@ -103,3 +103,34 @@
 
   background: currentColor;
 }
+.designation-table__access-profile {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+}
+
+.designation-table__access-profile-name {
+color: var(--color-text-primary);
+font-size: 12px;
+font-weight: 600;
+}
+
+.designation-table__access-profile-extra {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+
+min-width: 22px;
+height: 20px;
+
+padding: 0 6px;
+
+border-radius: 10px;
+
+background: var(--color-primary-soft);
+
+color: var(--color-primary);
+
+font-size: 10px;
+font-weight: 700;
+}

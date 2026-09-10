@@ -1,0 +1,11 @@
+.employees-page {
+  width: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .employees-page {
+    padding: 16px;
+  }
+}

@@ -125,7 +125,7 @@ const NAV_ITEMS = [
   },
   { label: "Departments", path: "/departments", icon: DepartmentsIcon },
   { label: "Designations", path: "/designations", icon: DesignationsIcon },
-  { label: "Roles & Permissions", path: "/roles-permissions", icon: RolesIcon },
+  // { label: "Roles & Permissions", path: "/roles-permissions", icon: RolesIcon },
   { label: "Employees", path: "/employees", icon: EmployeesIcon },
   { label: "Attendance", path: "/attendance", icon: AttendanceIcon },
   { label: "Leaves", path: "/leaves", icon: LeavesIcon },

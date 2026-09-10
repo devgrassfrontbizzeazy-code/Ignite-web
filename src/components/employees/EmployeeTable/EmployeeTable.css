@@ -1,0 +1,154 @@
+.employee-table-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.employee-table-card__header {
+  padding: 18px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.employee-table-card__header h3 {
+  margin: 0 0 4px;
+  color: #0f2b46;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.employee-table-card__header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.employee-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.employee-table {
+  width: 100%;
+  min-width: 1250px;
+  border-collapse: collapse;
+}
+
+.employee-table th {
+  padding: 13px 16px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.employee-table td {
+  padding: 14px 16px;
+  color: #334155;
+  font-size: 13px;
+  border-bottom: 1px solid #eef2f6;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.employee-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.employee-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.employee-table__employee {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.employee-table__avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #fff1e8;
+  color: #f47c20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.employee-table__name {
+  color: #0f2b46;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.employee-table__email {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.employee-code {
+  font-weight: 600;
+  color: #475569;
+}
+
+.employee-role {
+  font-weight: 600;
+  color: #0f2b46;
+}
+
+.employee-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.employee-status--active {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.employee-status--inactive {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.employee-status--terminated {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.employee-status--resigned {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.employee-table-empty {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.employee-table-empty__icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.employee-table-empty h4 {
+  margin: 0 0 6px;
+  color: #0f2b46;
+}
+
+.employee-table-empty p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}

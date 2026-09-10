@@ -1,0 +1,114 @@
+
+/* ==========================================================================
+   IGNITE — Attendance Page
+   ========================================================================== */
+
+.attendance-page {
+  min-height: 100%;
+  padding: var(--space-6);
+
+  background: var(--color-bg);
+}
+
+.attendance-page__header {
+  width: 100%;
+  max-width: var(--content-max-width);
+
+  margin: 0 auto;
+}
+
+.attendance-page__content {
+  width: 100%;
+  max-width: var(--content-max-width);
+
+  margin: var(--space-6) auto 0;
+}
+
+/* --------------------------------------------------------------------------
+   Action Card
+   -------------------------------------------------------------------------- */
+
+.attendance-page__action {
+  width: 100%;
+  max-width: 760px;
+}
+
+/* --------------------------------------------------------------------------
+   Future Content
+   -------------------------------------------------------------------------- */
+
+.attendance-page__future {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 220px;
+
+  margin-top: var(--space-6);
+
+  padding: var(--space-8);
+
+  background: var(--color-bg-surface);
+
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.attendance-page__future-content {
+  max-width: 520px;
+
+  text-align: center;
+}
+
+.attendance-page__future-label {
+  display: inline-block;
+
+  margin-bottom: var(--space-2);
+
+  color: var(--color-primary);
+
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.attendance-page__future h2 {
+  margin: 0 0 var(--space-2);
+
+  color: var(--color-text-primary);
+
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.attendance-page__future p {
+  margin: 0;
+
+  color: var(--color-text-secondary);
+
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .attendance-page {
+    padding: var(--space-4);
+  }
+
+  .attendance-page__content {
+    margin-top: var(--space-4);
+  }
+
+  .attendance-page__future {
+    min-height: 180px;
+
+    padding: var(--space-5);
+  }
+}
+

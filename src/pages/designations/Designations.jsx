@@ -13,8 +13,6 @@ import DesignationDetails from "../../components/designations/DesignationDetails
 
 import {
   getDesignations,
-  getDesignationPermissions,
-  getDesignationRoles,
   createDesignation,
   updateDesignation,
   patchDesignation,
@@ -65,26 +63,21 @@ const normalizeDesignation = (designation) => {
     company: designation.company,
 
     companyName: designation.company_name,
-    defaultRoleId:
-      designation.default_role ??
-      designation.default_role_id ??
-      designation.defaultRoleId ??
-      designation.defaultRole?.id ??
+
+    accessProfile:
+      designation.access_profile ??
+      designation.accessProfile ??
+      designation.access_profile_key ??
+      designation.accessProfileKey ??
+      designation.access_profile?.key ??
       "",
-    defaultRoleName:
-      designation.default_role_name ?? designation.defaultRole?.name ?? "",
 
-    permissionsList: Array.isArray(designation.permissions_list)
-      ? designation.permissions_list
-      : [],
-
-    permissionCodenames: Array.isArray(designation.permission_codenames)
-      ? designation.permission_codenames
-      : [],
-
-    permissionsDetail: Array.isArray(designation.permissions_detail)
-      ? designation.permissions_detail
-      : [],
+    accessProfileName:
+      designation.access_profile_name ?? designation.accessProfile?.name ?? "",
+    additionalPermissions:
+      designation.additional_permissions ??
+      designation.additionalPermissions ??
+      [],
 
     createdAt: designation.created_at ?? designation.createdAt,
 
@@ -146,20 +139,23 @@ const Designations = () => {
   const [designations, setDesignations] = useState([]);
 
   const [departments, setDepartments] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [permissions, setPermissions] = useState([]);
 
   const [search, setSearch] = useState("");
+
   const [department, setDepartment] = useState("all");
+
   const [status, setStatus] = useState("all");
+
   const [sortBy, setSortBy] = useState("name");
 
   const [showForm, setShowForm] = useState(false);
+
   const [showDetails, setShowDetails] = useState(false);
 
   const [selectedDesignation, setSelectedDesignation] = useState(null);
 
   const [loading, setLoading] = useState(false);
+
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   const [error, setError] = useState("");
@@ -193,29 +189,6 @@ const Designations = () => {
       setError(generalError || "Failed to load departments. Please try again.");
     } finally {
       setDepartmentsLoading(false);
-    }
-  };
-  const loadDesignationAccessData = async () => {
-    try {
-      const [rolesResponse, permissionsResponse] = await Promise.all([
-        getDesignationRoles(),
-        getDesignationPermissions(),
-      ]);
-
-      setRoles(extractList(rolesResponse));
-      setPermissions(extractList(permissionsResponse));
-    } catch (error) {
-      console.error("Failed to load designation access data:", error);
-
-      const { generalError } = extractApiError(error, {
-        context: "designation",
-        action: "load",
-      });
-
-      setError(
-        generalError ||
-          "Failed to load designation roles and permissions. Please try again.",
-      );
     }
   };
 
@@ -255,7 +228,6 @@ const Designations = () => {
   useEffect(() => {
     loadDepartments();
     loadDesignations();
-    loadDesignationAccessData();
   }, []);
 
   /*
@@ -291,8 +263,10 @@ const Designations = () => {
       result = result.filter(
         (designation) =>
           designation.designationName?.toLowerCase().includes(searchValue) ||
+          designation.designationCode?.toLowerCase().includes(searchValue) ||
           designation.departmentName?.toLowerCase().includes(searchValue) ||
-          designation.description?.toLowerCase().includes(searchValue),
+          designation.description?.toLowerCase().includes(searchValue) ||
+          designation.accessProfileName?.toLowerCase().includes(searchValue),
       );
     }
 
@@ -418,19 +392,23 @@ const Designations = () => {
 
       const newStatus = designation.status === "active" ? "Inactive" : "Active";
 
-      await patchDesignation(designation.id, {
+      const response = await patchDesignation(designation.id, {
         status: newStatus,
         is_active: newStatus === "Active",
       });
 
-      
+      const updated = normalizeDesignation(response);
 
-      const updatedDesignation = designations.find(
-        (item) => item.id === designation.id,
-      );
+      if (updated) {
+        setDesignations((previous) =>
+          previous.map((item) => (item.id === designation.id ? updated : item)),
+        );
 
-      if (updatedDesignation) {
-        setSelectedDesignation(updatedDesignation);
+        if (selectedDesignation?.id === designation.id) {
+          setSelectedDesignation(updated);
+        }
+      } else {
+        await loadDesignations();
       }
     } catch (error) {
       console.error("Failed to update designation status:", error);
@@ -456,6 +434,7 @@ const Designations = () => {
     try {
       setLoading(true);
       setError("");
+      setFormFieldErrors({});
 
       const payload = {
         designation_code: formData.designationCode?.trim().toUpperCase() || "",
@@ -464,19 +443,14 @@ const Designations = () => {
 
         department: Number(formData.departmentId),
 
+        access_profile: formData.accessProfile || "employee",
+        additional_permissions: formData.additionalPermissions || [],
+
         description: formData.description?.trim() || "",
 
         status: formData.status === "active" ? "Active" : "Inactive",
 
         is_active: formData.status === "active",
-
-        default_role: formData.defaultRoleId
-          ? Number(formData.defaultRoleId)
-          : null,
-
-        permission_ids: Array.isArray(formData.permissionIds)
-          ? formData.permissionIds.map(Number)
-          : [],
       };
 
       if (selectedDesignation) {
@@ -489,13 +463,28 @@ const Designations = () => {
 
       setShowForm(false);
       setSelectedDesignation(null);
+      setFormFieldErrors({});
     } catch (error) {
       console.error("Failed to save designation:", error);
 
+      const apiError = error.response?.data;
+
+      if (apiError && typeof apiError === "object") {
+        const fieldErrors = {};
+
+        Object.entries(apiError).forEach(([field, value]) => {
+          if (Array.isArray(value)) {
+            fieldErrors[field] = value.join(" ");
+          } else if (typeof value === "string") {
+            fieldErrors[field] = value;
+          }
+        });
+
+        setFormFieldErrors(fieldErrors);
+      }
+
       setError(
-        error.response?.data?.detail ||
-          error.response?.data?.message ||
-          "Failed to save designation.",
+        apiError?.detail || apiError?.message || "Failed to save designation.",
       );
     } finally {
       setLoading(false);
@@ -516,6 +505,7 @@ const Designations = () => {
   const handleCancelForm = () => {
     setShowForm(false);
     setSelectedDesignation(null);
+    setFormFieldErrors({});
     setError("");
   };
 
@@ -598,6 +588,7 @@ const Designations = () => {
         )}
       </div>
 
+      {/* Details Modal */}
       <Modal
         open={showDetails && !!selectedDesignation}
         onClose={handleCloseDetails}
@@ -611,6 +602,7 @@ const Designations = () => {
         />
       </Modal>
 
+      {/* Add/Edit Modal */}
       <Modal
         open={showForm}
         onClose={handleCancelForm}
@@ -623,14 +615,13 @@ const Designations = () => {
         size="medium"
       >
         <DesignationForm
-  initialData={selectedDesignation || {}}
-  departments={departments}
-  roles={roles}
-  permissions={permissions}
-  onSubmit={handleSubmitDesignation}
-  onCancel={handleCancelForm}
-  loading={loading || departmentsLoading}
-/>
+          initialData={selectedDesignation || {}}
+          departments={departments}
+          onSubmit={handleSubmitDesignation}
+          onCancel={handleCancelForm}
+          loading={loading || departmentsLoading}
+          fieldErrors={formFieldErrors}
+        />
       </Modal>
     </div>
   );
