@@ -1,31 +1,190 @@
 .employee-row-actions {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 100%;
 }
 
-.employee-row-actions__button {
-  border: none;
+/* =========================
+   THREE DOT BUTTON
+========================= */
+
+.employee-row-actions__trigger {
+  position: relative;
+  z-index: 2;
+
+  display: inline-flex;
+  width: 31px;
+  height: 31px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid transparent;
+  border-radius: 7px;
+
   background: transparent;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 5px 6px;
+  color: var(--color-text-secondary);
+
   cursor: pointer;
-  border-radius: 5px;
-  white-space: nowrap;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
 }
 
-.employee-row-actions__button:hover {
-  background: #f1f5f9;
-  color: #0f2b46;
+.employee-row-actions__trigger svg {
+  width: 17px;
+  height: 17px;
 }
 
-.employee-row-actions__button--danger {
-  color: #dc2626;
+.employee-row-actions__trigger:hover,
+.employee-row-actions__trigger--active {
+  border-color: var(--ignite-teal-100);
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  outline: none;
 }
 
-.employee-row-actions__button--danger:hover {
-  background: #fef2f2;
-  color: #b91c1c;
+/* =========================
+   PORTALED ACTION MENU
+   IMPORTANT:
+   position: fixed because
+   menu is rendered into BODY
+========================= */
+
+.employee-row-actions__menu {
+  position: fixed;
+
+  z-index: 999999;
+
+  width: 165px;
+
+  padding: 5px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+
+  background: var(--color-bg-surface);
+
+  box-shadow:
+    0 14px 35px rgba(15, 61, 62, 0.16),
+    0 4px 10px rgba(15, 61, 62, 0.07);
+
+  box-sizing: border-box;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+
+.employee-row-actions__menu--down {
+  animation: employeeActionMenuDown 0.14s ease-out;
+}
+
+.employee-row-actions__menu--up {
+  animation: employeeActionMenuUp 0.14s ease-out;
+}
+
+@keyframes employeeActionMenuDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes employeeActionMenuUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================
+   MENU BUTTONS
+========================= */
+
+.employee-row-actions__menu button {
+  display: flex;
+
+  width: 100%;
+  min-height: 33px;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 7px 9px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: var(--color-text-secondary);
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.employee-row-actions__menu button svg {
+  width: 14px;
+  height: 14px;
+
+  flex-shrink: 0;
+}
+
+.employee-row-actions__menu button:hover {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+/* =========================
+   DANGER ACTIONS
+========================= */
+
+.employee-row-actions__menu
+  button.employee-row-actions__danger {
+  color: #c7362f;
+}
+
+.employee-row-actions__menu
+  button.employee-row-actions__danger:hover {
+  background: #fff0ef;
+  color: #b42318;
+}
+
+/* =========================
+   DIVIDER
+========================= */
+
+.employee-row-actions__divider {
+  height: 1px;
+
+  margin: 4px 5px;
+
+  background: var(--color-border);
 }

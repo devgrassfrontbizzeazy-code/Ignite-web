@@ -1,23 +1,22 @@
-
 import { useState } from "react";
+import { FiCalendar } from "react-icons/fi";
 
-import PageHeader from "../../components/common/PageHeader/PageHeader";
 import AttendanceActionCard from "../../components/attendance/AttendanceActionCard/AttendanceActionCard";
+import TodayPunchLog from "../../components/attendance/TodayPunchLog/TodayPunchLog";
+import AttendanceStats from "../../components/attendance/AttendanceStats/AttendanceStats";
+import AttendanceHistory from "../../components/attendance/AttendanceHistory/AttendanceHistory";
 
 import "./Attendance.css";
 
 const Attendance = () => {
   const [status, setStatus] = useState("checked_in");
-
-  const [checkInTime] = useState(
-    "2026-09-10T10:02:00",
-  );
-
-  const [workedSeconds] = useState(16560);
-
-  const [breakSeconds, setBreakSeconds] = useState(1920);
+  const [checkInTime, setCheckInTime] = useState(new Date());
+  const [workedSeconds, setWorkedSeconds] = useState(0);
+  const [breakSeconds, setBreakSeconds] = useState(0);
 
   const handleCheckIn = () => {
+    setCheckInTime(new Date());
+    setWorkedSeconds(0);
     setStatus("checked_in");
   };
 
@@ -33,48 +32,73 @@ const Attendance = () => {
     setStatus("checked_in");
   };
 
-  return (
-    <div className="attendance-page">
-      <div className="attendance-page__header">
-        <PageHeader
-          title="Attendance"
-          description="Manage your daily attendance, work hours, and breaks."
-        />
-      </div>
+  const today = new Date();
 
-      <div className="attendance-page__content">
-        <div className="attendance-page__action">
-          <AttendanceActionCard
-            status={status}
-            checkInTime={checkInTime}
-            workedSeconds={workedSeconds}
-            breakSeconds={breakSeconds}
-            onCheckIn={handleCheckIn}
-            onCheckOut={handleCheckOut}
-            onStartBreak={handleStartBreak}
-            onEndBreak={handleEndBreak}
-          />
+  const formattedDate = new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(today);
+
+  const statusLabel =
+    status === "checked_in"
+      ? "Currently Working"
+      : status === "on_break"
+        ? "On Break"
+        : "Not Checked In";
+
+  return (
+    <main className="attendance-page">
+      <header className="attendance-page__header">
+        <div>
+          <span className="attendance-page__eyebrow">
+            ATTENDANCE
+          </span>
+
+          <h1>My Attendance</h1>
+
+          <p>
+            Track your daily attendance, working hours and punch activity.
+          </p>
         </div>
 
-        <div className="attendance-page__future">
-          <div className="attendance-page__future-content">
-            <span className="attendance-page__future-label">
-              Attendance
-            </span>
+        <div className="attendance-page__header-actions">
+          <div className="attendance-page__date">
+            <FiCalendar />
+            <span>{formattedDate}</span>
+          </div>
 
-            <h2>More attendance insights coming here</h2>
-
-            <p>
-              Daily records, attendance history, break history,
-              summaries, and other attendance features will be
-              added here.
-            </p>
+          <div className="attendance-page__status">
+            <span />
+            {statusLabel}
           </div>
         </div>
-      </div>
-    </div>
+      </header>
+
+      <section className="attendance-page__hero">
+        <AttendanceActionCard
+          status={status}
+          checkInTime={checkInTime}
+          workedSeconds={workedSeconds}
+          breakSeconds={breakSeconds}
+          onCheckIn={handleCheckIn}
+          onCheckOut={handleCheckOut}
+          onStartBreak={handleStartBreak}
+          onEndBreak={handleEndBreak}
+        />
+
+        <TodayPunchLog
+          status={status}
+          checkInTime={checkInTime}
+        />
+      </section>
+
+      <AttendanceStats />
+
+      <AttendanceHistory />
+    </main>
   );
 };
 
 export default Attendance;
-

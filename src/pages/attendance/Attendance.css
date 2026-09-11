@@ -1,114 +1,153 @@
-
-/* ==========================================================================
-   IGNITE — Attendance Page
-   ========================================================================== */
-
 .attendance-page {
-  min-height: 100%;
-  padding: var(--space-6);
-
-  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  padding: 26px 28px;
+  background: var(--color-bg-page);
+  font-family: var(--font-family-base);
 }
+
+/* =========================
+   HEADER
+========================= */
 
 .attendance-page__header {
-  width: 100%;
-  max-width: var(--content-max-width);
-
-  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.attendance-page__content {
-  width: 100%;
-  max-width: var(--content-max-width);
-
-  margin: var(--space-6) auto 0;
+.attendance-page__eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ignite-emerald);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
 }
 
-/* --------------------------------------------------------------------------
-   Action Card
-   -------------------------------------------------------------------------- */
-
-.attendance-page__action {
-  width: 100%;
-  max-width: 760px;
+.attendance-page__header h1 {
+  margin: 0;
+  color: var(--ignite-deep-teal);
+  font-size: 28px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.2;
 }
 
-/* --------------------------------------------------------------------------
-   Future Content
-   -------------------------------------------------------------------------- */
+.attendance-page__header p {
+  margin: 7px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
 
-.attendance-page__future {
+.attendance-page__header-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  padding-top: 4px;
+}
 
-  min-height: 220px;
-
-  margin-top: var(--space-6);
-
-  padding: var(--space-8);
-
+.attendance-page__date,
+.attendance-page__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
   background: var(--color-bg-surface);
-
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-}
-
-.attendance-page__future-content {
-  max-width: 520px;
-
-  text-align: center;
-}
-
-.attendance-page__future-label {
-  display: inline-block;
-
-  margin-bottom: var(--space-2);
-
-  color: var(--color-primary);
-
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-
-  letter-spacing: var(--letter-spacing-wide);
-  text-transform: uppercase;
-}
-
-.attendance-page__future h2 {
-  margin: 0 0 var(--space-2);
-
-  color: var(--color-text-primary);
-
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-}
-
-.attendance-page__future p {
-  margin: 0;
-
   color: var(--color-text-secondary);
-
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
 
-/* --------------------------------------------------------------------------
-   Responsive
-   -------------------------------------------------------------------------- */
+.attendance-page__date svg {
+  width: 15px;
+  height: 15px;
+  color: var(--ignite-deep-teal);
+}
 
-@media (max-width: 640px) {
+.attendance-page__status {
+  border-color: transparent;
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+.attendance-page__status span {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ignite-emerald);
+}
+
+/* =========================
+   HERO
+========================= */
+
+.attendance-page__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(360px, 0.8fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.attendance-page__hero > * {
+  min-width: 0;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 1200px) {
+  .attendance-page__hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
   .attendance-page {
-    padding: var(--space-4);
+    padding: 22px;
   }
 
-  .attendance-page__content {
-    margin-top: var(--space-4);
+  .attendance-page__header {
+    flex-direction: column;
   }
 
-  .attendance-page__future {
-    min-height: 180px;
-
-    padding: var(--space-5);
+  .attendance-page__header-actions {
+    width: 100%;
+    padding-top: 0;
   }
 }
 
+@media (max-width: 600px) {
+  .attendance-page {
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .attendance-page__header h1 {
+    font-size: 24px;
+  }
+
+  .attendance-page__header p {
+    font-size: 13px;
+  }
+
+  .attendance-page__header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendance-page__date,
+  .attendance-page__status {
+    justify-content: center;
+  }
+}

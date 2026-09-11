@@ -1,0 +1,567 @@
+/* =========================================================
+   EMPLOYEE FORM
+   ========================================================= */
+
+.employee-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* =========================================================
+   FORM SECTION
+   ========================================================= */
+
+.employee-form__section {
+  position: relative;
+
+  padding: 20px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+
+  background: var(--color-bg-surface);
+
+  box-shadow: var(--shadow-sm);
+
+  overflow: hidden;
+}
+
+/* subtle top accent */
+
+.employee-form__section::before {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 2px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(11, 163, 127, 0.7),
+    rgba(11, 163, 127, 0.08)
+  );
+}
+
+.employee-form__section:nth-child(2)::before {
+  background: linear-gradient(
+    90deg,
+    rgba(118, 84, 200, 0.7),
+    rgba(118, 84, 200, 0.08)
+  );
+}
+
+.employee-form__section:nth-child(3)::before {
+  background: linear-gradient(
+    90deg,
+    rgba(184, 121, 22, 0.7),
+    rgba(184, 121, 22, 0.08)
+  );
+}
+
+/* =========================================================
+   SECTION HEADING
+   ========================================================= */
+
+.employee-form__section-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+
+  border-bottom: 1px solid var(--color-border);
+}
+
+.employee-form__section-heading h2 {
+  margin: 0 0 3px;
+
+  color: var(--color-text-primary);
+
+  font-size: 16px;
+  line-height: 1.3;
+
+  font-weight: var(--font-weight-bold);
+}
+
+.employee-form__section-heading p {
+  margin: 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   SECTION ICON
+   ========================================================= */
+
+.employee-form__section-icon {
+  display: flex;
+
+  width: 36px;
+  height: 36px;
+
+  flex-shrink: 0;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  font-size: 17px;
+}
+
+.employee-form__section-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.employee-form__section-icon--teal {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+.employee-form__section-icon--purple {
+  background: #f2edff;
+  color: #7654c8;
+}
+
+.employee-form__section-icon--amber {
+  background: #fff5df;
+  color: #b87916;
+}
+
+/* =========================================================
+   PROFILE PHOTO
+   ========================================================= */
+
+.employee-form__photo-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  margin-bottom: 20px;
+  padding: 12px;
+
+  border: 1px solid #e8edef;
+  border-radius: 10px;
+
+  background: #fbfcfc;
+}
+
+.employee-form__photo {
+  width: 58px;
+  height: 58px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  border: 1px solid #d9e5e4;
+  border-radius: 12px;
+
+  background: #e8f6f3;
+
+  color: var(--ignite-deep-teal);
+}
+
+.employee-form__photo svg {
+  width: 24px;
+  height: 24px;
+}
+
+.employee-form__photo img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+/* =========================================================
+   PHOTO UPLOAD
+   ========================================================= */
+
+.employee-form__upload {
+  display: inline-flex;
+
+  min-height: 34px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 12px;
+
+  border: 1px dashed #b9c8ca;
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: var(--ignite-deep-teal);
+
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.employee-form__upload:hover {
+  background: #f2f9f7;
+  border-color: #8dbbb5;
+}
+
+.employee-form__file-input {
+  display: none;
+}
+
+.employee-form__upload-hint {
+  margin: 5px 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 9px;
+}
+
+/* =========================================================
+   FORM GRID
+   ========================================================= */
+
+.employee-form__grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 15px;
+}
+
+.employee-form__field--full {
+  grid-column: 1 / -1;
+}
+
+/* =========================================================
+   FORM FIELD
+   ========================================================= */
+
+.employee-form__field {
+  display: flex;
+
+  min-width: 0;
+
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+.employee-form__field label {
+  color: var(--color-text-secondary);
+
+  font-size: 11px;
+
+  line-height: 1.3;
+
+  font-weight: var(--font-weight-semibold);
+}
+
+.employee-form__field label span {
+  color: #c7362f;
+}
+
+/* =========================================================
+   INPUT / SELECT / TEXTAREA
+   ========================================================= */
+
+.employee-form__field input,
+.employee-form__field select,
+.employee-form__field textarea {
+  width: 100%;
+
+  min-height: 38px;
+
+  padding: 9px 11px;
+
+  box-sizing: border-box;
+
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: var(--color-text-primary);
+
+  font-family: inherit;
+  font-size: 11px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.employee-form__field textarea {
+  min-height: 80px;
+
+  resize: vertical;
+
+  line-height: 1.5;
+}
+
+.employee-form__field input::placeholder,
+.employee-form__field textarea::placeholder {
+  color: #a0aab1;
+}
+
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
+.employee-form__field input:focus,
+.employee-form__field select:focus,
+.employee-form__field textarea:focus {
+  border-color: var(--ignite-emerald);
+
+  box-shadow:
+    0 0 0 3px rgba(11, 163, 127, 0.08);
+
+  background: #ffffff;
+}
+
+/* =========================================================
+   INPUT WITH ICON
+   ========================================================= */
+
+.employee-form__input-icon {
+  position: relative;
+
+  width: 100%;
+}
+
+.employee-form__input-icon > svg {
+  position: absolute;
+
+  top: 50%;
+  left: 11px;
+
+  width: 14px;
+  height: 14px;
+
+  transform: translateY(-50%);
+
+  color: #87949b;
+
+  pointer-events: none;
+
+  z-index: 1;
+}
+
+.employee-form__input-icon input,
+.employee-form__input-icon select {
+  padding-left: 32px;
+}
+
+/* =========================================================
+   VALIDATION ERROR
+   ========================================================= */
+
+.employee-form__error {
+  display: block;
+
+  margin-top: -1px;
+
+  color: #c7362f;
+
+  font-size: 9px;
+
+  line-height: 1.3;
+
+  font-weight: var(--font-weight-semibold);
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.employee-form__footer {
+  display: flex;
+
+  justify-content: flex-end;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 15px 0 2px;
+
+  border-top: 1px solid transparent;
+}
+
+/* Make icons inside common Button look correct */
+
+.employee-form__footer button {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+}
+
+.employee-form__footer button svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* =========================================================
+   SELECT ARROW
+   ========================================================= */
+
+.employee-form__field select {
+  cursor: pointer;
+}
+
+/* =========================================================
+   DISABLED STATES
+   ========================================================= */
+
+.employee-form__field input:disabled,
+.employee-form__field select:disabled,
+.employee-form__field textarea:disabled {
+  background: #f5f7f8;
+
+  color: #8d989f;
+
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 850px) {
+  .employee-form__grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================
+   TABLET / MOBILE
+   ========================================================= */
+
+@media (max-width: 650px) {
+  .employee-form {
+    gap: 12px;
+  }
+
+  .employee-form__section {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .employee-form__section-heading {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .employee-form__section-heading h2 {
+    font-size: 14px;
+  }
+
+  .employee-form__section-heading p {
+    font-size: 9px;
+  }
+
+  .employee-form__section-icon {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 9px;
+  }
+
+  .employee-form__section-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .employee-form__grid {
+    grid-template-columns: 1fr;
+
+    gap: 13px;
+  }
+
+  .employee-form__field--full {
+    grid-column: auto;
+  }
+
+  .employee-form__photo-row {
+    padding: 10px;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 450px) {
+  .employee-form__section {
+    padding: 13px;
+  }
+
+  .employee-form__section-heading {
+    align-items: flex-start;
+  }
+
+  .employee-form__photo-row {
+    gap: 10px;
+  }
+
+  .employee-form__photo {
+    width: 50px;
+    height: 50px;
+
+    border-radius: 10px;
+  }
+
+  .employee-form__upload {
+    min-height: 32px;
+
+    padding: 0 10px;
+
+    font-size: 9px;
+  }
+
+  .employee-form__field input,
+  .employee-form__field select,
+  .employee-form__field textarea {
+    font-size: 11px;
+  }
+
+  .employee-form__footer {
+    flex-direction: column-reverse;
+
+    align-items: stretch;
+
+    gap: 8px;
+
+    padding-top: 12px;
+  }
+
+  .employee-form__footer button {
+    width: 100%;
+  }
+}

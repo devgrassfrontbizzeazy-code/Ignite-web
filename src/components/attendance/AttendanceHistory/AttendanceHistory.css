@@ -1,0 +1,231 @@
+.attendance-history {
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.attendance-history__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.attendance-history__header h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: var(--font-weight-bold);
+}
+
+.attendance-history__header p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.attendance-history__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-history__actions button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.attendance-history__actions button svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* =========================
+   FILTERS
+========================= */
+
+.attendance-history__filters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.attendance-history__filters button {
+  min-height: 36px;
+  padding: 0 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.attendance-history__filters button.active {
+  border-color: var(--ignite-deep-teal);
+  background: var(--ignite-deep-teal);
+  color: var(--ignite-white);
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.attendance-history__table-wrapper {
+  width: 100%;
+  margin-top: 18px;
+  overflow-x: auto;
+}
+
+.attendance-history table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.attendance-history th {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.attendance-history td {
+  padding: 15px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.attendance-history tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.attendance-history td strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.attendance-history__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 0 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.attendance-history__status--present {
+  background: var(--ignite-emerald-100);
+  color: var(--ignite-emerald);
+}
+
+.attendance-history__status--late {
+  background: #fff4df;
+  color: #a15c00;
+}
+
+.attendance-history__details {
+  color: var(--ignite-deep-teal);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+/* =========================
+   CALENDAR
+========================= */
+
+.attendance-history__calendar {
+  margin-top: 20px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-muted);
+}
+
+.attendance-history__calendar h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 17px;
+}
+
+.attendance-history__calendar p {
+  margin: 7px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 800px) {
+  .attendance-history {
+    padding: 20px;
+  }
+
+  .attendance-history__header {
+    flex-direction: column;
+  }
+
+  .attendance-history__actions {
+    width: 100%;
+  }
+
+  .attendance-history__actions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .attendance-history__filters {
+    overflow-x: auto;
+  }
+
+  .attendance-history__filters button {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 500px) {
+  .attendance-history {
+    padding: 16px;
+  }
+
+  .attendance-history__header h2 {
+    font-size: 18px;
+  }
+
+  .attendance-history__header p {
+    font-size: 12px;
+  }
+}

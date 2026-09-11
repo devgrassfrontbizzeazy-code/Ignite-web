@@ -1,9 +1,218 @@
 .employee-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
+
+/* =========================
+   BASE CARD
+========================= */
+
+.employee-stat-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 132px;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 17px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.employee-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Top accent */
+
+.employee-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+}
+
+/* Decorative circle */
+
+.employee-stat-card::after {
+  content: "";
+  position: absolute;
+  right: -25px;
+  bottom: -30px;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  opacity: 0.75;
+}
+
+/* =========================
+   TOTAL
+========================= */
+
+.employee-stat-card--total {
+  border-color: #d7e9e8;
+  background: #fbfefe;
+}
+
+.employee-stat-card--total::before {
+  background: var(--ignite-deep-teal);
+}
+
+.employee-stat-card--total::after {
+  background: #e7f5f3;
+}
+
+.employee-stat-card--total .employee-stat-card__icon {
+  background: #e7f5f3;
+  color: var(--ignite-deep-teal);
+}
+
+/* =========================
+   ACTIVE
+========================= */
+
+.employee-stat-card--active {
+  border-color: #d5ebdf;
+  background: #fbfefc;
+}
+
+.employee-stat-card--active::before {
+  background: var(--ignite-emerald);
+}
+
+.employee-stat-card--active::after {
+  background: #e5f6ec;
+}
+
+.employee-stat-card--active .employee-stat-card__icon {
+  background: #e5f6ec;
+  color: var(--ignite-emerald);
+}
+
+/* =========================
+   INACTIVE
+========================= */
+
+.employee-stat-card--inactive {
+  border-color: #f0dfbd;
+  background: #fffefb;
+}
+
+.employee-stat-card--inactive::before {
+  background: #d99424;
+}
+
+.employee-stat-card--inactive::after {
+  background: #fff4dc;
+}
+
+.employee-stat-card--inactive .employee-stat-card__icon {
+  background: #fff4dc;
+  color: #a15c00;
+}
+
+/* =========================
+   CONTRACT
+========================= */
+
+.employee-stat-card--contract {
+  border-color: #ded9f0;
+  background: #fdfcff;
+}
+
+.employee-stat-card--contract::before {
+  background: #7566b3;
+}
+
+.employee-stat-card--contract::after {
+  background: #f0edfa;
+}
+
+.employee-stat-card--contract .employee-stat-card__icon {
+  background: #f0edfa;
+  color: #6655a8;
+}
+
+/* =========================
+   TOP
+========================= */
+
+.employee-stat-card__top {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.employee-stat-card__label {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+}
+
+/* =========================
+   ICON
+========================= */
+
+.employee-stat-card__icon {
+  display: flex;
+  width: 31px;
+  height: 31px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+}
+
+.employee-stat-card__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* =========================
+   VALUE
+========================= */
+
+.employee-stat-card__value {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 14px;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+}
+
+/* =========================
+   DESCRIPTION
+========================= */
+
+.employee-stat-card__description {
+  position: relative;
+  z-index: 1;
+  margin: 5px 0 0;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
 
 @media (max-width: 1000px) {
   .employee-stats {

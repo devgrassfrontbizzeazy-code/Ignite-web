@@ -1,5 +1,4 @@
 import EmployeeRowActions from "../EmployeeRowActions/EmployeeRowActions";
-
 import "./EmployeeTable.css";
 
 const formatName = (employee) =>
@@ -60,7 +59,9 @@ const EmployeeTable = ({
       {employees.length === 0 ? (
         <div className="employee-table-empty">
           <div className="employee-table-empty__icon">👥</div>
+
           <h4>No employees found</h4>
+
           <p>
             Try changing your search or filters, or add a new employee.
           </p>
@@ -79,7 +80,9 @@ const EmployeeTable = ({
                 <th>Type</th>
                 <th>Status</th>
                 <th>Joining Date</th>
-                <th>Actions</th>
+                <th className="employee-table__actions-header">
+                  Actions
+                </th>
               </tr>
             </thead>
 
@@ -88,12 +91,7 @@ const EmployeeTable = ({
                 <tr key={employee.id}>
                   <td>
                     <div className="employee-table__employee">
-                      <div className="employee-table__avatar">
-                        {employee.first_name?.charAt(0)}
-                        {employee.last_name?.charAt(0)}
-                      </div>
-
-                      <div>
+                      <div className="employee-table__employee-info">
                         <div className="employee-table__name">
                           {formatName(employee)}
                         </div>
@@ -111,9 +109,13 @@ const EmployeeTable = ({
                     </span>
                   </td>
 
-                  <td>{employee.department_name || "—"}</td>
+                  <td>
+                    {employee.department_name || "—"}
+                  </td>
 
-                  <td>{employee.designation_name || "—"}</td>
+                  <td>
+                    {employee.designation_name || "—"}
+                  </td>
 
                   <td>
                     <div className="employee-role">
@@ -121,21 +123,31 @@ const EmployeeTable = ({
                     </div>
                   </td>
 
-                  <td>{employee.reporting_manager_name || "—"}</td>
+                  <td>
+                    {employee.reporting_manager_name || "—"}
+                  </td>
 
-                  <td>{formatEmploymentType(employee.employment_type)}</td>
+                  <td>
+                    {formatEmploymentType(
+                      employee.employment_type
+                    )}
+                  </td>
 
                   <td>
                     <span
                       className={`employee-status employee-status--${employee.employment_status.toLowerCase()}`}
                     >
-                      {formatStatus(employee.employment_status)}
+                      {formatStatus(
+                        employee.employment_status
+                      )}
                     </span>
                   </td>
 
-                  <td>{formatDate(employee.date_of_joining)}</td>
-
                   <td>
+                    {formatDate(employee.date_of_joining)}
+                  </td>
+
+                  <td className="employee-table__actions-cell">
                     <EmployeeRowActions
                       employee={employee}
                       onView={onView}

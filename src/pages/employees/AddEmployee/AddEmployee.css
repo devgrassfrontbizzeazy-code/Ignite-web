@@ -1,0 +1,171 @@
+/* =========================================================
+   ADD EMPLOYEE PAGE
+   ========================================================= */
+
+.add-employee-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 28px 40px;
+  box-sizing: border-box;
+}
+
+/* ---------------------------------------------------------
+   TOP / BACK BUTTON
+   --------------------------------------------------------- */
+
+.add-employee-page__top {
+  margin-bottom: 18px;
+}
+
+.add-employee-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  border: none;
+  background: transparent;
+
+  padding: 5px 0;
+
+  color: #5d6872;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.add-employee-page__back svg {
+  width: 15px;
+  height: 15px;
+}
+
+.add-employee-page__back:hover {
+  color: #0f3d3e;
+  transform: translateX(-2px);
+}
+
+/* ---------------------------------------------------------
+   PAGE HEADING
+   --------------------------------------------------------- */
+
+.add-employee-page__heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  margin-bottom: 24px;
+}
+
+.add-employee-page__icon {
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #e7f6f2;
+  color: #0ba37f;
+
+  border: 1px solid #d4eee7;
+
+  box-shadow:
+    0 4px 12px rgba(15, 61, 62, 0.06);
+}
+
+.add-employee-page__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.add-employee-page__heading h1 {
+  margin: 0 0 4px;
+
+  color: #1a1f24;
+
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.add-employee-page__heading p {
+  margin: 0;
+
+  color: #7a858e;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------
+   FORM CONTAINER
+   --------------------------------------------------------- */
+
+.add-employee-page .employee-form {
+  width: 100%;
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .add-employee-page {
+    padding: 20px 20px 32px;
+  }
+
+  .add-employee-page__heading {
+    margin-bottom: 20px;
+  }
+
+  .add-employee-page__heading h1 {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .add-employee-page {
+    padding: 16px 14px 28px;
+  }
+
+  .add-employee-page__top {
+    margin-bottom: 14px;
+  }
+
+  .add-employee-page__heading {
+    align-items: flex-start;
+    gap: 11px;
+
+    margin-bottom: 18px;
+  }
+
+  .add-employee-page__icon {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    border-radius: 10px;
+  }
+
+  .add-employee-page__icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .add-employee-page__heading h1 {
+    font-size: 20px;
+  }
+
+  .add-employee-page__heading p {
+    font-size: 11px;
+  }
+}
