@@ -20,6 +20,22 @@ const CompanySetupGuard = () => {
     let mounted = true;
 
     const checkCompany = async () => {
+      // If user is already identified as an employee or member, they belong to an existing company
+      const storedUser = (() => {
+        try {
+          return JSON.parse(localStorage.getItem("user") || "{}");
+        } catch {
+          return {};
+        }
+      })();
+
+      const role = String(storedUser.role || "").toUpperCase();
+      const isEmployee =
+        role === "MEMBER" ||
+        role === "EMPLOYEE" ||
+        role.includes("MEMBER") ||
+        role.includes("EMPLOYEE");
+
       try {
         await getCompany();
 
@@ -27,16 +43,14 @@ const CompanySetupGuard = () => {
           setCompanyExists(true);
         }
       } catch (err) {
-        console.error(
-          "Company setup check failed:",
-          err
-        );
-
-        const status =
-          err?.response?.status;
+        console.error("Company setup check failed:", err);
+        const status = err?.response?.status;
 
         if (mounted) {
-          if (status === 404) {
+          if (isEmployee) {
+            // Employees should never be forced to set up a company
+            setCompanyExists(true);
+          } else if (status === 404) {
             setCompanyExists(false);
           } else if (status === 401) {
             // Token expired or invalid — clear auth state and redirect to login
@@ -46,10 +60,6 @@ const CompanySetupGuard = () => {
             localStorage.removeItem("ignite_authenticated");
             window.location.href = "/login";
           } else {
-            /*
-             * Don't treat server/network errors as
-             * "company not setup".
-             */
             setError(true);
           }
         }

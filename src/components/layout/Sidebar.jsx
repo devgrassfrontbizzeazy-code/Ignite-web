@@ -113,24 +113,73 @@ const ChevronIcon = () => (
 );
 
 /* ==========================================================================
-   Navigation
+   Navigation Items & Permission Definitions
    ========================================================================== */
 
 const NAV_ITEMS = [
-  { label: "Dashboard", path: "/dashboard", icon: DashboardIcon },
+  {
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: DashboardIcon,
+    isPublic: true,
+  },
+  {
+    label: "Attendance",
+    path: "/attendance",
+    icon: AttendanceIcon,
+    isEmployeeDefault: true,
+    permission: "view_attendance",
+  },
+  {
+    label: "Leaves",
+    path: "/leaves",
+    icon: LeavesIcon,
+    isEmployeeDefault: true,
+    permission: "view_leave",
+  },
+  {
+    label: "Holidays",
+    path: "/holidays",
+    icon: HolidaysIcon,
+    isEmployeeDefault: true,
+    permission: "view_holiday",
+  },
   {
     label: "Organization Setup",
     path: "/organization-setup",
     icon: OrganizationIcon,
+    adminOnly: true,
   },
-  { label: "Departments", path: "/departments", icon: DepartmentsIcon },
-  { label: "Designations", path: "/designations", icon: DesignationsIcon },
-  // { label: "Roles & Permissions", path: "/roles-permissions", icon: RolesIcon },
-  { label: "Employees", path: "/employees", icon: EmployeesIcon },
-  { label: "Attendance", path: "/attendance", icon: AttendanceIcon },
-  { label: "Leaves", path: "/leaves", icon: LeavesIcon },
-  { label: "Holidays", path: "/holidays", icon: HolidaysIcon },
-  { label: "Settings", path: "/settings", icon: SettingsIcon },
+  {
+    label: "Departments",
+    path: "/departments",
+    icon: DepartmentsIcon,
+    permission: "view_department",
+  },
+  {
+    label: "Designations",
+    path: "/designations",
+    icon: DesignationsIcon,
+    permission: "view_designation",
+  },
+  {
+    label: "Employees",
+    path: "/employees",
+    icon: EmployeesIcon,
+    permission: "view_user",
+  },
+  {
+    label: "Roles & Permissions",
+    path: "/roles-permissions",
+    icon: RolesIcon,
+    adminOnly: true,
+  },
+  {
+    label: "Settings",
+    path: "/settings",
+    icon: SettingsIcon,
+    adminOnly: true,
+  },
 ];
 
 function getInitials(name) {
@@ -145,7 +194,7 @@ function getInitials(name) {
 }
 
 /* ==========================================================================
-   Sidebar
+   Sidebar Component
    ========================================================================== */
 
 export default function Sidebar({
@@ -155,6 +204,59 @@ export default function Sidebar({
   defaultCollapsed = false,
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
+  // Read current logged-in user profile & permissions from localStorage
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
+    }
+  })();
+
+  const rawRole = String(user.role || userRole || "").toUpperCase();
+  const isAdminOrOwner =
+    rawRole === "OWNER" ||
+    rawRole === "ADMIN" ||
+    rawRole === "ADMINISTRATOR" ||
+    user.is_superuser === true;
+
+  const userPermissions = Array.isArray(user.permissions)
+    ? user.permissions
+    : [];
+
+  // Dynamically filter nav items based on user role and permissions
+  const filteredNavItems = NAV_ITEMS.filter((item) => {
+    // 1. Admin/Owner or wildcard has full access
+    if (isAdminOrOwner || userPermissions.includes("*")) {
+      return true;
+    }
+
+    // 2. Admin-only modules are strictly hidden from regular members/employees
+    if (item.adminOnly) {
+      return false;
+    }
+
+    // 3. In-built employee features (Dashboard, Attendance, Leaves, Holidays)
+    if (item.isPublic || item.isEmployeeDefault) {
+      return true;
+    }
+
+    // 4. Explicit permissions granted via Designation / Role
+    if (item.permission) {
+      const p = item.permission;
+      return (
+        userPermissions.includes(p) ||
+        userPermissions.includes(`auth.${p}`) ||
+        userPermissions.includes(`department.${p}`) ||
+        userPermissions.includes(`designation.${p}`) ||
+        userPermissions.includes(`attendance.${p}`) ||
+        userPermissions.includes(`leave.${p}`)
+      );
+    }
+
+    return false;
+  });
 
   return (
     <aside
@@ -180,7 +282,7 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="sidebar__nav">
-        {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
+        {filteredNavItems.map(({ label, path, icon: Icon }) => (
           <NavLink
             key={path}
             to={path}
@@ -198,7 +300,6 @@ export default function Sidebar({
         ))}
       </nav>
 
-      {/* Footer */}
       {/* Footer */}
       <div className="sidebar__footer">
         <p className="sidebar__company">{companyName}</p>

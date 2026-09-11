@@ -4,6 +4,7 @@ import {
   FiMoreVertical,
   FiEye,
   FiEdit2,
+  FiSend,
   FiPower,
   FiSlash,
   FiLogOut,
@@ -15,6 +16,7 @@ const EmployeeRowActions = ({
   employee,
   onView,
   onEdit,
+  onResendInvite,
   onToggleStatus,
   onTerminate,
   onResign,
@@ -31,42 +33,30 @@ const EmployeeRowActions = ({
   const triggerRef = useRef(null);
 
   const isActive = employee.employment_status === "ACTIVE";
+  const isPendingInvite =
+    employee.invitation_status === "PENDING" ||
+    employee.invitation_status === "SENT";
 
   const calculatePosition = () => {
     if (!triggerRef.current) return;
 
-    const triggerRect =
-      triggerRef.current.getBoundingClientRect();
-
-    const menuWidth = 165;
-    const menuHeight = isActive ? 225 : 165;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuWidth = 175;
+    const menuHeight = isActive ? 260 : 200;
     const gap = 7;
 
-    const spaceBelow =
-      window.innerHeight - triggerRect.bottom;
-
+    const spaceBelow = window.innerHeight - triggerRect.bottom;
     const spaceAbove = triggerRect.top;
 
     const shouldOpenUp =
       spaceBelow < menuHeight && spaceAbove > spaceBelow;
 
-    let top;
+    let top = shouldOpenUp
+      ? triggerRect.top - menuHeight - gap
+      : triggerRect.bottom + gap;
 
-    if (shouldOpenUp) {
-      top = triggerRect.top - menuHeight - gap;
-    } else {
-      top = triggerRect.bottom + gap;
-    }
-
-    /*
-     * Keep menu inside viewport horizontally.
-     */
     let left = triggerRect.right - menuWidth;
-
-    if (left < 8) {
-      left = 8;
-    }
-
+    if (left < 8) left = 8;
     if (left + menuWidth > window.innerWidth - 8) {
       left = window.innerWidth - menuWidth - 8;
     }
@@ -83,13 +73,8 @@ const EmployeeRowActions = ({
 
     calculatePosition();
 
-    const handleResize = () => {
-      calculatePosition();
-    };
-
-    const handleScroll = () => {
-      calculatePosition();
-    };
+    const handleResize = () => calculatePosition();
+    const handleScroll = () => calculatePosition();
 
     window.addEventListener("resize", handleResize);
     window.addEventListener("scroll", handleScroll, true);
@@ -104,41 +89,27 @@ const EmployeeRowActions = ({
     if (!open) return;
 
     const handleOutsideClick = (event) => {
-      const clickedTrigger =
-        triggerRef.current?.contains(event.target);
-
-      const clickedMenu =
-        menuRef.current?.contains(event.target);
+      const clickedTrigger = triggerRef.current?.contains(event.target);
+      const clickedMenu = menuRef.current?.contains(event.target);
 
       if (!clickedTrigger && !clickedMenu) {
         setOpen(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleOutsideClick
-    );
-
+    document.addEventListener("mousedown", handleOutsideClick);
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleOutsideClick
-      );
+      document.removeEventListener("mousedown", handleOutsideClick);
     };
   }, [open]);
 
   const handleToggle = () => {
-    if (!open) {
-      calculatePosition();
-    }
-
+    if (!open) calculatePosition();
     setOpen((prev) => !prev);
   };
 
   const handleAction = (action) => {
     setOpen(false);
-
     if (typeof action === "function") {
       action(employee);
     }
@@ -154,30 +125,32 @@ const EmployeeRowActions = ({
             left: `${position.left}px`,
           }}
         >
-          <button
-            type="button"
-            onClick={() => handleAction(onView)}
-          >
+          <button type="button" onClick={() => handleAction(onView)}>
             <FiEye />
-            <span>View</span>
+            <span>View Details</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleAction(onEdit)}
-          >
+          <button type="button" onClick={() => handleAction(onEdit)}>
             <FiEdit2 />
-            <span>Edit</span>
+            <span>Edit Profile</span>
           </button>
+
+          {isPendingInvite && onResendInvite && (
+            <button
+              type="button"
+              onClick={() => handleAction(onResendInvite)}
+            >
+              <FiSend />
+              <span>Resend Invite</span>
+            </button>
+          )}
 
           <button
             type="button"
             onClick={() => handleAction(onToggleStatus)}
           >
             <FiPower />
-            <span>
-              {isActive ? "Deactivate" : "Activate"}
-            </span>
+            <span>{isActive ? "Deactivate" : "Activate"}</span>
           </button>
 
           {isActive && (
@@ -185,9 +158,7 @@ const EmployeeRowActions = ({
               <button
                 type="button"
                 className="employee-row-actions__danger"
-                onClick={() =>
-                  handleAction(onTerminate)
-                }
+                onClick={() => handleAction(onTerminate)}
               >
                 <FiSlash />
                 <span>Terminate</span>
@@ -225,9 +196,7 @@ const EmployeeRowActions = ({
           ref={triggerRef}
           type="button"
           className={`employee-row-actions__trigger ${
-            open
-              ? "employee-row-actions__trigger--active"
-              : ""
+            open ? "employee-row-actions__trigger--active" : ""
           }`}
           onClick={handleToggle}
           title="Employee actions"

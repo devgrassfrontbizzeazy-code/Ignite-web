@@ -16,29 +16,22 @@ import "./Employees.css";
 const formatEmployeeName = (employee) =>
   [employee.first_name, employee.middle_name, employee.last_name]
     .filter(Boolean)
-    .join(" ");
+    .join(" ") || employee.full_name || "Employee";
 
 const Employees = () => {
   const navigate = useNavigate();
 
   /*
-   * ============================================================
    * EMPLOYEE DATA
-   * ============================================================
    */
-
   const [employees, setEmployees] = useState([]);
-
   const [loading, setLoading] = useState(true);
+  const [feedbackMessage, setFeedbackMessage] = useState({ type: "", text: "" });
 
   /*
-   * ============================================================
    * SEARCH & FILTERS
-   * ============================================================
    */
-
   const [search, setSearch] = useState("");
-
   const [filters, setFilters] = useState({
     department: "all",
     designation: "all",
@@ -49,32 +42,30 @@ const Employees = () => {
   });
 
   /*
-   * ============================================================
-   * EMPLOYEE DETAILS
-   * ============================================================
+   * EMPLOYEE DETAILS MODAL
    */
-
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-
   const [showDetails, setShowDetails] = useState(false);
 
-  /*
-   * ============================================================
-   * LOAD EMPLOYEES
-   * ============================================================
-   */
+  const showNotification = (type, text) => {
+    setFeedbackMessage({ type, text });
+    setTimeout(() => {
+      setFeedbackMessage({ type: "", text: "" });
+    }, 4500);
+  };
 
-  const loadEmployees = () => {
+  /*
+   * LOAD EMPLOYEES FROM API
+   */
+  const loadEmployees = async () => {
     try {
       setLoading(true);
-
-      const data = employeeService.getAll();
-
-      setEmployees(data);
+      const data = await employeeService.getAll();
+      setEmployees(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to load employees:", error);
-
       setEmployees([]);
+      showNotification("error", "Failed to load employees from server.");
     } finally {
       setLoading(false);
     }
@@ -85,11 +76,8 @@ const Employees = () => {
   }, []);
 
   /*
-   * ============================================================
    * FILTERED EMPLOYEES
-   * ============================================================
    */
-
   const filteredEmployees = useMemo(() => {
     const searchValue = search.trim().toLowerCase();
 
@@ -141,35 +129,26 @@ const Employees = () => {
   }, [employees, search, filters]);
 
   /*
-   * ============================================================
    * EMPLOYEE STATS
-   * ============================================================
    */
-
   const stats = useMemo(() => {
     return {
       total: employees.length,
-
       active: employees.filter(
-        (employee) => employee.employment_status === "ACTIVE",
+        (employee) => employee.employment_status === "ACTIVE"
       ).length,
-
       inactive: employees.filter(
-        (employee) => employee.employment_status === "INACTIVE",
+        (employee) => employee.employment_status === "INACTIVE"
       ).length,
-
       contract: employees.filter(
-        (employee) => employee.employment_type === "CONTRACT",
+        (employee) => employee.employment_type === "CONTRACT"
       ).length,
     };
   }, [employees]);
 
   /*
-   * ============================================================
    * FILTER HANDLERS
-   * ============================================================
    */
-
   const handleFilterChange = (name, value) => {
     setFilters((previous) => ({
       ...previous,
@@ -179,7 +158,6 @@ const Employees = () => {
 
   const handleResetFilters = () => {
     setSearch("");
-
     setFilters({
       department: "all",
       designation: "all",
@@ -191,205 +169,181 @@ const Employees = () => {
   };
 
   /*
-   * ============================================================
    * VIEW EMPLOYEE
-   * ============================================================
    */
-
   const handleViewEmployee = (employee) => {
     setSelectedEmployee(employee);
     setShowDetails(true);
   };
 
   /*
-   * ============================================================
    * EDIT EMPLOYEE
-   * ============================================================
    */
-
   const handleEditEmployee = (employee) => {
     navigate(`/employees/${employee.id}/edit`);
   };
 
   /*
-   * ============================================================
-   * ACTIVATE / DEACTIVATE
-   * ============================================================
+   * RESEND INVITATION EMAIL
    */
+  const handleResendInvite = async (employee) => {
+    try {
+      await employeeService.resendInvite(employee.id);
+      showNotification(
+        "success",
+        `Invitation email resent successfully to ${employee.email}!`
+      );
+    } catch (error) {
+      console.error("Failed to resend invitation:", error);
+      showNotification(
+        "error",
+        error.response?.data?.message || "Failed to resend invitation email."
+      );
+    }
+  };
 
-  const handleToggleStatus = (employee) => {
+  /*
+   * ACTIVATE / DEACTIVATE
+   */
+  const handleToggleStatus = async (employee) => {
     const isActive = employee.employment_status === "ACTIVE";
-
     const nextStatus = isActive ? "INACTIVE" : "ACTIVE";
-
     const actionText = isActive ? "deactivate" : "activate";
 
     const confirmed = window.confirm(
-      `Are you sure you want to ${actionText} ${formatEmployeeName(employee)}?`,
+      `Are you sure you want to ${actionText} ${formatEmployeeName(employee)}?`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
-      employeeService.changeStatus(employee.id, nextStatus);
+      await employeeService.changeStatus(employee.id, nextStatus);
+      showNotification("success", `Employee status updated to ${nextStatus}.`);
+      await loadEmployees();
 
-      loadEmployees();
-
-      /*
-       * Keep details modal synchronized
-       * if the same employee is currently open.
-       */
       if (selectedEmployee?.id === employee.id) {
-        const updated = employeeService.getById(employee.id);
-
+        const updated = await employeeService.getById(employee.id);
         setSelectedEmployee(updated);
       }
     } catch (error) {
       console.error("Failed to change employee status:", error);
-
-      window.alert("Unable to update employee status.");
+      showNotification(
+        "error",
+        error.response?.data?.message || "Unable to update employee status."
+      );
     }
   };
 
   /*
-   * ============================================================
    * TERMINATE EMPLOYEE
-   * ============================================================
    */
-
-  const handleTerminateEmployee = (employee) => {
+  const handleTerminateEmployee = async (employee) => {
     const confirmed = window.confirm(
-      `Are you sure you want to terminate ${formatEmployeeName(employee)}?`,
+      `Are you sure you want to terminate ${formatEmployeeName(employee)}?`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
-      employeeService.terminate(employee.id);
-
-      loadEmployees();
-
+      await employeeService.terminate(employee.id);
+      showNotification("success", `Employee has been marked as Terminated.`);
+      await loadEmployees();
       setShowDetails(false);
       setSelectedEmployee(null);
     } catch (error) {
       console.error("Failed to terminate employee:", error);
-
-      window.alert("Unable to terminate employee.");
+      showNotification(
+        "error",
+        error.response?.data?.message || "Unable to terminate employee."
+      );
     }
   };
 
   /*
-   * ============================================================
    * RESIGN EMPLOYEE
-   * ============================================================
    */
-
-  const handleResignEmployee = (employee) => {
+  const handleResignEmployee = async (employee) => {
     const confirmed = window.confirm(
-      `Are you sure you want to mark ${formatEmployeeName(
-        employee,
-      )} as resigned?`,
+      `Are you sure you want to mark ${formatEmployeeName(employee)} as resigned?`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
-      employeeService.resign(employee.id);
-
-      loadEmployees();
-
+      await employeeService.resign(employee.id);
+      showNotification("success", `Employee has been marked as Resigned.`);
+      await loadEmployees();
       setShowDetails(false);
       setSelectedEmployee(null);
     } catch (error) {
       console.error("Failed to resign employee:", error);
-
-      window.alert("Unable to update employee.");
+      showNotification(
+        "error",
+        error.response?.data?.message || "Unable to update employee."
+      );
     }
   };
 
   /*
-   * ============================================================
    * SOFT DELETE EMPLOYEE
-   * ============================================================
    */
-
-  const handleDeleteEmployee = (employee) => {
+  const handleDeleteEmployee = async (employee) => {
     const confirmed = window.confirm(
       `Are you sure you want to delete ${formatEmployeeName(
-        employee,
-      )}? This employee will be removed from the active directory.`,
+        employee
+      )}? This employee will be removed from the active directory.`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
-      employeeService.delete(employee.id);
-
-      loadEmployees();
-
+      await employeeService.delete(employee.id);
+      showNotification("success", `Employee deleted successfully.`);
+      await loadEmployees();
       setShowDetails(false);
       setSelectedEmployee(null);
     } catch (error) {
       console.error("Failed to delete employee:", error);
-
-      window.alert("Unable to delete employee.");
+      showNotification(
+        "error",
+        error.response?.data?.message || "Unable to delete employee."
+      );
     }
   };
 
   /*
-   * ============================================================
    * ADD EMPLOYEE
-   * ============================================================
    */
-
   const handleAddEmployee = () => {
     navigate("/employees/add");
   };
 
   /*
-   * ============================================================
    * CLOSE DETAILS
-   * ============================================================
    */
-
   const handleCloseDetails = () => {
     setShowDetails(false);
     setSelectedEmployee(null);
   };
 
   /*
-   * ============================================================
    * LOADING STATE
-   * ============================================================
    */
-
-  if (loading) {
+  if (loading && employees.length === 0) {
     return (
       <div className="employees-page">
         <PageHeader
           title="Employees"
           description="Manage employees, organization assignments and employee access."
         />
-
-        <div className="employees-page__loading">Loading employees...</div>
+        <div className="employees-page__loading">Loading employees from server...</div>
       </div>
     );
   }
 
   /*
-   * ============================================================
-   * PAGE
-   * ============================================================
+   * PAGE RENDER
    */
-
   return (
     <div className="employees-page">
       <PageHeader
@@ -401,6 +355,26 @@ const Employees = () => {
           </Button>
         }
       />
+
+      {feedbackMessage.text && (
+        <div
+          style={{
+            padding: "12px 18px",
+            borderRadius: "8px",
+            marginBottom: "18px",
+            fontWeight: "500",
+            fontSize: "14px",
+            backgroundColor:
+              feedbackMessage.type === "success" ? "#ecfdf5" : "#fef2f2",
+            color: feedbackMessage.type === "success" ? "#065f46" : "#b91c1c",
+            border: `1px solid ${
+              feedbackMessage.type === "success" ? "#a7f3d0" : "#fecaca"
+            }`,
+          }}
+        >
+          {feedbackMessage.text}
+        </div>
+      )}
 
       <EmployeeStats stats={stats} />
 
@@ -417,6 +391,7 @@ const Employees = () => {
         employees={filteredEmployees}
         onView={handleViewEmployee}
         onEdit={handleEditEmployee}
+        onResendInvite={handleResendInvite}
         onToggleStatus={handleToggleStatus}
         onTerminate={handleTerminateEmployee}
         onResign={handleResignEmployee}
@@ -427,6 +402,7 @@ const Employees = () => {
         open={showDetails}
         employee={selectedEmployee}
         onClose={handleCloseDetails}
+        onResendInvite={handleResendInvite}
       />
     </div>
   );

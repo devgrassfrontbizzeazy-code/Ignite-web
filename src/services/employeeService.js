@@ -1,230 +1,229 @@
-import { employeeMockData } from "../data/employeeMockData";
+import {
+  getEmployees,
+  getEmployee,
+  createEmployee,
+  updateEmployee,
+  patchEmployee,
+  deleteEmployee,
+  resendEmployeeInvite,
+  getEmployeeOptions,
+  getEmployeeManagers,
+  getInvitationDetails,
+  sendInvitationOTP,
+  verifyInvitationOTP,
+  acceptInvitation,
+} from "./api/employeeAPI";
 
-const STORAGE_KEY = "ignite_employees";
-
-/*
- * Load employees from localStorage.
- * If no data exists yet, initialize it from employeeMockData.
- */
-const getStoredEmployees = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-
-    if (stored) {
-      return JSON.parse(stored);
-    }
-
-    const initialData = [...employeeMockData];
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(initialData)
-    );
-
-    return initialData;
-  } catch (error) {
-    console.error(
-      "Failed to load employees:",
-      error
-    );
-
-    return [...employeeMockData];
-  }
+const extractData = (response) => {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response.data)) return response.data;
+  if (Array.isArray(response.results)) return response.results;
+  if (response.data && typeof response.data === "object") return response.data;
+  return response;
 };
 
-/*
- * Save complete employee collection.
- */
-const saveEmployees = (employees) => {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(employees)
-  );
-};
-
-/*
- * Generate temporary frontend ID.
- * Backend will eventually generate the real ID.
- */
-const generateId = () => {
-  return `emp-${Date.now()}-${Math.random()
-    .toString(36)
-    .substring(2, 8)}`;
+const normalizeEmployee = (emp) => {
+  if (!emp) return null;
+  return {
+    ...emp,
+    id: emp.id,
+    first_name: emp.first_name || emp.firstName || "",
+    middle_name: emp.middle_name || emp.middleName || "",
+    last_name: emp.last_name || emp.lastName || "",
+    employee_code: emp.employee_code || emp.employeeCode || "",
+    email: emp.email || "",
+    phone: emp.phone || "",
+    date_of_birth: emp.date_of_birth || emp.dateOfBirth || "",
+    date_of_joining: emp.date_of_joining || emp.dateOfJoining || "",
+    gender: emp.gender || "",
+    address: emp.address || "",
+    work_location: emp.work_location || emp.workLocation || "",
+    employment_type: emp.employment_type || emp.employmentType || "Full Time",
+    employment_status: emp.employment_status || emp.employmentStatus || "Active",
+    department_id:
+      emp.department_id ||
+      (typeof emp.department === "object" ? emp.department?.id : emp.department) ||
+      "",
+    department_name:
+      emp.department_name ||
+      (typeof emp.department === "object" ? emp.department?.name : "") ||
+      "",
+    designation_id:
+      emp.designation_id ||
+      (typeof emp.designation === "object" ? emp.designation?.id : emp.designation) ||
+      "",
+    designation_name:
+      emp.designation_name ||
+      (typeof emp.designation === "object" ? emp.designation?.name : "") ||
+      "",
+    reporting_manager_id:
+      emp.reporting_manager_id ||
+      (typeof emp.reporting_manager === "object"
+        ? emp.reporting_manager?.id
+        : typeof emp.reportingManager === "object"
+        ? emp.reportingManager?.id
+        : emp.reporting_manager) ||
+      "",
+    reporting_manager_name:
+      emp.reporting_manager_name ||
+      (typeof emp.reporting_manager === "object"
+        ? emp.reporting_manager?.full_name || emp.reporting_manager?.name
+        : typeof emp.reportingManager === "object"
+        ? emp.reportingManager?.full_name || emp.reportingManager?.name
+        : "") ||
+      "",
+    emergency_contact_name:
+      emp.emergency_contact_name ||
+      emp.emergencyContactName ||
+      emp.emergencyContact?.name ||
+      emp.emergency_contact?.name ||
+      "",
+    emergency_contact_phone:
+      emp.emergency_contact_phone ||
+      emp.emergencyContactPhone ||
+      emp.emergencyContact?.phone ||
+      emp.emergency_contact?.phone ||
+      "",
+    profile_photo_url:
+      emp.profile_photo_url ||
+      emp.photoUrl ||
+      (typeof emp.profilePhoto === "object" ? emp.profilePhoto?.url : null) ||
+      "",
+    invitation_status: emp.invitation_status || emp.invitationStatus || "PENDING",
+    is_active: emp.is_active !== undefined ? emp.is_active : true,
+  };
 };
 
 const employeeService = {
   /*
    * GET ALL EMPLOYEES
-   *
-   * Returns only employees that have not been
-   * soft deleted.
    */
-  getAll() {
-    return getStoredEmployees().filter(
-      (employee) => !employee.deleted_at
-    );
+  async getAll(params = {}) {
+    const res = await getEmployees(params);
+    const list = extractData(res);
+    return Array.isArray(list) ? list.map(normalizeEmployee) : [];
   },
 
   /*
    * GET EMPLOYEE BY ID
    */
-  getById(id) {
-    const employees = getStoredEmployees();
-
-    return (
-      employees.find(
-        (employee) =>
-          String(employee.id) === String(id) &&
-          !employee.deleted_at
-      ) || null
-    );
+  async getById(id) {
+    const res = await getEmployee(id);
+    const data = res?.data || res;
+    return normalizeEmployee(data);
   },
 
   /*
    * CREATE EMPLOYEE
    */
-  create(data) {
-    const employees = getStoredEmployees();
-
-    const now = new Date().toISOString();
-
-    const newEmployee = {
-      ...data,
-
-      id: generateId(),
-
-      company_id:
-        data.company_id || "company-001",
-
-      created_at: now,
-      updated_at: now,
-
-      deleted_at: null,
-    };
-
-    const updatedEmployees = [
-      ...employees,
-      newEmployee,
-    ];
-
-    saveEmployees(updatedEmployees);
-
-    return newEmployee;
+  async create(data) {
+    const res = await createEmployee(data);
+    const newEmp = res?.data || res;
+    return normalizeEmployee(newEmp);
   },
 
   /*
    * UPDATE EMPLOYEE
    */
-  update(id, data) {
-    const employees = getStoredEmployees();
-
-    const index = employees.findIndex(
-      (employee) =>
-        String(employee.id) === String(id) &&
-        !employee.deleted_at
-    );
-
-    if (index === -1) {
-      throw new Error("Employee not found");
-    }
-
-    const updatedEmployee = {
-      ...employees[index],
-      ...data,
-
-      // Never allow these to change during edit.
-      id: employees[index].id,
-      company_id: employees[index].company_id,
-
-      updated_at: new Date().toISOString(),
-    };
-
-    employees[index] = updatedEmployee;
-
-    saveEmployees(employees);
-
-    return updatedEmployee;
+  async update(id, data) {
+    const res = await updateEmployee(id, data);
+    const updated = res?.data || res;
+    return normalizeEmployee(updated);
   },
 
   /*
-   * SOFT DELETE EMPLOYEE
+   * PARTIAL UPDATE EMPLOYEE
    */
-  delete(id) {
-    const employees = getStoredEmployees();
-
-    const index = employees.findIndex(
-      (employee) =>
-        String(employee.id) === String(id) &&
-        !employee.deleted_at
-    );
-
-    if (index === -1) {
-      throw new Error("Employee not found");
-    }
-
-    const now = new Date().toISOString();
-
-    employees[index] = {
-      ...employees[index],
-      deleted_at: now,
-      updated_at: now,
-    };
-
-    saveEmployees(employees);
-
-    return true;
+  async patch(id, data) {
+    const res = await patchEmployee(id, data);
+    const updated = res?.data || res;
+    return normalizeEmployee(updated);
   },
 
   /*
-   * ACTIVATE / DEACTIVATE
+   * DELETE EMPLOYEE (Soft delete)
    */
-  changeStatus(id, status) {
-    return this.update(id, {
-      employment_status: status,
+  async delete(id) {
+    const res = await deleteEmployee(id);
+    return res;
+  },
+
+  /*
+   * RESEND INVITATION EMAIL
+   */
+  async resendInvite(id) {
+    const res = await resendEmployeeInvite(id);
+    return res;
+  },
+
+  /*
+   * CHANGE STATUS (Active / Inactive)
+   */
+  async changeStatus(id, status) {
+    const isAct = String(status).toUpperCase() === "ACTIVE";
+    return this.patch(id, {
+      employment_status: isAct ? "Active" : "Inactive",
+      is_active: isAct,
     });
   },
 
   /*
    * TERMINATE EMPLOYEE
    */
-  terminate(id, dateOfExit = null) {
-    return this.update(id, {
-      employment_status: "TERMINATED",
-
-      date_of_exit:
-        dateOfExit ||
-        new Date()
-          .toISOString()
-          .split("T")[0],
+  async terminate(id, dateOfExit = null) {
+    return this.patch(id, {
+      employment_status: "Terminated",
+      is_active: false,
+      date_of_exit: dateOfExit || new Date().toISOString().split("T")[0],
     });
   },
 
   /*
    * RESIGN EMPLOYEE
    */
-  resign(id, dateOfExit = null) {
-    return this.update(id, {
-      employment_status: "RESIGNED",
-
-      date_of_exit:
-        dateOfExit ||
-        new Date()
-          .toISOString()
-          .split("T")[0],
+  async resign(id, dateOfExit = null) {
+    return this.patch(id, {
+      employment_status: "Inactive",
+      is_active: false,
+      date_of_exit: dateOfExit || new Date().toISOString().split("T")[0],
     });
   },
 
   /*
-   * RESET FRONTEND DATA
-   *
-   * Useful during development/testing.
+   * FORM OPTIONS (Departments, Designations, Managers, Genders, etc.)
    */
-  reset() {
-    const freshData = [...employeeMockData];
+  async getOptions() {
+    const res = await getEmployeeOptions();
+    return res?.data || res;
+  },
 
-    saveEmployees(freshData);
+  /*
+   * MANAGERS LIST
+   */
+  async getManagers() {
+    const res = await getEmployeeManagers();
+    const list = extractData(res);
+    return Array.isArray(list) ? list : [];
+  },
 
-    return freshData;
+  /*
+   * INVITATION WORKFLOW
+   */
+  async getInviteDetails(token) {
+    return getInvitationDetails(token);
+  },
+
+  async sendOTP(token, email) {
+    return sendInvitationOTP(token, email);
+  },
+
+  async verifyOTP(token, email, otp) {
+    return verifyInvitationOTP(token, email, otp);
+  },
+
+  async acceptInvite(payload) {
+    return acceptInvitation(payload);
   },
 };
 

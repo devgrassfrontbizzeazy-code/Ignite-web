@@ -9,7 +9,11 @@ import { loginUser } from "../../../services/api/authAPI";
 import { getCompany } from "../../../services/api/companyAPI";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const [email, setEmail] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("email") || "";
+  });
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -18,7 +22,6 @@ const Login = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-  const location = useLocation();
 
   const getErrorMessage = (err) => {
     const data = err?.response?.data;
@@ -112,8 +115,24 @@ const Login = () => {
       );
 
       // ------------------------------------------
-      // CHECK COMPANY SETUP
+      // CHECK ROLE & COMPANY SETUP
       // ------------------------------------------
+
+      const role = String(user?.role || "").toUpperCase();
+      const isEmployee =
+        role === "MEMBER" ||
+        role === "EMPLOYEE" ||
+        role.includes("MEMBER") ||
+        role.includes("EMPLOYEE");
+
+      if (isEmployee) {
+        // Employees belong to an existing company — send directly to Dashboard
+        const from = location.state?.from;
+        navigate(from || "/dashboard", {
+          replace: true,
+        });
+        return;
+      }
 
       try {
         const companyResponse = await getCompany();
@@ -125,7 +144,6 @@ const Login = () => {
 
         /*
          * Company exists.
-         *
          * User has already completed company setup,
          * so take them directly to the application.
          */
@@ -145,10 +163,8 @@ const Login = () => {
           companyError?.response?.status;
 
         /*
-         * 404 means the authenticated user does not
-         * have a company record yet.
-         *
-         * Therefore they must complete company setup.
+         * 404 means the authenticated organization admin
+         * has not configured their company profile yet.
          */
 
         if (status === 404) {

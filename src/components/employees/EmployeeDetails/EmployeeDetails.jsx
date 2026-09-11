@@ -1,12 +1,12 @@
 import Modal from "../../common/Modal/Modal";
 import Button from "../../common/Button/Button";
-
+import { FiSend } from "react-icons/fi";
 import "./EmployeeDetails.css";
 
 const formatName = (employee) =>
   [employee?.first_name, employee?.middle_name, employee?.last_name]
     .filter(Boolean)
-    .join(" ");
+    .join(" ") || employee?.full_name || "—";
 
 const formatDate = (date) => {
   if (!date) return "—";
@@ -47,43 +47,93 @@ const InfoItem = ({ label, value }) => (
   </div>
 );
 
-const EmployeeDetails = ({ open, employee, onClose }) => {
+const EmployeeDetails = ({ open, employee, onClose, onResendInvite }) => {
   if (!employee) return null;
 
   const fullName = formatName(employee);
+  const initials =
+    `${employee.first_name?.[0] || ""}${employee.last_name?.[0] || ""}`.toUpperCase() ||
+    "EM";
+  const isAccepted = employee.invitation_status === "ACCEPTED";
 
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Employee Details"
-      description="View employee information and inherited access."
+      description="View employee personal info, organization details and access hierarchy."
       size="large"
       footer={
-        <Button variant="secondary" onClick={onClose}>
-          Close
-        </Button>
+        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", width: "100%" }}>
+          {!isAccepted && onResendInvite && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                onResendInvite(employee);
+              }}
+            >
+              <FiSend /> Resend Invite Email
+            </Button>
+          )}
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       }
     >
       <div className="employee-details">
         <div className="employee-details__header">
-          <div className="employee-details__avatar">
-            {employee.first_name?.charAt(0)}
-            {employee.last_name?.charAt(0)}
+          <div
+            className="employee-details__avatar"
+            style={{
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            {employee.profile_photo_url ? (
+              <img
+                src={employee.profile_photo_url}
+                alt={fullName}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              initials
+            )}
           </div>
 
           <div className="employee-details__header-info">
             <h2>{fullName}</h2>
 
             <p>
-              {employee.employee_code} · {employee.designation_name}
+              {employee.employee_code} · {employee.designation_name || "Team Member"}
             </p>
 
-            <span
-              className={`employee-details__status employee-details__status--${employee.employment_status.toLowerCase()}`}
-            >
-              {formatStatus(employee.employment_status)}
-            </span>
+            <div style={{ display: "flex", gap: "8px", marginTop: "6px" }}>
+              <span
+                className={`employee-details__status employee-details__status--${String(
+                  employee.employment_status || ""
+                ).toLowerCase()}`}
+              >
+                {formatStatus(employee.employment_status)}
+              </span>
+
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "2px 10px",
+                  borderRadius: "12px",
+                  fontSize: "12px",
+                  fontWeight: "600",
+                  backgroundColor: isAccepted ? "#ecfdf5" : "#fef3c7",
+                  color: isAccepted ? "#065f46" : "#92400e",
+                }}
+              >
+                {isAccepted ? "Account Active" : "Invitation Pending"}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -144,7 +194,7 @@ const EmployeeDetails = ({ open, employee, onClose }) => {
         </section>
 
         <section className="employee-details__section">
-          <h3>Organization</h3>
+          <h3>Organization Hierarchy</h3>
 
           <div className="employee-details__grid">
             <InfoItem
@@ -164,7 +214,7 @@ const EmployeeDetails = ({ open, employee, onClose }) => {
 
             <InfoItem
               label="Default Role"
-              value={employee.default_role_name}
+              value={employee.default_role_name || "Member"}
             />
           </div>
         </section>
@@ -183,27 +233,27 @@ const EmployeeDetails = ({ open, employee, onClose }) => {
           <div className="employee-details__access-flow">
             <div>
               <span>Department</span>
-              <strong>{employee.department_name}</strong>
+              <strong>{employee.department_name || "—"}</strong>
             </div>
 
             <span className="employee-details__arrow">→</span>
 
             <div>
               <span>Designation</span>
-              <strong>{employee.designation_name}</strong>
+              <strong>{employee.designation_name || "—"}</strong>
             </div>
 
             <span className="employee-details__arrow">→</span>
 
             <div>
               <span>Default Role</span>
-              <strong>{employee.default_role_name}</strong>
+              <strong>{employee.default_role_name || "Member"}</strong>
             </div>
           </div>
 
           <div className="employee-details__access-note">
             Permissions and scopes are managed by the role. The employee does
-            not have a separate manual role assignment.
+            not require separate manual role configuration.
           </div>
         </section>
 

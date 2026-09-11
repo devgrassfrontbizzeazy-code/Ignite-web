@@ -11,6 +11,7 @@ import LoginPage from "./pages/auth/Login/Login";
 import ForgotPasswordPage from "./pages/auth/ForgotPassword/ForgotPassword";
 import ResetPasswordPage from "./pages/auth/ResetPassword/ResetPassword";
 import SignupPage from "./pages/auth/CreateAccount/CreateAccount";
+import AcceptInvitePage from "./pages/auth/AcceptInvite/AcceptInvite";
 
 /* Company Setup */
 import CompanyDetails from "./pages/companySetup/CompanyDetails/CompanyDetails";
@@ -27,6 +28,7 @@ import AppLayout from "./components/layout/AppLayout";
 /* Guards */
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import CompanySetupGuard from "./components/auth/CompanySetupGuard";
+import PermissionGuard from "./components/auth/PermissionGuard";
 
 /* Organization */
 import OrganizationSetup from "./pages/OrganizationSetup/OrganizationSetup";
@@ -37,27 +39,16 @@ import Employees from "./pages/employees/Employees";
 import AddEmployee from "./pages/employees/AddEmployee/AddEmployee";
 import EditEmployee from "./pages/employees/EditEmployee/EditEmployee";
 import Attendance from "./pages/attendance/Attendance";
+import Leaves from "./pages/leaves/Leaves";
 
 /* Temporary / Dashboard */
 function DashboardPreview() {
   return (
     <div style={{ padding: "32px" }}>
-      <h1>Dashboard</h1>
-
-      <p>
-        This is the dashboard content area. The Sidebar and TopNavbar are
-        provided by AppLayout.
+      <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", marginBottom: "8px" }}>Dashboard</h1>
+      <p style={{ color: "#64748b" }}>
+        Welcome to your Ignite Workspace Dashboard. Use the sidebar to navigate your attendance, leaves, and organization tools.
       </p>
-    </div>
-  );
-}
-
-function Leaves() {
-  return (
-    <div style={{ padding: "32px" }}>
-      <h1>Leaves</h1>
-
-      <p>Leaves page.</p>
     </div>
   );
 }
@@ -65,9 +56,8 @@ function Leaves() {
 function Holidays() {
   return (
     <div style={{ padding: "32px" }}>
-      <h1>Holidays</h1>
-
-      <p>Holidays page.</p>
+      <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", marginBottom: "8px" }}>Holidays</h1>
+      <p style={{ color: "#64748b" }}>Official organization holidays calendar.</p>
     </div>
   );
 }
@@ -75,9 +65,8 @@ function Holidays() {
 function Settings() {
   return (
     <div style={{ padding: "32px" }}>
-      <h1>Settings</h1>
-
-      <p>Settings page.</p>
+      <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", marginBottom: "8px" }}>Settings</h1>
+      <p style={{ color: "#64748b" }}>Organization and platform settings.</p>
     </div>
   );
 }
@@ -108,6 +97,8 @@ export default function App() {
 
             <Route path="/signup" element={<SignupPage />} />
 
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
+
             {/* =====================================
                 COMPANY SETUP
 
@@ -130,13 +121,6 @@ export default function App() {
 
               <Route path="/company-setup/review" element={<Review />} />
 
-              {/*
-               * Account Created is intentionally
-               * outside CompanySetupGuard.
-               *
-               * This allows the user to see the
-               * success page immediately after setup.
-               */}
               <Route
                 path="/company-setup/account-created"
                 element={<AccountCreated />}
@@ -164,48 +148,33 @@ export default function App() {
                     />
                   }
                 >
-                  {/* Dashboard */}
+                  {/* Inbuilt Employee Accessible Routes */}
                   <Route path="/dashboard" element={<DashboardPreview />} />
-
-                  {/* Organization */}
-                  <Route
-                    path="/organization-setup"
-                    element={<OrganizationSetup />}
-                  />
-
-                  {/* Departments */}
-                  <Route path="/departments" element={<DepartmentsPage />} />
-
-                  {/* Designations */}
-                  <Route path="/designations" element={<DesignationsPage />} />
-
-                  {/* Roles */}
-                  <Route
-                    path="/roles-permissions"
-                    element={<RolesPermissions />}
-                  />
-
-                  {/* Employees */}
-                  <Route path="/employees" element={<Employees />} />
-
-                  <Route path="/employees/add" element={<AddEmployee />} />
-
-                  <Route
-                    path="/employees/:id/edit"
-                    element={<EditEmployee />}
-                  />
-
-                  {/* Attendance */}
                   <Route path="/attendance" element={<Attendance />} />
-
-                  {/* Leaves */}
                   <Route path="/leaves" element={<Leaves />} />
-
-                  {/* Holidays */}
                   <Route path="/holidays" element={<Holidays />} />
 
-                  {/* Settings */}
-                  <Route path="/settings" element={<Settings />} />
+                  {/* Admin Only Routes */}
+                  <Route element={<PermissionGuard adminOnly />}>
+                    <Route path="/organization-setup" element={<OrganizationSetup />} />
+                    <Route path="/roles-permissions" element={<RolesPermissions />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Route>
+
+                  {/* Permission-Gated Modules */}
+                  <Route element={<PermissionGuard requiredPermission="view_department" />}>
+                    <Route path="/departments" element={<DepartmentsPage />} />
+                  </Route>
+
+                  <Route element={<PermissionGuard requiredPermission="view_designation" />}>
+                    <Route path="/designations" element={<DesignationsPage />} />
+                  </Route>
+
+                  <Route element={<PermissionGuard requiredPermission="view_user" />}>
+                    <Route path="/employees" element={<Employees />} />
+                    <Route path="/employees/add" element={<AddEmployee />} />
+                    <Route path="/employees/:id/edit" element={<EditEmployee />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>

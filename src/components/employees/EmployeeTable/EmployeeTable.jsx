@@ -4,7 +4,7 @@ import "./EmployeeTable.css";
 const formatName = (employee) =>
   [employee.first_name, employee.middle_name, employee.last_name]
     .filter(Boolean)
-    .join(" ");
+    .join(" ") || employee.full_name || "—";
 
 const formatStatus = (status) => {
   const statusMap = {
@@ -14,7 +14,7 @@ const formatStatus = (status) => {
     RESIGNED: "Resigned",
   };
 
-  return statusMap[status] || status;
+  return statusMap[status] || status || "—";
 };
 
 const formatEmploymentType = (type) => {
@@ -25,7 +25,7 @@ const formatEmploymentType = (type) => {
     INTERN: "Intern",
   };
 
-  return typeMap[type] || type;
+  return typeMap[type] || type || "—";
 };
 
 const formatDate = (date) => {
@@ -42,6 +42,7 @@ const EmployeeTable = ({
   employees,
   onView,
   onEdit,
+  onResendInvite,
   onToggleStatus,
   onTerminate,
   onResign,
@@ -59,9 +60,7 @@ const EmployeeTable = ({
       {employees.length === 0 ? (
         <div className="employee-table-empty">
           <div className="employee-table-empty__icon">👥</div>
-
           <h4>No employees found</h4>
-
           <p>
             Try changing your search or filters, or add a new employee.
           </p>
@@ -75,91 +74,126 @@ const EmployeeTable = ({
                 <th>Employee Code</th>
                 <th>Department</th>
                 <th>Designation</th>
-                <th>Role</th>
                 <th>Manager</th>
                 <th>Type</th>
                 <th>Status</th>
+                <th>Invitation</th>
                 <th>Joining Date</th>
-                <th className="employee-table__actions-header">
-                  Actions
-                </th>
+                <th className="employee-table__actions-header">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {employees.map((employee) => (
-                <tr key={employee.id}>
-                  <td>
-                    <div className="employee-table__employee">
-                      <div className="employee-table__employee-info">
-                        <div className="employee-table__name">
-                          {formatName(employee)}
+              {employees.map((employee) => {
+                const name = formatName(employee);
+                const initials =
+                  `${employee.first_name?.[0] || ""}${employee.last_name?.[0] || ""}`.toUpperCase() ||
+                  "EM";
+                const isAccepted = employee.invitation_status === "ACCEPTED";
+
+                return (
+                  <tr key={employee.id}>
+                    <td>
+                      <div className="employee-table__employee">
+                        <div
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            borderRadius: "50%",
+                            backgroundColor: "#e0e7ff",
+                            color: "#4338ca",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                            overflow: "hidden",
+                            flexShrink: 0,
+                            marginRight: "10px",
+                          }}
+                        >
+                          {employee.profile_photo_url ? (
+                            <img
+                              src={employee.profile_photo_url}
+                              alt={name}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                          ) : (
+                            initials
+                          )}
                         </div>
 
-                        <div className="employee-table__email">
-                          {employee.email}
+                        <div className="employee-table__employee-info">
+                          <div className="employee-table__name">{name}</div>
+                          <div className="employee-table__email">
+                            {employee.email}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td>
-                    <span className="employee-code">
-                      {employee.employee_code}
-                    </span>
-                  </td>
+                    <td>
+                      <span className="employee-code">
+                        {employee.employee_code}
+                      </span>
+                    </td>
 
-                  <td>
-                    {employee.department_name || "—"}
-                  </td>
+                    <td>{employee.department_name || "—"}</td>
 
-                  <td>
-                    {employee.designation_name || "—"}
-                  </td>
+                    <td>{employee.designation_name || "—"}</td>
 
-                  <td>
-                    <div className="employee-role">
-                      {employee.default_role_name || "—"}
-                    </div>
-                  </td>
+                    <td>{employee.reporting_manager_name || "—"}</td>
 
-                  <td>
-                    {employee.reporting_manager_name || "—"}
-                  </td>
+                    <td>{formatEmploymentType(employee.employment_type)}</td>
 
-                  <td>
-                    {formatEmploymentType(
-                      employee.employment_type
-                    )}
-                  </td>
+                    <td>
+                      <span
+                        className={`employee-status employee-status--${String(
+                          employee.employment_status || ""
+                        ).toLowerCase()}`}
+                      >
+                        {formatStatus(employee.employment_status)}
+                      </span>
+                    </td>
 
-                  <td>
-                    <span
-                      className={`employee-status employee-status--${employee.employment_status.toLowerCase()}`}
-                    >
-                      {formatStatus(
-                        employee.employment_status
-                      )}
-                    </span>
-                  </td>
+                    <td>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "3px 8px",
+                          borderRadius: "12px",
+                          fontSize: "11px",
+                          fontWeight: "600",
+                          backgroundColor: isAccepted ? "#ecfdf5" : "#fef3c7",
+                          color: isAccepted ? "#065f46" : "#92400e",
+                        }}
+                      >
+                        {isAccepted ? "Accepted" : "Invited"}
+                      </span>
+                    </td>
 
-                  <td>
-                    {formatDate(employee.date_of_joining)}
-                  </td>
+                    <td>{formatDate(employee.date_of_joining)}</td>
 
-                  <td className="employee-table__actions-cell">
-                    <EmployeeRowActions
-                      employee={employee}
-                      onView={onView}
-                      onEdit={onEdit}
-                      onToggleStatus={onToggleStatus}
-                      onTerminate={onTerminate}
-                      onResign={onResign}
-                      onDelete={onDelete}
-                    />
-                  </td>
-                </tr>
-              ))}
+                    <td className="employee-table__actions-cell">
+                      <EmployeeRowActions
+                        employee={employee}
+                        onView={onView}
+                        onEdit={onEdit}
+                        onResendInvite={onResendInvite}
+                        onToggleStatus={onToggleStatus}
+                        onTerminate={onTerminate}
+                        onResign={onResign}
+                        onDelete={onDelete}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

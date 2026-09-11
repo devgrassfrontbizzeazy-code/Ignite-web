@@ -282,6 +282,24 @@
   color: #c7362f;
 }
 
+.employee-form__error {
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.employee-form__field.has-error input,
+.employee-form__field.has-error select,
+.employee-form__field.has-error textarea {
+  border-color: #ef4444 !important;
+  background-color: #fffbfb !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.1) !important;
+}
+
 /* =========================================================
    INPUT / SELECT / TEXTAREA
    ========================================================= */
