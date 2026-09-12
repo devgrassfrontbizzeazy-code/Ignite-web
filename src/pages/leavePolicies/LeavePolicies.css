@@ -1,0 +1,294 @@
+/* =========================================================
+   LEAVE POLICIES PAGE
+========================================================= */
+
+.leave-policies-page {
+  width: 100%;
+  font-family: "Montserrat", sans-serif;
+  color: #1a1f24;
+}
+
+/* =========================================================
+   ADD POLICY BUTTON
+========================================================= */
+
+.leave-policy-add-button {
+  height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 9px;
+  background: #0f3d3e;
+  color: #ffffff;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.leave-policy-add-button:hover {
+  background: #0ba37f;
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   STATS
+========================================================= */
+
+.leave-policy-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.leave-policy-stat-card {
+  min-height: 104px;
+  padding: 18px;
+
+  border-radius: 14px;
+  border: 1px solid #e6eaee;
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  box-shadow: 0 2px 8px rgba(15, 61, 62, 0.04);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.leave-policy-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(15, 61, 62, 0.08);
+}
+
+/* =========================================================
+   STAT ICON
+========================================================= */
+
+.leave-policy-stat-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   STAT CONTENT
+========================================================= */
+
+.leave-policy-stat-content {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leave-policy-stat-content span {
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.leave-policy-stat-content strong {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 700;
+  color: #1a1f24;
+}
+
+/* =========================================================
+   BLUE CARD
+========================================================= */
+
+.leave-policy-stat-card.blue {
+  background: linear-gradient(
+    135deg,
+    #f2f7ff 0%,
+    #ffffff 100%
+  );
+
+  border-color: #dbe7f7;
+}
+
+.leave-policy-stat-card.blue .leave-policy-stat-icon {
+  background: #e3edff;
+  color: #2563eb;
+}
+
+/* =========================================================
+   GREEN CARD
+========================================================= */
+
+.leave-policy-stat-card.green {
+  background: linear-gradient(
+    135deg,
+    #effaf6 0%,
+    #ffffff 100%
+  );
+
+  border-color: #d5eee4;
+}
+
+.leave-policy-stat-card.green .leave-policy-stat-icon {
+  background: #daf4e9;
+  color: #0ba37f;
+}
+
+/* =========================================================
+   GOLD CARD
+========================================================= */
+
+.leave-policy-stat-card.gold {
+  background: linear-gradient(
+    135deg,
+    #fff9ed 0%,
+    #ffffff 100%
+  );
+
+  border-color: #f1e4c7;
+}
+
+.leave-policy-stat-card.gold .leave-policy-stat-icon {
+  background: #fcefcf;
+  color: #b88916;
+}
+
+/* =========================================================
+   TEAL CARD
+========================================================= */
+
+.leave-policy-stat-card.teal {
+  background: linear-gradient(
+    135deg,
+    #eff9f9 0%,
+    #ffffff 100%
+  );
+
+  border-color: #d5e9e9;
+}
+
+.leave-policy-stat-card.teal .leave-policy-stat-icon {
+  background: #dcefee;
+  color: #0f3d3e;
+}
+
+/* =========================================================
+   CONTENT SECTION
+========================================================= */
+
+.leave-policy-content {
+  width: 100%;
+  background: #ffffff;
+
+  border: 1px solid #e6eaee;
+  border-radius: 16px;
+
+  overflow: hidden;
+
+  box-shadow: 0 2px 8px rgba(15, 61, 62, 0.04);
+}
+
+/* =========================================================
+   SECTION HEADER
+========================================================= */
+
+.leave-policy-section-header {
+  min-height: 78px;
+  padding: 18px 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  border-bottom: 1px solid #edf0f2;
+}
+
+.leave-policy-section-header h2 {
+  margin: 0 0 5px;
+
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 700;
+
+  color: #1a1f24;
+}
+
+.leave-policy-section-header p {
+  margin: 0;
+
+  font-size: 11px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+/* =========================================================
+   CARRY FORWARD COUNT
+========================================================= */
+
+.leave-policy-count {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 10px;
+
+  border-radius: 8px;
+
+  background: #f2f8f7;
+  color: #0f3d3e;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+  .leave-policy-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .leave-policy-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .leave-policy-count {
+    width: fit-content;
+  }
+}
+
+@media (max-width: 560px) {
+  .leave-policy-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .leave-policy-stat-card {
+    min-height: 92px;
+  }
+}

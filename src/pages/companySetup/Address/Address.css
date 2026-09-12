@@ -155,3 +155,143 @@
   }
 }
 
+/* =========================================================
+   ADDRESS FORM
+   Shared styles for setup + edit mode
+========================================================= */
+
+.company-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 24px;
+  width: 100%;
+}
+
+.company-form-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.company-form-field--full {
+  grid-column: 1 / -1;
+}
+
+.company-form-field label {
+  margin-bottom: 8px;
+  color: #273139;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.company-form-field input,
+.company-form-field textarea,
+.company-form-field select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d8e1e3;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1a1f24;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.company-form-field input,
+.company-form-field select {
+  height: 44px;
+  padding: 0 13px;
+}
+
+.company-form-field textarea {
+  min-height: 100px;
+  padding: 12px 13px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.company-form-field input::placeholder,
+.company-form-field textarea::placeholder {
+  color: #9aa4a9;
+  font-weight: 400;
+}
+
+.company-form-field input:hover,
+.company-form-field textarea:hover,
+.company-form-field select:hover {
+  border-color: #b9c6ca;
+}
+
+.company-form-field input:focus,
+.company-form-field textarea:focus,
+.company-form-field select:focus {
+  border-color: #0ba37f;
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.09);
+}
+
+/* Error */
+
+.company-form-error {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 22px;
+  padding: 12px 14px;
+  border: 1px solid #efcaca;
+  border-radius: 8px;
+  background: #fff6f6;
+  color: #a94442;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* Loading */
+
+.company-edit-loading {
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #66717a;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 760px) {
+  .company-form-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .company-form-field--full {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .company-form-field input,
+  .company-form-field select {
+    height: 42px;
+    font-size: 12px;
+  }
+
+  .company-form-field textarea {
+    font-size: 12px;
+  }
+}
+
+

@@ -1,0 +1,396 @@
+
+/* =========================================================
+   HOLIDAY FORM
+========================================================= */
+
+.holiday-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(15, 31, 36, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.holiday-form-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+
+  overflow-y: auto;
+
+  background: #ffffff;
+  border-radius: 18px;
+
+  box-shadow: 0 20px 60px rgba(15, 61, 62, 0.18);
+
+  font-family: "Montserrat", sans-serif;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.holiday-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 20px 22px;
+
+  border-bottom: 1px solid #e6eaee;
+}
+
+.holiday-form-title {
+  margin: 0;
+
+  color: #1a1f24;
+
+  font-size: 17px;
+  font-weight: 700;
+
+  line-height: 1.35;
+}
+
+.holiday-form-subtitle {
+  margin: 4px 0 0;
+
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  line-height: 1.5;
+}
+
+.holiday-form-close {
+  width: 34px;
+  height: 34px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #f4f6f7;
+  color: #64748b;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+
+.holiday-form-close:hover {
+  background: #e9edef;
+  color: #1a1f24;
+}
+
+/* =========================
+   BODY
+========================= */
+
+.holiday-form-body {
+  padding: 22px;
+}
+
+.holiday-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 16px;
+}
+
+.holiday-form-group {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.holiday-form-group.full {
+  grid-column: 1 / -1;
+}
+
+.holiday-form-label {
+  color: #334155;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  line-height: 1.4;
+}
+
+.holiday-form-label span {
+  color: #dc2626;
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+.holiday-form-input,
+.holiday-form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+
+  border: 1px solid #dce3e7;
+  border-radius: 9px;
+
+  background: #ffffff;
+  color: #1a1f24;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.holiday-form-input {
+  height: 42px;
+
+  padding: 0 12px;
+}
+
+.holiday-form-textarea {
+  min-height: 82px;
+
+  padding: 11px 12px;
+
+  resize: vertical;
+
+  line-height: 1.5;
+}
+
+.holiday-form-input::placeholder,
+.holiday-form-textarea::placeholder {
+  color: #a0a9af;
+}
+
+.holiday-form-input:focus,
+.holiday-form-textarea:focus {
+  border-color: #0ba37f;
+
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.09);
+}
+
+/* =========================
+   SELECT
+========================= */
+
+.holiday-form-select {
+  padding-right: 34px;
+
+  cursor: pointer;
+}
+
+/* =========================
+   TOGGLE
+========================= */
+
+.holiday-form-toggle-list {
+  margin-top: 20px;
+
+  border-top: 1px solid #edf0f2;
+}
+
+.holiday-form-toggle-row {
+  min-height: 58px;
+
+  padding: 10px 0;
+
+  border-bottom: 1px solid #edf0f2;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+}
+
+.holiday-form-toggle-content {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+}
+
+.holiday-form-toggle-title {
+  color: #1a1f24;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  line-height: 1.4;
+}
+
+.holiday-form-toggle-description {
+  color: #64748b;
+
+  font-size: 9px;
+  font-weight: 500;
+
+  line-height: 1.45;
+}
+
+/* =========================
+   FOOTER
+========================= */
+
+.holiday-form-footer {
+  padding: 16px 22px;
+
+  border-top: 1px solid #e6eaee;
+
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  background: #ffffff;
+}
+
+.holiday-form-cancel-button,
+.holiday-form-save-button {
+  min-height: 38px;
+
+  padding: 0 16px;
+
+  border-radius: 8px;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.holiday-form-cancel-button {
+  border: 1px solid #dce3e7;
+
+  background: #ffffff;
+  color: #536068;
+}
+
+.holiday-form-cancel-button:hover {
+  background: #f6f8f9;
+
+  border-color: #cbd4d8;
+
+  color: #1a1f24;
+}
+
+.holiday-form-save-button {
+  border: 1px solid #0f3d3e;
+
+  background: #0f3d3e;
+  color: #ffffff;
+}
+
+.holiday-form-save-button:hover {
+  background: #0b3031;
+
+  border-color: #0b3031;
+
+  transform: translateY(-1px);
+}
+
+.holiday-form-save-button:active,
+.holiday-form-cancel-button:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+.holiday-form-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.holiday-form-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.holiday-form-modal::-webkit-scrollbar-thumb {
+  background: #d6dddf;
+  border-radius: 10px;
+}
+
+.holiday-form-modal::-webkit-scrollbar-thumb:hover {
+  background: #bcc7ca;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 600px) {
+  .holiday-form-overlay {
+    padding: 12px;
+  }
+
+  .holiday-form-modal {
+    max-height: calc(100vh - 24px);
+    border-radius: 14px;
+  }
+
+  .holiday-form-header {
+    padding: 17px 18px;
+  }
+
+  .holiday-form-body {
+    padding: 18px;
+  }
+
+  .holiday-form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .holiday-form-group.full {
+    grid-column: auto;
+  }
+
+  .holiday-form-toggle-row {
+    gap: 14px;
+  }
+
+  .holiday-form-footer {
+    padding: 14px 18px;
+  }
+
+  .holiday-form-cancel-button,
+  .holiday-form-save-button {
+    flex: 1;
+  }
+}
+

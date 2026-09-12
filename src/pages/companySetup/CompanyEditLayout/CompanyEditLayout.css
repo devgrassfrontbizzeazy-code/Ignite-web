@@ -1,0 +1,162 @@
+.company-edit-page {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 30px 32px 50px;
+  color: #1a1f24;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.company-edit-page__header {
+  margin-bottom: 24px;
+}
+
+.company-edit-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #647178;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.company-edit-page__back:hover {
+  color: #0f3d3e;
+}
+
+.company-edit-page__eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: #0ba37f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.company-edit-page__header h1 {
+  margin: 0 0 7px;
+  color: #1a1f24;
+  font-size: 26px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.company-edit-page__header p {
+  max-width: 650px;
+  margin: 0;
+  color: #6b767d;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   FORM CARD
+========================================================= */
+
+.company-edit-page__form {
+  width: 100%;
+}
+
+.company-edit-page__card {
+  padding: 28px;
+  border: 1px solid #dfe6e8;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+
+.company-edit-page__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.company-edit-page__cancel,
+.company-edit-page__save {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.company-edit-page__cancel {
+  border: 1px solid #d8e0e2;
+  background: #ffffff;
+  color: #4d585f;
+}
+
+.company-edit-page__cancel:hover {
+  border-color: #b9c5c9;
+  background: #f8fafb;
+}
+
+.company-edit-page__save {
+  border: 1px solid #0f3d3e;
+  background: #0f3d3e;
+  color: #ffffff;
+}
+
+.company-edit-page__save:hover {
+  border-color: #0ba37f;
+  background: #0ba37f;
+}
+
+.company-edit-page__cancel:disabled,
+.company-edit-page__save:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .company-edit-page {
+    padding: 22px 18px 40px;
+  }
+
+  .company-edit-page__header h1 {
+    font-size: 23px;
+  }
+
+  .company-edit-page__card {
+    padding: 20px;
+  }
+
+  .company-edit-page__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .company-edit-page__cancel,
+  .company-edit-page__save {
+    width: 100%;
+  }
+}

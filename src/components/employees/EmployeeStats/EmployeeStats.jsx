@@ -5,70 +5,53 @@ import {
   FiFileText,
 } from "react-icons/fi";
 
+import StatCard from "../../common/StatCard/StatCard";
 import "./EmployeeStats.css";
 
-const EmployeeStats = ({ stats }) => {
+const EmployeeStats = ({ stats = {} }) => {
   const cards = [
     {
       title: "Total Employees",
-      value: stats.total,
-      description: "All employees",
+      value: stats?.total ?? 0,
+      description: "All employees in organization",
       icon: FiUsers,
-      variant: "total",
+      variant: "teal",
     },
     {
       title: "Active",
-      value: stats.active,
-      description: "Currently active",
+      value: stats?.active ?? 0,
+      description: "Currently active staff",
       icon: FiUserCheck,
-      variant: "active",
+      variant: "emerald",
     },
     {
       title: "Inactive",
-      value: stats.inactive,
+      value: stats?.inactive ?? 0,
       description: "Currently inactive",
       icon: FiUserX,
-      variant: "inactive",
+      variant: "gold",
     },
     {
       title: "Contract",
-      value: stats.contract,
+      value: stats?.contract ?? 0,
       description: "Contract employees",
       icon: FiFileText,
-      variant: "contract",
+      variant: "purple",
     },
   ];
 
   return (
     <section className="employee-stats">
-      {cards.map((card) => {
-        const Icon = card.icon;
-
-        return (
-          <article
-            key={card.title}
-            className={`employee-stat-card employee-stat-card--${card.variant}`}
-          >
-            <div className="employee-stat-card__top">
-              <span className="employee-stat-card__label">
-                {card.title}
-              </span>
-
-              <div className="employee-stat-card__icon">
-                <Icon />
-              </div>
-            </div>
-
-            <strong className="employee-stat-card__value">
-              {card.value}
-            </strong>
-
-            <p className="employee-stat-card__description">
-              {card.description}
-            </p>
-          </article>
-        );
-      })}
+      {cards.map((card) => (
+        <StatCard
+          key={card.title}
+          title={card.title}
+          value={card.value}
+          description={card.description}
+          icon={card.icon}
+          variant={card.variant}
+        />
+      ))}
     </section>
   );
 };

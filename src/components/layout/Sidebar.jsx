@@ -124,8 +124,8 @@ const NAV_ITEMS = [
     isPublic: true,
   },
   {
-    label: "Organization Setup",
-    path: "/organization-setup",
+    label: "Organization Overview",
+    path: "/organization-overview",
     icon: OrganizationIcon,
     adminOnly: true,
   },
@@ -167,12 +167,6 @@ const NAV_ITEMS = [
     icon: HolidaysIcon,
     isEmployeeDefault: true,
     permission: "view_holiday",
-  },
-  {
-    label: "Roles & Permissions",
-    path: "/roles-permissions",
-    icon: RolesIcon,
-    adminOnly: true,
   },
   {
     label: "Settings",

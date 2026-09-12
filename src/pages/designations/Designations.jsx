@@ -511,16 +511,16 @@ const Designations = () => {
 
   return (
     <div className="designations-page">
-      <div className="designations-page__header">
-        <PageHeader
-          title="Designations"
-          description="Manage your organization's designations and their department assignments."
-        />
-
-        <Button variant="primary" onClick={handleAddDesignation}>
-          + Add Designation
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Organization"
+        title="Designations"
+        description="Manage your organization's designations and their department assignments."
+        action={
+          <Button variant="primary" onClick={handleAddDesignation}>
+            + Add Designation
+          </Button>
+        }
+      />
 
       <div className="designations-page__content">
         {error && (

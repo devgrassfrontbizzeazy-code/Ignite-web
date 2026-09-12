@@ -89,7 +89,7 @@ const CompanySetupGuard = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "Manrope, sans-serif",
+          fontFamily: "inherit",
         }}
       >
         Checking your account...
@@ -109,7 +109,7 @@ const CompanySetupGuard = () => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "Manrope, sans-serif",
+          fontFamily: "inherit",
           textAlign: "center",
           padding: "24px",
         }}

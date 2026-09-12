@@ -31,7 +31,8 @@ import CompanySetupGuard from "./components/auth/CompanySetupGuard";
 import PermissionGuard from "./components/auth/PermissionGuard";
 
 /* Organization */
-import OrganizationSetup from "./pages/OrganizationSetup/OrganizationSetup";
+import OrganizationOverview from "./pages/OrganizationOverview/OrganizationOverview";
+
 import DepartmentsPage from "./pages/departments/Departments";
 import DesignationsPage from "./pages/designations/Designations";
 import RolesPermissions from "./pages/rolesPermissions/RolesPermissions";
@@ -39,37 +40,60 @@ import Employees from "./pages/employees/Employees";
 import AddEmployee from "./pages/employees/AddEmployee/AddEmployee";
 import EditEmployee from "./pages/employees/EditEmployee/EditEmployee";
 import Attendance from "./pages/attendance/Attendance";
+import LeavePolicies from "./pages/leavePolicies/LeavePolicies";
 import Leaves from "./pages/leaves/Leaves";
+import Holidays from "./pages/holidays/Holidays";
 
-/* Temporary / Dashboard */
+/* =========================================================
+   TEMPORARY / DASHBOARD
+========================================================= */
+
 function DashboardPreview() {
   return (
     <div style={{ padding: "32px" }}>
-      <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", marginBottom: "8px" }}>Dashboard</h1>
+      <h1
+        style={{
+          fontSize: "24px",
+          fontWeight: "700",
+          color: "#0f172a",
+          marginBottom: "8px",
+        }}
+      >
+        Dashboard
+      </h1>
+
       <p style={{ color: "#64748b" }}>
-        Welcome to your Ignite Workspace Dashboard. Use the sidebar to navigate your attendance, leaves, and organization tools.
+        Welcome to your Ignite Workspace Dashboard. Use the sidebar to navigate
+        your attendance, leaves, and organization tools.
       </p>
     </div>
   );
 }
 
-function Holidays() {
-  return (
-    <div style={{ padding: "32px" }}>
-      <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", marginBottom: "8px" }}>Holidays</h1>
-      <p style={{ color: "#64748b" }}>Official organization holidays calendar.</p>
-    </div>
-  );
-}
+
 
 function Settings() {
   return (
     <div style={{ padding: "32px" }}>
-      <h1 style={{ fontSize: "24px", fontWeight: "700", color: "#0f172a", marginBottom: "8px" }}>Settings</h1>
+      <h1
+        style={{
+          fontSize: "24px",
+          fontWeight: "700",
+          color: "#0f172a",
+          marginBottom: "8px",
+        }}
+      >
+        Settings
+      </h1>
+
       <p style={{ color: "#64748b" }}>Organization and platform settings.</p>
     </div>
   );
 }
+
+/* =========================================================
+   APP
+========================================================= */
 
 export default function App() {
   return (
@@ -77,17 +101,17 @@ export default function App() {
       <BrowserRouter>
         <CompanySetupProvider>
           <Routes>
-            {/* =====================================
+            {/* =====================================================
                 PUBLIC WEBSITE
-            ===================================== */}
+            ===================================================== */}
 
             <Route path="/" element={<HomePage />} />
 
             <Route path="/contact" element={<Contact />} />
 
-            {/* =====================================
+            {/* =====================================================
                 AUTHENTICATION
-            ===================================== */}
+            ===================================================== */}
 
             <Route path="/login" element={<LoginPage />} />
 
@@ -99,12 +123,23 @@ export default function App() {
 
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
-            {/* =====================================
-                COMPANY SETUP
+            {/* =====================================================
+                INITIAL COMPANY SETUP
 
-                These routes require authentication,
-                but DO NOT require company existence.
-            ===================================== */}
+                Protected, but NOT behind CompanySetupGuard.
+
+                Flow:
+
+                Company Details
+                      ↓
+                Address
+                      ↓
+                Business Settings
+                      ↓
+                Review
+                      ↓
+                Account Created
+            ===================================================== */}
 
             <Route element={<ProtectedRoute />}>
               <Route
@@ -127,13 +162,94 @@ export default function App() {
               />
             </Route>
 
-            {/* =====================================
+            {/* =====================================================
+                AUTHENTICATED COMPANY EDITING
+
+                IMPORTANT:
+
+                These routes are OUTSIDE CompanySetupGuard.
+
+                Therefore an already configured company can edit
+                individual sections without being redirected into
+                the onboarding wizard.
+
+                AppLayout uses <Outlet />, so each edit page is
+                nested inside an AppLayout route.
+            ===================================================== */}
+
+            <Route element={<ProtectedRoute />}>
+              {/* -------------------------------------------------
+                  COMPANY DETAILS EDIT
+              ------------------------------------------------- */}
+
+              <Route
+                element={
+                  <AppLayout
+                    title="Company Details"
+                    breadcrumbs={["Organization", "Company Details"]}
+                    userName="Anu Sharma"
+                    userRole="Administrator"
+                    companyName="Ignite"
+                  />
+                }
+              >
+                <Route
+                  path="/company/edit"
+                  element={<CompanyDetails mode="edit" />}
+                />
+              </Route>
+
+              {/* -------------------------------------------------
+                  COMPANY ADDRESS EDIT
+              ------------------------------------------------- */}
+
+              <Route
+                element={
+                  <AppLayout
+                    title="Company Address"
+                    breadcrumbs={["Organization", "Company Address"]}
+                    userName="Anu Sharma"
+                    userRole="Administrator"
+                    companyName="Ignite"
+                  />
+                }
+              >
+                <Route
+                  path="/company/address/edit"
+                  element={<Address mode="edit" />}
+                />
+              </Route>
+
+              {/* -------------------------------------------------
+                  BUSINESS SETTINGS EDIT
+              ------------------------------------------------- */}
+
+              <Route
+                element={
+                  <AppLayout
+                    title="Business Settings"
+                    breadcrumbs={["Organization", "Business Settings"]}
+                    userName="Anu Sharma"
+                    userRole="Administrator"
+                    companyName="Ignite"
+                  />
+                }
+              >
+                <Route
+                  path="/company/business-settings/edit"
+                  element={<BusinessSettings mode="edit" />}
+                />
+              </Route>
+            </Route>
+
+            {/* =====================================================
                 AUTHENTICATED APPLICATION
 
                 Requires:
+
                 1. Valid access token
                 2. Company already configured
-            ===================================== */}
+            ===================================================== */}
 
             <Route element={<ProtectedRoute />}>
               <Route element={<CompanySetupGuard />}>
@@ -148,32 +264,79 @@ export default function App() {
                     />
                   }
                 >
-                  {/* Inbuilt Employee Accessible Routes */}
+                  {/* =================================================
+                      EMPLOYEE ACCESSIBLE ROUTES
+                  ================================================= */}
+
                   <Route path="/dashboard" element={<DashboardPreview />} />
+
                   <Route path="/attendance" element={<Attendance />} />
+
                   <Route path="/leaves" element={<Leaves />} />
+
                   <Route path="/holidays" element={<Holidays />} />
 
-                  {/* Admin Only Routes */}
+                  {/* =================================================
+                      ADMIN ONLY ROUTES
+                  ================================================= */}
+
                   <Route element={<PermissionGuard adminOnly />}>
-                    <Route path="/organization-setup" element={<OrganizationSetup />} />
-                    <Route path="/roles-permissions" element={<RolesPermissions />} />
+                    <Route
+                      path="/organization-overview"
+                      element={<OrganizationOverview />}
+                    />
+
+                    <Route
+                      path="/roles-permissions"
+                      element={<RolesPermissions />}
+                    />
+                    <Route path="/leave-policies" element={<LeavePolicies />} />
+
                     <Route path="/settings" element={<Settings />} />
                   </Route>
 
-                  {/* Permission-Gated Modules */}
-                  <Route element={<PermissionGuard requiredPermission="view_department" />}>
+                  {/* =================================================
+                      DEPARTMENT PERMISSION
+                  ================================================= */}
+
+                  <Route
+                    element={
+                      <PermissionGuard requiredPermission="view_department" />
+                    }
+                  >
                     <Route path="/departments" element={<DepartmentsPage />} />
                   </Route>
 
-                  <Route element={<PermissionGuard requiredPermission="view_designation" />}>
-                    <Route path="/designations" element={<DesignationsPage />} />
+                  {/* =================================================
+                      DESIGNATION PERMISSION
+                  ================================================= */}
+
+                  <Route
+                    element={
+                      <PermissionGuard requiredPermission="view_designation" />
+                    }
+                  >
+                    <Route
+                      path="/designations"
+                      element={<DesignationsPage />}
+                    />
                   </Route>
 
-                  <Route element={<PermissionGuard requiredPermission="view_user" />}>
+                  {/* =================================================
+                      EMPLOYEE PERMISSION
+                  ================================================= */}
+
+                  <Route
+                    element={<PermissionGuard requiredPermission="view_user" />}
+                  >
                     <Route path="/employees" element={<Employees />} />
+
                     <Route path="/employees/add" element={<AddEmployee />} />
-                    <Route path="/employees/:id/edit" element={<EditEmployee />} />
+
+                    <Route
+                      path="/employees/:id/edit"
+                      element={<EditEmployee />}
+                    />
                   </Route>
                 </Route>
               </Route>

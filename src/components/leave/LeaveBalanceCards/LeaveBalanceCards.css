@@ -1,0 +1,100 @@
+.leave-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.leave-balance-card {
+  min-width: 0;
+  padding: 19px;
+  border: 1px solid #e3e8ec;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 61, 62, 0.035);
+}
+
+.leave-balance-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leave-balance-card__icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: rgba(11, 163, 127, 0.09);
+  color: #0ba37f;
+}
+
+.leave-balance-card__label {
+  color: #7c858e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.leave-balance-card__content {
+  margin-top: 17px;
+}
+
+.leave-balance-card__content h3 {
+  margin: 0;
+  color: #1a1f24;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.leave-balance-card__days {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.leave-balance-card__days strong {
+  color: #0f3d3e;
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.leave-balance-card__days span {
+  color: #7a838d;
+  font-size: 12px;
+}
+
+.leave-balance-card__content p {
+  margin: 7px 0 0;
+  color: #8a929a;
+  font-size: 12px;
+}
+
+.leave-balance-card__progress {
+  height: 5px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #edf1f2;
+}
+
+.leave-balance-card__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #0ba37f;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 1050px) {
+  .leave-balance-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .leave-balance-grid {
+    grid-template-columns: 1fr;
+  }
+}

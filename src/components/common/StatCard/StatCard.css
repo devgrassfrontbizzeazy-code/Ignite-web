@@ -1,118 +1,402 @@
+/* ==========================================================================
+   IGNITE — SHARED STAT CARD
+   Visual reference: Attendance stats cards
+   Consistent across Attendance, Leaves, Holidays, Employees, Departments,
+   Designations, Organization Overview, and all other modules.
+   ========================================================================== */
+
 .stat-card {
+  position: relative;
+  display: flex;
   min-width: 0;
-  padding: var(--space-5);
-  background-color: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition:
-    box-shadow var(--transition-base),
-    border-color var(--transition-base),
-    transform var(--transition-base);
+  min-height: 144px;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 16px;
+  border: 1px solid var(--color-border, #e6eaee);
+  border-radius: 16px;
+  background: var(--color-bg-surface, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+}
+
+/* Top accent bar */
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  z-index: 1;
+}
+
+/* Decorative bottom right circle */
+.stat-card::after {
+  content: "";
+  position: absolute;
+  right: -25px;
+  bottom: -35px;
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.75;
 }
 
 .stat-card:hover {
-  border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
+
+/* Clickable button variant */
+.stat-card--clickable {
+  cursor: pointer;
+  border-style: solid;
+  outline: none;
+  width: 100%;
+}
+
+.stat-card--clickable:focus-visible {
+  outline: 2px solid var(--ignite-emerald, #0ba37f);
+  outline-offset: -2px;
+}
+
+/* ==========================================================================
+   CARD CONTENT STRUCTURE
+   ========================================================================== */
 
 .stat-card__top {
+  position: relative;
+  z-index: 2;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: 10px;
+  width: 100%;
 }
 
-.stat-card__title-wrapper {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
+.stat-card__label {
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
 }
 
 .stat-card__icon {
   display: flex;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  background-color: var(--color-primary-soft);
-  color: var(--color-primary);
-  font-size: var(--font-size-md);
+  border-radius: 10px;
 }
 
-.stat-card__title {
-  min-width: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--line-height-base);
+.stat-card__icon svg {
+  width: 17px;
+  height: 17px;
 }
 
 .stat-card__value {
-  margin-top: var(--space-4);
-  color: var(--color-text-primary);
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
-  line-height: 1;
-  letter-spacing: var(--letter-spacing-tight);
+  position: relative;
+  z-index: 2;
+  display: block;
+  margin-top: 14px;
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-.stat-card__footer {
+.stat-card__description {
+  position: relative;
+  z-index: 2;
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   TREND PILL
+   ========================================================================== */
+
+.stat-card__trend-pill {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  width: fit-content;
+}
+
+.stat-card__trend-icon {
+  display: flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #a7f3d0;
+  color: #065f46;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.stat-card__trend-value {
+  color: #059669;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stat-card__trend-text {
+  color: #6b7280;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   ACTION ARROW (FOR CLICKABLE CARDS)
+   ========================================================================== */
+
+.stat-card__action {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 2;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  justify-content: center;
+  color: #aab3b8;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
-.stat-card__trend {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+.stat-card--clickable:hover .stat-card__action {
+  color: var(--ignite-emerald, #0ba37f);
+  transform: translateX(3px);
 }
 
-.stat-card__trend--positive {
-  color: var(--color-success);
+/* ==========================================================================
+   COLOR VARIANTS (ATTENDANCE REFERENCE)
+   ========================================================================== */
+
+/* 1. Teal / Primary (Attendance Rate, Total) */
+.stat-card--teal,
+.stat-card--primary {
+  border-color: #d1eae6;
+  background: #ffffff;
 }
 
-.stat-card__trend--negative {
-  color: var(--color-danger);
+.stat-card--teal::before,
+.stat-card--primary::before {
+  background: #0d655f;
 }
 
-.stat-card__trend-label,
-.stat-card__description {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-base);
+.stat-card--teal::after,
+.stat-card--primary::after {
+  background: #e9f7f4;
 }
 
-/* Variants */
-
+.stat-card--teal .stat-card__icon,
 .stat-card--primary .stat-card__icon {
-  background-color: var(--color-primary-soft);
-  color: var(--color-primary);
+  background: #e6f6f3;
+  color: #0d655f;
 }
 
+/* 2. Emerald / Green / Secondary (Present Days, Active) */
+.stat-card--emerald,
+.stat-card--green,
+.stat-card--secondary {
+  border-color: #d1f0df;
+  background: #ffffff;
+}
+
+.stat-card--emerald::before,
+.stat-card--green::before,
+.stat-card--secondary::before {
+  background: #10b981;
+}
+
+.stat-card--emerald::after,
+.stat-card--green::after,
+.stat-card--secondary::after {
+  background: #e8f9f0;
+}
+
+.stat-card--emerald .stat-card__icon,
+.stat-card--green .stat-card__icon,
 .stat-card--secondary .stat-card__icon {
-  background-color: var(--color-secondary-soft);
-  color: var(--color-secondary);
+  background: #e6f8ef;
+  color: #10b981;
 }
 
+/* 3. Gold / Amber / Accent / Warning (Late Arrivals, Inactive, Categories) */
+.stat-card--gold,
+.stat-card--warning,
+.stat-card--accent {
+  border-color: #fde68a;
+  background: #ffffff;
+}
+
+.stat-card--gold::before,
+.stat-card--warning::before,
+.stat-card--accent::before {
+  background: #f59e0b;
+}
+
+.stat-card--gold::after,
+.stat-card--warning::after,
+.stat-card--accent::after {
+  background: #fefce8;
+}
+
+.stat-card--gold .stat-card__icon,
+.stat-card--warning .stat-card__icon,
 .stat-card--accent .stat-card__icon {
-  background-color: var(--ignite-gold-050);
-  color: var(--color-accent);
+  background: #fef3c7;
+  color: #d97706;
 }
 
-/* Responsive */
+/* 4. Danger / Red (Absent Days) */
+.stat-card--danger {
+  border-color: #fbd5d5;
+  background: #ffffff;
+}
+
+.stat-card--danger::before {
+  background: #e02424;
+}
+
+.stat-card--danger::after {
+  background: #fdf2f2;
+}
+
+.stat-card--danger .stat-card__icon {
+  background: #fde8e8;
+  color: #e02424;
+}
+
+/* 5. Purple / Violet (Working Hours, Contract) */
+.stat-card--purple {
+  border-color: #ddd6fe;
+  background: #ffffff;
+}
+
+.stat-card--purple::before {
+  background: #8b5cf6;
+}
+
+.stat-card--purple::after {
+  background: #f5f3ff;
+}
+
+.stat-card--purple .stat-card__icon {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+/* 6. Blue / Info */
+.stat-card--blue {
+  border-color: #dce8fb;
+  background: #ffffff;
+}
+
+.stat-card--blue::before {
+  background: #2563eb;
+}
+
+.stat-card--blue::after {
+  background: #eff6ff;
+}
+
+.stat-card--blue .stat-card__icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* 7. Default */
+.stat-card--default {
+  border-color: var(--color-border, #e6eaee);
+  background: #ffffff;
+}
+
+.stat-card--default::before {
+  background: var(--ignite-deep-teal, #0f3d3e);
+}
+
+.stat-card--default::after {
+  background: #f3f6f7;
+}
+
+.stat-card--default .stat-card__icon {
+  background: #edf5f3;
+  color: #0f3d3e;
+}
+
+/* ==========================================================================
+   SHARED RESPONSIVE STATS GRIDS
+   ========================================================================== */
+
+.stats-grid {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.stats-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.stats-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stats-grid--5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .stats-grid--5 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .stats-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 @media (max-width: 768px) {
-  .stat-card {
-    padding: var(--space-4);
+  .stats-grid--3,
+  .stats-grid--4,
+  .stats-grid--5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .stat-card__value {
-    font-size: var(--font-size-xl);
+@media (max-width: 540px) {
+  .stats-grid--3,
+  .stats-grid--4,
+  .stats-grid--5 {
+    grid-template-columns: 1fr;
   }
 }

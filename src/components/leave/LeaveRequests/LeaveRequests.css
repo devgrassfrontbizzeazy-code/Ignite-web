@@ -1,0 +1,201 @@
+.leave-requests {
+  overflow: hidden;
+  border: 1px solid #e3e8ec;
+  border-radius: 13px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 61, 62, 0.035);
+}
+
+.leave-requests__filters {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 13px 16px;
+  border-bottom: 1px solid #e7ebee;
+}
+
+.leave-requests__filter {
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #707982;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leave-requests__filter:hover {
+  background: #f3f6f6;
+  color: #0f3d3e;
+}
+
+.leave-requests__filter--active {
+  background: rgba(11, 163, 127, 0.1);
+  color: #087f64;
+}
+
+.leave-requests__table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.leave-requests__table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.leave-requests__table th {
+  height: 43px;
+  padding: 0 18px;
+  border-bottom: 1px solid #e8ecef;
+  background: #fafbfb;
+  color: #7b848d;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.leave-requests__table td {
+  height: 65px;
+  padding: 0 18px;
+  border-bottom: 1px solid #edf0f2;
+  color: #3f484f;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.leave-requests__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.leave-requests__table tbody tr:hover {
+  background: #fcfdfd;
+}
+
+/* =========================
+   TYPE
+========================= */
+
+.leave-request-type {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leave-request-type__icon {
+  width: 31px;
+  height: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f0f7f5;
+  color: #0ba37f;
+}
+
+.leave-request-type span {
+  color: #263139;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* =========================
+   DATES
+========================= */
+
+.leave-request-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #4e5961;
+  white-space: nowrap;
+}
+
+.leave-request-days {
+  color: #263139;
+  font-weight: 600;
+}
+
+.leave-request-applied {
+  color: #737d86;
+  white-space: nowrap;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.leave-request-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 78px;
+  padding: 6px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.leave-request-status__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.leave-request-status--pending {
+  background: #fff7e6;
+  color: #b77900;
+}
+
+.leave-request-status--approved {
+  background: #eaf8f3;
+  color: #078061;
+}
+
+.leave-request-status--rejected {
+  background: #fff0f0;
+  color: #c94b4b;
+}
+
+.leave-request-status--cancelled {
+  background: #f1f3f4;
+  color: #6e7780;
+}
+
+/* =========================
+   MENU
+========================= */
+
+.leave-request-menu {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #7b848d;
+  cursor: pointer;
+}
+
+.leave-request-menu:hover {
+  background: #f2f5f5;
+  color: #1a1f24;
+}
+
+/* =========================
+   EMPTY
+========================= */
+
+.leave-requests__empty {
+  height: 120px !important;
+  color: #858e96 !important;
+  text-align: center !important;
+}

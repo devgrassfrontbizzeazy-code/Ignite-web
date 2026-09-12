@@ -448,16 +448,16 @@ const Departments = () => {
   return (
     <div className="departments-page">
       {/* Page Header */}
-      <div className="departments-page__header">
-        <PageHeader
-          title="Departments"
-          description="Manage your organization's departments and structure."
-        />
-
-        <Button variant="primary" onClick={handleAddDepartment}>
-          + Add Department
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Organization"
+        title="Departments"
+        description="Manage your organization's departments and structure."
+        action={
+          <Button variant="primary" onClick={handleAddDepartment}>
+            + Add Department
+          </Button>
+        }
+      />
 
       <div className="departments-page__content">
         {/* Error */}

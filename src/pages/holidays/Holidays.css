@@ -1,0 +1,296 @@
+/* ==========================================================================
+   IGNITE — HOLIDAYS PAGE
+   ========================================================================== */
+
+.holidays-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+  padding: 26px 28px;
+  box-sizing: border-box;
+  background: var(--color-bg-page, #f8fafb);
+  color: var(--color-text-primary, #1a1f24);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+}
+
+/* ==========================================================================
+   PAGE HEADER
+   ========================================================================== */
+
+.holidays-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.holidays-page-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  color: var(--ignite-emerald, #0ba37f);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.holidays-page-header h1 {
+  margin: 0;
+  color: var(--color-text-primary, #1a1f24);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.holidays-page-header p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary, #5b6672);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   ADD HOLIDAY BUTTON
+   ========================================================================== */
+
+.holidays-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--ignite-deep-teal, #0f3d3e);
+  border-radius: 9px;
+  background: var(--ignite-deep-teal, #0f3d3e);
+  color: var(--ignite-white, #ffffff);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.holidays-add-button:hover {
+  background: var(--ignite-emerald, #0ba37f);
+  border-color: var(--ignite-emerald, #0ba37f);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 61, 62, 0.12);
+}
+
+.holidays-add-button:active {
+  transform: translateY(0);
+}
+
+.holidays-add-button:focus-visible {
+  outline: 2px solid var(--ignite-emerald, #0ba37f);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   MAIN HOLIDAY SECTION
+   ========================================================================== */
+
+.holidays-section {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border, #e6eaee);
+  border-radius: 16px;
+  background: var(--color-bg-surface, #ffffff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   SECTION HEADER
+   ========================================================================== */
+
+.holidays-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 78px;
+  padding: 18px 20px;
+  box-sizing: border-box;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.holidays-section-header h2 {
+  margin: 0 0 5px;
+  color: var(--color-text-primary, #1a1f24);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.holidays-section-header p {
+  margin: 0;
+  color: var(--color-text-secondary, #5b6672);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   CONTROLS
+   ========================================================================== */
+
+.holidays-section-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.holidays-year-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.holidays-year-control label {
+  color: #68727a;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.holidays-year-control select {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #dce3e7;
+  border-radius: 7px;
+  outline: none;
+  background: #ffffff;
+  color: #1a1f24;
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.holidays-year-control select:focus {
+  border-color: var(--ignite-emerald, #0ba37f);
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.08);
+}
+
+.holidays-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 190px;
+  height: 34px;
+  padding: 0 10px;
+  box-sizing: border-box;
+  border: 1px solid #dce3e7;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #89939a;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.holidays-search:focus-within {
+  border-color: var(--ignite-emerald, #0ba37f);
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.08);
+}
+
+.holidays-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #1a1f24;
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.holidays-search input::placeholder {
+  color: #a0a9af;
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 1100px) {
+  .holidays-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .holidays-section-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 700px) {
+  .holidays-page {
+    padding: 22px 18px;
+  }
+
+  .holidays-page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .holidays-add-button {
+    width: 100%;
+  }
+
+  .holidays-section-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .holidays-year-control {
+    justify-content: space-between;
+  }
+
+  .holidays-search {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .holidays-page {
+    padding: 18px 14px;
+  }
+
+  .holidays-section-header {
+    padding: 16px;
+  }
+
+  .holidays-section-header h2 {
+    font-size: 15px;
+  }
+
+  .holidays-section-header p {
+    font-size: 12px;
+  }
+}

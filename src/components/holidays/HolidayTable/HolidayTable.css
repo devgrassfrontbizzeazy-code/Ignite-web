@@ -1,0 +1,372 @@
+
+/* =========================================================
+   HOLIDAY TABLE
+========================================================= */
+
+.holiday-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.holiday-table {
+  width: 100%;
+  min-width: 950px;
+  border-collapse: collapse;
+  font-family: "Montserrat", sans-serif;
+}
+
+/* =========================
+   TABLE HEADER
+========================= */
+
+.holiday-table th {
+  padding: 14px 18px;
+
+  background: #f8fafb;
+  border-bottom: 1px solid #e6eaee;
+
+  color: #68727a;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+
+  white-space: nowrap;
+}
+
+/* =========================
+   TABLE BODY
+========================= */
+
+.holiday-table td {
+  padding: 16px 18px;
+
+  border-bottom: 1px solid #edf0f2;
+
+  color: #394149;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+
+  vertical-align: middle;
+}
+
+.holiday-table tbody tr {
+  transition: background 0.18s ease;
+}
+
+.holiday-table tbody tr:hover {
+  background: #fbfdfc;
+}
+
+.holiday-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* =========================
+   HOLIDAY NAME
+========================= */
+
+.holiday-name-cell {
+  min-width: 240px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.holiday-name-icon {
+  width: 36px;
+  height: 36px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: #e8f6f2;
+  color: #0f7560;
+}
+
+.holiday-name {
+  color: #1a1f24;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  line-height: 1.4;
+}
+
+.holiday-description {
+  max-width: 250px;
+
+  margin-top: 3px;
+
+  color: #7a838a;
+
+  font-size: 9px;
+  font-weight: 500;
+
+  line-height: 1.45;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================
+   DATE / DAY
+========================= */
+
+.holiday-date {
+  color: #1a1f24;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.holiday-day {
+  color: #68727a;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+/* =========================
+   HOLIDAY TYPE
+========================= */
+
+.holiday-type {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 6px 9px;
+
+  border-radius: 7px;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+.holiday-type-public-holiday {
+  background: #edf5ff;
+  color: #2563eb;
+}
+
+.holiday-type-company-holiday {
+  background: #f5f0ff;
+  color: #7c3aed;
+}
+
+.holiday-type-optional-holiday {
+  background: #fff8e7;
+  color: #a36d00;
+}
+
+/* =========================
+   YES / NO
+========================= */
+
+.holiday-boolean {
+  display: inline-block;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  line-height: 1.4;
+}
+
+.holiday-boolean-yes {
+  color: #0ba37f;
+}
+
+.holiday-boolean-no {
+  color: #dc2626;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.holiday-status {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 6px;
+
+  padding: 6px 9px;
+
+  border: 1px solid transparent;
+  border-radius: 7px;
+
+  background: transparent;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.holiday-status-dot {
+  width: 6px;
+  height: 6px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+}
+
+.holiday-status-active {
+  background: #edf9f5;
+  border-color: #d8f0e8;
+
+  color: #08785d;
+}
+
+.holiday-status-active .holiday-status-dot {
+  background: #0ba37f;
+}
+
+.holiday-status-inactive {
+  background: #f3f4f5;
+  border-color: #e6e8ea;
+
+  color: #707980;
+}
+
+.holiday-status-inactive .holiday-status-dot {
+  background: #929ba1;
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+.holiday-actions-header {
+  text-align: right !important;
+}
+
+.holiday-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 6px;
+}
+
+.holiday-action-button {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #e2e7e9;
+  border-radius: 7px;
+
+  background: #ffffff;
+  color: #536068;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.holiday-action-button:hover {
+  background: #eef8f5;
+  border-color: #cfe9e1;
+  color: #08785d;
+
+  transform: translateY(-1px);
+}
+
+.holiday-action-danger:hover {
+  background: #fff4f3;
+  border-color: #f2d5d2;
+  color: #c44940;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
+.holiday-table-empty {
+  padding: 60px 24px;
+
+  text-align: center;
+}
+
+.holiday-table-empty-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 14px;
+
+  border-radius: 12px;
+
+  background: #e8f6f2;
+  color: #0ba37f;
+}
+
+.holiday-table-empty h3 {
+  margin: 0;
+
+  color: #1a1f24;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.holiday-table-empty p {
+  max-width: 360px;
+
+  margin: 7px auto 0;
+
+  color: #737d84;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  line-height: 1.6;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+  .holiday-table {
+    min-width: 900px;
+  }
+}
+

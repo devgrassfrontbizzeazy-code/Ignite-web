@@ -1,3 +1,230 @@
 /* Company Details currently relies entirely on the shared primitives in
    CompanySetupLayout.css. This file is kept so page-specific tweaks have
    an obvious home without touching shared styles. */
+
+/* =========================================================
+   COMPANY DETAILS - EDIT MODE
+========================================================= */
+
+.company-edit-loading {
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #66717a;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+
+/* =========================================================
+   FORM ERROR
+========================================================= */
+
+.company-form-error {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 22px;
+  padding: 12px 14px;
+  border: 1px solid #efcaca;
+  border-radius: 8px;
+  background: #fff6f6;
+  color: #a94442;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   FORM GRID
+========================================================= */
+
+.company-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 24px;
+  width: 100%;
+}
+
+
+/* =========================================================
+   FORM FIELD
+========================================================= */
+
+.company-form-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.company-form-field label {
+  margin-bottom: 8px;
+  color: #273139;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.company-form-field input {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 13px;
+
+  border: 1px solid #d8e1e3;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #1a1f24;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.company-form-field input::placeholder {
+  color: #9aa4a9;
+  font-weight: 400;
+}
+
+.company-form-field input:hover {
+  border-color: #b9c6ca;
+}
+
+.company-form-field input:focus {
+  border-color: #0ba37f;
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.09);
+}
+
+
+/* =========================================================
+   LOGO SECTION
+========================================================= */
+
+.company-logo-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+
+  margin-top: 28px;
+  padding-top: 24px;
+
+  border-top: 1px solid #e7ecee;
+}
+
+.company-logo-section > div {
+  min-width: 0;
+}
+
+.company-logo-section label {
+  display: block;
+  margin-bottom: 5px;
+
+  color: #273139;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.company-logo-section p {
+  margin: 0;
+
+  color: #7a858c;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   FILE INPUT
+========================================================= */
+
+.company-logo-section input[type="file"] {
+  width: 250px;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 9px;
+
+  border: 1px dashed #cbd6d8;
+  border-radius: 8px;
+
+  background: #f8fafb;
+  color: #59666d;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+}
+
+
+/* =========================================================
+   LOGO PREVIEW
+========================================================= */
+
+.company-logo-preview {
+  grid-column: 1 / -1;
+
+  width: 92px;
+  height: 92px;
+
+  padding: 8px;
+  box-sizing: border-box;
+
+  object-fit: contain;
+
+  border: 1px solid #dfe6e8;
+  border-radius: 10px;
+
+  background: #f8fafb;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 760px) {
+  .company-form-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .company-logo-section {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .company-logo-section input[type="file"] {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .company-form-grid {
+    gap: 16px;
+  }
+
+  .company-form-field input {
+    height: 42px;
+    font-size: 12px;
+  }
+
+  .company-logo-preview {
+    width: 80px;
+    height: 80px;
+  }
+}

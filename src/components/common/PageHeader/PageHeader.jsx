@@ -1,6 +1,7 @@
 import './PageHeader.css';
 
 export default function PageHeader({
+  eyebrow,
   title,
   description,
   action,
@@ -16,6 +17,10 @@ export default function PageHeader({
   return (
     <div className={headerClassName}>
       <div className="page-header__content">
+        {eyebrow && (
+          <span className="page-header__eyebrow">{eyebrow}</span>
+        )}
+
         <h1 className="page-header__title">
           {title}
         </h1>

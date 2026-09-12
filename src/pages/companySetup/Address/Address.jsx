@@ -1,643 +1,392 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
 import CompanySetupLayout from "../CompanySetupLayout/CompanySetupLayout";
-import {
-  useCompanySetup,
-  isEmpty,
-  isValidPostalCode,
-} from "../CompanySetupContext";
+import CompanyEditLayout from "../CompanyEditLayout/CompanyEditLayout";
 
-import { getCompanyOptions } from "../../../services/api/companyAPI";
+import { useCompanySetup } from "../CompanySetupContext";
+import { getCompany, updateCompany } from "../../../services/api/companyAPI";
 
 import "./Address.css";
 
-const MAP_CONTAINER_STYLE = {
-  width: "100%",
-  height: "320px",
-};
-const DEFAULT_MAP_CENTER = {
-  lat: 20.5937,
-  lng: 78.9629,
+const initialForm = {
+  fullAddress: "",
+  addressCountry: "",
+  addressState: "",
+  addressCity: "",
+  addressPostalCode: "",
+  mapLocation: "",
+  latitude: "",
+  longitude: "",
 };
 
-function Address() {
+export default function Address({ mode = "setup" }) {
   const navigate = useNavigate();
 
   const { companySetupData, updateCompanySetupData } = useCompanySetup();
 
-  /* ------------------------------------------------------------- */
-  /* Country options                                                */
-  /* ------------------------------------------------------------- */
+  const [form, setForm] = useState(
+    mode === "setup"
+      ? {
+          ...initialForm,
+          ...companySetupData,
+        }
+      : initialForm,
+  );
 
-  const [countries, setCountries] = useState([]);
-  const [optionsLoading, setOptionsLoading] = useState(true);
-  const [optionsError, setOptionsError] = useState("");
-
-  /* ------------------------------------------------------------- */
-  /* Form                                                           */
-  /* ------------------------------------------------------------- */
-
-  const [form, setForm] = useState({
-    fullAddress: companySetupData.fullAddress,
-    addressCountry: companySetupData.addressCountry,
-    addressState: companySetupData.addressState,
-    addressCity: companySetupData.addressCity,
-    addressPostalCode: companySetupData.addressPostalCode,
-    mapLocation: companySetupData.mapLocation,
-    latitude: companySetupData.latitude,
-    longitude: companySetupData.longitude,
-  });
-
-  const [errors, setErrors] = useState({});
-  const [showMap, setShowMap] = useState(false);
-
-  /* ------------------------------------------------------------- */
-  /* Google Maps                                                    */
-  /* ------------------------------------------------------------- */
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  });
-
-  /* ------------------------------------------------------------- */
-  /* Load countries from backend                                    */
-  /* ------------------------------------------------------------- */
+  const [loading, setLoading] = useState(mode === "edit");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadOptions = async () => {
+    if (mode !== "edit") return;
+
+    const loadCompany = async () => {
       try {
-        setOptionsLoading(true);
-        setOptionsError("");
+        setLoading(true);
+        setError("");
 
-        const response = await getCompanyOptions();
+        const response = await getCompany();
+        const data = response?.data || {};
 
-        setCountries(response.data?.countries || []);
-      } catch (error) {
-        console.error("Failed to load address options:", error);
-
-        setOptionsError(
-          "Unable to load countries. Please refresh and try again.",
+        setForm({
+          fullAddress:
+            data?.full_address || data?.fullAddress || data?.address || "",
+          addressCountry: data?.country || data?.addressCountry || "",
+          addressState: data?.state || data?.addressState || "",
+          addressCity: data?.city || data?.addressCity || "",
+          addressPostalCode:
+            data?.pincode || data?.postal_code || data?.addressPostalCode || "",
+          mapLocation: data?.map_location || data?.mapLocation || "",
+          latitude: data?.latitude ?? "",
+          longitude: data?.longitude ?? "",
+        });
+      } catch (err) {
+        console.error("Failed to load address:", err);
+        setError(
+          err?.response?.data?.detail || "Unable to load company address.",
         );
       } finally {
-        setOptionsLoading(false);
+        setLoading(false);
       }
     };
 
-    loadOptions();
-  }, []);
+    loadCompany();
+  }, [mode]);
 
-  /* ------------------------------------------------------------- */
-  /* Form handlers                                                  */
-  /* ------------------------------------------------------------- */
-
-  const handleChange = (field) => (event) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [field]: "",
-    }));
-  };
-
-  /* ------------------------------------------------------------- */
-  /* Map handlers                                                   */
-  /* ------------------------------------------------------------- */
-
-  const handleMapClick = (event) => {
-    if (!event.latLng) return;
-
-    const latitude = event.latLng.lat();
-    const longitude = event.latLng.lng();
+  const handleChange = (event) => {
+    const { name, value } = event.target;
 
     setForm((prev) => ({
       ...prev,
-      latitude: latitude.toFixed(6),
-      longitude: longitude.toFixed(6),
-      mapLocation: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      [name]: value,
     }));
   };
 
-  const getMapCenter = () => {
-    const lat = Number(form.latitude);
-    const lng = Number(form.longitude);
-
-    if (
-      Number.isFinite(lat) &&
-      Number.isFinite(lng) &&
-      lat >= -90 &&
-      lat <= 90 &&
-      lng >= -180 &&
-      lng <= 180
-    ) {
-      return {
-        lat,
-        lng,
-      };
-    }
-
-    return DEFAULT_MAP_CENTER;
-  };
-  /* ------------------------------------------------------------- */
-  /* Validation                                                     */
-  /* ------------------------------------------------------------- */
-
-  const validate = () => {
-    const nextErrors = {};
-
-    if (isEmpty(form.fullAddress)) {
-      nextErrors.fullAddress = "Full address is required.";
-    }
-
-    if (isEmpty(form.addressCountry)) {
-      nextErrors.addressCountry = "Please select a country.";
-    }
-
-    if (isEmpty(form.addressState)) {
-      nextErrors.addressState = "State / Province is required.";
-    }
-
-    if (isEmpty(form.addressCity)) {
-      nextErrors.addressCity = "City is required.";
-    }
-
-    if (isEmpty(form.addressPostalCode)) {
-      nextErrors.addressPostalCode = "Pincode is required.";
-    } else if (!isValidPostalCode(form.addressPostalCode)) {
-      nextErrors.addressPostalCode = "Enter a valid pincode.";
-    }
-
-    setErrors(nextErrors);
-
-    return Object.keys(nextErrors).length === 0;
-  };
-
-  /* ------------------------------------------------------------- */
-  /* Navigation                                                     */
-  /* ------------------------------------------------------------- */
-
-  const handleBack = () => {
-    updateCompanySetupData(form);
-
-    navigate("/company-setup/company-details");
-  };
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!validate()) return;
+    setError("");
 
-    updateCompanySetupData(form);
+    if (!form.fullAddress.trim()) {
+      setError("Full address is required.");
+      return;
+    }
 
-    navigate("/company-setup/business-settings");
+    if (!form.addressCountry.trim()) {
+      setError("Country is required.");
+      return;
+    }
+
+    if (!form.addressState.trim()) {
+      setError("State is required.");
+      return;
+    }
+
+    if (!form.addressCity.trim()) {
+      setError("City is required.");
+      return;
+    }
+
+    if (!form.addressPostalCode.trim()) {
+      setError("Postal code is required.");
+      return;
+    }
+
+    if (mode === "setup") {
+      updateCompanySetupData(form);
+      navigate("/company-setup/business-settings");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const payload = {
+        full_address: form.fullAddress,
+        country: form.addressCountry,
+        state: form.addressState,
+        city: form.addressCity,
+        pincode: form.addressPostalCode,
+        map_location: form.mapLocation,
+        latitude: form.latitude || null,
+        longitude: form.longitude || null,
+      };
+
+      const response = await updateCompany(payload);
+const updatedCompany = response?.data || {};
+
+      updateCompanySetupData({
+        ...form,
+        ...(updatedCompany || {}),
+      });
+
+      navigate("/organization-overview");
+    } catch (err) {
+      console.error("Failed to update company address:", err);
+
+      const backendError = err?.response?.data;
+
+      if (typeof backendError === "string") {
+        setError(backendError);
+      } else if (backendError?.detail) {
+        setError(backendError.detail);
+      } else {
+        setError("Unable to save company address.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const mapCenter = getMapCenter();
+  if (loading) {
+    return (
+      <div className="company-edit-loading">Loading company address...</div>
+    );
+  }
 
-  /* ------------------------------------------------------------- */
-  /* UI                                                             */
-  /* ------------------------------------------------------------- */
+  if (mode === "edit") {
+    return (
+      <CompanyEditLayout
+        eyebrow="Organization"
+        title="Company Address"
+        description="Update the registered address and location information for your organization."
+        onSubmit={handleSubmit}
+        submitting={submitting}
+      >
+        {error && <div className="company-form-error">{error}</div>}
+
+        <div className="company-form-grid">
+          <div className="company-form-field company-form-field--full">
+            <label htmlFor="fullAddress">Full Address</label>
+
+            <textarea
+              id="fullAddress"
+              name="fullAddress"
+              value={form.fullAddress}
+              onChange={handleChange}
+              placeholder="Enter complete address"
+              rows={4}
+            />
+          </div>
+
+          <div className="company-form-field">
+            <label htmlFor="addressCountry">Country</label>
+
+            <input
+              id="addressCountry"
+              name="addressCountry"
+              value={form.addressCountry}
+              onChange={handleChange}
+              placeholder="Enter country"
+            />
+          </div>
+
+          <div className="company-form-field">
+            <label htmlFor="addressState">State</label>
+
+            <input
+              id="addressState"
+              name="addressState"
+              value={form.addressState}
+              onChange={handleChange}
+              placeholder="Enter state"
+            />
+          </div>
+
+          <div className="company-form-field">
+            <label htmlFor="addressCity">City</label>
+
+            <input
+              id="addressCity"
+              name="addressCity"
+              value={form.addressCity}
+              onChange={handleChange}
+              placeholder="Enter city"
+            />
+          </div>
+
+          <div className="company-form-field">
+            <label htmlFor="addressPostalCode">Postal Code</label>
+
+            <input
+              id="addressPostalCode"
+              name="addressPostalCode"
+              value={form.addressPostalCode}
+              onChange={handleChange}
+              placeholder="Enter postal code"
+            />
+          </div>
+
+          <div className="company-form-field company-form-field--full">
+            <label htmlFor="mapLocation">Map Location</label>
+
+            <input
+              id="mapLocation"
+              name="mapLocation"
+              value={form.mapLocation}
+              onChange={handleChange}
+              placeholder="Enter map location"
+            />
+          </div>
+
+          <div className="company-form-field">
+            <label htmlFor="latitude">Latitude</label>
+
+            <input
+              id="latitude"
+              name="latitude"
+              value={form.latitude}
+              onChange={handleChange}
+              placeholder="Latitude"
+            />
+          </div>
+
+          <div className="company-form-field">
+            <label htmlFor="longitude">Longitude</label>
+
+            <input
+              id="longitude"
+              name="longitude"
+              value={form.longitude}
+              onChange={handleChange}
+              placeholder="Longitude"
+            />
+          </div>
+        </div>
+      </CompanyEditLayout>
+    );
+  }
 
   return (
     <CompanySetupLayout
-      currentStep="address"
-      title="Business Address"
-      subtitle="Tell us where your company is located."
+      title="Company Address"
+      description="Add your company's registered address."
+      currentStep={2}
+      onBack={() => navigate("/company-setup/company-details")}
+      onNext={handleSubmit}
+      nextLabel="Continue"
     >
-      <form className="setup-form-grid" onSubmit={handleSubmit} noValidate>
-        {/* Full Address */}
+      {error && <div className="company-form-error">{error}</div>}
 
-        <div className="setup-field setup-field--full">
-          <label className="setup-label" htmlFor="fullAddress">
-            Full Address
-            <span className="setup-required" aria-hidden="true">
-              *
-            </span>
-          </label>
+      <div className="company-form-grid">
+        <div className="company-form-field company-form-field--full">
+          <label htmlFor="fullAddress">Full Address</label>
 
           <textarea
             id="fullAddress"
-            className={`setup-input setup-textarea ${
-              errors.fullAddress ? "setup-input--error" : ""
-            }`}
-            placeholder="Enter complete company address"
+            name="fullAddress"
             value={form.fullAddress}
-            onChange={handleChange("fullAddress")}
-            aria-required="true"
-            aria-invalid={Boolean(errors.fullAddress)}
-            aria-describedby={
-              errors.fullAddress ? "fullAddress-error" : undefined
-            }
-            rows={3}
+            onChange={handleChange}
+            placeholder="Enter complete address"
+            rows={4}
           />
-
-          {errors.fullAddress && (
-            <p id="fullAddress-error" className="setup-error-text">
-              {errors.fullAddress}
-            </p>
-          )}
         </div>
 
-        {/* Country */}
+        <div className="company-form-field">
+          <label htmlFor="addressCountry">Country</label>
 
-        <SelectField
-          id="addressCountry"
-          label="Country"
-          required
-          placeholder={
-            optionsLoading ? "Loading countries..." : "Select country"
-          }
-          value={form.addressCountry}
-          onChange={handleChange("addressCountry")}
-          options={countries}
-          error={errors.addressCountry}
-          disabled={optionsLoading || countries.length === 0}
-        />
-
-        {/* State / Province */}
-
-        <Field
-          id="addressState"
-          label="State / Province"
-          required
-          placeholder="Enter state / province"
-          value={form.addressState}
-          onChange={handleChange("addressState")}
-          error={errors.addressState}
-        />
-
-        {/* City */}
-
-        <Field
-          id="addressCity"
-          label="City"
-          required
-          placeholder="Enter city"
-          value={form.addressCity}
-          onChange={handleChange("addressCity")}
-          error={errors.addressCity}
-        />
-
-        {/* Pincode */}
-
-        <Field
-          id="addressPostalCode"
-          label="Pincode"
-          required
-          type="text"
-          inputMode="numeric"
-          maxLength={10}
-          placeholder="Enter pincode"
-          value={form.addressPostalCode}
-          onChange={handleChange("addressPostalCode")}
-          error={errors.addressPostalCode}
-        />
-
-        {/* Map Location */}
-
-        <div className="setup-field setup-field--full">
-          <label className="setup-label">Map Location</label>
-
-          <div className="map-location-row">
-            <div className="map-location-display">
-              {form.mapLocation ? (
-                <span>{form.mapLocation}</span>
-              ) : (
-                <span className="map-location-placeholder">
-                  No location selected
-                </span>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="map-select-button"
-              onClick={() => setShowMap((prev) => !prev)}
-            >
-              <MapPinIcon />
-
-              {showMap ? "Hide Map" : "Select on Map"}
-            </button>
-          </div>
-
-          {/* Map */}
-
-          {showMap && (
-            <div className="map-picker-wrapper">
-              {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-                <div className="map-error">
-                  Google Maps API key is not configured.
-                </div>
-              ) : loadError ? (
-                <div className="map-error">Unable to load Google Maps.</div>
-              ) : !isLoaded ? (
-                <div className="map-loading">Loading map...</div>
-              ) : (
-                <GoogleMap
-                  mapContainerStyle={MAP_CONTAINER_STYLE}
-                  {...(mapCenter ? { center: mapCenter } : {})}
-                  zoom={form.latitude && form.longitude ? 16 : 5}
-                  onClick={handleMapClick}
-                  options={{
-                    streetViewControl: false,
-                    mapTypeControl: false,
-                    fullscreenControl: true,
-                    zoomControl: true,
-                    styles: [
-                      {
-                        elementType: "geometry",
-                        stylers: [{ color: "#f4fbf9" }],
-                      },
-                      {
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#0f3d3e" }],
-                      },
-                      {
-                        elementType: "labels.text.stroke",
-                        stylers: [{ color: "#ffffff" }],
-                      },
-                      {
-                        featureType: "administrative",
-                        elementType: "geometry.stroke",
-                        stylers: [{ color: "#b8ddd4" }],
-                      },
-                      {
-                        featureType: "landscape",
-                        elementType: "geometry",
-                        stylers: [{ color: "#eef9f6" }],
-                      },
-                      {
-                        featureType: "poi",
-                        elementType: "geometry",
-                        stylers: [{ color: "#e3f4ef" }],
-                      },
-                      {
-                        featureType: "poi",
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#0f3d3e" }],
-                      },
-                      {
-                        featureType: "road",
-                        elementType: "geometry",
-                        stylers: [{ color: "#ffffff" }],
-                      },
-                      {
-                        featureType: "road",
-                        elementType: "geometry.stroke",
-                        stylers: [{ color: "#d5ebe6" }],
-                      },
-                      {
-                        featureType: "road",
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#39716c" }],
-                      },
-                      {
-                        featureType: "transit",
-                        elementType: "geometry",
-                        stylers: [{ color: "#d8eee9" }],
-                      },
-                      {
-                        featureType: "water",
-                        elementType: "geometry",
-                        stylers: [{ color: "#cceee7" }],
-                      },
-                      {
-                        featureType: "water",
-                        elementType: "labels.text.fill",
-                        stylers: [{ color: "#39716c" }],
-                      },
-                    ],
-                  }}
-                >
-                  {form.latitude && form.longitude && (
-                    <Marker
-                      position={{
-                        lat: Number(form.latitude),
-                        lng: Number(form.longitude),
-                      }}
-                    />
-                  )}
-                </GoogleMap>
-              )}
-
-              {isLoaded && (
-                <p className="map-helper-text">
-                  Click anywhere on the map to select your company location.
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Coordinates */}
-
-          {(form.latitude || form.longitude) && (
-            <div className="coordinates-display">
-              <span>
-                <strong>Latitude:</strong> {form.latitude || "—"}
-              </span>
-
-              <span>
-                <strong>Longitude:</strong> {form.longitude || "—"}
-              </span>
-            </div>
-          )}
+          <input
+            id="addressCountry"
+            name="addressCountry"
+            value={form.addressCountry}
+            onChange={handleChange}
+            placeholder="Enter country"
+          />
         </div>
 
-        {/* API error */}
+        <div className="company-form-field">
+          <label htmlFor="addressState">State</label>
 
-        {optionsError && (
-          <p className="setup-error-text setup-field--full">{optionsError}</p>
-        )}
-
-        {/* Actions */}
-
-        <div className="setup-field setup-field--full setup-actions">
-          <button
-            type="button"
-            className="setup-btn setup-btn-secondary"
-            onClick={handleBack}
-          >
-            <BackArrowIcon />
-            Back
-          </button>
-
-          <button
-            type="submit"
-            className="setup-btn setup-btn-primary"
-            disabled={optionsLoading}
-          >
-            {optionsLoading ? "Loading..." : "Continue"}
-
-            {!optionsLoading && <ArrowIcon />}
-          </button>
+          <input
+            id="addressState"
+            name="addressState"
+            value={form.addressState}
+            onChange={handleChange}
+            placeholder="Enter state"
+          />
         </div>
-      </form>
+
+        <div className="company-form-field">
+          <label htmlFor="addressCity">City</label>
+
+          <input
+            id="addressCity"
+            name="addressCity"
+            value={form.addressCity}
+            onChange={handleChange}
+            placeholder="Enter city"
+          />
+        </div>
+
+        <div className="company-form-field">
+          <label htmlFor="addressPostalCode">Postal Code</label>
+
+          <input
+            id="addressPostalCode"
+            name="addressPostalCode"
+            value={form.addressPostalCode}
+            onChange={handleChange}
+            placeholder="Enter postal code"
+          />
+        </div>
+
+        <div className="company-form-field company-form-field--full">
+          <label htmlFor="mapLocation">Map Location</label>
+
+          <input
+            id="mapLocation"
+            name="mapLocation"
+            value={form.mapLocation}
+            onChange={handleChange}
+            placeholder="Enter map location"
+          />
+        </div>
+
+        <div className="company-form-field">
+          <label htmlFor="latitude">Latitude</label>
+
+          <input
+            id="latitude"
+            name="latitude"
+            value={form.latitude}
+            onChange={handleChange}
+            placeholder="Latitude"
+          />
+        </div>
+
+        <div className="company-form-field">
+          <label htmlFor="longitude">Longitude</label>
+
+          <input
+            id="longitude"
+            name="longitude"
+            value={form.longitude}
+            onChange={handleChange}
+            placeholder="Longitude"
+          />
+        </div>
+      </div>
     </CompanySetupLayout>
   );
 }
-
-/* ------------------------------------------------------------- */
-/* Field                                                          */
-/* ------------------------------------------------------------- */
-
-function Field({ id, label, required, error, ...inputProps }) {
-  return (
-    <div className={`setup-field ${error ? "setup-field--error" : ""}`.trim()}>
-      <label className="setup-label" htmlFor={id}>
-        {label}
-
-        {required && (
-          <span className="setup-required" aria-hidden="true">
-            *
-          </span>
-        )}
-      </label>
-
-      <input
-        id={id}
-        className="setup-input"
-        aria-required={required || undefined}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        {...inputProps}
-      />
-
-      {error && (
-        <p id={`${id}-error`} className="setup-error-text">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------- */
-/* Select Field                                                   */
-/* ------------------------------------------------------------- */
-
-function SelectField({
-  id,
-  label,
-  required,
-  error,
-  options,
-  placeholder,
-  value,
-  onChange,
-  disabled,
-}) {
-  return (
-    <div className={`setup-field ${error ? "setup-field--error" : ""}`.trim()}>
-      <label className="setup-label" htmlFor={id}>
-        {label}
-
-        {required && (
-          <span className="setup-required" aria-hidden="true">
-            *
-          </span>
-        )}
-      </label>
-
-      <select
-        id={id}
-        className="setup-select"
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        data-placeholder={value === "" ? "true" : "false"}
-        aria-required={required || undefined}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-      >
-        <option value="" disabled>
-          {placeholder}
-        </option>
-
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-
-      {error && (
-        <p id={`${id}-error`} className="setup-error-text">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------- */
-/* Icons                                                          */
-/* ------------------------------------------------------------- */
-
-function MapPinIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M20 10C20 15 12 22 12 22C12 22 4 15 4 10C4 5.58 7.58 2 12 2C16.42 2 20 5.58 20 10Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-
-      <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function BackArrowIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M13 8H3M7 4L3 8l4 4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M3 8h10M9 4l4 4-4 4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export default Address;
