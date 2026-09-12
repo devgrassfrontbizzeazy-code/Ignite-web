@@ -5,34 +5,49 @@ import {
   FiLogOut,
   FiCoffee,
   FiPlay,
-  FiPause,
 } from "react-icons/fi";
 
 import "./AttendanceActionCard.css";
 
 const STATUS_CONFIG = {
-  checked_out: {
+  NOT_STARTED: {
     label: "Not Checked In",
     className: "is-checked-out",
   },
-  checked_in: {
+  WORKING: {
     label: "Currently Working",
     className: "is-checked-in",
   },
-  on_break: {
+  ON_BREAK: {
     label: "On Break",
     className: "is-on-break",
+  },
+  PENDING_APPROVAL: {
+    label: "Pending Approval",
+    className: "is-pending",
+  },
+  APPROVED: {
+    label: "Approved",
+    className: "is-approved",
+  },
+  REJECTED: {
+    label: "Rejected",
+    className: "is-rejected",
   },
 };
 
 const formatTime = (date) => {
   if (!date) return "--:--";
 
-  return new Intl.DateTimeFormat("en-IN", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(date));
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date(date));
+  } catch (e) {
+    return "--:--";
+  }
 };
 
 const formatDuration = (seconds = 0) => {
@@ -48,10 +63,11 @@ const formatDuration = (seconds = 0) => {
 };
 
 const AttendanceActionCard = ({
-  status,
-  checkInTime,
+  status = "NOT_STARTED",
+  checkInTime = null,
   workedSeconds = 0,
   breakSeconds = 0,
+  currentBreak = null,
   shiftStart = "09:30 AM",
   shiftEnd = "07:30 PM",
   targetSeconds = 8 * 60 * 60,
@@ -60,6 +76,7 @@ const AttendanceActionCard = ({
   onStartBreak,
   onEndBreak,
   disabled = false,
+  loading = false,
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -71,31 +88,37 @@ const AttendanceActionCard = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Compute live worked seconds from authoritative timestamps
   const liveWorkedSeconds = useMemo(() => {
-    if (status === "checked_in" && checkInTime) {
+    if (status === "WORKING" && checkInTime) {
       const elapsed = Math.floor(
-        (currentTime.getTime() -
-          new Date(checkInTime).getTime()) /
-          1000
+        (currentTime.getTime() - new Date(checkInTime).getTime()) / 1000
       );
-
-      return Math.max(workedSeconds + elapsed, 0);
+      return Math.max(elapsed - breakSeconds, 0);
     }
-
     return Math.max(workedSeconds, 0);
-  }, [currentTime, status, checkInTime, workedSeconds]);
+  }, [currentTime, status, checkInTime, breakSeconds, workedSeconds]);
+
+  // Compute live break seconds when on break
+  const liveBreakSeconds = useMemo(() => {
+    if (status === "ON_BREAK" && currentBreak?.breakStartAt) {
+      const elapsed = Math.floor(
+        (currentTime.getTime() - new Date(currentBreak.breakStartAt).getTime()) / 1000
+      );
+      return Math.max(breakSeconds + elapsed, 0);
+    }
+    return Math.max(breakSeconds, 0);
+  }, [currentTime, status, currentBreak, breakSeconds]);
 
   const progress = Math.min(
     (liveWorkedSeconds / targetSeconds) * 100,
     100
   );
 
-  const config = STATUS_CONFIG[status] || STATUS_CONFIG.checked_out;
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.NOT_STARTED;
 
   return (
-    <section
-      className={`attendance-action-card ${config.className}`}
-    >
+    <section className={`attendance-action-card ${config.className}`}>
       <div className="attendance-action-card__top">
         <div>
           <span className="attendance-action-card__eyebrow">
@@ -104,9 +127,7 @@ const AttendanceActionCard = ({
 
           <h2>Work Session</h2>
 
-          <p>
-            Your attendance and working time for today
-          </p>
+          <p>Your attendance and working time for today</p>
         </div>
 
         <div className="attendance-action-card__status">
@@ -126,9 +147,7 @@ const AttendanceActionCard = ({
             <div className="attendance-action-card__ring-inner">
               <FiClock />
 
-              <strong>
-                {formatDuration(liveWorkedSeconds)}
-              </strong>
+              <strong>{formatDuration(liveWorkedSeconds)}</strong>
 
               <span>Worked</span>
             </div>
@@ -152,7 +171,7 @@ const AttendanceActionCard = ({
 
             <div>
               <span>Break Time</span>
-              <strong>{formatDuration(breakSeconds)}</strong>
+              <strong>{formatDuration(liveBreakSeconds)}</strong>
             </div>
 
             <div>
@@ -164,9 +183,7 @@ const AttendanceActionCard = ({
           <div className="attendance-action-card__remaining">
             <div>
               <span>Working hours</span>
-              <strong>
-                {formatDuration(liveWorkedSeconds)}
-              </strong>
+              <strong>{formatDuration(liveWorkedSeconds)}</strong>
             </div>
 
             <span className="attendance-action-card__progress-text">
@@ -177,25 +194,25 @@ const AttendanceActionCard = ({
       </div>
 
       <div className="attendance-action-card__actions">
-        {status === "checked_out" && (
+        {status === "NOT_STARTED" && (
           <button
             type="button"
             className="attendance-action-card__button attendance-action-card__button--primary"
             onClick={onCheckIn}
-            disabled={disabled}
+            disabled={disabled || loading}
           >
             <FiLogIn />
             Punch In
           </button>
         )}
 
-        {status === "checked_in" && (
+        {status === "WORKING" && (
           <>
             <button
               type="button"
               className="attendance-action-card__button attendance-action-card__button--secondary"
               onClick={onStartBreak}
-              disabled={disabled}
+              disabled={disabled || loading}
             >
               <FiCoffee />
               Start Break
@@ -205,7 +222,7 @@ const AttendanceActionCard = ({
               type="button"
               className="attendance-action-card__button attendance-action-card__button--danger"
               onClick={onCheckOut}
-              disabled={disabled}
+              disabled={disabled || loading}
             >
               <FiLogOut />
               Punch Out
@@ -213,13 +230,13 @@ const AttendanceActionCard = ({
           </>
         )}
 
-        {status === "on_break" && (
+        {status === "ON_BREAK" && (
           <>
             <button
               type="button"
               className="attendance-action-card__button attendance-action-card__button--primary"
               onClick={onEndBreak}
-              disabled={disabled}
+              disabled={disabled || loading}
             >
               <FiPlay />
               End Break
@@ -229,12 +246,25 @@ const AttendanceActionCard = ({
               type="button"
               className="attendance-action-card__button attendance-action-card__button--danger"
               onClick={onCheckOut}
-              disabled={disabled}
+              disabled={true}
+              title="Please end your break before punching out"
             >
               <FiLogOut />
               Punch Out
             </button>
           </>
+        )}
+
+        {(status === "PENDING_APPROVAL" || status === "APPROVED" || status === "REJECTED") && (
+          <button
+            type="button"
+            className="attendance-action-card__button attendance-action-card__button--secondary"
+            disabled={true}
+          >
+            {status === "PENDING_APPROVAL" && "Attendance Submitted (Pending Approval)"}
+            {status === "APPROVED" && "Attendance Approved for Today"}
+            {status === "REJECTED" && "Attendance Rejected"}
+          </button>
         )}
       </div>
     </section>

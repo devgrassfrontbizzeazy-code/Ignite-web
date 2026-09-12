@@ -154,11 +154,41 @@
   color: #a15c00;
 }
 
+.attendance-history__status--absent {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.attendance-history__status--pending {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.attendance-history__status--approved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.attendance-history__status--rejected {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
 .attendance-history__details {
+  border: none;
+  background: transparent;
   color: var(--ignite-deep-teal);
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.attendance-history__details:hover {
+  text-decoration: underline;
+  background: rgba(13, 148, 136, 0.08);
 }
 
 /* =========================

@@ -10,27 +10,31 @@ import "./TodayPunchLog.css";
 const formatTime = (date) => {
   if (!date) return "Not yet";
 
-  return new Intl.DateTimeFormat("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).format(new Date(date));
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date(date));
+  } catch (e) {
+    return "Not yet";
+  }
 };
 
 const TodayPunchLog = ({
-  status = "checked_out",
+  status = "NOT_STARTED",
   checkInTime = null,
+  checkOutTime = null,
+  timeline = [],
+  shiftEnd = "07:30 PM",
+  location = "Office HQ",
 }) => {
-  const isCheckedIn =
-    status === "checked_in";
-
-  const isOnBreak =
-    status === "on_break";
+  // If backend provided rich dynamic timeline events
+  const hasTimeline = Array.isArray(timeline) && timeline.length > 0;
 
   return (
     <section className="today-punch-log">
       {/* Header */}
-
       <div className="today-punch-log__header">
         <div>
           <span className="today-punch-log__eyebrow">
@@ -42,126 +46,128 @@ const TodayPunchLog = ({
 
         <div className="today-punch-log__location">
           <FiMapPin />
-          <span>Office HQ</span>
+          <span>{location}</span>
         </div>
       </div>
 
       {/* Timeline */}
-
       <div className="today-punch-log__timeline">
-        {/* Check In */}
+        {hasTimeline ? (
+          timeline.map((event, idx) => {
+            const isLast = idx === timeline.length - 1;
+            const isCompleted = event.status === "completed";
+            const isActive = event.status === "active";
 
-        <div className="punch-event punch-event--completed">
-          <div className="punch-event__marker">
-            <FiCheck />
-          </div>
+            let icon = <FiCheck />;
+            if (event.type.includes("BREAK")) {
+              icon = <FiCoffee />;
+            } else if (event.type === "CHECK_OUT") {
+              icon = <FiLogOut />;
+            }
 
-          <div className="punch-event__line" />
+            return (
+              <div
+                key={`${event.type}-${idx}`}
+                className={`punch-event ${
+                  isCompleted ? "punch-event--completed" : ""
+                } ${isActive ? "punch-event--active" : ""} ${
+                  isLast ? "punch-event--last" : ""
+                }`}
+              >
+                <div className="punch-event__marker">{icon}</div>
 
-          <div className="punch-event__body">
-            <div>
-              <strong>Check In</strong>
+                {!isLast && <div className="punch-event__line" />}
 
-              <span>
-                Early check-in recorded
-              </span>
+                <div className="punch-event__body">
+                  <div>
+                    <strong>{event.title}</strong>
+                    <span>{event.subtitle}</span>
+                  </div>
+
+                  <time>{event.time}</time>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <>
+            {/* Fallback default events when not started */}
+            <div
+              className={`punch-event ${
+                checkInTime ? "punch-event--completed" : ""
+              }`}
+            >
+              <div className="punch-event__marker">
+                <FiCheck />
+              </div>
+
+              <div className="punch-event__line" />
+
+              <div className="punch-event__body">
+                <div>
+                  <strong>Check In</strong>
+                  <span>
+                    {checkInTime ? "Check-in recorded" : "Pending punch in"}
+                  </span>
+                </div>
+
+                <time>
+                  {checkInTime ? formatTime(checkInTime) : "Not yet"}
+                </time>
+              </div>
             </div>
 
-            <time>
-              {checkInTime
-                ? formatTime(checkInTime)
-                : "Not yet"}
-            </time>
-          </div>
-        </div>
+            <div
+              className={`punch-event ${
+                status === "ON_BREAK" ? "punch-event--active" : ""
+              }`}
+            >
+              <div className="punch-event__marker">
+                <FiCoffee />
+              </div>
 
-        {/* Break Start */}
+              <div className="punch-event__line" />
 
-        <div
-          className={`punch-event ${
-            isOnBreak
-              ? "punch-event--active"
-              : ""
-          }`}
-        >
-          <div className="punch-event__marker">
-            <FiCoffee />
-          </div>
+              <div className="punch-event__body">
+                <div>
+                  <strong>Break</strong>
+                  <span>Standard lunch/refreshment</span>
+                </div>
 
-          <div className="punch-event__line" />
-
-          <div className="punch-event__body">
-            <div>
-              <strong>Break Start</strong>
-
-              <span>Lunch break</span>
+                <time>Not yet</time>
+              </div>
             </div>
 
-            <time>01:15 PM</time>
-          </div>
-        </div>
+            <div className="punch-event punch-event--last">
+              <div className="punch-event__marker">
+                <FiLogOut />
+              </div>
 
-        {/* Break End */}
+              <div className="punch-event__body">
+                <div>
+                  <strong>Check Out</strong>
+                  <span>
+                    {checkOutTime
+                      ? "Session ended"
+                      : status === "WORKING"
+                      ? "Active ongoing session"
+                      : "Not yet"}
+                  </span>
+                </div>
 
-        <div
-          className={`punch-event ${
-            !isOnBreak && isCheckedIn
-              ? "punch-event--completed"
-              : ""
-          }`}
-        >
-          <div className="punch-event__marker">
-            <FiCoffee />
-          </div>
-
-          <div className="punch-event__line" />
-
-          <div className="punch-event__body">
-            <div>
-              <strong>Break End</strong>
-
-              <span>45 minutes</span>
+                <time>
+                  {checkOutTime ? formatTime(checkOutTime) : "Not yet"}
+                </time>
+              </div>
             </div>
-
-            <time>02:00 PM</time>
-          </div>
-        </div>
-
-        {/* Check Out */}
-
-        <div className="punch-event punch-event--last">
-          <div className="punch-event__marker">
-            <FiLogOut />
-          </div>
-
-          <div className="punch-event__body">
-            <div>
-              <strong>Check Out</strong>
-
-              <span>
-                {status === "checked_out"
-                  ? "Session ended"
-                  : "Active ongoing session"}
-              </span>
-            </div>
-
-            <time>
-              {status === "checked_out"
-                ? "06:48 PM"
-                : "Not yet"}
-            </time>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Footer */}
-
       <div className="today-punch-log__footer">
         <FiLogOut />
-
-        <span>
-          Next scheduled punch-out before 07:30 PM
-        </span>
+        <span>Next scheduled punch-out before {shiftEnd}</span>
       </div>
     </section>
   );

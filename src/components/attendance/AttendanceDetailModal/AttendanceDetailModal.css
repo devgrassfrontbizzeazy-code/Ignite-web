@@ -1,0 +1,95 @@
+.attendance-detail-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.attendance-detail-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.attendance-detail-modal__date {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.attendance-detail-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.attendance-detail-modal__card {
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--color-bg-muted);
+  border: 1px solid var(--color-border);
+}
+
+.attendance-detail-modal__card-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.attendance-detail-modal__card-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.attendance-detail-modal__section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-detail-modal__breaks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attendance-detail-modal__break-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+}
+
+.attendance-detail-modal__break-times {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.attendance-detail-modal__break-duration {
+  font-size: 11px;
+  color: var(--ignite-emerald);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--ignite-teal-050);
+}
+
+.attendance-detail-modal__empty-breaks {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 8px 0;
+}
