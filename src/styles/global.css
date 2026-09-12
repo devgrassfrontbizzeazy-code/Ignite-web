@@ -698,3 +698,24 @@ p {
   }
 }
 
+#our-solutions,
+#core-capabilities,
+#business-value {
+  scroll-margin-top: 128px;
+}
+
+@media (max-width: 900px) {
+  #our-solutions,
+  #core-capabilities,
+  #business-value {
+    scroll-margin-top: 86px;
+  }
+}
+
+@media (max-width: 480px) {
+  #our-solutions,
+  #core-capabilities,
+  #business-value {
+    scroll-margin-top: 78px;
+  }
+}

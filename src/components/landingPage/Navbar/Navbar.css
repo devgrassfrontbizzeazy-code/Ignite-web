@@ -1,3 +1,4 @@
+
 /* =========================================================
    NAVBAR
 ========================================================= */
@@ -13,8 +14,12 @@
 
   background: #ffffff;
 
-  position: relative;
-  z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  z-index: 9999;
 
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
@@ -39,7 +44,6 @@
    LOGO
 ========================================================= */
 
-
 .navbar-logo {
   width: 220px;
   height: 73.33px;
@@ -48,6 +52,8 @@
   align-items: center;
 
   flex-shrink: 0;
+
+  text-decoration: none;
 }
 
 .navbar-logo-image {
@@ -58,7 +64,6 @@
 
   object-fit: contain;
 }
-
 
 /* =========================================================
    DESKTOP NAVIGATION
@@ -108,7 +113,7 @@
 }
 
 .nav-label {
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   font-style: normal;
   font-weight: 600;
 
@@ -123,22 +128,6 @@
 .nav-item:hover .nav-label {
   color: #007565;
 }
-
-
-/* Dropdown Chevron */
-
-.chevron-icon {
-  flex-shrink: 0;
-}
-
-.chevron-icon path {
-  transition: stroke 0.25s ease;
-}
-
-.nav-item:hover .chevron-icon path {
-  stroke: #007565;
-}
-
 
 /* =========================================================
    HOVER UNDERLINE
@@ -167,7 +156,6 @@
   transform: scaleX(1);
 }
 
-
 /* =========================================================
    HEADER ACTIONS
 ========================================================= */
@@ -189,7 +177,6 @@
   flex-shrink: 0;
 }
 
-
 /* =========================================================
    BUTTON BASE
 ========================================================= */
@@ -207,7 +194,7 @@
 
   border-radius: 8px;
 
-  font-family: 'Manrope', sans-serif;
+  font-family: "Manrope", sans-serif;
   font-style: normal;
   font-weight: 600;
 
@@ -226,7 +213,6 @@
     color 0.25s ease,
     transform 0.25s ease;
 }
-
 
 /* =========================================================
    LOGIN
@@ -248,7 +234,6 @@
   background: #f7f9fb;
   border-color: #b8c5d6;
 }
-
 
 /* =========================================================
    GET STARTED
@@ -277,7 +262,6 @@
 
   flex-shrink: 0;
 }
-
 
 /* =========================================================
    MOBILE MENU BUTTON
@@ -326,14 +310,11 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
-
 /* =========================================================
    TABLET
-   Keep complete navbar visible
 ========================================================= */
 
 @media (max-width: 1100px) {
-
   .navbar {
     padding: 0 24px;
   }
@@ -365,9 +346,7 @@
 
   .btn {
     height: 46px;
-
     padding: 10px 12px;
-
     font-size: 14px;
   }
 
@@ -380,36 +359,25 @@
   }
 }
 
-
 /* =========================================================
    MOBILE
-   Only mobile switches to hamburger
 ========================================================= */
 
 @media (max-width: 900px) {
-
-  .navbar-container {
-    display: flex;
-    align-items: center;
-  }
-
   .navbar {
     height: 70px;
-
     padding: 0 20px;
   }
 
   .navbar-container {
+    display: flex;
+    align-items: center;
     gap: 0;
   }
-
-
-  /* Logo */
 
   .navbar-logo {
     width: auto;
     height: auto;
-
     flex: 1;
   }
 
@@ -418,27 +386,19 @@
     height: auto;
   }
 
-
-  /* Hide desktop buttons */
-
+  /* Hide desktop buttons initially */
   .header-actions {
     display: none;
   }
 
-
   /* Show hamburger */
-
   .mobile-menu-toggle {
     display: flex;
-
     margin-left: auto;
-
     flex-shrink: 0;
   }
 
-
   /* Mobile dropdown */
-
   .navbar-nav {
     position: absolute;
 
@@ -472,9 +432,7 @@
     display: flex;
   }
 
-
   /* Mobile links */
-
   .nav-items {
     width: 100%;
 
@@ -499,7 +457,6 @@
 
   .nav-link {
     width: 100%;
-
     padding: 0;
   }
 
@@ -508,19 +465,12 @@
     line-height: 22px;
   }
 
-
   /* Remove desktop hover line on mobile */
-
   .nav-hover-indicator {
     display: none;
   }
 
-
-  /* =====================================================
-     IMPORTANT:
-     Mobile buttons are displayed inside the nav dropdown
-     ===================================================== */
-
+  /* Mobile buttons */
   .navbar-nav .header-actions {
     display: flex;
 
@@ -546,16 +496,13 @@
   }
 }
 
-
 /* =========================================================
    SMALL MOBILE
 ========================================================= */
 
 @media (max-width: 480px) {
-
   .navbar {
     height: 64px;
-
     padding: 0 16px;
   }
 
@@ -565,7 +512,6 @@
 
   .navbar-nav {
     top: 64px;
-
     padding: 16px;
   }
 
@@ -582,3 +528,4 @@
     height: 34px;
   }
 }
+

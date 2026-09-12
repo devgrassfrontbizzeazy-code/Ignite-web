@@ -358,9 +358,8 @@ const CreateAccount = () => {
     setShowConfirmPassword((prev) => !prev);
 
   const handleGoToLogin = () => {
-    navigate("/login");
-  };
-
+  navigate("/login", { replace: true });
+};
   /* ------------------------------------------------------------------ */
   /* Render                                                             */
   /* ------------------------------------------------------------------ */

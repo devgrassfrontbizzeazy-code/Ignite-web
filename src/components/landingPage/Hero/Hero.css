@@ -4,7 +4,11 @@
   width: 100%;
   background: #FFFFFF;
   min-height: 700px;
+
   padding: 54px 0 72px;
+
+  margin-top: 112px;
+
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -590,8 +594,9 @@
 @media (max-width: 768px) {
 
   .hero-section {
-    padding: 40px 24px 40px;
-  }
+  padding: 40px 24px 40px;
+  margin-top: 70px;
+}
 
   .hero-body {
     flex-direction: column;
@@ -671,9 +676,9 @@
 
 @media (max-width: 480px) {
   .hero-section {
-    padding: 40px 16px 30px;
-  }
-
+  padding: 40px 16px 30px;
+  margin-top: 64px;
+}
   .hero-body {
     gap: 30px;
     padding: 0;
