@@ -1,9 +1,6 @@
+
 import { useMemo, useState } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock3,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock3 } from "lucide-react";
 
 import "./SchedulePreview.css";
 
@@ -17,7 +14,7 @@ const DAYS = [
   "Sunday",
 ];
 
-function SchedulePreview({ weeklySchedule, shifts }) {
+function SchedulePreview({ weeklySchedule = [], shifts = [] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const month = currentDate.getMonth();
@@ -25,25 +22,24 @@ function SchedulePreview({ weeklySchedule, shifts }) {
 
   const calendarDays = useMemo(
     () => generateCalendar(year, month),
-    [year, month]
+    [year, month],
   );
 
   const getScheduleForDay = (dayName) =>
     weeklySchedule.find((item) => item.day === dayName);
 
-  const getShift = (shiftId) =>
-    shifts.find((shift) => shift.id === shiftId);
+  const getShift = (shiftId) => {
+    if (shiftId == null) return null;
+
+    return shifts.find((shift) => String(shift.id) === String(shiftId));
+  };
 
   const previousMonth = () => {
-    setCurrentDate(
-      new Date(year, month - 1, 1)
-    );
+    setCurrentDate(new Date(year, month - 1, 1));
   };
 
   const nextMonth = () => {
-    setCurrentDate(
-      new Date(year, month + 1, 1)
-    );
+    setCurrentDate(new Date(year, month + 1, 1));
   };
 
   return (
@@ -61,11 +57,11 @@ function SchedulePreview({ weeklySchedule, shifts }) {
         </div>
 
         <div className="calendar-navigation">
-          <button onClick={previousMonth}>
+          <button onClick={previousMonth} type="button">
             <ChevronLeft size={16} />
           </button>
 
-          <button onClick={nextMonth}>
+          <button onClick={nextMonth} type="button">
             <ChevronRight size={16} />
           </button>
         </div>
@@ -81,10 +77,7 @@ function SchedulePreview({ weeklySchedule, shifts }) {
         {calendarDays.map((day, index) => {
           if (!day) {
             return (
-              <div
-                className="calendar-cell empty"
-                key={`empty-${index}`}
-              />
+              <div className="calendar-cell empty" key={`empty-${index}`} />
             );
           }
 
@@ -93,26 +86,15 @@ function SchedulePreview({ weeklySchedule, shifts }) {
           });
 
           const schedule = getScheduleForDay(dayName);
-
-          const isWorking = isWorkingDate(
-            day.date,
-            schedule
-          );
-
-          const shift = schedule
-            ? getShift(schedule.shift_id)
-            : null;
+          const isWorking = isWorkingDate(day.date, schedule);
+          const shift = schedule ? getShift(schedule.shift_id) : null;
 
           return (
             <div
-              className={`calendar-cell ${
-                isWorking ? "working" : "off"
-              }`}
+              className={`calendar-cell ${isWorking ? "working" : "off"}`}
               key={day.date.toISOString()}
             >
-              <span className="calendar-date">
-                {day.date.getDate()}
-              </span>
+              <span className="calendar-date">{day.date.getDate()}</span>
 
               {isWorking ? (
                 <div className="calendar-working">
@@ -152,14 +134,9 @@ function generateCalendar(year, month) {
   const firstDay = new Date(year, month, 1);
 
   // Convert Sunday-first JS index to Monday-first.
-  const firstDayIndex =
-    (firstDay.getDay() + 6) % 7;
+  const firstDayIndex = (firstDay.getDay() + 6) % 7;
 
-  const daysInMonth = new Date(
-    year,
-    month + 1,
-    0
-  ).getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const result = [];
 
@@ -186,28 +163,17 @@ function isWorkingDate(date, schedule) {
   }
 
   if (schedule.pattern === "custom") {
-    const firstDayOfMonth = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      1
-    );
+    // 1 = first occurrence, 2 = second, ... 5 = fifth
+    // Example: dates 1–7 => occurrence 1, 8–14 => occurrence 2.
+    const occurrence = Math.ceil(date.getDate() / 7);
 
-    const weekdayOffset =
-      (date.getDay() - firstDayOfMonth.getDay() + 7) % 7;
+    const occurrences = (schedule.custom_occurrences || []).map(Number);
 
-    const occurrence =
-      Math.floor(
-        (date.getDate() - 1 - weekdayOffset) / 7
-      ) + 1;
-
-    return schedule.custom_occurrences?.includes(
-      occurrence
-    );
+    return occurrences.includes(occurrence);
   }
 
   return false;
 }
 
-
-
 export default SchedulePreview;
+

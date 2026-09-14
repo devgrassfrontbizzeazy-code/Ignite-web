@@ -27,6 +27,17 @@ const formatEmploymentType = (type) => {
 
   return typeMap[type] || type || "—";
 };
+const formatShift = (employee) => {
+  if (employee.shift && typeof employee.shift === "object") {
+    return employee.shift.name || "Organization Default Shift";
+  }
+
+  if (employee.shift_name) {
+    return employee.shift_name;
+  }
+
+  return "Organization Default Shift";
+};
 
 const formatDate = (date) => {
   if (!date) return "—";
@@ -74,6 +85,7 @@ const EmployeeTable = ({
                 <th>Employee Code</th>
                 <th>Department</th>
                 <th>Designation</th>
+                <th>Work Shift</th>
                 <th>Manager</th>
                 <th>Type</th>
                 <th>Status</th>
@@ -145,6 +157,7 @@ const EmployeeTable = ({
                     <td>{employee.department_name || "—"}</td>
 
                     <td>{employee.designation_name || "—"}</td>
+                    <td>{formatShift(employee)}</td>
 
                     <td>{employee.reporting_manager_name || "—"}</td>
 

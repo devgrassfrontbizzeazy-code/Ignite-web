@@ -1,13 +1,13 @@
 import { useState } from "react";
-import {
-  Clock3,
-  Edit3,
-  MoreVertical,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { Clock3, Edit3, MoreVertical, Plus, Trash2 } from "lucide-react";
 
 import ShiftForm from "../ShiftForm/ShiftForm";
+
+import {
+  createShift,
+  updateShift,
+  deleteShift,
+} from "../../../services/api/workScheduleAPI";
 
 import "./ShiftList.css";
 
@@ -15,6 +15,7 @@ function ShiftList({ shifts, onChange }) {
   const [showForm, setShowForm] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
   const [menuId, setMenuId] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const handleAdd = () => {
     setEditingShift(null);
@@ -27,38 +28,82 @@ function ShiftList({ shifts, onChange }) {
     setMenuId(null);
   };
 
-  const handleDelete = (shiftId) => {
+  const handleDelete = async (shiftId) => {
     const confirmed = window.confirm(
-      "Delete this shift? Days using this shift will become unassigned."
+      "Delete this shift? Days using this shift will become unassigned.",
     );
 
     if (!confirmed) return;
 
-    onChange(shifts.filter((shift) => shift.id !== shiftId));
-    setMenuId(null);
+    try {
+      setSaving(true);
+
+      await deleteShift(shiftId);
+
+      onChange(shifts.filter((shift) => shift.id !== shiftId));
+      setMenuId(null);
+    } catch (error) {
+      console.error("Failed to delete shift:", error);
+
+      window.alert(
+        error?.response?.data?.detail ||
+          "Unable to delete this shift. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleSaveShift = (shiftData) => {
-    if (editingShift) {
-      onChange(
-        shifts.map((shift) =>
-          shift.id === editingShift.id
-            ? { ...shiftData, id: editingShift.id }
-            : shift
-        )
-      );
-    } else {
-      onChange([
-        ...shifts,
-        {
-          ...shiftData,
-          id: `shift-${Date.now()}`,
-        },
-      ]);
-    }
+  const handleSaveShift = async (shiftData) => {
+    try {
+      setSaving(true);
 
-    setShowForm(false);
-    setEditingShift(null);
+      const payload = {
+        name: shiftData.name.trim(),
+        start_time: shiftData.start_time,
+        end_time: shiftData.end_time,
+        is_overnight: Boolean(shiftData.overnight),
+        break_duration_minutes: Number(shiftData.break_minutes) || 0,
+      };
+
+      if (editingShift) {
+        const response = await updateShift(editingShift.id, payload);
+
+        const updatedShift = normalizeShift(
+          response?.data?.data || response?.data,
+        );
+
+        onChange(
+          shifts.map((shift) =>
+            shift.id === editingShift.id ? updatedShift : shift,
+          ),
+        );
+      } else {
+        const response = await createShift(payload);
+
+        const createdShift = normalizeShift(
+          response?.data?.data || response?.data,
+        );
+
+        if (!createdShift?.id) {
+          throw new Error("Created shift response has no ID.");
+        }
+
+        onChange([...shifts, createdShift]);
+      }
+
+      setShowForm(false);
+      setEditingShift(null);
+    } catch (error) {
+      console.error("Failed to save shift:", error);
+
+      window.alert(
+        error?.response?.data?.detail ||
+          "Unable to save the shift. Please check the details and try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -72,12 +117,14 @@ function ShiftList({ shifts, onChange }) {
 
             <div>
               <h3>No shifts defined</h3>
-              <p>
-                Create a reusable shift before assigning working days.
-              </p>
+              <p>Create a reusable shift before assigning working days.</p>
             </div>
 
-            <button className="add-shift-button" onClick={handleAdd}>
+            <button
+              className="add-shift-button"
+              onClick={handleAdd}
+              disabled={saving}
+            >
               <Plus size={16} />
               Add Shift
             </button>
@@ -103,18 +150,14 @@ function ShiftList({ shifts, onChange }) {
                       <strong>{shift.name}</strong>
 
                       {shift.overnight && (
-                        <span className="overnight-badge">
-                          Overnight
-                        </span>
+                        <span className="overnight-badge">Overnight</span>
                       )}
                     </div>
                   </div>
 
                   <div className="shift-time">
                     {shift.start_time} – {shift.end_time}
-                    {shift.overnight && (
-                      <small>Next day</small>
-                    )}
+                    {shift.overnight && <small>Next day</small>}
                   </div>
 
                   <div className="shift-break">
@@ -127,10 +170,9 @@ function ShiftList({ shifts, onChange }) {
                     <button
                       className="shift-menu-button"
                       onClick={() =>
-                        setMenuId(
-                          menuId === shift.id ? null : shift.id
-                        )
+                        setMenuId(menuId === shift.id ? null : shift.id)
                       }
+                      disabled={saving}
                     >
                       <MoreVertical size={17} />
                     </button>
@@ -157,7 +199,11 @@ function ShiftList({ shifts, onChange }) {
             </div>
 
             <div className="shift-list-footer">
-              <button className="add-shift-button" onClick={handleAdd}>
+              <button
+                className="add-shift-button"
+                onClick={handleAdd}
+                disabled={saving}
+              >
                 <Plus size={16} />
                 Add Shift
               </button>
@@ -171,6 +217,8 @@ function ShiftList({ shifts, onChange }) {
           shift={editingShift}
           onSave={handleSaveShift}
           onClose={() => {
+            if (saving) return;
+
             setShowForm(false);
             setEditingShift(null);
           }}
@@ -178,6 +226,26 @@ function ShiftList({ shifts, onChange }) {
       )}
     </>
   );
+}
+function normalizeShift(shift) {
+  if (!shift) return null;
+
+  return {
+    ...shift,
+
+    start_time: shift.start_time ?? shift.startTime ?? "",
+
+    end_time: shift.end_time ?? shift.endTime ?? "",
+
+    overnight:
+      shift.overnight ?? shift.is_overnight ?? shift.isOvernight ?? false,
+
+    break_minutes:
+      shift.break_minutes ??
+      shift.break_duration_minutes ??
+      shift.breakDurationMinutes ??
+      0,
+  };
 }
 
 export default ShiftList;

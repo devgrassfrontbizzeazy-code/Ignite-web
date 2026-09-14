@@ -14,78 +14,125 @@ const DAYS = [
   "Sunday",
 ];
 
-function WeeklySchedule({ schedule, shifts, onChange }) {
+function WeeklySchedule({
+  schedule,
+  shifts,
+  defaultShiftId,
+  onDefaultShiftChange,
+  onChange,
+}) {
   const workingDays = useMemo(
     () =>
       schedule
-        .filter((day) => day.pattern === "every_week")
+        .filter(
+          (day) => day.pattern === "every_week"
+        )
         .map((day) => day.day),
     [schedule]
   );
 
   const customDays = useMemo(
-    () => schedule.filter((day) => day.pattern === "custom"),
+    () =>
+      schedule.filter(
+        (day) => day.pattern === "custom"
+      ),
     [schedule]
   );
 
-  const defaultShiftId = useMemo(
-    () =>
-      schedule.find(
-        (day) => day.pattern === "every_week" && day.shift_id
-      )?.shift_id || "",
-    [schedule]
-  );
+  /*
+   * Keep select values consistent.
+   * HTML select values are strings, while backend IDs
+   * may be numbers.
+   */
+  const selectedDefaultShiftId =
+    defaultShiftId != null
+      ? String(defaultShiftId)
+      : "";
 
   const toggleWorkingDay = (dayName) => {
-    const isWorking = workingDays.includes(dayName);
+    const isWorking =
+      workingDays.includes(dayName);
 
-    const updatedSchedule = schedule.map((day) => {
-      if (day.day !== dayName) {
-        return day;
-      }
+    const updatedSchedule =
+      schedule.map((day) => {
+        if (day.day !== dayName) {
+          return day;
+        }
 
-      if (isWorking) {
+        /*
+         * Turn an existing working day into
+         * a non-working day.
+         */
+        if (isWorking) {
+          return {
+            ...day,
+            pattern: "non_working",
+            custom_occurrences: [],
+            shift_id: null,
+          };
+        }
+
+        /*
+         * Turn a non-working day into a
+         * normal weekly working day.
+         */
         return {
           ...day,
-          pattern: "non_working",
+          pattern: "every_week",
           custom_occurrences: [],
-          shift_id: null,
+          shift_id:
+            defaultShiftId || null,
         };
-      }
-
-      return {
-        ...day,
-        pattern: "every_week",
-        custom_occurrences: [],
-        shift_id: defaultShiftId || null,
-      };
-    });
+      });
 
     onChange(updatedSchedule);
   };
 
   const updateDefaultShift = (shiftId) => {
-    const updatedSchedule = schedule.map((day) => {
-      if (day.pattern !== "every_week") {
-        return day;
-      }
+    const normalizedShiftId =
+      shiftId || null;
 
-      return {
-        ...day,
-        shift_id: shiftId || null,
-      };
-    });
+    /*
+     * Update the organization's default shift
+     * in the parent state.
+     */
+    onDefaultShiftChange(
+      normalizedShiftId
+    );
+
+    /*
+     * Apply the selected default shift to
+     * every normal weekly working day.
+     *
+     * Custom days are intentionally left alone
+     * because they can have their own shift.
+     */
+    const updatedSchedule =
+      schedule.map((day) =>
+        day.pattern === "every_week"
+          ? {
+              ...day,
+              shift_id:
+                normalizedShiftId,
+            }
+          : day
+      );
 
     onChange(updatedSchedule);
   };
 
   const addCustomDay = () => {
+    /*
+     * Find the first day that is not already
+     * a normal working day or custom day.
+     */
     const availableDay = DAYS.find(
       (dayName) =>
         !schedule.some(
           (day) =>
             day.day === dayName &&
-            (day.pattern === "custom" || day.pattern === "every_week")
+            (day.pattern === "custom" ||
+              day.pattern === "every_week")
         )
     );
 
@@ -93,50 +140,58 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
       return;
     }
 
-    const updatedSchedule = schedule.map((day) => {
-      if (day.day !== availableDay) {
-        return day;
-      }
+    const updatedSchedule =
+      schedule.map((day) => {
+        if (day.day !== availableDay) {
+          return day;
+        }
 
-      return {
-        ...day,
-        pattern: "custom",
-        custom_occurrences: [1],
-        shift_id: defaultShiftId || null,
-      };
-    });
+        return {
+          ...day,
+          pattern: "custom",
+          custom_occurrences: [1],
+          shift_id:
+            defaultShiftId || null,
+        };
+      });
 
     onChange(updatedSchedule);
   };
 
   const removeCustomDay = (dayName) => {
-    const updatedSchedule = schedule.map((day) => {
-      if (day.day !== dayName) {
-        return day;
-      }
+    const updatedSchedule =
+      schedule.map((day) => {
+        if (day.day !== dayName) {
+          return day;
+        }
 
-      return {
-        ...day,
-        pattern: "non_working",
-        custom_occurrences: [],
-        shift_id: null,
-      };
-    });
+        return {
+          ...day,
+          pattern: "non_working",
+          custom_occurrences: [],
+          shift_id: null,
+        };
+      });
 
     onChange(updatedSchedule);
   };
 
-  const updateCustomDay = (dayName, field, value) => {
-    const updatedSchedule = schedule.map((day) => {
-      if (day.day !== dayName) {
-        return day;
-      }
+  const updateCustomDay = (
+    dayName,
+    field,
+    value
+  ) => {
+    const updatedSchedule =
+      schedule.map((day) => {
+        if (day.day !== dayName) {
+          return day;
+        }
 
-      return {
-        ...day,
-        [field]: value,
-      };
-    });
+        return {
+          ...day,
+          [field]: value,
+        };
+      });
 
     onChange(updatedSchedule);
   };
@@ -152,28 +207,44 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
 
           <div>
             <h3>Working Days</h3>
-            <p>Select the days your organization normally operates.</p>
+
+            <p>
+              Select the days your organization
+              normally operates.
+            </p>
           </div>
         </div>
 
         <div className="working-days-grid">
           {DAYS.map((day) => {
-            const isSelected = workingDays.includes(day);
+            const isSelected =
+              workingDays.includes(day);
 
             return (
               <button
                 key={day}
                 type="button"
                 className={`working-day-option ${
-                  isSelected ? "selected" : ""
+                  isSelected
+                    ? "selected"
+                    : ""
                 }`}
-                onClick={() => toggleWorkingDay(day)}
+                onClick={() =>
+                  toggleWorkingDay(day)
+                }
               >
                 <span className="working-day-check">
-                  {isSelected && <Check size={13} strokeWidth={2.5} />}
+                  {isSelected && (
+                    <Check
+                      size={13}
+                      strokeWidth={2.5}
+                    />
+                  )}
                 </span>
 
-                <span>{day.slice(0, 3)}</span>
+                <span>
+                  {day.slice(0, 3)}
+                </span>
               </button>
             );
           })}
@@ -184,23 +255,39 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
       <div className="weekly-default-shift">
         <div>
           <h3>Default Shift</h3>
+
           <p>
-            This shift will be applied to all selected working days.
+            This shift will be applied to all
+            selected working days.
           </p>
         </div>
 
         <select
-          value={defaultShiftId}
-          onChange={(event) => updateDefaultShift(event.target.value)}
-          disabled={!workingDays.length || !shifts.length}
+          value={selectedDefaultShiftId}
+          onChange={(event) =>
+            updateDefaultShift(
+              event.target.value
+            )
+          }
+          disabled={
+            !workingDays.length ||
+            !shifts.length
+          }
         >
           <option value="">
-            {shifts.length ? "Select default shift" : "Create a shift first"}
+            {shifts.length
+              ? "Select default shift"
+              : "Create a shift first"}
           </option>
 
           {shifts.map((shift) => (
-            <option key={shift.id} value={shift.id}>
-              {shift.name} — {shift.start_time} to {shift.end_time}
+            <option
+              key={shift.id}
+              value={String(shift.id)}
+            >
+              {shift.name} —{" "}
+              {shift.start_time} to{" "}
+              {shift.end_time}
             </option>
           ))}
         </select>
@@ -216,9 +303,10 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
 
             <div>
               <h3>Custom Schedule</h3>
+
               <p>
-                Add exceptions when a specific day follows a different
-                recurring pattern.
+                Add exceptions when a specific day
+                follows a different recurring pattern.
               </p>
             </div>
           </div>
@@ -227,7 +315,12 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
             type="button"
             className="add-custom-day-button"
             onClick={addCustomDay}
-            disabled={customDays.length >= 7}
+            disabled={
+              customDays.length >= 7 ||
+              customDays.length +
+                workingDays.length >=
+                7
+            }
           >
             <Plus size={16} />
             Add Custom Day
@@ -237,70 +330,110 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
         {customDays.length > 0 ? (
           <div className="custom-days-list">
             {customDays.map((day) => (
-              <div className="custom-day-row" key={day.day}>
-                <div className="custom-day-name">{day.day}</div>
+              <div
+                className="custom-day-row"
+                key={day.day}
+              >
+                <div className="custom-day-name">
+                  {day.day}
+                </div>
 
                 <div className="custom-day-field">
-                  <label>Occurrences</label>
+                  <label>
+                    Occurrences
+                  </label>
 
                   <div className="occurrence-options">
-                    {[1, 2, 3, 4, 5].map((occurrence) => {
-                      const selected =
-                        day.custom_occurrences?.includes(occurrence);
+                    {[1, 2, 3, 4, 5].map(
+                      (occurrence) => {
+                        const selected =
+                          day.custom_occurrences?.includes(
+                            occurrence
+                          );
 
-                      return (
-                        <button
-                          key={occurrence}
-                          type="button"
-                          className={selected ? "selected" : ""}
-                          onClick={() => {
-                            const current =
-                              day.custom_occurrences || [];
+                        return (
+                          <button
+                            key={occurrence}
+                            type="button"
+                            className={
+                              selected
+                                ? "selected"
+                                : ""
+                            }
+                            onClick={() => {
+                              const current =
+                                day.custom_occurrences ||
+                                [];
 
-                            const next = selected
-                              ? current.filter(
-                                  (item) => item !== occurrence
-                                )
-                              : [...current, occurrence].sort();
+                              const next =
+                                selected
+                                  ? current.filter(
+                                      (item) =>
+                                        item !==
+                                        occurrence
+                                    )
+                                  : [
+                                      ...current,
+                                      occurrence,
+                                    ].sort(
+                                      (a, b) =>
+                                        a - b
+                                    );
 
-                            updateCustomDay(
-                              day.day,
-                              "custom_occurrences",
-                              next
-                            );
-                          }}
-                        >
-                          {occurrence}
-                          {occurrence === 1
-                            ? "st"
-                            : occurrence === 2
-                            ? "nd"
-                            : occurrence === 3
-                            ? "rd"
-                            : "th"}
-                        </button>
-                      );
-                    })}
+                              updateCustomDay(
+                                day.day,
+                                "custom_occurrences",
+                                next
+                              );
+                            }}
+                          >
+                            {occurrence}
+
+                            {occurrence === 1
+                              ? "st"
+                              : occurrence === 2
+                              ? "nd"
+                              : occurrence === 3
+                              ? "rd"
+                              : "th"}
+                          </button>
+                        );
+                      }
+                    )}
                   </div>
                 </div>
 
                 <div className="custom-day-field">
-                  <label>Shift</label>
+                  <label>
+                    Shift
+                  </label>
 
                   <select
-                    value={day.shift_id || ""}
+                    value={
+                      day.shift_id != null
+                        ? String(day.shift_id)
+                        : ""
+                    }
                     onChange={(event) =>
                       updateCustomDay(
                         day.day,
                         "shift_id",
-                        event.target.value || null
+                        event.target.value ||
+                          null
                       )
                     }
                   >
-                    <option value="">Select shift</option>
+                    <option value="">
+                      Select shift
+                    </option>
 
                     {shifts.map((shift) => (
-                      <option key={shift.id} value={shift.id}>
+                      <option
+                        key={shift.id}
+                        value={String(
+                          shift.id
+                        )}
+                      >
                         {shift.name}
                       </option>
                     ))}
@@ -310,7 +443,9 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
                 <button
                   type="button"
                   className="remove-custom-day"
-                  onClick={() => removeCustomDay(day.day)}
+                  onClick={() =>
+                    removeCustomDay(day.day)
+                  }
                 >
                   Remove
                 </button>
@@ -319,9 +454,13 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
           </div>
         ) : (
           <div className="custom-empty-state">
-            <span>No custom schedules added.</span>
             <span>
-              Use this only when a day needs a different recurring pattern.
+              No custom schedules added.
+            </span>
+
+            <span>
+              Use this only when a day needs a
+              different recurring pattern.
             </span>
           </div>
         )}
@@ -331,8 +470,9 @@ function WeeklySchedule({ schedule, shifts, onChange }) {
         <span className="note-dot" />
 
         <span>
-          Non-working days are off automatically. Use Custom Schedule only
-          for recurring exceptions such as 1st and 3rd Saturdays.
+          Non-working days are off automatically.
+          Use Custom Schedule only for recurring
+          exceptions such as 1st and 3rd Saturdays.
         </span>
       </div>
     </div>

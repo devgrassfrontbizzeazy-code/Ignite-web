@@ -14,7 +14,11 @@ import {
 import Button from "../../common/Button/Button";
 import { getDepartments } from "../../../services/api/departmentAPI";
 import { getDesignations } from "../../../services/api/designationAPI";
-import { getEmployeeManagers, getEmployeeOptions } from "../../../services/api/employeeAPI";
+import {
+  getEmployeeManagers,
+  getEmployeeOptions,
+} from "../../../services/api/employeeAPI";
+import { getShifts } from "../../../services/api/workScheduleAPI";
 
 import "./EmployeeForm.css";
 
@@ -39,6 +43,8 @@ const initialForm = {
   reporting_manager_id: "",
   reporting_manager_name: "",
 
+  shift_id: "",
+
   employment_type: "Full Time",
   employment_status: "Active",
 
@@ -53,8 +59,23 @@ const initialForm = {
 
 const extractList = (response) => {
   if (Array.isArray(response)) return response;
-  if (Array.isArray(response?.results)) return response.results;
-  if (Array.isArray(response?.data)) return response.data;
+
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (Array.isArray(response?.data?.results)) {
+    return response.data.results;
+  }
+
+  if (Array.isArray(response?.data?.data)) {
+    return response.data.data;
+  }
+
   return [];
 };
 
@@ -86,7 +107,7 @@ const normalizeDesignation = (designation) => {
     departmentId:
       typeof designation.department === "object"
         ? designation.department?.id
-        : designation.department ?? designation.department_id ?? "",
+        : (designation.department ?? designation.department_id ?? ""),
     isActive:
       designation.is_active !== undefined
         ? designation.is_active
@@ -119,6 +140,7 @@ const EmployeeForm = ({
   const [departments, setDepartments] = useState([]);
   const [designations, setDesignations] = useState([]);
   const [managers, setManagers] = useState([]);
+  const [shifts, setShifts] = useState([]);
 
   const [organizationLoading, setOrganizationLoading] = useState(true);
   const [organizationError, setOrganizationError] = useState("");
@@ -132,12 +154,17 @@ const EmployeeForm = ({
         setOrganizationLoading(true);
         setOrganizationError("");
 
-        const [departmentResponse, designationResponse, managersResponse] =
-          await Promise.allSettled([
-            getDepartments(),
-            getDesignations(),
-            getEmployeeManagers(),
-          ]);
+        const [
+          departmentResponse,
+          designationResponse,
+          managersResponse,
+          shiftsResponse,
+        ] = await Promise.allSettled([
+          getDepartments(),
+          getDesignations(),
+          getEmployeeManagers(),
+          getShifts(),
+        ]);
 
         const deptList =
           departmentResponse.status === "fulfilled"
@@ -151,7 +178,10 @@ const EmployeeForm = ({
           managersResponse.status === "fulfilled"
             ? extractList(managersResponse.value)
             : [];
-
+        const shiftList =
+          shiftsResponse.status === "fulfilled"
+            ? extractList(shiftsResponse.value)
+            : [];
         const normalizedDepartments = deptList
           .map(normalizeDepartment)
           .filter((d) => d && d.id);
@@ -165,10 +195,15 @@ const EmployeeForm = ({
         setManagers(
           mgrList.map((m) => ({
             id: m.id,
-            name: m.full_name || m.fullName || `${m.first_name || ''} ${m.last_name || ''}`.trim() || m.name,
+            name:
+              m.full_name ||
+              m.fullName ||
+              `${m.first_name || ""} ${m.last_name || ""}`.trim() ||
+              m.name,
             code: m.employee_code || m.employeeCode || "",
-          }))
+          })),
         );
+        setShifts(shiftList.filter((shift) => shift && shift.id));
       } catch (error) {
         console.error("Failed to load organization data:", error);
         setOrganizationError("Unable to load organization dropdown options.");
@@ -206,13 +241,20 @@ const EmployeeForm = ({
             ? initialData.reporting_manager?.id
             : initialData.reporting_manager) ||
           "",
+        shift_id:
+          initialData.shift_id ||
+          initialData.shiftId ||
+          (typeof initialData.shift === "object"
+            ? initialData.shift?.id
+            : initialData.shift) ||
+          "",
       });
 
       setPhotoPreview(
         initialData.profile_photo_url ||
           initialData.photoUrl ||
           initialData.profile_photo ||
-          ""
+          "",
       );
     }
   }, [mode, initialData]);
@@ -227,7 +269,7 @@ const EmployeeForm = ({
     const filtered = designations.filter(
       (designation) =>
         !designation.departmentId ||
-        String(designation.departmentId) === String(form.department_id)
+        String(designation.departmentId) === String(form.department_id),
     );
     return filtered.length > 0 ? filtered : designations;
   }, [designations, form.department_id]);
@@ -247,7 +289,7 @@ const EmployeeForm = ({
   const handleDepartmentChange = (event) => {
     const value = event.target.value;
     const selectedDepartment = departments.find(
-      (department) => String(department.id) === String(value)
+      (department) => String(department.id) === String(value),
     );
 
     setForm((previous) => ({
@@ -268,7 +310,7 @@ const EmployeeForm = ({
   const handleDesignationChange = (event) => {
     const value = event.target.value;
     const selectedDesignation = filteredDesignations.find(
-      (designation) => String(designation.id) === String(value)
+      (designation) => String(designation.id) === String(value),
     );
 
     setForm((previous) => ({
@@ -286,7 +328,7 @@ const EmployeeForm = ({
   const handleManagerChange = (event) => {
     const value = event.target.value;
     const selectedManager = managers.find(
-      (m) => String(m.id) === String(value)
+      (m) => String(m.id) === String(value),
     );
 
     setForm((previous) => ({
@@ -357,7 +399,8 @@ const EmployeeForm = ({
       form.emergency_contact_phone &&
       !/^\d{10}$/.test(form.emergency_contact_phone.trim())
     ) {
-      newErrors.emergency_contact_phone = "Phone number must contain 10 digits.";
+      newErrors.emergency_contact_phone =
+        "Phone number must contain 10 digits.";
     }
 
     setErrors(newErrors);
@@ -386,6 +429,7 @@ const EmployeeForm = ({
       reporting_manager: form.reporting_manager_id
         ? Number(form.reporting_manager_id)
         : null,
+      shift: form.shift_id ? Number(form.shift_id) : null,
       employment_type: form.employment_type || "Full Time",
       employment_status: form.employment_status || "Active",
       work_location: form.work_location ? form.work_location.trim() : "",
@@ -558,11 +602,7 @@ const EmployeeForm = ({
 
           <div className="employee-form__field">
             <label>Gender</label>
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-            >
+            <select name="gender" value={form.gender} onChange={handleChange}>
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -678,6 +718,31 @@ const EmployeeForm = ({
                 ))}
               </select>
             </div>
+          </div>
+          <div className="employee-form__field">
+            <label>Work Shift</label>
+
+            <select
+              name="shift_id"
+              value={form.shift_id}
+              onChange={handleChange}
+              disabled={organizationLoading}
+            >
+              <option value="">
+                {organizationLoading
+                  ? "Loading shifts..."
+                  : "Organization Default Shift"}
+              </option>
+
+              {shifts.map((shift) => (
+                <option key={shift.id} value={shift.id}>
+                  {shift.name}
+                  {shift.start_time && shift.end_time
+                    ? ` (${shift.start_time} - ${shift.end_time})`
+                    : ""}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="employee-form__field">
@@ -797,8 +862,8 @@ const EmployeeForm = ({
               ? "Saving changes..."
               : "Adding employee..."
             : mode === "edit"
-            ? "Save Changes"
-            : "Add Employee & Send Invite"}
+              ? "Save Changes"
+              : "Add Employee & Send Invite"}
         </Button>
       </div>
     </form>
