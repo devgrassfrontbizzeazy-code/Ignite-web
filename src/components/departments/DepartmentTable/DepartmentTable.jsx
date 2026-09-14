@@ -30,16 +30,11 @@ const DepartmentTable = ({
 
         <tbody>
           {departments.map((department) => {
-            const isActive =
-              department.status === "active";
+            const isActive = department.status === "active";
 
             return (
-              
               <tr
-                key={
-                  department.id ??
-                  `department-${department.departmentName}`
-                }
+                key={department.id ?? `department-${department.departmentName}`}
               >
                 <td>{department.departmentCode || "—"}</td>
                 <td>
@@ -50,29 +45,23 @@ const DepartmentTable = ({
                   </div>
                 </td>
 
-                <td>
+                <td className="department-table__description">
                   {department.description || "—"}
                 </td>
 
                 <td>
                   <span
                     className={`department-table__status department-table__status--${
-                      isActive
-                        ? "active"
-                        : "inactive"
+                      isActive ? "active" : "inactive"
                     }`}
                   >
                     <span className="department-table__status-dot" />
 
-                    {isActive
-                      ? "Active"
-                      : "Inactive"}
+                    {isActive ? "Active" : "Inactive"}
                   </span>
                 </td>
 
-                <td>
-                  {formatDate(department.createdAt)}
-                </td>
+                <td>{formatDate(department.createdAt)}</td>
 
                 <td>
                   <DepartmentRowActions
@@ -80,9 +69,7 @@ const DepartmentTable = ({
                     onView={onView}
                     onEdit={onEdit}
                     onDelete={onDelete}
-                    onToggleStatus={
-                      onToggleStatus
-                    }
+                    onToggleStatus={onToggleStatus}
                   />
                 </td>
               </tr>

@@ -30,7 +30,12 @@
   border-bottom: 1px solid #f1f5f9;
   white-space: nowrap;
 }
-
+.department-table__description {
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .department-table tbody tr:last-child td {
   border-bottom: none;
 }

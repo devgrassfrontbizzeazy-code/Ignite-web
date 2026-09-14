@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -16,7 +15,7 @@ import {
   CheckCircle2,
   Circle,
   ArrowRight,
-  ShieldCheck,
+  ShieldCheck, Clock3,
 } from "lucide-react";
 
 import { getCompany } from "../../services/api/companyAPI";
@@ -61,23 +60,11 @@ const normalizeCompany = (raw) => {
     website: c.website || "—",
 
     registrationNumber:
-      c.registration_no ||
-      c.registrationNumber ||
-      c.registration_number ||
-      "—",
+      c.registration_no || c.registrationNumber || c.registration_number || "—",
 
-    logo:
-      c.logo ||
-      c.logo_url ||
-      c.company_logo ||
-      c.companyLogo ||
-      "",
+    logo: c.logo || c.logo_url || c.company_logo || c.companyLogo || "",
 
-    fullAddress:
-      c.full_address ||
-      c.fullAddress ||
-      c.address ||
-      "",
+    fullAddress: c.full_address || c.fullAddress || c.address || "",
 
     city: c.city || c.addressCity || "",
 
@@ -86,66 +73,35 @@ const normalizeCompany = (raw) => {
     country: c.country || c.addressCountry || "",
 
     pincode:
-      c.pincode ||
-      c.postal_code ||
-      c.postalCode ||
-      c.addressPostalCode ||
-      "",
+      c.pincode || c.postal_code || c.postalCode || c.addressPostalCode || "",
 
-    mapLocation:
-      c.map_location ||
-      c.mapLocation ||
-      "",
+    mapLocation: c.map_location || c.mapLocation || "",
 
     latitude: c.latitude ?? c.lat ?? "",
 
     longitude: c.longitude ?? c.lng ?? "",
 
-    financialYear:
-      c.financial_year ||
-      c.financialYear ||
-      "—",
+    financialYear: c.financial_year || c.financialYear || "—",
 
     currency: c.currency || "—",
 
-    timezone:
-      c.time_zone ||
-      c.timezone ||
-      "—",
+    timezone: c.time_zone || c.timezone || "—",
 
-    dateFormat:
-      c.date_format ||
-      c.dateFormat ||
-      "—",
+    dateFormat: c.date_format || c.dateFormat || "—",
 
-    weekStartsOn:
-      c.week_starts_on ||
-      c.weekStartsOn ||
-      "—",
+    weekStartsOn: c.week_starts_on || c.weekStartsOn || "—",
 
-    hasShifts: Boolean(
-      c.has_shifts ?? c.hasShifts,
-    ),
+    hasShifts: Boolean(c.has_shifts ?? c.hasShifts),
 
     hasAttendancePolicies: Boolean(
-      c.has_attendance_policies ??
-        c.hasAttendancePolicies,
+      c.has_attendance_policies ?? c.hasAttendancePolicies,
     ),
 
-    hasLeavePolicies: Boolean(
-      c.has_leave_policies ??
-        c.hasLeavePolicies,
-    ),
+    hasLeavePolicies: Boolean(c.has_leave_policies ?? c.hasLeavePolicies),
 
-    hasHolidays: Boolean(
-      c.has_holidays ??
-        c.hasHolidays,
-    ),
+    hasHolidays: Boolean(c.has_holidays ?? c.hasHolidays),
 
-    hasPayroll: Boolean(
-      c.has_payroll ??
-        c.hasPayroll,
-    ),
+    hasPayroll: Boolean(c.has_payroll ?? c.hasPayroll),
   };
 };
 
@@ -154,10 +110,7 @@ const formatWebsite = (website) => {
     return null;
   }
 
-  if (
-    website.startsWith("http://") ||
-    website.startsWith("https://")
-  ) {
+  if (website.startsWith("http://") || website.startsWith("https://")) {
     return website;
   }
 
@@ -179,13 +132,7 @@ function InfoItem({ icon: Icon, label, value }) {
   );
 }
 
-function SectionHeader({
-  icon: Icon,
-  eyebrow,
-  title,
-  action,
-  onAction,
-}) {
+function SectionHeader({ icon: Icon, eyebrow, title, action, onAction }) {
   return (
     <div className="organization-overview__section-header">
       <div className="organization-overview__section-heading">
@@ -194,9 +141,7 @@ function SectionHeader({
         </div>
 
         <div>
-          <span className="organization-overview__eyebrow">
-            {eyebrow}
-          </span>
+          <span className="organization-overview__eyebrow">{eyebrow}</span>
 
           <h2>{title}</h2>
         </div>
@@ -216,13 +161,7 @@ function SectionHeader({
   );
 }
 
-function StructureStat({
-  icon: Icon,
-  label,
-  value,
-  description,
-  onClick,
-}) {
+function StructureStat({ icon: Icon, label, value, description, onClick }) {
   return (
     <button
       type="button"
@@ -248,14 +187,48 @@ function StructureStat({
     </button>
   );
 }
-
-function SetupRow({
-  complete,
+function ConfigurationItem({
+  icon: Icon,
   label,
   description,
+  status,
   action,
-  onAction,
+  onClick,
 }) {
+  return (
+    <button
+      type="button"
+      className="organization-overview__configuration-item"
+      onClick={onClick}
+    >
+      <div className="organization-overview__configuration-icon">
+        <Icon size={19} strokeWidth={1.8} />
+      </div>
+
+      <div className="organization-overview__configuration-content">
+        <div className="organization-overview__configuration-title">
+          <strong>{label}</strong>
+
+          <span
+            className={`organization-overview__configuration-status ${
+              status === "Configured" ? "is-configured" : "is-pending"
+            }`}
+          >
+            {status}
+          </span>
+        </div>
+
+        <span>{description}</span>
+      </div>
+
+      <ArrowRight
+        className="organization-overview__configuration-arrow"
+        size={18}
+      />
+    </button>
+  );
+}
+function SetupRow({ complete, label, description, action, onAction }) {
   return (
     <div className="organization-overview__setup-row">
       <div
@@ -263,11 +236,7 @@ function SetupRow({
           complete ? "is-complete" : ""
         }`}
       >
-        {complete ? (
-          <CheckCircle2 size={19} />
-        ) : (
-          <Circle size={19} />
-        )}
+        {complete ? <CheckCircle2 size={19} /> : <Circle size={19} />}
       </div>
 
       <div className="organization-overview__setup-content">
@@ -337,51 +306,35 @@ export default function OrganizationOverview() {
           "ORGANIZATION OVERVIEW COMPANY RESPONSE:",
           companyResponse.value,
         );
+        console.log(
+          "ORGANIZATION OVERVIEW LOGO:",
+          companyResponse.value?.data?.logo_url,
+        );
+        console.log(
+          "ORGANIZATION OVERVIEW COMPANY KEYS:",
+          Object.keys(companyResponse.value?.data || {}),
+        );
 
-        setCompany(
-          normalizeCompany(
-            companyResponse.value?.data,
-          ),
-        );
+        setCompany(normalizeCompany(companyResponse.value?.data));
       } else {
-        throw new Error(
-          "Unable to load company information.",
-        );
+        throw new Error("Unable to load company information.");
       }
 
       if (departmentResponse.status === "fulfilled") {
-        setDepartmentCount(
-          extractList(
-            departmentResponse.value,
-          ).length,
-        );
+        setDepartmentCount(extractList(departmentResponse.value).length);
       }
 
       if (designationResponse.status === "fulfilled") {
-        setDesignationCount(
-          extractList(
-            designationResponse.value,
-          ).length,
-        );
+        setDesignationCount(extractList(designationResponse.value).length);
       }
 
       if (employeeResponse.status === "fulfilled") {
-        setEmployeeCount(
-          extractList(
-            employeeResponse.value,
-          ).length,
-        );
+        setEmployeeCount(extractList(employeeResponse.value).length);
       }
     } catch (err) {
-      console.error(
-        "Organization overview error:",
-        err,
-      );
+      console.error("Organization overview error:", err);
 
-      setError(
-        err?.message ||
-          "Unable to load organization information.",
-      );
+      setError(err?.message || "Unable to load organization information.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -396,137 +349,72 @@ export default function OrganizationOverview() {
     loadOverview(true);
   };
 
-  const getSetupItems = () => {
-    if (!company) {
-      return [];
-    }
-
-    return [
-      {
-        label: "Company details",
-        description:
-          "Basic organization information",
-        complete: Boolean(
-          company.name &&
-            company.email &&
-            company.industry,
-        ),
-        action: "Edit",
-        onAction: () =>
-          navigate("/company/edit"),
-      },
-
-      {
-        label: "Company address",
-        description:
-          "Registered organization address",
-        complete: Boolean(
-          company.fullAddress ||
-            company.city,
-        ),
-        action: "Edit",
-        onAction: () =>
-          navigate(
-            "/company/address/edit",
-          ),
-      },
-
-      {
-        label: "Business settings",
-        description:
-          "Financial year, currency and timezone",
-        complete: Boolean(
-          company.financialYear &&
-            company.currency &&
-            company.timezone,
-        ),
-        action: "Edit",
-        onAction: () =>
-          navigate(
-            "/company/business-settings/edit",
-          ),
-      },
-
-      {
-        label: "Departments",
-        description:
-          "Organization departments",
-        complete:
-          departmentCount > 0,
-        action: "Manage",
-        onAction: () =>
-          navigate("/departments"),
-      },
-
-      {
-        label: "Designations",
-        description:
-          "Employee designations",
-        complete:
-          designationCount > 0,
-        action: "Manage",
-        onAction: () =>
-          navigate("/designations"),
-      },
-
-      {
-        label: "Attendance configuration",
-        description:
-          "Attendance policies and rules",
-        complete:
-          company.hasAttendancePolicies,
-        action:
-          company.hasAttendancePolicies
-            ? "Manage"
-            : "Configure",
-        onAction: () =>
-          navigate("/attendance"),
-      },
-
-      {
-        label: "Leave configuration",
-        description:
-          "Leave policies and balances",
-        complete:
-          company.hasLeavePolicies,
-        action:
-          company.hasLeavePolicies
-            ? "Manage"
-            : "Configure",
-        onAction: () =>
-          navigate("/leave-policies"),
-      },
-
-      {
-        label: "Holiday calendar",
-        description:
-          "Organization holiday calendar",
-        complete:
-          company.hasHolidays,
-        action:
-          company.hasHolidays
-            ? "Manage"
-            : "Configure",
-        onAction: () =>
-          navigate("/holidays"),
-      },
-    ];
-  };
+  const getSetupItems = () => [
+  {
+    label: "Company details",
+    description: "Basic organization information",
+    complete: !!company?.name,
+    action: "Edit",
+    path: "/company/edit",
+  },
+  {
+    label: "Company address",
+    description: "Registered and business address",
+    complete: !!company?.fullAddress,
+    action: "Edit",
+    path: "/company/address/edit",
+  },
+  {
+    label: "Business settings",
+    description: "Financial year, currency and regional settings",
+    complete: !!company?.currency,
+    action: "Edit",
+    path: "/company/business-settings/edit",
+  },
+  {
+    label: "Departments",
+    description: "Create and manage organization departments",
+    complete: departmentCount > 0,
+    action: "Manage",
+    path: "/departments",
+  },
+  {
+    label: "Designations",
+    description: "Define employee designations and permissions",
+    complete: designationCount > 0,
+    action: "Manage",
+    path: "/designations",
+  },
+  {
+    label: "Employees",
+    description: "Add and manage organization employees",
+    complete: employeeCount > 0,
+    action: "Manage",
+    path: "/employees",
+  },
+  {
+    label: "Leave Policies",
+    description: "Configure leave types, balances and approval rules",
+    complete: !!company?.hasLeavePolicies,
+    action: "Manage",
+    path: "/leave-policies",
+  },
+  {
+    label: "Holidays",
+    description: "Manage company holidays and holiday calendar",
+    complete: !!company?.hasHolidays,
+    action: "Manage",
+    path: "/holidays",
+  },
+];
 
   const setupItems = getSetupItems();
 
-  const completedSetup =
-    setupItems.filter(
-      (item) => item.complete,
-    ).length;
+  const completedSetup = setupItems.filter((item) => item.complete).length;
 
   const setupProgress =
     setupItems.length > 0
-      ? Math.round(
-          (completedSetup /
-            setupItems.length) *
-            100,
-        )
+      ? Math.round((completedSetup / setupItems.length) * 100)
       : 0;
 
   if (loading) {
@@ -535,9 +423,7 @@ export default function OrganizationOverview() {
         <div className="organization-overview__loading">
           <div className="organization-overview__spinner" />
 
-          <span>
-            Loading organization overview...
-          </span>
+          <span>Loading organization overview...</span>
         </div>
       </div>
     );
@@ -552,9 +438,7 @@ export default function OrganizationOverview() {
           </div>
 
           <div>
-            <h2>
-              Unable to load organization
-            </h2>
+            <h2>Unable to load organization</h2>
 
             <p>{error}</p>
           </div>
@@ -575,15 +459,11 @@ export default function OrganizationOverview() {
     return null;
   }
 
-  const websiteUrl = formatWebsite(
-    company.website,
-  );
+  const websiteUrl = formatWebsite(company.website);
 
-  const locationParts = [
-    company.city,
-    company.state,
-    company.country,
-  ].filter(Boolean);
+  const locationParts = [company.city, company.state, company.country].filter(
+    Boolean,
+  );
 
   return (
     <div className="organization-overview">
@@ -598,8 +478,7 @@ export default function OrganizationOverview() {
           <h1>Organization Overview</h1>
 
           <p>
-            Manage and review your company's core
-            information and configuration.
+            Manage and review your company's core information and configuration.
           </p>
         </div>
 
@@ -611,16 +490,10 @@ export default function OrganizationOverview() {
         >
           <RefreshCw
             size={16}
-            className={
-              refreshing
-                ? "organization-overview__refresh-spin"
-                : ""
-            }
+            className={refreshing ? "organization-overview__refresh-spin" : ""}
           />
 
-          {refreshing
-            ? "Refreshing..."
-            : "Refresh"}
+          {refreshing ? "Refreshing..." : "Refresh"}
         </button>
       </header>
 
@@ -633,20 +506,16 @@ export default function OrganizationOverview() {
               <img
                 src={company.logo}
                 alt={`${company.name} logo`}
-                onError={(e) => {
-                  e.currentTarget.style.display =
-                    "none";
-
-                  e.currentTarget.parentElement.classList.add(
-                    "has-logo-error",
+                onError={(event) => {
+                  console.error(
+                    "ORGANIZATION OVERVIEW LOGO LOAD FAILED:",
+                    company.logo,
                   );
+                  event.currentTarget.style.display = "none";
                 }}
               />
             ) : (
-              <Building2
-                size={34}
-                strokeWidth={1.6}
-              />
+              <Building2 size={34} />
             )}
           </div>
 
@@ -658,21 +527,15 @@ export default function OrganizationOverview() {
             <h2>{company.name}</h2>
 
             <div className="organization-overview__company-meta">
-              <span>
-                {company.industry}
-              </span>
+              <span>{company.industry}</span>
 
               <span className="organization-overview__meta-dot" />
 
-              <span>
-                {company.companyType}
-              </span>
+              <span>{company.companyType}</span>
 
               <span className="organization-overview__meta-dot" />
 
-              <span>
-                Code: {company.code}
-              </span>
+              <span>Code: {company.code}</span>
             </div>
           </div>
         </div>
@@ -680,12 +543,9 @@ export default function OrganizationOverview() {
         <button
           type="button"
           className="organization-overview__primary-button"
-          onClick={() =>
-            navigate("/company/edit")
-          }
+          onClick={() => navigate("/company/edit")}
         >
           <Pencil size={16} />
-
           Edit Company Details
         </button>
       </section>
@@ -693,28 +553,16 @@ export default function OrganizationOverview() {
       {/* COMPANY CONTACT */}
 
       <section className="organization-overview__contact-strip">
-        <InfoItem
-          icon={Mail}
-          label="Company Email"
-          value={company.email}
-        />
+        <InfoItem icon={Mail} label="Company Email" value={company.email} />
 
-        <InfoItem
-          icon={Phone}
-          label="Phone"
-          value={company.phone}
-        />
+        <InfoItem icon={Phone} label="Phone" value={company.phone} />
 
         <InfoItem
           icon={Globe}
           label="Website"
           value={
             websiteUrl ? (
-              <a
-                href={websiteUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
+              <a href={websiteUrl} target="_blank" rel="noreferrer">
                 {company.website}
               </a>
             ) : (
@@ -726,9 +574,7 @@ export default function OrganizationOverview() {
         <InfoItem
           icon={ShieldCheck}
           label="Registration Number"
-          value={
-            company.registrationNumber
-          }
+          value={company.registrationNumber}
         />
       </section>
 
@@ -743,31 +589,19 @@ export default function OrganizationOverview() {
             eyebrow="LOCATION"
             title="Company Address"
             action="Edit"
-            onAction={() =>
-              navigate(
-                "/company/address/edit",
-              )
-            }
+            onAction={() => navigate("/company/address/edit")}
           />
 
           <div className="organization-overview__panel-body">
             <div className="organization-overview__address">
-              <strong>
-                {company.fullAddress ||
-                  "Address not added"}
-              </strong>
+              <strong>{company.fullAddress || "Address not added"}</strong>
 
               {locationParts.length > 0 && (
-                <span>
-                  {locationParts.join(", ")}
-                </span>
+                <span>{locationParts.join(", ")}</span>
               )}
 
               {company.pincode && (
-                <span>
-                  PIN / Postal Code:{" "}
-                  {company.pincode}
-                </span>
+                <span>PIN / Postal Code: {company.pincode}</span>
               )}
 
               {company.mapLocation && (
@@ -777,14 +611,12 @@ export default function OrganizationOverview() {
               )}
             </div>
 
-            {(company.latitude ||
-              company.longitude) && (
+            {(company.latitude || company.longitude) && (
               <div className="organization-overview__coordinates">
                 <span>Coordinates</span>
 
                 <strong>
-                  {company.latitude},{" "}
-                  {company.longitude}
+                  {company.latitude}, {company.longitude}
                 </strong>
               </div>
             )}
@@ -799,48 +631,34 @@ export default function OrganizationOverview() {
             eyebrow="CONFIGURATION"
             title="Business Settings"
             action="Edit"
-            onAction={() =>
-              navigate(
-                "/company/business-settings/edit",
-              )
-            }
+            onAction={() => navigate("/company/business-settings/edit")}
           />
 
           <div className="organization-overview__settings-body">
             <div className="organization-overview__settings-grid">
               <div>
                 <span>Financial Year</span>
-                <strong>
-                  {company.financialYear}
-                </strong>
+                <strong>{company.financialYear}</strong>
               </div>
 
               <div>
                 <span>Currency</span>
-                <strong>
-                  {company.currency}
-                </strong>
+                <strong>{company.currency}</strong>
               </div>
 
               <div>
                 <span>Timezone</span>
-                <strong>
-                  {company.timezone}
-                </strong>
+                <strong>{company.timezone}</strong>
               </div>
 
               <div>
                 <span>Date Format</span>
-                <strong>
-                  {company.dateFormat}
-                </strong>
+                <strong>{company.dateFormat}</strong>
               </div>
 
               <div>
                 <span>Week Starts On</span>
-                <strong>
-                  {company.weekStartsOn}
-                </strong>
+                <strong>{company.weekStartsOn}</strong>
               </div>
             </div>
           </div>
@@ -856,15 +674,10 @@ export default function OrganizationOverview() {
               ORGANIZATION
             </span>
 
-            <h2>
-              Organization Structure
-            </h2>
+            <h2>Organization Structure</h2>
           </div>
 
-          <p>
-            Current size of your organization
-            setup.
-          </p>
+          <p>Current size of your organization setup.</p>
         </div>
 
         {/* IMPORTANT: ONLY ONE GRID */}
@@ -875,9 +688,7 @@ export default function OrganizationOverview() {
             label="Departments"
             value={departmentCount}
             description="Active organization units"
-            onClick={() =>
-              navigate("/departments")
-            }
+            onClick={() => navigate("/departments")}
           />
 
           <StructureStat
@@ -885,9 +696,7 @@ export default function OrganizationOverview() {
             label="Designations"
             value={designationCount}
             description="Defined employee positions"
-            onClick={() =>
-              navigate("/designations")
-            }
+            onClick={() => navigate("/designations")}
           />
 
           <StructureStat
@@ -895,12 +704,41 @@ export default function OrganizationOverview() {
             label="Employees"
             value={employeeCount}
             description="People in the organization"
-            onClick={() =>
-              navigate("/employees")
-            }
+            onClick={() => navigate("/employees")}
           />
         </div>
       </section>
+      {/* WORK SCHEDULE */}
+
+      <section className="organization-overview__work-schedule">
+        <div className="organization-overview__work-schedule-icon">
+          <Clock3 size={21} strokeWidth={1.8} />
+        </div>
+
+        <div className="organization-overview__work-schedule-content">
+          <span className="organization-overview__page-eyebrow">
+            WORK SCHEDULE
+          </span>
+
+          <h2>Work Schedule</h2>
+
+          <p>
+            Configure working days, default shifts, break timings and recurring
+            schedules for your organization.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="organization-overview__work-schedule-button"
+          onClick={() => navigate("/work-schedule")}
+        >
+          Configure
+          <ArrowRight size={15} />
+        </button>
+      </section>
+
+      {/* SETUP STATUS */}
 
       {/* SETUP STATUS */}
 
@@ -911,21 +749,16 @@ export default function OrganizationOverview() {
               CONFIGURATION
             </span>
 
-            <h2>
-              Organization Setup Status
-            </h2>
+            <h2>Organization Setup Status</h2>
 
             <p>
-              Review the configuration areas
-              that have been completed and those
+              Review the configuration areas that have been completed and those
               still pending.
             </p>
           </div>
 
           <div className="organization-overview__progress-summary">
-            <strong>
-              {setupProgress}%
-            </strong>
+            <strong>{setupProgress}%</strong>
 
             <span>Complete</span>
           </div>
@@ -948,7 +781,7 @@ export default function OrganizationOverview() {
               label={item.label}
               description={item.description}
               action={item.action}
-              onAction={item.onAction}
+              onAction={() => navigate(item.path)}
             />
           ))}
         </div>
@@ -956,4 +789,3 @@ export default function OrganizationOverview() {
     </div>
   );
 }
-

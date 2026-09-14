@@ -203,9 +203,8 @@ const Employees = () => {
    * VIEW EMPLOYEE
    */
   const handleViewEmployee = (employee) => {
-    setSelectedEmployee(employee);
-    setShowDetails(true);
-  };
+  navigate(`/employees/${employee.id}`);
+};
 
   /*
    * EDIT EMPLOYEE

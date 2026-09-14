@@ -1,0 +1,390 @@
+
+.weekly-schedule-card {
+  background: #fff;
+  border: 1px solid #e3e8ea;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* =========================================================
+   DEFAULT WEEKLY SETUP
+========================================================= */
+
+.weekly-default-section {
+  padding: 22px 24px;
+  border-bottom: 1px solid #edf1f2;
+}
+
+.weekly-subsection-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.weekly-subsection-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #eaf8f4;
+  color: #0ba37f;
+}
+
+.weekly-subsection-icon.custom {
+  background: #f5f1e5;
+  color: #a47d16;
+}
+
+.weekly-subsection-heading h3,
+.weekly-default-shift h3 {
+  margin: 0;
+  color: #263139;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.weekly-subsection-heading p,
+.weekly-default-shift p {
+  margin: 4px 0 0;
+  color: #69747a;
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* =========================================================
+   WORKING DAYS
+========================================================= */
+
+.working-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.working-day-option {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #dfe6e8;
+  border-radius: 9px;
+  background: #fff;
+  color: #4f5b61;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.working-day-option:hover {
+  border-color: #a9ccc4;
+  background: #fbfdfc;
+}
+
+.working-day-option.selected {
+  border-color: #0ba37f;
+  background: #edf8f5;
+  color: #0f3d3e;
+}
+
+.working-day-check {
+  width: 19px;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5d8;
+  border-radius: 5px;
+  background: #fff;
+  color: #fff;
+}
+
+.working-day-option.selected .working-day-check {
+  border-color: #0ba37f;
+  background: #0ba37f;
+}
+
+/* =========================================================
+   DEFAULT SHIFT
+========================================================= */
+
+.weekly-default-shift {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px;
+  background: #fbfcfc;
+  border-bottom: 1px solid #edf1f2;
+}
+
+.weekly-default-shift select,
+.custom-day-field select {
+  min-width: 230px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d7e0e2;
+  border-radius: 8px;
+  background: #fff;
+  color: #344047;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.weekly-default-shift select:focus,
+.custom-day-field select:focus {
+  border-color: #0ba37f;
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.08);
+}
+
+.weekly-default-shift select:disabled {
+  background: #f3f5f5;
+  color: #9aa4a8;
+  cursor: not-allowed;
+}
+
+/* =========================================================
+   CUSTOM SCHEDULE
+========================================================= */
+
+.weekly-custom-section {
+  padding: 22px 24px 20px;
+}
+
+.weekly-custom-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.add-custom-day-button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 13px;
+  border: 1px solid #cfdedb;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f3d3e;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.add-custom-day-button:hover {
+  border-color: #0ba37f;
+  background: #f3faf8;
+}
+
+.add-custom-day-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.custom-days-list {
+  margin-top: 18px;
+  border: 1px solid #e4e9eb;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.custom-day-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 220px auto;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #edf1f2;
+}
+
+.custom-day-row:last-child {
+  border-bottom: 0;
+}
+
+.custom-day-name {
+  color: #263139;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.custom-day-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.custom-day-field label {
+  color: #69747a;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.occurrence-options {
+  display: flex;
+  gap: 5px;
+}
+
+.occurrence-options button {
+  min-width: 36px;
+  height: 34px;
+  padding: 0 7px;
+  border: 1px solid #d8e0e2;
+  border-radius: 7px;
+  background: #fff;
+  color: #59656b;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.occurrence-options button:hover {
+  border-color: #a9ccc4;
+}
+
+.occurrence-options button.selected {
+  border-color: #0ba37f;
+  background: #edf8f5;
+  color: #0f3d3e;
+}
+
+.custom-day-field select {
+  min-width: 0;
+  width: 100%;
+}
+
+.remove-custom-day {
+  border: 0;
+  background: transparent;
+  color: #a35b5b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.remove-custom-day:hover {
+  color: #c34b4b;
+}
+
+.custom-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px dashed #dce4e5;
+  border-radius: 8px;
+  background: #fcfdfd;
+  color: #69747a;
+  font-size: 12px;
+}
+
+.custom-empty-state span:last-child {
+  color: #899398;
+}
+
+/* =========================================================
+   NOTE
+========================================================= */
+
+.weekly-schedule-note {
+  padding: 12px 20px;
+  border-top: 1px solid #eef1f2;
+  background: #fbfcfc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #69747a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.note-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4af37;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+  .working-days-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .custom-day-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .remove-custom-day {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 600px) {
+  .weekly-default-section,
+  .weekly-custom-section {
+    padding: 18px 16px;
+  }
+
+  .working-days-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .weekly-default-shift {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px 16px;
+  }
+
+  .weekly-default-shift select {
+    width: 100%;
+  }
+
+  .weekly-custom-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .add-custom-day-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .custom-day-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .custom-day-field select {
+    width: 100%;
+  }
+
+  .custom-empty-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+

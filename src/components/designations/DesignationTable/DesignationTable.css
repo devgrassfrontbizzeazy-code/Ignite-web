@@ -44,6 +44,12 @@
 
   vertical-align: middle;
 }
+.designation-table__description {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .designation-table tbody tr:last-child td {
   border-bottom: none;

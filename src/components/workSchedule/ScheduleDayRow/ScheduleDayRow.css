@@ -1,0 +1,111 @@
+.schedule-day-row {
+  min-height: 72px;
+  border-bottom: 1px solid #eef1f2;
+  position: relative;
+}
+
+.schedule-day-row:last-child {
+  border-bottom: 0;
+}
+
+.day-name {
+  color: #1a1f24;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.schedule-pattern {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pattern-main {
+  color: #344047;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pattern-detail {
+  color: #8a9499;
+  font-size: 9px;
+}
+
+.non-working-text {
+  color: #899297;
+  font-size: 10px;
+}
+
+.schedule-shift {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.schedule-shift span {
+  color: #344047;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.schedule-shift small {
+  color: #8a9499;
+  font-size: 10px;
+}
+
+.unassigned-shift {
+  color: #c58c32 !important;
+  font-weight: 600 !important;
+}
+
+.schedule-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.schedule-status > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.schedule-status.working {
+  background: #eaf8f4;
+  color: #087c62;
+}
+
+.schedule-status.working > span {
+  background: #0ba37f;
+}
+
+.schedule-status.off {
+  background: #f1f3f4;
+  color: #788389;
+}
+
+.schedule-status.off > span {
+  background: #a8b0b4;
+}
+
+.configure-day-button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #8a9499;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.configure-day-button:hover {
+  background: #edf8f5;
+  color: #0ba37f;
+}

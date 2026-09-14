@@ -33,15 +33,24 @@ import PermissionGuard from "./components/auth/PermissionGuard";
 /* Organization */
 import OrganizationOverview from "./pages/OrganizationOverview/OrganizationOverview";
 
+import WorkSchedule from "./pages/workSchedule/WorkSchedule";
+
 import DepartmentsPage from "./pages/departments/Departments";
+
 import DesignationsPage from "./pages/designations/Designations";
+
 import RolesPermissions from "./pages/rolesPermissions/RolesPermissions";
+
 import Employees from "./pages/employees/Employees";
 import AddEmployee from "./pages/employees/AddEmployee/AddEmployee";
 import EditEmployee from "./pages/employees/EditEmployee/EditEmployee";
+import EmployeeProfile from "./pages/employees/EmployeeProfile/EmployeeProfile";
+
 import Attendance from "./pages/attendance/Attendance";
+
 import LeavePolicies from "./pages/leavePolicies/LeavePolicies";
 import Leaves from "./pages/leaves/Leaves";
+
 import Holidays from "./pages/holidays/Holidays";
 
 /* =========================================================
@@ -69,8 +78,6 @@ function DashboardPreview() {
     </div>
   );
 }
-
-
 
 function Settings() {
   return (
@@ -285,6 +292,7 @@ export default function App() {
                       path="/organization-overview"
                       element={<OrganizationOverview />}
                     />
+                    <Route path="/work-schedule" element={<WorkSchedule />} />
 
                     <Route
                       path="/roles-permissions"
@@ -336,6 +344,10 @@ export default function App() {
                     <Route
                       path="/employees/:id/edit"
                       element={<EditEmployee />}
+                    />
+                    <Route
+                      path="/employees/:id"
+                      element={<EmployeeProfile />}
                     />
                   </Route>
                 </Route>

@@ -594,7 +594,83 @@
   color: #0ba37f;
   transform: translateX(3px);
 }
+/* =========================================================
+   WORK SCHEDULE
+========================================================= */
 
+.organization-overview__work-schedule {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 38px;
+  padding: 22px 24px;
+  border: 1px solid #dfe6e8;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.organization-overview__work-schedule-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #edf5f3;
+  color: #0f3d3e;
+}
+
+.organization-overview__work-schedule-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.organization-overview__work-schedule-content h2 {
+  margin: 4px 0 5px;
+  color: #1a1f24;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.organization-overview__work-schedule-content p {
+  margin: 0;
+  color: #707b82;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.organization-overview__work-schedule-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d6e2df;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #0f3d3e;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.organization-overview__work-schedule-button:hover {
+  border-color: #0ba37f;
+  background: #edf8f5;
+  color: #0ba37f;
+  transform: translateX(1px);
+}
 /* =========================================================
    SETUP STATUS
 ========================================================= */
@@ -984,6 +1060,20 @@
     padding: 6px 8px;
     font-size: 10px;
   }
+  .organization-overview__work-schedule {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 20px;
+}
+
+.organization-overview__work-schedule-content {
+  flex: 1 1 calc(100% - 60px);
+}
+
+.organization-overview__work-schedule-button {
+  width: 100%;
+}
 }
 
 @media (max-width: 420px) {
