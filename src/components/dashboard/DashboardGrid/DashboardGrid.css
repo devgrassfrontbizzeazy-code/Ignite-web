@@ -1,0 +1,31 @@
+.dashboard-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+/*
+  Default widget sizing.
+
+  Individual widgets can override these values later
+  using their own grid-column configuration.
+*/
+
+.dashboard-grid > * {
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}

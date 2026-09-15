@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Clock3, X } from "lucide-react";
-
+import TimePicker from "../../common/TimePicker/TimePicker";
 import "./ShiftForm.css";
 
 const DEFAULT_SHIFT = {
@@ -89,31 +89,23 @@ function ShiftForm({ shift, onSave, onClose }) {
               <div className="form-group">
                 <label>Start Time</label>
 
-                <input
-                  type="time"
-                  value={to24Hour(form.start_time)}
-                  onChange={(event) =>
-                    updateField(
-                      "start_time",
-                      formatTime(event.target.value)
-                    )
+                <TimePicker
+                  value={form.start_time}
+                  onChange={(value) =>
+                    updateField("start_time", value)
                   }
                 />
               </div>
 
-              <div className="time-separator">to</div>
+              <div className="time-separator"></div>
 
               <div className="form-group">
                 <label>End Time</label>
 
-                <input
-                  type="time"
-                  value={to24Hour(form.end_time)}
-                  onChange={(event) =>
-                    updateField(
-                      "end_time",
-                      formatTime(event.target.value)
-                    )
+                <TimePicker
+                  value={form.end_time}
+                  onChange={(value) =>
+                    updateField("end_time", value)
                   }
                 />
               </div>

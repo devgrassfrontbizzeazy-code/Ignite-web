@@ -254,19 +254,6 @@
   line-height: 1.5;
 }
 
-/* Loading */
-
-.company-edit-loading {
-  min-height: 360px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #66717a;
-  font-family: "Montserrat", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-}
-
 /* =========================================================
    RESPONSIVE
 ========================================================= */

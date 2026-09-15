@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import CompanySetupLayout from "../CompanySetupLayout/CompanySetupLayout";
 import CompanyEditLayout from "../CompanyEditLayout/CompanyEditLayout";
+import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 
 import { useCompanySetup } from "../CompanySetupContext";
 import { getCompany, updateCompany } from "../../../services/api/companyAPI";
@@ -160,9 +161,7 @@ const updatedCompany = response?.data || {};
   };
 
   if (loading) {
-    return (
-      <div className="company-edit-loading">Loading company address...</div>
-    );
+    return <IgniteLoader text="Loading company address..." />;
   }
 
   if (mode === "edit") {

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
 import EmptyState from "../../components/common/EmptyState/EmptyState";
+import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 import Modal from "../../components/common/Modal/Modal";
 
 import DepartmentStats from "../../components/departments/DepartmentStats/DepartmentStats";
@@ -488,12 +489,7 @@ const Departments = () => {
 
         {/* Loading */}
         {loading && departments.length === 0 ? (
-          <div className="departments-page__empty">
-            <EmptyState
-              title="Loading departments..."
-              description="Please wait while we load your departments."
-            />
-          </div>
+          <IgniteLoader text="Loading departments..." />
         ) : departments.length === 0 ? (
           /* No Departments */
           <div className="departments-page__empty">

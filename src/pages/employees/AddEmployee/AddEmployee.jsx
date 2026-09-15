@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiAlertCircle, FiArrowLeft, FiUserPlus } from "react-icons/fi";
+import { FiAlertCircle, FiUserPlus } from "react-icons/fi";
 
+import BackButton from "../../../components/common/BackButton/BackButton";
 import EmployeeForm from "../../../components/employees/EmployeeForm/EmployeeForm";
 import employeeService from "../../../services/employeeService";
 
@@ -58,14 +59,10 @@ const AddEmployee = () => {
   return (
     <div className="add-employee-page">
       <div className="add-employee-page__top">
-        <button
-          type="button"
-          className="add-employee-page__back"
+        <BackButton
+          label="Back to Employees"
           onClick={() => navigate("/employees")}
-        >
-          <FiArrowLeft />
-          Back to Employees
-        </button>
+        />
       </div>
 
       <div className="add-employee-page__heading">

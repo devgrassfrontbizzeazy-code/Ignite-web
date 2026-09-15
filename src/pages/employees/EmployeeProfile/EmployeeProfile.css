@@ -16,24 +16,6 @@
   gap: 16px;
 }
 
-.employee-profile__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ignite-deep-teal);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-
-.employee-profile__back:hover {
-  color: var(--ignite-emerald);
-}
-
 /* =========================
    HEADER
 ========================= */

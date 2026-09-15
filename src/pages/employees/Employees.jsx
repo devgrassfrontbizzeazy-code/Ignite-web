@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { FiUsers } from "react-icons/fi";
 
 import Button from "../../components/common/Button/Button";
+import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 import EmployeeStats from "../../components/employees/EmployeeStats/EmployeeStats";
 import EmployeeFilters from "../../components/employees/EmployeeFilters/EmployeeFilters";
@@ -464,9 +465,7 @@ const Employees = () => {
           </div>
         </header>
 
-        <div className="employees-page__loading">
-          Loading employees from server...
-        </div>
+        <IgniteLoader text="Loading employees..." />
       </main>
     );
   }

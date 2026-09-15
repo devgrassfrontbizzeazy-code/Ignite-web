@@ -25,7 +25,7 @@
 
   box-shadow: var(--shadow-sm);
 
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* subtle top accent */
@@ -40,27 +40,25 @@
   width: 100%;
   height: 2px;
 
-  background: linear-gradient(
-    90deg,
-    rgba(11, 163, 127, 0.7),
-    rgba(11, 163, 127, 0.08)
-  );
+  border-radius: 14px 14px 0 0;
+
+  background: linear-gradient(90deg,
+      rgba(11, 163, 127, 0.7),
+      rgba(11, 163, 127, 0.08));
+
+  pointer-events: none;
 }
 
 .employee-form__section:nth-child(2)::before {
-  background: linear-gradient(
-    90deg,
-    rgba(118, 84, 200, 0.7),
-    rgba(118, 84, 200, 0.08)
-  );
+  background: linear-gradient(90deg,
+      rgba(118, 84, 200, 0.7),
+      rgba(118, 84, 200, 0.08));
 }
 
 .employee-form__section:nth-child(3)::before {
-  background: linear-gradient(
-    90deg,
-    rgba(184, 121, 22, 0.7),
-    rgba(184, 121, 22, 0.08)
-  );
+  background: linear-gradient(90deg,
+      rgba(184, 121, 22, 0.7),
+      rgba(184, 121, 22, 0.08));
 }
 
 /* =========================================================
@@ -370,7 +368,7 @@
   width: 100%;
 }
 
-.employee-form__input-icon > svg {
+.employee-form__input-icon>svg {
   position: absolute;
 
   top: 50%;
@@ -391,6 +389,19 @@
 .employee-form__input-icon input,
 .employee-form__input-icon select {
   padding-left: 32px;
+}
+
+.date-picker {
+  position: relative;
+  z-index: 10;
+}
+
+.date-picker:has(.date-picker__popup) {
+  z-index: 1001;
+}
+
+.date-picker__popup {
+  z-index: 1002;
 }
 
 /* =========================================================

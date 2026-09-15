@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
 import EmptyState from "../../components/common/EmptyState/EmptyState";
+import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 import Modal from "../../components/common/Modal/Modal";
 
 import DesignationStats from "../../components/designations/DesignationStats/DesignationStats";
@@ -550,12 +551,7 @@ const Designations = () => {
         )}
 
         {loading && designations.length === 0 ? (
-          <div className="designations-page__empty">
-            <EmptyState
-              title="Loading designations..."
-              description="Please wait while we load your designations."
-            />
-          </div>
+          <IgniteLoader text="Loading designations..." />
         ) : designations.length === 0 ? (
           <div className="designations-page__empty">
             <EmptyState

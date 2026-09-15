@@ -1,6 +1,6 @@
-import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import BackButton from "../../../components/common/BackButton/BackButton";
 import "./CompanyEditLayout.css";
 
 export default function CompanyEditLayout({
@@ -18,14 +18,10 @@ export default function CompanyEditLayout({
 
       <div className="company-edit-page__header">
 
-        <button
-          type="button"
-          className="company-edit-page__back"
+        <BackButton
+          label="Back to Organization"
           onClick={() => navigate("/organization-overview")}
-        >
-          <ArrowLeft size={16} />
-          Back to Organization
-        </button>
+        />
 
         <span className="company-edit-page__eyebrow">
           {eyebrow}

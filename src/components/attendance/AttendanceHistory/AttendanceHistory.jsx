@@ -1,9 +1,12 @@
+
 import { useState } from "react";
 import {
   FiCalendar,
   FiDownload,
   FiList,
 } from "react-icons/fi";
+
+import DatePicker from "../../common/DatePicker/DatePicker";
 
 import "./AttendanceHistory.css";
 
@@ -23,6 +26,8 @@ const AttendanceHistory = ({
   loading = false,
 }) => {
   const [view, setView] = useState("table");
+  const todayStr = new Date().toISOString().split("T")[0];
+  const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const currentPeriodObj = PERIODS.find((p) => p.value === activePeriod) || PERIODS[0];
 
@@ -94,6 +99,13 @@ const AttendanceHistory = ({
 
       {/* PERIOD FILTER */}
       <div className="attendance-history__filters">
+        <div className="attendance-history__date">
+          <DatePicker
+            value={selectedDate}
+            onChange={(value) => setSelectedDate(value)}
+          />
+        </div>
+
         {PERIODS.map((item) => (
           <button
             type="button"

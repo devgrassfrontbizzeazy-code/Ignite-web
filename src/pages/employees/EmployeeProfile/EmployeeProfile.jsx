@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  FiArrowLeft,
   FiEdit2,
   FiSend,
 } from "react-icons/fi";
 
+import BackButton from "../../../components/common/BackButton/BackButton";
 import Button from "../../../components/common/Button/Button";
+import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import employeeService from "../../../services/employeeService";
 
 import "./EmployeeProfile.css";
@@ -92,13 +93,7 @@ const EmployeeProfile = () => {
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="employee-profile-page">
-        <div className="employee-profile__loading">
-          Loading employee profile...
-        </div>
-      </div>
-    );
+    return <IgniteLoader text="Loading employee profile..." />;
   }
 
   if (error || !employee) {
@@ -108,13 +103,10 @@ const EmployeeProfile = () => {
           <h2>Employee Profile</h2>
           <p>{error || "Employee not found."}</p>
 
-          <Button
-            variant="secondary"
+          <BackButton
+            label="Back to Employees"
             onClick={() => navigate("/employees")}
-          >
-            <FiArrowLeft />
-            Back to Employees
-          </Button>
+          />
         </div>
       </div>
     );
@@ -137,14 +129,10 @@ const EmployeeProfile = () => {
       ========================= */}
 
       <div className="employee-profile__topbar">
-        <button
-          type="button"
-          className="employee-profile__back"
+        <BackButton
+          label="Back to Employees"
           onClick={() => navigate("/employees")}
-        >
-          <FiArrowLeft />
-          Back to Employees
-        </button>
+        />
 
         <Button
           variant="outline"

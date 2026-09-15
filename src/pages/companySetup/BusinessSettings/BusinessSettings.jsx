@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import CompanySetupLayout from "../CompanySetupLayout/CompanySetupLayout";
 import CompanyEditLayout from "../CompanyEditLayout/CompanyEditLayout";
+import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 
 import { useCompanySetup } from "../CompanySetupContext";
 import {
@@ -53,7 +54,7 @@ export default function BusinessSettings({ mode = "setup" }) {
       try {
         const response = await getCompanyOptions();
 
-        console.log("COMPANY OPTIONS RESPONSE:", response);
+        
 
         const data = response?.data || response || {};
 
@@ -101,8 +102,7 @@ export default function BusinessSettings({ mode = "setup" }) {
         const response = await getCompany();
         const data = response?.data || {};
 
-        console.log("COMPANY BUSINESS SETTINGS:", data);
-
+       
         setForm({
           financialYear: data?.financial_year ?? data?.financialYear ?? "",
 
@@ -242,9 +242,7 @@ export default function BusinessSettings({ mode = "setup" }) {
   };
 
   if (loading) {
-    return (
-      <div className="company-edit-loading">Loading business settings...</div>
-    );
+    return <IgniteLoader text="Loading business settings..." />;
   }
 
   const formContent = (

@@ -12,6 +12,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import logo from "../../../assets/logo.png";
+import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import "./AcceptInvite.css";
 import "../CreateAccount/CreateAccount.css";
 
@@ -331,25 +332,7 @@ const AcceptInvite = () => {
   // ----------------------------------------------------
 
   if (pageLoading) {
-    return (
-      <div className="login-container">
-        <div className="login-background-elements">
-          <div className="background-shape bg-shape-1"></div>
-          <div className="background-shape bg-shape-2"></div>
-        </div>
-        <div className="login-card accept-invite-card">
-          <div className="invite-loading-container">
-            <div className="invite-spinner" />
-            <h2 style={{ fontSize: "18px", fontWeight: "700", color: "#1e293b", margin: 0 }}>
-              Loading Invitation
-            </h2>
-            <p style={{ fontSize: "14px", color: "#64748b", marginTop: "6px" }}>
-              Verifying your invitation details with Ignite HRMS...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return <IgniteLoader text="Loading invitation details..." />;
   }
 
   if (initError === "ALREADY_ACCEPTED") {

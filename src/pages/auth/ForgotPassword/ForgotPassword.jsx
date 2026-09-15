@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Mail } from "lucide-react";
 import logo from "../../../assets/logo.png";
 import "./ForgotPassword.css";
-
+import BackButton from "../../../components/common/BackButton/BackButton";
 import {
   sendForgotPasswordOtp,
   verifyForgotPasswordOtp,
@@ -82,7 +81,7 @@ const ForgotPassword = () => {
     try {
       const response = await sendForgotPasswordOtp(trimmedEmail);
 
-      console.log("Forgot password OTP sent:", response);
+      
 
       setEmail(trimmedEmail);
       setOtp("");
@@ -93,8 +92,8 @@ const ForgotPassword = () => {
       setError(
         getErrorMessage(
           err,
-          "Unable to send the verification code. Please try again."
-        )
+          "Unable to send the verification code. Please try again.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -125,18 +124,15 @@ const ForgotPassword = () => {
     setOtpLoading(true);
 
     try {
-      const response = await verifyForgotPasswordOtp(
-        email,
-        trimmedOtp
-      );
+      const response = await verifyForgotPasswordOtp(email, trimmedOtp);
 
-      console.log("Forgot password OTP verified:", response);
+      
 
       const resetToken = response?.reset_token;
 
       if (!resetToken) {
         setError(
-          "Verification succeeded, but no reset token was received. Please try again."
+          "Verification succeeded, but no reset token was received. Please try again.",
         );
         return;
       }
@@ -153,8 +149,8 @@ const ForgotPassword = () => {
       setError(
         getErrorMessage(
           err,
-          "Invalid or expired verification code. Please try again."
-        )
+          "Invalid or expired verification code. Please try again.",
+        ),
       );
     } finally {
       setOtpLoading(false);
@@ -182,15 +178,15 @@ const ForgotPassword = () => {
     try {
       const response = await sendForgotPasswordOtp(trimmedEmail);
 
-      console.log("Forgot password OTP resent:", response);
+      
     } catch (err) {
       console.error("Resend forgot password OTP failed:", err);
 
       setError(
         getErrorMessage(
           err,
-          "Unable to resend the verification code. Please try again."
-        )
+          "Unable to resend the verification code. Please try again.",
+        ),
       );
     } finally {
       setLoading(false);
@@ -229,48 +225,30 @@ const ForgotPassword = () => {
         </div>
 
         <div className="forgot-password-card otp-card">
-
           {/* Logo */}
           <div className="card-header">
-            <img
-              src={logo}
-              alt="IGNITE Logo"
-              className="card-logo"
-            />
+            <img src={logo} alt="IGNITE Logo" className="card-logo" />
           </div>
 
           {/* OTP Content */}
           <div className="otp-content">
-
             <h1>Verify your email</h1>
 
             <p className="otp-description">
               Enter the 6-digit verification code sent to
             </p>
 
-            <p className="email-display">
-              {email}
-            </p>
+            <p className="email-display">{email}</p>
 
             {error && (
-              <div
-                className="error-message"
-                role="alert"
-              >
+              <div className="error-message" role="alert">
                 {error}
               </div>
             )}
 
-            <form
-              onSubmit={handleVerifyOtp}
-              className="reset-form"
-              noValidate
-            >
+            <form onSubmit={handleVerifyOtp} className="reset-form" noValidate>
               <div className="form-group">
-
-                <label htmlFor="otp">
-                  Verification code
-                </label>
+                <label htmlFor="otp">Verification code</label>
 
                 <input
                   type="text"
@@ -279,9 +257,7 @@ const ForgotPassword = () => {
                   placeholder="Enter 6-digit code"
                   value={otp}
                   onChange={(e) => {
-                    const value = e.target.value
-                      .replace(/\D/g, "")
-                      .slice(0, 6);
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
 
                     setOtp(value);
                     setError("");
@@ -293,28 +269,19 @@ const ForgotPassword = () => {
                   required
                   className="form-input otp-input"
                 />
-
               </div>
 
               <button
                 type="submit"
                 className="submit-button"
-                disabled={
-                  otpLoading ||
-                  otp.length !== 6
-                }
+                disabled={otpLoading || otp.length !== 6}
               >
-                {otpLoading
-                  ? "Verifying..."
-                  : "Verify Code"}
+                {otpLoading ? "Verifying..." : "Verify Code"}
               </button>
             </form>
 
             <div className="otp-resend-section">
-
-              <p className="help-text">
-                Didn't receive the code?
-              </p>
+              <p className="help-text">Didn't receive the code?</p>
 
               <button
                 type="button"
@@ -322,11 +289,8 @@ const ForgotPassword = () => {
                 className="text-button"
                 disabled={loading}
               >
-                {loading
-                  ? "Resending..."
-                  : "Resend Code"}
+                {loading ? "Resending..." : "Resend Code"}
               </button>
-
             </div>
 
             <button
@@ -346,7 +310,6 @@ const ForgotPassword = () => {
             >
               Back to Login
             </button>
-
           </div>
         </div>
       </div>
@@ -359,56 +322,38 @@ const ForgotPassword = () => {
 
   return (
     <div className="forgot-password-container">
-
       <div className="background-elements">
         <div className="background-shape bg-shape-1"></div>
         <div className="background-shape bg-shape-2"></div>
       </div>
-
-      {/* Back Link */}
-      <Link
-        to="/login"
-        className="back-home-link"
-        title="Back to login"
-      >
-        <span className="back-arrow">←</span>
-        Back
-      </Link>
+      {/* Back to Login */}
+      <div className="forgot-password-back-button">
+        <BackButton label="Back" onClick={() => navigate("/login")} />
+      </div>
 
       {/* Card */}
       <div className="forgot-password-card">
-
         {/* Logo */}
         <div className="card-header">
-          <img
-            src={logo}
-            alt="IGNITE Logo"
-            className="card-logo"
-          />
+          <img src={logo} alt="IGNITE Logo" className="card-logo" />
         </div>
 
         {/* Welcome */}
         <div className="card-welcome">
-
           <h1>Forgot your password?</h1>
 
           <p>
-            No worries! Enter your email address and
-            we'll send you a verification code to reset
-            your password.
+            No worries! Enter your email address and we'll send you a
+            verification code to reset your password.
           </p>
-
         </div>
 
         {/* Step Indicator */}
         <div className="step-indicator">
-
           <div className="step active">
             <span className="step-number">1</span>
 
-            <span className="step-label">
-              Enter Email
-            </span>
+            <span className="step-label">Enter Email</span>
           </div>
 
           <div className="step-line"></div>
@@ -416,9 +361,7 @@ const ForgotPassword = () => {
           <div className="step">
             <span className="step-number">2</span>
 
-            <span className="step-label">
-              Verify OTP
-            </span>
+            <span className="step-label">Verify OTP</span>
           </div>
 
           <div className="step-line"></div>
@@ -426,35 +369,21 @@ const ForgotPassword = () => {
           <div className="step">
             <span className="step-number">3</span>
 
-            <span className="step-label">
-              Reset Password
-            </span>
+            <span className="step-label">Reset Password</span>
           </div>
-
         </div>
 
         {/* Error */}
         {error && (
-          <div
-            className="error-message"
-            role="alert"
-          >
+          <div className="error-message" role="alert">
             {error}
           </div>
         )}
 
         {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="reset-form"
-          noValidate
-        >
-
+        <form onSubmit={handleSubmit} className="reset-form" noValidate>
           <div className="form-group">
-
-            <label htmlFor="email">
-              Email address
-            </label>
+            <label htmlFor="email">Email address</label>
 
             <input
               type="email"
@@ -473,52 +402,33 @@ const ForgotPassword = () => {
             />
 
             <p className="input-hint">
-              Enter the email address associated with
-              your IGNITE account.
+              Enter the email address associated with your IGNITE account.
             </p>
-
           </div>
 
           {/* Simple Notice */}
           <div className="security-notice">
             <p>
-              A 6-digit verification code will be sent
-              to your email address.
+              A 6-digit verification code will be sent to your email address.
             </p>
           </div>
 
-          <button
-            type="submit"
-            className="submit-button"
-            disabled={loading}
-          >
-            {loading
-              ? "Sending code..."
-              : "Send Verification Code"}
+          <button type="submit" className="submit-button" disabled={loading}>
+            {loading ? "Sending code..." : "Send Verification Code"}
           </button>
-
         </form>
 
         {/* Support */}
         <div className="support-section">
+          <p>Need immediate help?</p>
 
-          <p>
-            Need immediate help?
-          </p>
-
-          <a
-            href="mailto:support@ignite.com"
-            className="support-link"
-          >
+          <a href="mailto:support@ignite.com" className="support-link">
             Contact our support team
           </a>
-
         </div>
-
       </div>
     </div>
   );
 };
 
 export default ForgotPassword;
-

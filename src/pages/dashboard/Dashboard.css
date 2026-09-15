@@ -1,0 +1,13 @@
+.dashboard-page {
+  width: 100%;
+  min-height: 100%;
+  padding: 28px 30px 40px;
+  background: var(--color-background, #f8fafb);
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 20px 16px 30px;
+  }
+}

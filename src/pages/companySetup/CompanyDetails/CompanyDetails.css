@@ -2,20 +2,6 @@
    CompanySetupLayout.css. This file is kept so page-specific tweaks have
    an obvious home without touching shared styles. */
 
-/* =========================================================
-   COMPANY DETAILS - EDIT MODE
-========================================================= */
-
-.company-edit-loading {
-  min-height: 360px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #66717a;
-  font-family: "Montserrat", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-}
 
 
 /* =========================================================

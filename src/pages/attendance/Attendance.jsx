@@ -9,6 +9,7 @@ import AttendanceDetailModal from "../../components/attendance/AttendanceDetailM
 import EmployeeAttendance from "../../components/attendance/EmployeeAttendance/EmployeeAttendance";
 import Modal from "../../components/common/Modal/Modal";
 import Button from "../../components/common/Button/Button";
+import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 import { attendanceAPI } from "../../services/api/attendanceAPI";
 import "./Attendance.css";
@@ -145,6 +146,10 @@ const Attendance = () => {
     setActivePeriod(period);
     fetchHistory(period);
   };
+
+  if (loadingToday) {
+    return <IgniteLoader text="Loading attendance..." />;
+  }
 
   // ==========================================
   // CONFIRMATION & API ACTION HANDLERS

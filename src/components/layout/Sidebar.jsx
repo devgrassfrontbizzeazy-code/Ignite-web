@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import "../../styles/global.css";
 import darkLogo from "../../assets/dark_logo-removebg.png";
 
@@ -104,11 +104,52 @@ const ChevronIcon = () => (
     viewBox="0 0 16 16"
     fill="none"
     stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M10 3.5L5.5 8L10 12.5" />
+  </svg>
+);
+const ProfileIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
     strokeWidth="1.6"
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="M6 3.5 10.5 8 6 12.5" />
+    <circle cx="10" cy="6.5" r="3" />
+    <path d="M4 17c0-3.2 2.7-5.5 6-5.5s6 2.3 6 5.5" />
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8 3H4.5A1.5 1.5 0 0 0 3 4.5v11A1.5 1.5 0 0 0 4.5 17H8" />
+    <path d="M12 6.5 15.5 10 12 13.5" />
+    <path d="M7 10h8.5" />
+  </svg>
+);
+
+const MoreIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+    <circle cx="4" cy="10" r="1.2" />
+    <circle cx="10" cy="10" r="1.2" />
+    <circle cx="16" cy="10" r="1.2" />
   </svg>
 );
 
@@ -194,11 +235,13 @@ function getInitials(name) {
 export default function Sidebar({
   userName = "Guest User",
   userRole = "Member",
-  companyName = "Your Company",
-  defaultCollapsed = false,
+  defaultCollapsed = true,
 }) {
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [profileOpen, setProfileOpen] = useState(false);
 
+  
   // Read current logged-in user profile & permissions from localStorage
   const user = (() => {
     try {
@@ -208,7 +251,15 @@ export default function Sidebar({
     }
   })();
 
+  const displayName =
+    user.name || user.full_name || user.username || userName || "Guest User";
+
+  const displayRole = user.role || userRole || "Member";
+
+  const initials = getInitials(displayName);
+
   const rawRole = String(user.role || userRole || "").toUpperCase();
+
   const isAdminOrOwner =
     rawRole === "OWNER" ||
     rawRole === "ADMIN" ||
@@ -231,7 +282,7 @@ export default function Sidebar({
       return false;
     }
 
-    // 3. In-built employee features (Dashboard, Attendance, Leaves, Holidays)
+    // 3. In-built employee features
     if (item.isPublic || item.isEmployeeDefault) {
       return true;
     }
@@ -239,6 +290,7 @@ export default function Sidebar({
     // 4. Explicit permissions granted via Designation / Role
     if (item.permission) {
       const p = item.permission;
+
       return (
         userPermissions.includes(p) ||
         userPermissions.includes(`auth.${p}`) ||
@@ -251,6 +303,23 @@ export default function Sidebar({
 
     return false;
   });
+
+  const handleViewProfile = () => {
+    setProfileOpen(false);
+    navigate("/profile");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("user");
+
+    setProfileOpen(false);
+
+    navigate("/login");
+  };
 
   return (
     <aside
@@ -266,11 +335,16 @@ export default function Sidebar({
         <button
           type="button"
           className="sidebar__toggle"
-          onClick={() => setCollapsed((prev) => !prev)}
+          onClick={() => {
+            setCollapsed((prev) => !prev);
+            setProfileOpen(false);
+          }}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-expanded={!collapsed}
         >
-          <ChevronIcon />
+          <span className="sidebar__toggle-icon">
+            <ChevronIcon />
+          </span>
         </button>
       </div>
 
@@ -294,9 +368,55 @@ export default function Sidebar({
         ))}
       </nav>
 
-      {/* Footer */}
+      {/* Profile Footer */}
       <div className="sidebar__footer">
-        <p className="sidebar__company">{companyName}</p>
+        <div
+  className="sidebar__profile-wrapper"
+  onMouseEnter={() => setProfileOpen(true)}
+  onMouseLeave={() => setProfileOpen(false)}
+>
+          {profileOpen && (
+            <div className="sidebar__profile-menu">
+              <button
+                type="button"
+                className="sidebar__profile-menu-item"
+                onClick={handleViewProfile}
+              >
+                <ProfileIcon />
+                <span>View Profile</span>
+              </button>
+
+              <button
+                type="button"
+                className="sidebar__profile-menu-item sidebar__profile-menu-item--logout"
+                onClick={handleLogout}
+              >
+                <LogoutIcon />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className={`sidebar__profile${profileOpen ? " is-open" : ""}`}
+            
+            aria-expanded={profileOpen}
+            aria-label="Open profile menu"
+          >
+            <span className="sidebar__profile-avatar">{initials || "GU"}</span>
+
+            <span className="sidebar__profile-info">
+              <span className="sidebar__profile-name">{displayName}</span>
+
+              <span className="sidebar__profile-role">{displayRole}</span>
+            </span>
+
+            <span className="sidebar__profile-more">
+              <MoreIcon />
+            </span>
+          </button>
+        </div>
       </div>
     </aside>
   );

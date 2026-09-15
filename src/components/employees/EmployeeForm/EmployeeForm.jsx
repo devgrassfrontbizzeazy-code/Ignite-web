@@ -1,8 +1,8 @@
+
 import { useEffect, useMemo, useState } from "react";
 import {
   FiAlertCircle,
   FiBriefcase,
-  FiCalendar,
   FiMail,
   FiMapPin,
   FiPhone,
@@ -11,7 +11,9 @@ import {
   FiUsers,
 } from "react-icons/fi";
 
+import DatePicker from "../../common/DatePicker/DatePicker";
 import Button from "../../common/Button/Button";
+
 import { getDepartments } from "../../../services/api/departmentAPI";
 import { getDesignations } from "../../../services/api/designationAPI";
 import {
@@ -19,6 +21,8 @@ import {
   getEmployeeOptions,
 } from "../../../services/api/employeeAPI";
 import { getShifts } from "../../../services/api/workScheduleAPI";
+
+import AdditionalPermissions from "./AdditionalPermissions/AdditionalPermissions";
 
 import "./EmployeeForm.css";
 
@@ -58,7 +62,9 @@ const initialForm = {
 };
 
 const extractList = (response) => {
-  if (Array.isArray(response)) return response;
+  if (Array.isArray(response)) {
+    return response;
+  }
 
   if (Array.isArray(response?.results)) {
     return response.results;
@@ -80,7 +86,10 @@ const extractList = (response) => {
 };
 
 const normalizeDepartment = (department) => {
-  if (!department) return null;
+  if (!department) {
+    return null;
+  }
+
   return {
     id: department.id ?? department.department_id ?? department.pk,
     name:
@@ -96,7 +105,10 @@ const normalizeDepartment = (department) => {
 };
 
 const normalizeDesignation = (designation) => {
-  if (!designation) return null;
+  if (!designation) {
+    return null;
+  }
+
   return {
     id: designation.id ?? designation.designation_id ?? designation.pk,
     name:
@@ -107,11 +119,30 @@ const normalizeDesignation = (designation) => {
     departmentId:
       typeof designation.department === "object"
         ? designation.department?.id
-        : (designation.department ?? designation.department_id ?? ""),
+        : (designation.department ??
+          designation.department_id ??
+          ""),
     isActive:
       designation.is_active !== undefined
         ? designation.is_active
         : String(designation.status ?? "").toLowerCase() === "active",
+  };
+};
+
+const normalizeManager = (manager) => {
+  if (!manager) {
+    return null;
+  }
+
+  return {
+    id: manager.id ?? manager.employee_id ?? manager.pk,
+    name:
+      manager.full_name ??
+      manager.fullName ??
+      `${manager.first_name ?? ""} ${manager.last_name ?? ""}`.trim() ??
+      manager.name ??
+      "",
+    code: manager.employee_code ?? manager.employeeCode ?? "",
   };
 };
 
@@ -126,14 +157,8 @@ const EmployeeForm = ({
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    if (serverErrors && Object.keys(serverErrors).length > 0) {
-      setErrors((previous) => ({
-        ...previous,
-        ...serverErrors,
-      }));
-    }
-  }, [serverErrors]);
+  const [permissionOverrides, setPermissionOverrides] = useState([]);
+
   const [photoPreview, setPhotoPreview] = useState("");
   const [photoFile, setPhotoFile] = useState(null);
 
@@ -146,7 +171,21 @@ const EmployeeForm = ({
   const [organizationError, setOrganizationError] = useState("");
 
   /*
-   * Load live departments, designations, and managers from backend.
+   * Merge backend validation errors into local form errors.
+   */
+  useEffect(() => {
+    if (!serverErrors || Object.keys(serverErrors).length === 0) {
+      return;
+    }
+
+    setErrors((previous) => ({
+      ...previous,
+      ...serverErrors,
+    }));
+  }, [serverErrors]);
+
+  /*
+   * Load organization dropdown data.
    */
   useEffect(() => {
     const loadOrganizationData = async () => {
@@ -166,47 +205,49 @@ const EmployeeForm = ({
           getShifts(),
         ]);
 
-        const deptList =
+        const departmentList =
           departmentResponse.status === "fulfilled"
             ? extractList(departmentResponse.value)
             : [];
-        const desigList =
+
+        const designationList =
           designationResponse.status === "fulfilled"
             ? extractList(designationResponse.value)
             : [];
-        const mgrList =
+
+        const managerList =
           managersResponse.status === "fulfilled"
             ? extractList(managersResponse.value)
             : [];
+
         const shiftList =
           shiftsResponse.status === "fulfilled"
             ? extractList(shiftsResponse.value)
             : [];
-        const normalizedDepartments = deptList
-          .map(normalizeDepartment)
-          .filter((d) => d && d.id);
 
-        const normalizedDesignations = desigList
+        const normalizedDepartments = departmentList
+          .map(normalizeDepartment)
+          .filter((department) => department?.id);
+
+        const normalizedDesignations = designationList
           .map(normalizeDesignation)
-          .filter((des) => des && des.id);
+          .filter((designation) => designation?.id);
+
+        const normalizedManagers = managerList
+          .map(normalizeManager)
+          .filter((manager) => manager?.id);
 
         setDepartments(normalizedDepartments);
         setDesignations(normalizedDesignations);
-        setManagers(
-          mgrList.map((m) => ({
-            id: m.id,
-            name:
-              m.full_name ||
-              m.fullName ||
-              `${m.first_name || ""} ${m.last_name || ""}`.trim() ||
-              m.name,
-            code: m.employee_code || m.employeeCode || "",
-          })),
+        setManagers(normalizedManagers);
+        setShifts(
+          shiftList.filter((shift) => shift && shift.id)
         );
-        setShifts(shiftList.filter((shift) => shift && shift.id));
       } catch (error) {
         console.error("Failed to load organization data:", error);
-        setOrganizationError("Unable to load organization dropdown options.");
+        setOrganizationError(
+          "Unable to load organization dropdown options."
+        );
       } finally {
         setOrganizationLoading(false);
       }
@@ -216,31 +257,35 @@ const EmployeeForm = ({
   }, []);
 
   /*
-   * Populate edit form if provided.
+   * Populate employee data when editing.
    */
   useEffect(() => {
     if (mode === "edit" && initialData) {
       setForm({
         ...initialForm,
         ...initialData,
+
         department_id:
           initialData.department_id ||
           (typeof initialData.department === "object"
             ? initialData.department?.id
             : initialData.department) ||
           "",
+
         designation_id:
           initialData.designation_id ||
           (typeof initialData.designation === "object"
             ? initialData.designation?.id
             : initialData.designation) ||
           "",
+
         reporting_manager_id:
           initialData.reporting_manager_id ||
           (typeof initialData.reporting_manager === "object"
             ? initialData.reporting_manager?.id
             : initialData.reporting_manager) ||
           "",
+
         shift_id:
           initialData.shift_id ||
           initialData.shiftId ||
@@ -250,46 +295,76 @@ const EmployeeForm = ({
           "",
       });
 
-      setPhotoPreview(
-        initialData.profile_photo_url ||
-          initialData.photoUrl ||
-          initialData.profile_photo ||
-          "",
+      const existingPermissionOverrides =
+        initialData.permission_overrides ??
+        initialData.permissionOverrides ??
+        initialData.employee_permissions ??
+        [];
+
+      setPermissionOverrides(
+        Array.isArray(existingPermissionOverrides)
+          ? existingPermissionOverrides
+          : []
       );
+
+      setPhotoPreview(
+        initialData.profile_photo_url ??
+        initialData.photoUrl ??
+        initialData.profile_photo ??
+        ""
+      );
+    } else {
+      setForm(initialForm);
+      setPermissionOverrides([]);
+      setPhotoPreview("");
+      setPhotoFile(null);
     }
   }, [mode, initialData]);
 
   /*
-   * Filter designations by selected department if department has mapped designations.
+   * Filter designations according to selected department.
    */
   const filteredDesignations = useMemo(() => {
     if (!form.department_id) {
       return designations;
     }
+
     const filtered = designations.filter(
       (designation) =>
         !designation.departmentId ||
-        String(designation.departmentId) === String(form.department_id),
+        String(designation.departmentId) ===
+        String(form.department_id)
     );
+
     return filtered.length > 0 ? filtered : designations;
   }, [designations, form.department_id]);
 
+  /*
+   * Generic input handler.
+   */
   const handleChange = (event) => {
     const { name, value } = event.target;
+
     setForm((previous) => ({
       ...previous,
       [name]: value,
     }));
+
     setErrors((previous) => ({
       ...previous,
       [name]: "",
     }));
   };
 
+  /*
+   * Department selection.
+   */
   const handleDepartmentChange = (event) => {
     const value = event.target.value;
+
     const selectedDepartment = departments.find(
-      (department) => String(department.id) === String(value),
+      (department) =>
+        String(department.id) === String(value)
     );
 
     setForm((previous) => ({
@@ -307,10 +382,15 @@ const EmployeeForm = ({
     }));
   };
 
+  /*
+   * Designation selection.
+   */
   const handleDesignationChange = (event) => {
     const value = event.target.value;
+
     const selectedDesignation = filteredDesignations.find(
-      (designation) => String(designation.id) === String(value),
+      (designation) =>
+        String(designation.id) === String(value)
     );
 
     setForm((previous) => ({
@@ -325,88 +405,129 @@ const EmployeeForm = ({
     }));
   };
 
+  /*
+   * Reporting manager selection.
+   */
   const handleManagerChange = (event) => {
     const value = event.target.value;
+
     const selectedManager = managers.find(
-      (m) => String(m.id) === String(value),
+      (manager) =>
+        String(manager.id) === String(value)
     );
 
     setForm((previous) => ({
       ...previous,
       reporting_manager_id: value,
-      reporting_manager_name: selectedManager?.name || "",
+      reporting_manager_name:
+        selectedManager?.name || "",
     }));
   };
 
+  /*
+   * Profile photo selection.
+   */
   const handlePhotoChange = (event) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+
+    if (!file) {
+      return;
+    }
 
     setPhotoFile(file);
+
     const reader = new FileReader();
+
     reader.onloadend = () => {
       setPhotoPreview(reader.result);
     };
+
     reader.readAsDataURL(file);
   };
 
+  /*
+   * Validate employee form.
+   */
   const validate = () => {
     const newErrors = {};
 
     if (!form.employee_code.trim()) {
-      newErrors.employee_code = "Employee code is required.";
+      newErrors.employee_code =
+        "Employee code is required.";
     }
 
     if (!form.first_name.trim()) {
-      newErrors.first_name = "First name is required.";
+      newErrors.first_name =
+        "First name is required.";
     }
 
     if (!form.last_name.trim()) {
-      newErrors.last_name = "Last name is required.";
+      newErrors.last_name =
+        "Last name is required.";
     }
 
     if (!form.email.trim()) {
       newErrors.email = "Email is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      newErrors.email = "Enter a valid email address.";
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        form.email.trim()
+      )
+    ) {
+      newErrors.email =
+        "Enter a valid email address.";
     }
 
     if (!form.date_of_joining) {
-      newErrors.date_of_joining = "Date of joining is required.";
+      newErrors.date_of_joining =
+        "Date of joining is required.";
     }
 
     if (!form.department_id) {
-      newErrors.department_id = "Department is required.";
+      newErrors.department_id =
+        "Department is required.";
     }
 
     if (!form.designation_id) {
-      newErrors.designation_id = "Designation is required.";
+      newErrors.designation_id =
+        "Designation is required.";
     }
 
     if (!form.employment_type) {
-      newErrors.employment_type = "Employment type is required.";
+      newErrors.employment_type =
+        "Employment type is required.";
     }
 
     if (!form.employment_status) {
-      newErrors.employment_status = "Employment status is required.";
+      newErrors.employment_status =
+        "Employment status is required.";
     }
 
-    if (form.phone && !/^\d{10}$/.test(form.phone.trim())) {
-      newErrors.phone = "Phone number must contain 10 digits.";
+    if (
+      form.phone &&
+      !/^\d{10}$/.test(form.phone.trim())
+    ) {
+      newErrors.phone =
+        "Phone number must contain 10 digits.";
     }
 
     if (
       form.emergency_contact_phone &&
-      !/^\d{10}$/.test(form.emergency_contact_phone.trim())
+      !/^\d{10}$/.test(
+        form.emergency_contact_phone.trim()
+      )
     ) {
       newErrors.emergency_contact_phone =
         "Phone number must contain 10 digits.";
     }
 
     setErrors(newErrors);
+
     return Object.keys(newErrors).length === 0;
   };
 
+  /*
+   * Submit employee form.
+   */
   const handleSubmit = (event) => {
     event.preventDefault();
 
@@ -416,30 +537,77 @@ const EmployeeForm = ({
 
     const payload = {
       employee_code: form.employee_code.trim(),
+
       first_name: form.first_name.trim(),
-      middle_name: form.middle_name ? form.middle_name.trim() : "",
+
+      middle_name: form.middle_name
+        ? form.middle_name.trim()
+        : "",
+
       last_name: form.last_name.trim(),
+
       email: form.email.trim(),
-      phone: form.phone ? form.phone.trim() : "",
+
+      phone: form.phone
+        ? form.phone.trim()
+        : "",
+
       gender: form.gender || "",
-      date_of_birth: form.date_of_birth || null,
-      date_of_joining: form.date_of_joining,
-      department: form.department_id ? Number(form.department_id) : null,
-      designation: form.designation_id ? Number(form.designation_id) : null,
-      reporting_manager: form.reporting_manager_id
-        ? Number(form.reporting_manager_id)
+
+      date_of_birth:
+        form.date_of_birth || null,
+
+      date_of_joining:
+        form.date_of_joining,
+
+      department: form.department_id
+        ? Number(form.department_id)
         : null,
-      shift: form.shift_id ? Number(form.shift_id) : null,
-      employment_type: form.employment_type || "Full Time",
-      employment_status: form.employment_status || "Active",
-      work_location: form.work_location ? form.work_location.trim() : "",
-      address: form.address ? form.address.trim() : "",
-      emergency_contact_name: form.emergency_contact_name
-        ? form.emergency_contact_name.trim()
-        : "",
-      emergency_contact_phone: form.emergency_contact_phone
-        ? form.emergency_contact_phone.trim()
-        : "",
+
+      designation: form.designation_id
+        ? Number(form.designation_id)
+        : null,
+
+      reporting_manager:
+        form.reporting_manager_id
+          ? Number(form.reporting_manager_id)
+          : null,
+
+      shift: form.shift_id
+        ? Number(form.shift_id)
+        : null,
+
+      employment_type:
+        form.employment_type || "Full Time",
+
+      employment_status:
+        form.employment_status || "Active",
+
+      work_location:
+        form.work_location
+          ? form.work_location.trim()
+          : "",
+
+      address:
+        form.address
+          ? form.address.trim()
+          : "",
+
+      /*
+       * Employee-specific permission overrides.
+       */
+      permission_overrides:
+        permissionOverrides,
+
+      emergency_contact_name:
+        form.emergency_contact_name
+          ? form.emergency_contact_name.trim()
+          : "",
+
+      emergency_contact_phone:
+        form.emergency_contact_phone
+          ? form.emergency_contact_phone.trim()
+          : "",
     };
 
     if (photoFile) {
@@ -449,42 +617,69 @@ const EmployeeForm = ({
     onSubmit(payload);
   };
 
+  /*
+   * Render validation error.
+   */
   const renderError = (field) => {
-    if (!errors[field]) return null;
+    if (!errors[field]) {
+      return null;
+    }
+
     return (
       <span className="employee-form__error">
-        <FiAlertCircle style={{ fontSize: "12px", flexShrink: 0 }} />
+        <FiAlertCircle
+          style={{
+            fontSize: "12px",
+            flexShrink: 0,
+          }}
+        />
         {errors[field]}
       </span>
     );
   };
 
   return (
-    <form className="employee-form" onSubmit={handleSubmit} noValidate>
+    <form
+      className="employee-form"
+      onSubmit={handleSubmit}
+      noValidate
+    >
       {/* PERSONAL INFORMATION */}
       <section className="employee-form__section">
         <div className="employee-form__section-heading">
           <div className="employee-form__section-icon employee-form__section-icon--teal">
             <FiUser />
           </div>
+
           <div>
             <h2>Personal Information</h2>
-            <p>Basic personal and contact details for the employee.</p>
+            <p>
+              Basic personal and contact details for
+              the employee.
+            </p>
           </div>
         </div>
 
         <div className="employee-form__photo-row">
           <div className="employee-form__photo">
             {photoPreview ? (
-              <img src={photoPreview} alt="Employee Preview" />
+              <img
+                src={photoPreview}
+                alt="Employee Preview"
+              />
             ) : (
               <FiUser />
             )}
           </div>
 
           <div>
-            <label className="employee-form__upload" htmlFor="profile_photo">
-              {photoPreview ? "Change Photo" : "Upload Photo"}
+            <label
+              className="employee-form__upload"
+              htmlFor="profile_photo"
+            >
+              {photoPreview
+                ? "Change Photo"
+                : "Upload Photo"}
             </label>
 
             <input
@@ -506,6 +701,7 @@ const EmployeeForm = ({
             <label>
               Employee Code <span>*</span>
             </label>
+
             <input
               name="employee_code"
               value={form.employee_code}
@@ -513,6 +709,7 @@ const EmployeeForm = ({
               placeholder="e.g. EMP-001"
               required
             />
+
             {renderError("employee_code")}
           </div>
 
@@ -520,6 +717,7 @@ const EmployeeForm = ({
             <label>
               First Name <span>*</span>
             </label>
+
             <input
               name="first_name"
               value={form.first_name}
@@ -527,11 +725,13 @@ const EmployeeForm = ({
               placeholder="Enter first name"
               required
             />
+
             {renderError("first_name")}
           </div>
 
           <div className="employee-form__field">
             <label>Middle Name</label>
+
             <input
               name="middle_name"
               value={form.middle_name}
@@ -544,6 +744,7 @@ const EmployeeForm = ({
             <label>
               Last Name <span>*</span>
             </label>
+
             <input
               name="last_name"
               value={form.last_name}
@@ -551,6 +752,7 @@ const EmployeeForm = ({
               placeholder="Enter last name"
               required
             />
+
             {renderError("last_name")}
           </div>
 
@@ -558,8 +760,10 @@ const EmployeeForm = ({
             <label>
               Email <span>*</span>
             </label>
+
             <div className="employee-form__input-icon">
               <FiMail />
+
               <input
                 name="email"
                 type="email"
@@ -569,13 +773,16 @@ const EmployeeForm = ({
                 required
               />
             </div>
+
             {renderError("email")}
           </div>
 
           <div className="employee-form__field">
             <label>Phone Number</label>
+
             <div className="employee-form__input-icon">
               <FiPhone />
+
               <input
                 name="phone"
                 value={form.phone}
@@ -584,35 +791,57 @@ const EmployeeForm = ({
                 maxLength={10}
               />
             </div>
+
             {renderError("phone")}
           </div>
 
           <div className="employee-form__field">
             <label>Date of Birth</label>
-            <div className="employee-form__input-icon">
-              <FiCalendar />
-              <input
-                name="date_of_birth"
-                type="date"
-                value={form.date_of_birth}
-                onChange={handleChange}
-              />
-            </div>
+
+            <DatePicker
+              value={form.date_of_birth}
+              onChange={(value) =>
+                setForm((previous) => ({
+                  ...previous,
+                  date_of_birth: value,
+                }))
+              }
+            />
           </div>
 
           <div className="employee-form__field">
             <label>Gender</label>
-            <select name="gender" value={form.gender} onChange={handleChange}>
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-              <option value="Prefer not to say">Prefer not to say</option>
+
+            <select
+              name="gender"
+              value={form.gender}
+              onChange={handleChange}
+            >
+              <option value="">
+                Select Gender
+              </option>
+
+              <option value="Male">
+                Male
+              </option>
+
+              <option value="Female">
+                Female
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+
+              <option value="Prefer not to say">
+                Prefer not to say
+              </option>
             </select>
           </div>
 
           <div className="employee-form__field employee-form__field--full">
             <label>Address</label>
+
             <textarea
               name="address"
               value={form.address}
@@ -630,9 +859,13 @@ const EmployeeForm = ({
           <div className="employee-form__section-icon employee-form__section-icon--purple">
             <FiBriefcase />
           </div>
+
           <div>
             <h2>Employment Information</h2>
-            <p>Department, designation, hierarchy and work arrangements.</p>
+            <p>
+              Department, designation, hierarchy and
+              work arrangements.
+            </p>
           </div>
         </div>
 
@@ -641,16 +874,17 @@ const EmployeeForm = ({
             <label>
               Date of Joining <span>*</span>
             </label>
-            <div className="employee-form__input-icon">
-              <FiCalendar />
-              <input
-                name="date_of_joining"
-                type="date"
-                value={form.date_of_joining}
-                onChange={handleChange}
-                required
-              />
-            </div>
+
+            <DatePicker
+              value={form.date_of_joining}
+              onChange={(value) =>
+                setForm((previous) => ({
+                  ...previous,
+                  date_of_joining: value,
+                }))
+              }
+            />
+
             {renderError("date_of_joining")}
           </div>
 
@@ -658,6 +892,7 @@ const EmployeeForm = ({
             <label>
               Department <span>*</span>
             </label>
+
             <select
               value={form.department_id}
               onChange={handleDepartmentChange}
@@ -669,12 +904,17 @@ const EmployeeForm = ({
                   ? "Loading departments..."
                   : "Select Department"}
               </option>
+
               {departments.map((department) => (
-                <option key={department.id} value={department.id}>
+                <option
+                  key={department.id}
+                  value={department.id}
+                >
                   {department.name}
                 </option>
               ))}
             </select>
+
             {renderError("department_id")}
           </div>
 
@@ -682,6 +922,7 @@ const EmployeeForm = ({
             <label>
               Designation <span>*</span>
             </label>
+
             <select
               value={form.designation_id}
               onChange={handleDesignationChange}
@@ -693,32 +934,51 @@ const EmployeeForm = ({
                   ? "Loading designations..."
                   : "Select Designation"}
               </option>
-              {filteredDesignations.map((designation) => (
-                <option key={designation.id} value={designation.id}>
-                  {designation.name}
-                </option>
-              ))}
+
+              {filteredDesignations.map(
+                (designation) => (
+                  <option
+                    key={designation.id}
+                    value={designation.id}
+                  >
+                    {designation.name}
+                  </option>
+                )
+              )}
             </select>
+
             {renderError("designation_id")}
           </div>
 
           <div className="employee-form__field">
             <label>Reporting Manager</label>
+
             <div className="employee-form__input-icon">
               <FiUsers />
+
               <select
                 value={form.reporting_manager_id}
                 onChange={handleManagerChange}
               >
-                <option value="">No Reporting Manager</option>
-                {managers.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} {m.code ? `(${m.code})` : ""}
+                <option value="">
+                  No Reporting Manager
+                </option>
+
+                {managers.map((manager) => (
+                  <option
+                    key={manager.id}
+                    value={manager.id}
+                  >
+                    {manager.name}
+                    {manager.code
+                      ? ` (${manager.code})`
+                      : ""}
                   </option>
                 ))}
               </select>
             </div>
           </div>
+
           <div className="employee-form__field">
             <label>Work Shift</label>
 
@@ -735,9 +995,14 @@ const EmployeeForm = ({
               </option>
 
               {shifts.map((shift) => (
-                <option key={shift.id} value={shift.id}>
+                <option
+                  key={shift.id}
+                  value={shift.id}
+                >
                   {shift.name}
-                  {shift.start_time && shift.end_time
+
+                  {shift.start_time &&
+                    shift.end_time
                     ? ` (${shift.start_time} - ${shift.end_time})`
                     : ""}
                 </option>
@@ -749,18 +1014,34 @@ const EmployeeForm = ({
             <label>
               Employment Type <span>*</span>
             </label>
+
             <select
               name="employment_type"
               value={form.employment_type}
               onChange={handleChange}
               required
             >
-              <option value="Full Time">Full Time</option>
-              <option value="Part Time">Part Time</option>
-              <option value="Contract">Contract</option>
-              <option value="Intern">Intern</option>
-              <option value="Freelance">Freelance</option>
+              <option value="Full Time">
+                Full Time
+              </option>
+
+              <option value="Part Time">
+                Part Time
+              </option>
+
+              <option value="Contract">
+                Contract
+              </option>
+
+              <option value="Intern">
+                Intern
+              </option>
+
+              <option value="Freelance">
+                Freelance
+              </option>
             </select>
+
             {renderError("employment_type")}
           </div>
 
@@ -768,25 +1049,43 @@ const EmployeeForm = ({
             <label>
               Employment Status <span>*</span>
             </label>
+
             <select
               name="employment_status"
               value={form.employment_status}
               onChange={handleChange}
               required
             >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="On Leave">On Leave</option>
-              <option value="Terminated">Terminated</option>
-              <option value="Probation">Probation</option>
+              <option value="Active">
+                Active
+              </option>
+
+              <option value="Inactive">
+                Inactive
+              </option>
+
+              <option value="On Leave">
+                On Leave
+              </option>
+
+              <option value="Terminated">
+                Terminated
+              </option>
+
+              <option value="Probation">
+                Probation
+              </option>
             </select>
+
             {renderError("employment_status")}
           </div>
 
           <div className="employee-form__field">
             <label>Work Location</label>
+
             <div className="employee-form__input-icon">
               <FiMapPin />
+
               <input
                 name="work_location"
                 value={form.work_location}
@@ -798,11 +1097,22 @@ const EmployeeForm = ({
         </div>
 
         {organizationError && (
-          <p className="employee-form__error" style={{ marginTop: "12px" }}>
+          <p
+            className="employee-form__error"
+            style={{ marginTop: "12px" }}
+          >
             {organizationError}
           </p>
         )}
       </section>
+
+      {/* EMPLOYEE PERMISSION OVERRIDES */}
+      {mode === "edit" && (
+        <AdditionalPermissions
+          value={permissionOverrides}
+          onChange={setPermissionOverrides}
+        />
+      )}
 
       {/* EMERGENCY CONTACT */}
       <section className="employee-form__section">
@@ -810,15 +1120,20 @@ const EmployeeForm = ({
           <div className="employee-form__section-icon employee-form__section-icon--amber">
             <FiPhone />
           </div>
+
           <div>
             <h2>Emergency Contact</h2>
-            <p>Designated contact person for emergency situations.</p>
+            <p>
+              Designated contact person for emergency
+              situations.
+            </p>
           </div>
         </div>
 
         <div className="employee-form__grid">
           <div className="employee-form__field">
             <label>Contact Person Name</label>
+
             <input
               name="emergency_contact_name"
               value={form.emergency_contact_name}
@@ -829,8 +1144,10 @@ const EmployeeForm = ({
 
           <div className="employee-form__field">
             <label>Contact Phone Number</label>
+
             <div className="employee-form__input-icon">
               <FiPhone />
+
               <input
                 name="emergency_contact_phone"
                 value={form.emergency_contact_phone}
@@ -839,12 +1156,15 @@ const EmployeeForm = ({
                 maxLength={10}
               />
             </div>
-            {renderError("emergency_contact_phone")}
+
+            {renderError(
+              "emergency_contact_phone"
+            )}
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* FORM FOOTER */}
       <div className="employee-form__footer">
         <Button
           type="button"
@@ -855,8 +1175,13 @@ const EmployeeForm = ({
           Cancel
         </Button>
 
-        <Button type="submit" variant="primary" disabled={submitting}>
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={submitting}
+        >
           <FiSave />
+
           {submitting
             ? mode === "edit"
               ? "Saving changes..."
@@ -871,3 +1196,4 @@ const EmployeeForm = ({
 };
 
 export default EmployeeForm;
+

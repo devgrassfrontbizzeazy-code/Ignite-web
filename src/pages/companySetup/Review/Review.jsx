@@ -45,9 +45,7 @@ function Review() {
       if (d.registrationNumber) {
         formData.append("registration_no", d.registrationNumber);
       }
-      console.log("companyLogoFile:", d.companyLogoFile);
-console.log("Is File:", d.companyLogoFile instanceof File);
-console.log("Form data logo:", d.companyLogoFile);
+      
       if (d.companyLogoFile) {
         formData.append("logo", d.companyLogoFile);
       }
@@ -70,7 +68,7 @@ console.log("Form data logo:", d.companyLogoFile);
 
       const response = await setupCompany(formData);
 
-      console.log("Company setup successful:", response);
+      
 
       navigate("/company-setup/account-created");
     } catch (err) {

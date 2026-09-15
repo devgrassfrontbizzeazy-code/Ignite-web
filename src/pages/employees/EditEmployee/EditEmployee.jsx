@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiAlertCircle, FiArrowLeft, FiEdit2 } from "react-icons/fi";
+import { FiAlertCircle, FiEdit2 } from "react-icons/fi";
 
+import BackButton from "../../../components/common/BackButton/BackButton";
 import EmployeeForm from "../../../components/employees/EmployeeForm/EmployeeForm";
+import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import employeeService from "../../../services/employeeService";
 
 import "./EditEmployee.css";
@@ -76,18 +78,17 @@ const EditEmployee = () => {
   };
 
   if (loading) {
-    return (
-      <div className="edit-employee-page__loading">Loading employee details...</div>
-    );
+    return <IgniteLoader text="Loading employee details..." />;
   }
 
   if (!employee) {
     return (
       <div className="edit-employee-page__not-found">
         <h2>Employee not found</h2>
-        <button type="button" onClick={() => navigate("/employees")}>
-          Back to Employees
-        </button>
+        <BackButton
+          label="Back to Employees"
+          onClick={() => navigate("/employees")}
+        />
       </div>
     );
   }
@@ -95,14 +96,10 @@ const EditEmployee = () => {
   return (
     <div className="edit-employee-page">
       <div className="edit-employee-page__top">
-        <button
-          type="button"
-          className="edit-employee-page__back"
+        <BackButton
+          label="Back to Employees"
           onClick={() => navigate("/employees")}
-        >
-          <FiArrowLeft />
-          Back to Employees
-        </button>
+        />
       </div>
 
       <div className="edit-employee-page__heading">

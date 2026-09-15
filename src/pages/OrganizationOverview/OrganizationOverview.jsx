@@ -24,6 +24,7 @@ import { getDesignations } from "../../services/api/designationAPI";
 import { getEmployees } from "../../services/api/employeeAPI";
 
 import "./OrganizationOverview.css";
+import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 const extractList = (response) => {
   if (Array.isArray(response)) {
@@ -302,18 +303,7 @@ export default function OrganizationOverview() {
       ]);
 
       if (companyResponse.status === "fulfilled") {
-        console.log(
-          "ORGANIZATION OVERVIEW COMPANY RESPONSE:",
-          companyResponse.value,
-        );
-        console.log(
-          "ORGANIZATION OVERVIEW LOGO:",
-          companyResponse.value?.data?.logo_url,
-        );
-        console.log(
-          "ORGANIZATION OVERVIEW COMPANY KEYS:",
-          Object.keys(companyResponse.value?.data || {}),
-        );
+       
 
         setCompany(normalizeCompany(companyResponse.value?.data));
       } else {
@@ -418,15 +408,7 @@ export default function OrganizationOverview() {
       : 0;
 
   if (loading) {
-    return (
-      <div className="organization-overview">
-        <div className="organization-overview__loading">
-          <div className="organization-overview__spinner" />
-
-          <span>Loading organization overview...</span>
-        </div>
-      </div>
-    );
+    return <IgniteLoader text="Loading organization overview..." />;
   }
 
   if (error && !company) {

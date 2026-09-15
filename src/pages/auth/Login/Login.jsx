@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
-
+import BackButton from "../../../components/common/BackButton/BackButton";
 import logo from "../../../assets/logo.png";
 import "./Login.css";
 
@@ -80,7 +80,7 @@ const Login = () => {
         password
       );
 
-      console.log("Login response:", response);
+      
 
       if (response.status !== "success") {
         throw new Error(
@@ -137,10 +137,7 @@ const Login = () => {
       try {
         const companyResponse = await getCompany();
 
-        console.log(
-          "Company details found:",
-          companyResponse
-        );
+        
 
         /*
          * Company exists.
@@ -220,16 +217,12 @@ const Login = () => {
     <div className="login-container">
 
       {/* Back to Home */}
-      <Link
-        to="/"
-        className="back-home-link"
-      >
-        <span className="back-arrow">
-          ←
-        </span>
-
-        Back
-      </Link>
+<div className="login-back-button">
+  <BackButton
+    label="Back"
+    onClick={() => navigate("/")}
+  />
+</div>
 
       {/* Background Elements */}
       <div className="login-background-elements">
@@ -288,7 +281,7 @@ const Login = () => {
           <div className="form-group">
 
             <label htmlFor="email">
-              Email address
+              Email Address
             </label>
 
             <div className="input-wrapper">

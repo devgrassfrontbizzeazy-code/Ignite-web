@@ -5,6 +5,7 @@ import {
   useLocation,
 } from "react-router-dom";
 
+import IgniteLoader from "../common/IgniteLoader/IgniteLoader";
 import { getCompany } from "../../services/api/companyAPI";
 
 const CompanySetupGuard = () => {
@@ -82,19 +83,7 @@ const CompanySetupGuard = () => {
   // ------------------------------------------
 
   if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "inherit",
-        }}
-      >
-        Checking your account...
-      </div>
-    );
+    return <IgniteLoader text="Checking your account..." />;
   }
 
   // ------------------------------------------

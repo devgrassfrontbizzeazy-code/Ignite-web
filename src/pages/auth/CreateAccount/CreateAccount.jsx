@@ -130,7 +130,7 @@ const CreateAccount = () => {
   try {
     const response = await sendSignupOtp(trimmedEmail);
 
-    console.log("Send OTP response:", response);
+    
 
     if (response.status === "success") {
       setEmail(trimmedEmail);
@@ -229,7 +229,7 @@ const CreateAccount = () => {
   try {
     const response = await verifySignupOtp(email, code);
 
-    console.log("Verify OTP response:", response);
+   
 
     if (response.status === "success") {
       setVerificationToken(response.verification_token);
@@ -259,7 +259,7 @@ const CreateAccount = () => {
   try {
     const response = await sendSignupOtp(email);
 
-    console.log("Resend OTP response:", response);
+    
 
     if (response.status === "success") {
       setOtpDigits(Array(OTP_LENGTH).fill(""));
@@ -332,7 +332,7 @@ const CreateAccount = () => {
       confirmPassword
     );
 
-    console.log("Complete signup response:", response);
+    
 
     if (response.status === "success") {
       setStep("success");

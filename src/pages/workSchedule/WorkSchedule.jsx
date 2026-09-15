@@ -1,11 +1,13 @@
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, Clock, Save } from "lucide-react";
+import { CalendarDays, Clock, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+import BackButton from "../../components/common/BackButton/BackButton";
 import ShiftList from "../../components/workSchedule/ShiftList/ShiftList";
 import WeeklySchedule from "../../components/workSchedule/WeeklySchedule/WeeklySchedule";
 import SchedulePreview from "../../components/workSchedule/SchedulePreview/SchedulePreview";
+import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 import {
   getWorkSchedule,
@@ -362,14 +364,7 @@ function WorkSchedule() {
     ).length;
 
   if (loading) {
-    return (
-      <div className="work-schedule-page">
-        <div className="work-schedule-loading">
-          <div className="loading-spinner" />
-          <p>Loading work schedule...</p>
-        </div>
-      </div>
-    );
+    return <IgniteLoader text="Loading work schedule..." />;
   }
 
   return (
@@ -377,17 +372,14 @@ function WorkSchedule() {
       <div className="work-schedule-container">
         <header className="work-schedule-header">
           <div className="work-schedule-header-content">
-            <button
-              className="back-link"
+            <BackButton
+              label="Organization Overview"
               onClick={() =>
                 navigate(
                   "/organization-overview"
                 )
               }
-            >
-              <ArrowLeft size={15} />
-              Organization Overview
-            </button>
+            />
 
             <div className="work-schedule-title-row">
               <div>

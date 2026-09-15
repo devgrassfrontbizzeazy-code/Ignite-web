@@ -6,7 +6,6 @@ import {
   FiUserX,
   FiClock,
   FiSearch,
-  FiCalendar,
   FiRefreshCw,
   FiDownload,
   FiEye,
@@ -18,6 +17,7 @@ import { getDepartments } from "../../../services/api/departmentAPI";
 import AttendanceDetailModal from "../AttendanceDetailModal/AttendanceDetailModal";
 import Modal from "../../common/Modal/Modal";
 import Button from "../../common/Button/Button";
+import DatePicker from "../../common/DatePicker/DatePicker";
 import "./EmployeeAttendance.css";
 
 const STATUS_OPTIONS = [
@@ -328,12 +328,11 @@ const EmployeeAttendance = ({ onShowToast }) => {
         <div className="employee-attendance__filters">
           {/* Date Picker & Quick toggles */}
           <div className="employee-attendance__date-wrapper">
-            <FiCalendar />
-            <input
-              type="date"
+            <DatePicker
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(value) => setSelectedDate(value)}
             />
+
             <div className="employee-attendance__date-shortcuts">
               <button
                 type="button"
@@ -342,6 +341,7 @@ const EmployeeAttendance = ({ onShowToast }) => {
               >
                 Today
               </button>
+
               <button
                 type="button"
                 onClick={handleSetYesterday}
@@ -449,11 +449,11 @@ const EmployeeAttendance = ({ onShowToast }) => {
                               <span>
                                 {r.employeeName
                                   ? r.employeeName
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .slice(0, 2)
-                                      .join("")
-                                      .toUpperCase()
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .slice(0, 2)
+                                    .join("")
+                                    .toUpperCase()
                                   : "EM"}
                               </span>
                             )}

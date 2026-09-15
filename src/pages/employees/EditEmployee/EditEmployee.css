@@ -18,37 +18,6 @@
   margin-bottom: 18px;
 }
 
-.edit-employee-page__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-
-  border: none;
-  background: transparent;
-
-  padding: 5px 0;
-
-  color: #5d6872;
-  font-size: 12px;
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.edit-employee-page__back svg {
-  width: 15px;
-  height: 15px;
-}
-
-.edit-employee-page__back:hover {
-  color: #0f3d3e;
-  transform: translateX(-2px);
-}
-
 /* ---------------------------------------------------------
    PAGE HEADING
    --------------------------------------------------------- */

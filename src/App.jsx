@@ -31,6 +31,8 @@ import CompanySetupGuard from "./components/auth/CompanySetupGuard";
 import PermissionGuard from "./components/auth/PermissionGuard";
 
 /* Organization */
+import Dashboard from "./pages/dashboard/Dashboard";
+
 import OrganizationOverview from "./pages/OrganizationOverview/OrganizationOverview";
 
 import WorkSchedule from "./pages/workSchedule/WorkSchedule";
@@ -56,28 +58,6 @@ import Holidays from "./pages/holidays/Holidays";
 /* =========================================================
    TEMPORARY / DASHBOARD
 ========================================================= */
-
-function DashboardPreview() {
-  return (
-    <div style={{ padding: "32px" }}>
-      <h1
-        style={{
-          fontSize: "24px",
-          fontWeight: "700",
-          color: "#0f172a",
-          marginBottom: "8px",
-        }}
-      >
-        Dashboard
-      </h1>
-
-      <p style={{ color: "#64748b" }}>
-        Welcome to your Ignite Workspace Dashboard. Use the sidebar to navigate
-        your attendance, leaves, and organization tools.
-      </p>
-    </div>
-  );
-}
 
 function Settings() {
   return (
@@ -275,7 +255,7 @@ export default function App() {
                       EMPLOYEE ACCESSIBLE ROUTES
                   ================================================= */}
 
-                  <Route path="/dashboard" element={<DashboardPreview />} />
+                  <Route path="/dashboard" element={<Dashboard/>} />
 
                   <Route path="/attendance" element={<Attendance />} />
 

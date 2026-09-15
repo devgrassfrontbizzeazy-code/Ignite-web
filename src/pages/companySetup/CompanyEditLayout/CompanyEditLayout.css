@@ -15,23 +15,8 @@
   margin-bottom: 24px;
 }
 
-.company-edit-page__back {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.company-edit-page__header > .back-button {
   margin-bottom: 22px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #647178;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.company-edit-page__back:hover {
-  color: #0f3d3e;
 }
 
 .company-edit-page__eyebrow {

@@ -1,0 +1,269 @@
+.time-picker {
+    position: relative;
+    width: 100%;
+    z-index: 20;
+}
+
+/* Trigger */
+
+.time-picker__trigger {
+    width: 100%;
+    height: 38px;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    padding: 0 10px;
+
+    border: 1px solid #dfe5e7;
+    border-radius: 8px;
+
+    background: #fff;
+    color: #1a1f24;
+
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 500;
+
+    cursor: pointer;
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.time-picker__trigger:hover {
+    border-color: #0ba37f;
+}
+
+.time-picker__trigger--open {
+    border-color: #0ba37f;
+    box-shadow: 0 0 0 2px rgba(11, 163, 127, 0.08);
+}
+
+.time-picker__icon {
+    flex-shrink: 0;
+    color: #0ba37f;
+}
+
+.time-picker__value,
+.time-picker__placeholder {
+    flex: 1;
+    text-align: left;
+}
+
+.time-picker__value {
+    color: #1a1f24;
+}
+
+.time-picker__placeholder {
+    color: #8a9499;
+}
+
+.time-picker__chevron {
+    flex-shrink: 0;
+    color: #899297;
+    transition: transform 0.15s ease;
+}
+
+.time-picker__chevron--open {
+    transform: rotate(180deg);
+}
+
+.time-picker--disabled {
+    opacity: 0.55;
+}
+
+.time-picker__trigger:disabled {
+    cursor: not-allowed;
+}
+
+
+/* Popup */
+
+.time-picker__popup {
+    position: fixed;
+
+    width: 240px;
+    box-sizing: border-box;
+
+    padding: 10px;
+
+    border: 1px solid #dfe5e7;
+    border-radius: 9px;
+
+    background: #fff;
+
+    box-shadow:
+        0 10px 24px rgba(15, 61, 62, 0.15);
+
+    z-index: 99999;
+}
+
+
+/* Header */
+
+.time-picker__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+
+    border-bottom: 1px solid #e8edef;
+
+    color: #0ba37f;
+}
+
+.time-picker__header>div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.time-picker__header-label {
+    color: #899297;
+    font-size: 8px;
+    font-weight: 600;
+}
+
+.time-picker__header strong {
+    color: #0f3d3e;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* Time selectors */
+
+.time-picker__selectors {
+    display: grid;
+    grid-template-columns: 1fr 8px 1fr 1fr;
+    align-items: start;
+    gap: 4px;
+}
+
+.time-picker__colon {
+    padding-top: 23px;
+
+    color: #899297;
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: center;
+}
+
+.time-picker__column {
+    min-width: 0;
+}
+
+.time-picker__column-label {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #899297;
+    font-size: 7px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.time-picker__options {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    max-height: 126px;
+    overflow-y: auto;
+
+    padding-right: 2px;
+}
+
+.time-picker__options::-webkit-scrollbar {
+    width: 3px;
+}
+
+.time-picker__options::-webkit-scrollbar-thumb {
+    background: #d8e0e2;
+    border-radius: 10px;
+}
+
+.time-picker__options button {
+    width: 100%;
+    min-height: 24px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: 5px;
+
+    background: transparent;
+    color: #39464c;
+
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 500;
+
+    cursor: pointer;
+}
+
+.time-picker__options button:hover {
+    background: #eaf8f4;
+    color: #0ba37f;
+}
+
+.time-picker__options button.active {
+    background: #0ba37f;
+    color: #fff;
+    font-weight: 700;
+}
+
+
+/* Footer */
+
+.time-picker__footer {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 8px;
+    padding-top: 7px;
+
+    border-top: 1px solid #e8edef;
+}
+
+.time-picker__footer button {
+    height: 26px;
+
+    padding: 0 9px;
+
+    border: none;
+    border-radius: 5px;
+
+    background: #0f3d3e;
+    color: #fff;
+
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.time-picker__footer button:hover {
+    background: #0b3031;
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+    .time-picker__popup {
+        width: 230px;
+    }
+}
