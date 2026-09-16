@@ -23,6 +23,7 @@ import {
 import { getDepartments } from "../../services/api/departmentAPI";
 
 import { extractApiError } from "../../utils/apiErrorUtils";
+import { canCreateDesignations } from "../../utils/permissionUtils";
 
 import "./Designations.css";
 
@@ -517,9 +518,11 @@ const Designations = () => {
         title="Designations"
         description="Manage your organization's designations and their department assignments."
         action={
-          <Button variant="primary" onClick={handleAddDesignation}>
-            + Add Designation
-          </Button>
+          canCreateDesignations() ? (
+            <Button variant="primary" onClick={handleAddDesignation}>
+              + Add Designation
+            </Button>
+          ) : null
         }
       />
 
@@ -558,9 +561,11 @@ const Designations = () => {
               title="No designations yet"
               description="Create your first designation to start defining job positions in your organization."
               action={
-                <Button variant="primary" onClick={handleAddDesignation}>
-                  + Add Designation
-                </Button>
+                canCreateDesignations() ? (
+                  <Button variant="primary" onClick={handleAddDesignation}>
+                    + Add Designation
+                  </Button>
+                ) : null
               }
             />
           </div>

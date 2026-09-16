@@ -22,6 +22,7 @@ import {
 } from "../../services/api/departmentAPI";
 
 import { extractApiError } from "../../utils/apiErrorUtils";
+import { canCreateDepartments } from "../../utils/permissionUtils";
 
 import "./Departments.css";
 
@@ -454,9 +455,11 @@ const Departments = () => {
         title="Departments"
         description="Manage your organization's departments and structure."
         action={
-          <Button variant="primary" onClick={handleAddDepartment}>
-            + Add Department
-          </Button>
+          canCreateDepartments() ? (
+            <Button variant="primary" onClick={handleAddDepartment}>
+              + Add Department
+            </Button>
+          ) : null
         }
       />
 
@@ -497,9 +500,11 @@ const Departments = () => {
               title="No departments yet"
               description="Create your first department to start organizing your workforce."
               action={
-                <Button variant="primary" onClick={handleAddDepartment}>
-                  + Add Department
-                </Button>
+                canCreateDepartments() ? (
+                  <Button variant="primary" onClick={handleAddDepartment}>
+                    + Add Department
+                  </Button>
+                ) : null
               }
             />
           </div>

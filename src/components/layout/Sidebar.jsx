@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "../../styles/global.css";
 import darkLogo from "../../assets/dark_logo-removebg.png";
+import { getCurrentUser } from "../../services/api/authAPI";
 
 /* ==========================================================================
    Icons
@@ -241,15 +242,40 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  
-  // Read current logged-in user profile & permissions from localStorage
-  const user = (() => {
+  // Read current logged-in user profile & permissions from state & localStorage
+  const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "{}");
     } catch {
       return {};
     }
-  })();
+  });
+
+  useEffect(() => {
+    const syncUser = async () => {
+      try {
+        const local = JSON.parse(localStorage.getItem("user") || "{}");
+        setUser(local);
+        const res = await getCurrentUser();
+        if (res?.user) {
+          const merged = { ...local, ...res.user };
+          setUser(merged);
+          localStorage.setItem("user", JSON.stringify(merged));
+        }
+      } catch {
+        // fallback
+      }
+    };
+
+    syncUser();
+
+    window.addEventListener("ignite:user-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("ignite:user-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
 
   const displayName =
     user.name || user.full_name || user.username || userName || "Guest User";
@@ -287,7 +313,7 @@ export default function Sidebar({
       return true;
     }
 
-    // 4. Explicit permissions granted via Designation / Role
+    // 4. Explicit permissions granted via Designation / Role / Overrides
     if (item.permission) {
       const p = item.permission;
 
@@ -297,7 +323,19 @@ export default function Sidebar({
         userPermissions.includes(`department.${p}`) ||
         userPermissions.includes(`designation.${p}`) ||
         userPermissions.includes(`attendance.${p}`) ||
-        userPermissions.includes(`leave.${p}`)
+        userPermissions.includes(`leave.${p}`) ||
+        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view`) ||
+        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_all`) ||
+        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_department`) ||
+        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_team`) ||
+        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_own`) ||
+        (p === "view_user" && (
+          userPermissions.includes("employees.view") ||
+          userPermissions.includes("employees.view_all") ||
+          userPermissions.includes("employees.view_department") ||
+          userPermissions.includes("employees.view_team") ||
+          userPermissions.includes("employees.view_own")
+        ))
       );
     }
 

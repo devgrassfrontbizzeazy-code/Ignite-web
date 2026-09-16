@@ -10,6 +10,11 @@ import {
   FiLogOut,
   FiTrash2,
 } from "react-icons/fi";
+import {
+  canUpdateEmployees,
+  canDeleteEmployees,
+  canCreateEmployees,
+} from "../../../utils/permissionUtils";
 import "./EmployeeRowActions.css";
 
 const EmployeeRowActions = ({
@@ -32,6 +37,10 @@ const EmployeeRowActions = ({
   const menuRef = useRef(null);
   const triggerRef = useRef(null);
 
+  const canEdit = canUpdateEmployees(null, employee);
+  const canDelete = canDeleteEmployees();
+  const canResend = canCreateEmployees() || canEdit;
+
   const isActive = employee.employment_status === "ACTIVE";
   const isPendingInvite =
     employee.invitation_status === "PENDING" ||
@@ -41,15 +50,24 @@ const EmployeeRowActions = ({
     if (!triggerRef.current) return;
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuWidth = 175;
-    const menuHeight = isActive ? 260 : 200;
-    const gap = 7;
+    const menuEl = menuRef.current;
+    const menuWidth = menuEl?.offsetWidth || 165;
+    
+    // Estimate items if menu element not yet measured
+    let estimatedItemCount = 1; // View details
+    if (canEdit) estimatedItemCount += 2; // Edit Profile, Status
+    if (isPendingInvite && onResendInvite && canResend) estimatedItemCount += 1;
+    if (isActive && canEdit) estimatedItemCount += 2; // Terminate, Resign
+    if (canDelete) estimatedItemCount += 1;
+
+    const menuHeight = menuEl?.offsetHeight || (estimatedItemCount * 36 + 12);
+    const gap = 4;
 
     const spaceBelow = window.innerHeight - triggerRect.bottom;
     const spaceAbove = triggerRect.top;
 
-    const shouldOpenUp =
-      spaceBelow < menuHeight && spaceAbove > spaceBelow;
+    // Prefer opening downwards unless spaceBelow is strictly less than menuHeight AND spaceAbove > menuHeight
+    const shouldOpenUp = spaceBelow < menuHeight && spaceAbove >= menuHeight;
 
     let top = shouldOpenUp
       ? triggerRect.top - menuHeight - gap
@@ -62,8 +80,8 @@ const EmployeeRowActions = ({
     }
 
     setPosition({
-      top,
-      left,
+      top: Math.round(top),
+      left: Math.round(left),
       placement: shouldOpenUp ? "up" : "down",
     });
   };
@@ -71,7 +89,11 @@ const EmployeeRowActions = ({
   useEffect(() => {
     if (!open) return;
 
+    // Immediate calculation + tick calculation to catch mounted DOM dimensions
     calculatePosition();
+    const animId = requestAnimationFrame(() => {
+      calculatePosition();
+    });
 
     const handleResize = () => calculatePosition();
     const handleScroll = () => calculatePosition();
@@ -80,10 +102,11 @@ const EmployeeRowActions = ({
     window.addEventListener("scroll", handleScroll, true);
 
     return () => {
+      cancelAnimationFrame(animId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleScroll, true);
     };
-  }, [open, isActive]);
+  }, [open, canEdit, canDelete, canResend, isActive]);
 
   useEffect(() => {
     if (!open) return;
@@ -130,12 +153,14 @@ const EmployeeRowActions = ({
             <span>View Details</span>
           </button>
 
-          <button type="button" onClick={() => handleAction(onEdit)}>
-            <FiEdit2 />
-            <span>Edit Profile</span>
-          </button>
+          {canEdit && (
+            <button type="button" onClick={() => handleAction(onEdit)}>
+              <FiEdit2 />
+              <span>Edit Profile</span>
+            </button>
+          )}
 
-          {isPendingInvite && onResendInvite && (
+          {isPendingInvite && onResendInvite && canResend && (
             <button
               type="button"
               onClick={() => handleAction(onResendInvite)}
@@ -145,15 +170,17 @@ const EmployeeRowActions = ({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => handleAction(onToggleStatus)}
-          >
-            <FiPower />
-            <span>{isActive ? "Deactivate" : "Activate"}</span>
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => handleAction(onToggleStatus)}
+            >
+              <FiPower />
+              <span>{isActive ? "Deactivate" : "Activate"}</span>
+            </button>
+          )}
 
-          {isActive && (
+          {isActive && canEdit && (
             <>
               <button
                 type="button"
@@ -174,16 +201,20 @@ const EmployeeRowActions = ({
             </>
           )}
 
-          <div className="employee-row-actions__divider" />
+          {canDelete && (canEdit || canResend) && (
+            <div className="employee-row-actions__divider" />
+          )}
 
-          <button
-            type="button"
-            className="employee-row-actions__danger"
-            onClick={() => handleAction(onDelete)}
-          >
-            <FiTrash2 />
-            <span>Delete</span>
-          </button>
+          {canDelete && (
+            <button
+              type="button"
+              className="employee-row-actions__danger"
+              onClick={() => handleAction(onDelete)}
+            >
+              <FiTrash2 />
+              <span>Delete</span>
+            </button>
+          )}
         </div>,
         document.body
       )

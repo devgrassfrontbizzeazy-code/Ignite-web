@@ -9,6 +9,7 @@ import BackButton from "../../../components/common/BackButton/BackButton";
 import Button from "../../../components/common/Button/Button";
 import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import employeeService from "../../../services/employeeService";
+import { canUpdateEmployees } from "../../../utils/permissionUtils";
 
 import "./EmployeeProfile.css";
 
@@ -134,15 +135,17 @@ const EmployeeProfile = () => {
           onClick={() => navigate("/employees")}
         />
 
-        <Button
-          variant="outline"
-          onClick={() =>
-            navigate(`/employees/${employee.id}/edit`)
-          }
-        >
-          <FiEdit2 />
-          Edit Employee
-        </Button>
+        {canUpdateEmployees(null, employee) && (
+          <Button
+            variant="outline"
+            onClick={() =>
+              navigate(`/employees/${employee.id}/edit`)
+            }
+          >
+            <FiEdit2 />
+            Edit Employee
+          </Button>
+        )}
       </div>
 
       {/* =========================

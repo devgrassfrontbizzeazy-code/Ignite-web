@@ -42,7 +42,40 @@ const EditEmployee = () => {
       setError("");
       setServerErrors({});
 
-      await employeeService.update(id, formData);
+      const updatedData = await employeeService.update(id, formData);
+
+      // If updating the currently logged in user, refresh their cached permissions in localStorage
+      try {
+        const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const updatedObj = updatedData?.data || updatedData;
+        if (
+          currentUser &&
+          (currentUser.email === updatedObj?.email ||
+           currentUser.id === updatedObj?.user ||
+           currentUser.employee_id === Number(id))
+        ) {
+          const overrides = Array.isArray(updatedObj?.permission_overrides)
+            ? updatedObj.permission_overrides
+            : [];
+          const customPerms = overrides.map(
+            (item) => `${item.module}.${item.action}${item.scope ? `_${item.scope}` : ""}`
+          );
+          const newPermissions = Array.from(
+            new Set([...(currentUser.permissions || []), ...customPerms])
+          );
+          const updatedUser = {
+            ...currentUser,
+            name: updatedObj.full_name || currentUser.name,
+            permissions: newPermissions,
+          };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      } catch (storageErr) {
+        console.warn("Could not sync local user:", storageErr);
+      }
+
+      window.dispatchEvent(new CustomEvent("ignite:user-updated"));
+      window.dispatchEvent(new Event("storage"));
       navigate("/employees");
     } catch (err) {
       console.error("Failed to update employee:", err);

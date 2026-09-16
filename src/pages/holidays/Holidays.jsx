@@ -7,6 +7,7 @@ import PageHeader from "../../components/common/PageHeader/PageHeader";
 import StatCard from "../../components/common/StatCard/StatCard";
 import HolidayTable from "../../components/holidays/HolidayTable/HolidayTable";
 import HolidayForm from "../../components/holidays/HolidayForm/HolidayForm";
+import { canCreateHolidays } from "../../utils/permissionUtils";
 
 import "../../styles/variables.css";
 import "../../styles/global.css";
@@ -290,9 +291,11 @@ const Holidays = () => {
         title="Holiday Configuration"
         description="Manage your company's holidays and yearly holiday calendar."
         action={
-          <Button variant="primary" onClick={handleOpenAdd}>
-            + Add Holiday
-          </Button>
+          canCreateHolidays() ? (
+            <Button variant="primary" onClick={handleOpenAdd}>
+              + Add Holiday
+            </Button>
+          ) : null
         }
       />
 

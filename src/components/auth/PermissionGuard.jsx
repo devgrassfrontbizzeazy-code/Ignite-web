@@ -45,7 +45,36 @@ export default function PermissionGuard({ requiredPermission, adminOnly = false 
       userPermissions.includes(`department.${requiredPermission}`) ||
       userPermissions.includes(`designation.${requiredPermission}`) ||
       userPermissions.includes(`attendance.${requiredPermission}`) ||
-      userPermissions.includes(`leave.${requiredPermission}`);
+      userPermissions.includes(`leave.${requiredPermission}`) ||
+      (requiredPermission === "view_user" && (
+        userPermissions.includes("employees.view") ||
+        userPermissions.includes("employees.view_all") ||
+        userPermissions.includes("employees.view_department") ||
+        userPermissions.includes("employees.view_team") ||
+        userPermissions.includes("employees.view_own")
+      )) ||
+      (requiredPermission === "view_department" && (
+        userPermissions.includes("departments.view") ||
+        userPermissions.includes("departments.view_all")
+      )) ||
+      (requiredPermission === "view_designation" && (
+        userPermissions.includes("designations.view") ||
+        userPermissions.includes("designations.view_all")
+      )) ||
+      (requiredPermission === "view_attendance" && (
+        userPermissions.includes("attendance.view") ||
+        userPermissions.includes("attendance.view_all") ||
+        userPermissions.includes("attendance.view_department") ||
+        userPermissions.includes("attendance.view_team") ||
+        userPermissions.includes("attendance.view_own")
+      )) ||
+      (requiredPermission === "view_leave" && (
+        userPermissions.includes("leaves.view") ||
+        userPermissions.includes("leaves.view_all") ||
+        userPermissions.includes("leaves.view_department") ||
+        userPermissions.includes("leaves.view_team") ||
+        userPermissions.includes("leaves.view_own")
+      ));
 
     if (!hasPerm) {
       return <Navigate to="/dashboard" replace />;

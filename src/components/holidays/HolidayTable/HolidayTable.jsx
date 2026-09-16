@@ -1,5 +1,9 @@
 
 import { CalendarDays, Pencil, Power, Trash2 } from "lucide-react";
+import {
+  canUpdateHolidays,
+  canDeleteHolidays,
+} from "../../../utils/permissionUtils";
 
 import "./HolidayTable.css";
 
@@ -101,42 +105,63 @@ const HolidayTable = ({
               </td>
 
               <td>
-                <button
-                  type="button"
-                  className={`holiday-status ${
-                    holiday.status === "Active"
-                      ? "holiday-status-active"
-                      : "holiday-status-inactive"
-                  }`}
-                  onClick={() => onToggleStatus(holiday.id)}
-                  title="Toggle status"
-                >
-                  <span className="holiday-status-dot" />
-                  {holiday.status}
-                </button>
+                {canUpdateHolidays() ? (
+                  <button
+                    type="button"
+                    className={`holiday-status ${
+                      holiday.status === "Active"
+                        ? "holiday-status-active"
+                        : "holiday-status-inactive"
+                    }`}
+                    onClick={() => onToggleStatus(holiday.id)}
+                    title="Toggle status"
+                  >
+                    <span className="holiday-status-dot" />
+                    {holiday.status}
+                  </button>
+                ) : (
+                  <span
+                    className={`holiday-status ${
+                      holiday.status === "Active"
+                        ? "holiday-status-active"
+                        : "holiday-status-inactive"
+                    }`}
+                    style={{ cursor: "default" }}
+                  >
+                    <span className="holiday-status-dot" />
+                    {holiday.status}
+                  </span>
+                )}
               </td>
 
               <td>
                 <div className="holiday-actions">
-                  <button
-                    type="button"
-                    className="holiday-action-button"
-                    onClick={() => onEdit(holiday)}
-                    title="Edit holiday"
-                    aria-label={`Edit ${holiday.name}`}
-                  >
-                    <Pencil size={15} strokeWidth={2} />
-                  </button>
+                  {canUpdateHolidays() && (
+                    <button
+                      type="button"
+                      className="holiday-action-button"
+                      onClick={() => onEdit(holiday)}
+                      title="Edit holiday"
+                      aria-label={`Edit ${holiday.name}`}
+                    >
+                      <Pencil size={15} strokeWidth={2} />
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    className="holiday-action-button holiday-action-danger"
-                    onClick={() => onDelete(holiday.id)}
-                    title="Delete holiday"
-                    aria-label={`Delete ${holiday.name}`}
-                  >
-                    <Trash2 size={15} strokeWidth={2} />
-                  </button>
+                  {canDeleteHolidays() && (
+                    <button
+                      type="button"
+                      className="holiday-action-button holiday-action-danger"
+                      onClick={() => onDelete(holiday.id)}
+                      title="Delete holiday"
+                      aria-label={`Delete ${holiday.name}`}
+                    >
+                      <Trash2 size={15} strokeWidth={2} />
+                    </button>
+                  )}
+                  {!canUpdateHolidays() && !canDeleteHolidays() && (
+                    <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>—</span>
+                  )}
                 </div>
               </td>
             </tr>

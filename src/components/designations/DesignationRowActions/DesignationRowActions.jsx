@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  canUpdateDesignations,
+  canDeleteDesignations,
+} from "../../../utils/permissionUtils";
 
 import "./DesignationRowActions.css";
 
@@ -10,92 +14,58 @@ const DesignationRowActions = ({
   onToggleStatus,
 }) => {
   const [open, setOpen] = useState(false);
-
-  const [menuPosition, setMenuPosition] =
-    useState({
-      top: 0,
-      left: 0,
-      placement: "bottom",
-    });
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    placement: "bottom",
+  });
 
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
+
+  const canEdit = canUpdateDesignations();
+  const canDelete = canDeleteDesignations();
 
   const updateMenuPosition = () => {
     if (!triggerRef.current) {
       return;
     }
 
-    const triggerRect =
-      triggerRef.current.getBoundingClientRect();
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuEl = menuRef.current;
+    const menuWidth = menuEl?.offsetWidth || 150;
 
-    const menuWidth = 150;
-    const menuHeight = 165;
-    const gap = 6;
+    let itemCount = 1; // View
+    if (canEdit) itemCount += 2; // Edit, Status
+    if (canDelete) itemCount += 1; // Delete
+
+    const menuHeight = menuEl?.offsetHeight || (itemCount * 36 + 12);
+    const gap = 4;
     const viewportPadding = 8;
 
-    let left =
-      triggerRect.right - menuWidth;
+    let left = triggerRect.right - menuWidth;
 
     if (left < viewportPadding) {
       left = viewportPadding;
     }
 
-    if (
-      left + menuWidth >
-      window.innerWidth -
-      viewportPadding
-    ) {
-      left =
-        window.innerWidth -
-        menuWidth -
-        viewportPadding;
+    if (left + menuWidth > window.innerWidth - viewportPadding) {
+      left = window.innerWidth - menuWidth - viewportPadding;
     }
 
-    const spaceBelow =
-      window.innerHeight -
-      triggerRect.bottom;
+    const spaceBelow = window.innerHeight - triggerRect.bottom;
+    const spaceAbove = triggerRect.top;
 
-    const spaceAbove =
-      triggerRect.top;
+    const shouldOpenUp = spaceBelow < menuHeight && spaceAbove >= menuHeight;
 
-    let top;
-    let placement;
-
-    if (
-      spaceBelow >=
-      menuHeight + gap
-    ) {
-      top =
-        triggerRect.bottom + gap;
-      placement = "bottom";
-    } else if (
-      spaceAbove >=
-      menuHeight + gap
-    ) {
-      top =
-        triggerRect.top -
-        menuHeight -
-        gap;
-      placement = "top";
-    } else {
-      top = Math.max(
-        viewportPadding,
-        Math.min(
-          triggerRect.bottom + gap,
-          window.innerHeight -
-          menuHeight -
-          viewportPadding,
-        ),
-      );
-
-      placement = "bottom";
-    }
+    let top = shouldOpenUp
+      ? triggerRect.top - menuHeight - gap
+      : triggerRect.bottom + gap;
 
     setMenuPosition({
-      top,
-      left,
-      placement,
+      top: Math.round(top),
+      left: Math.round(left),
+      placement: shouldOpenUp ? "top" : "bottom",
     });
   };
 
@@ -112,23 +82,22 @@ const DesignationRowActions = ({
       return;
     }
 
-    const handleOutsideClick = (
-      event,
-    ) => {
+    updateMenuPosition();
+    const animId = requestAnimationFrame(() => {
+      updateMenuPosition();
+    });
+
+    const handleOutsideClick = (event) => {
       if (
         triggerRef.current &&
-        triggerRef.current.contains(
-          event.target,
-        )
+        triggerRef.current.contains(event.target)
       ) {
         return;
       }
 
       if (
         menuRef.current &&
-        menuRef.current.contains(
-          event.target,
-        )
+        menuRef.current.contains(event.target)
       ) {
         return;
       }
@@ -136,61 +105,31 @@ const DesignationRowActions = ({
       setOpen(false);
     };
 
-    const handlePositionUpdate =
-      () => {
-        updateMenuPosition();
-      };
+    const handlePositionUpdate = () => {
+      updateMenuPosition();
+    };
 
-    document.addEventListener(
-      "mousedown",
-      handleOutsideClick,
-    );
-
-    window.addEventListener(
-      "scroll",
-      handlePositionUpdate,
-      true,
-    );
-
-    window.addEventListener(
-      "resize",
-      handlePositionUpdate,
-    );
+    document.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("scroll", handlePositionUpdate, true);
+    window.addEventListener("resize", handlePositionUpdate);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleOutsideClick,
-      );
-
-      window.removeEventListener(
-        "scroll",
-        handlePositionUpdate,
-        true,
-      );
-
-      window.removeEventListener(
-        "resize",
-        handlePositionUpdate,
-      );
+      cancelAnimationFrame(animId);
+      document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("scroll", handlePositionUpdate, true);
+      window.removeEventListener("resize", handlePositionUpdate);
     };
-  }, [open]);
+  }, [open, canEdit, canDelete]);
 
-  const handleAction = (
-    callback,
-  ) => {
+  const handleAction = (callback) => {
     setOpen(false);
 
-    if (
-      typeof callback ===
-      "function"
-    ) {
+    if (typeof callback === "function") {
       callback(designation);
     }
   };
 
-  const isActive =
-    designation.status === "active";
+  const isActive = designation.status === "active";
 
   return (
     <div className="designation-row-actions">
@@ -199,9 +138,7 @@ const DesignationRowActions = ({
         type="button"
         className="designation-row-actions__trigger"
         onClick={handleToggle}
-        aria-label={`Actions for ${designation.designationName ||
-          "designation"
-          }`}
+        aria-label={`Actions for ${designation.designationName || "designation"}`}
         aria-expanded={open}
       >
         ⋮
@@ -218,44 +155,38 @@ const DesignationRowActions = ({
         >
           <button
             type="button"
-            onClick={() =>
-              handleAction(onView)
-            }
+            onClick={() => handleAction(onView)}
           >
             View
           </button>
 
-          <button
-            type="button"
-            onClick={() =>
-              handleAction(onEdit)
-            }
-          >
-            Edit
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => handleAction(onEdit)}
+            >
+              Edit
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() =>
-              handleAction(
-                onToggleStatus,
-              )
-            }
-          >
-            {isActive
-              ? "Deactivate"
-              : "Activate"}
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => handleAction(onToggleStatus)}
+            >
+              {isActive ? "Deactivate" : "Activate"}
+            </button>
+          )}
 
-          <button
-            type="button"
-            className="designation-row-actions__delete"
-            onClick={() =>
-              handleAction(onDelete)
-            }
-          >
-            Delete
-          </button>
+          {canDelete && (
+            <button
+              type="button"
+              className="designation-row-actions__delete"
+              onClick={() => handleAction(onDelete)}
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
     </div>

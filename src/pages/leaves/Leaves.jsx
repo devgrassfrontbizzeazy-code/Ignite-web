@@ -9,6 +9,7 @@ import PageHeader from "../../components/common/PageHeader/PageHeader";
 import LeaveBalanceCards from "../../components/leave/LeaveBalanceCards/LeaveBalanceCards";
 import ApplyLeaveModal from "../../components/leave/ApplyLeaveModal/ApplyLeaveModal";
 import LeaveRequests from "../../components/leave/LeaveRequests/LeaveRequests";
+import { canCreateLeaves } from "../../utils/permissionUtils";
 
 import "./Leaves.css";
 
@@ -106,9 +107,11 @@ const Leave = () => {
         title="Leave Management"
         description="Manage your leave balances and requests."
         action={
-          <Button variant="primary" onClick={() => setShowApplyModal(true)}>
-            + Apply for Leave
-          </Button>
+          canCreateLeaves() ? (
+            <Button variant="primary" onClick={() => setShowApplyModal(true)}>
+              + Apply for Leave
+            </Button>
+          ) : null
         }
       />
 

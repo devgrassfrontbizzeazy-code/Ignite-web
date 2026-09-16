@@ -12,6 +12,7 @@ import EmployeeTable from "../../components/employees/EmployeeTable/EmployeeTabl
 import EmployeeDetails from "../../components/employees/EmployeeDetails/EmployeeDetails";
 
 import employeeService from "../../services/employeeService";
+import { canCreateEmployees, getCurrentUser } from "../../utils/permissionUtils";
 
 import "./Employees.css";
 
@@ -22,6 +23,21 @@ const formatEmployeeName = (employee) =>
 
 const Employees = () => {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      setCurrentUser(getCurrentUser());
+    };
+    window.addEventListener("ignite:user-updated", handleUserUpdate);
+    window.addEventListener("storage", handleUserUpdate);
+    return () => {
+      window.removeEventListener("ignite:user-updated", handleUserUpdate);
+      window.removeEventListener("storage", handleUserUpdate);
+    };
+  }, []);
+
+  const canAddEmployee = canCreateEmployees(currentUser);
 
   /*
    * EMPLOYEE DATA
@@ -496,12 +512,14 @@ const Employees = () => {
             <span>{formattedDate}</span>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={handleAddEmployee}
-          >
-            + Add Employee
-          </Button>
+          {canAddEmployee && (
+            <Button
+              variant="primary"
+              onClick={handleAddEmployee}
+            >
+              + Add Employee
+            </Button>
+          )}
         </div>
       </header>
 

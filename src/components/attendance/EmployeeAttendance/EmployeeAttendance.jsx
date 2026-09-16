@@ -18,6 +18,7 @@ import AttendanceDetailModal from "../AttendanceDetailModal/AttendanceDetailModa
 import Modal from "../../common/Modal/Modal";
 import Button from "../../common/Button/Button";
 import DatePicker from "../../common/DatePicker/DatePicker";
+import { canApproveAttendance } from "../../../utils/permissionUtils";
 import "./EmployeeAttendance.css";
 
 const STATUS_OPTIONS = [
@@ -531,7 +532,7 @@ const EmployeeAttendance = ({ onShowToast }) => {
                             </button>
                           )}
 
-                          {isPending && (
+                          {isPending && canApproveAttendance() && (
                             <>
                               <button
                                 type="button"
