@@ -1,3 +1,4 @@
+
 import { Pencil, Power, Trash2 } from "lucide-react";
 
 import "./LeavePolicyTable.css";
@@ -30,8 +31,8 @@ const LeavePolicyTable = ({
       <table className="leave-policy-table">
         <thead>
           <tr>
-            <th>Leave Type</th>
-            <th>Days / Year</th>
+            <th>Leave Policy</th>
+            <th>Allocation</th>
             <th>Carry Forward</th>
             <th>Half Day</th>
             <th>Approval</th>
@@ -45,11 +46,10 @@ const LeavePolicyTable = ({
         <tbody>
           {policies.map((policy) => (
             <tr key={policy.id}>
-              {/* Leave Type */}
+
+              {/* Leave Policy */}
               <td>
                 <div className="leave-policy-name-cell">
-                  
-
                   <div>
                     <div className="leave-policy-name">
                       {policy.name}
@@ -64,18 +64,37 @@ const LeavePolicyTable = ({
                 </div>
               </td>
 
-              {/* Days */}
+              {/* Allocation */}
               <td>
-                <span className="leave-policy-days">
-                  {policy.daysPerYear === null
-                    ? "Unlimited"
-                    : `${policy.daysPerYear} days`}
-                </span>
+                <div className="leave-policy-allocation">
+                  <span className="leave-policy-allocation-value">
+                    {policy.days === null ||
+                    policy.days === undefined
+                      ? "Unlimited"
+                      : `${policy.days} ${
+                          policy.allocationType === "Monthly"
+                            ? "day/month"
+                            : "days/year"
+                        }`}
+                  </span>
+
+                  <span className="leave-policy-allocation-type">
+                    {policy.allocationType || "Annual"}
+                  </span>
+                </div>
               </td>
 
               {/* Carry Forward */}
               <td>
-                <PolicyBoolean value={policy.carryForward} />
+                {policy.carryForward ? (
+                  <span className="leave-policy-carry-value">
+                    {policy.carryForwardType === "Maximum"
+                      ? `Up to ${policy.carryForwardLimit} days`
+                      : "All unused days"}
+                  </span>
+                ) : (
+                  <PolicyBoolean value={false} />
+                )}
               </td>
 
               {/* Half Day */}
@@ -129,6 +148,7 @@ const LeavePolicyTable = ({
                   </button>
                 </div>
               </td>
+
             </tr>
           ))}
         </tbody>
@@ -152,3 +172,4 @@ const PolicyBoolean = ({ value }) => {
 };
 
 export default LeavePolicyTable;
+

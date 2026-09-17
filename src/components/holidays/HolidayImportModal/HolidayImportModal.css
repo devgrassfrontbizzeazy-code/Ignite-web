@@ -1,0 +1,791 @@
+
+/* =========================================================
+   HOLIDAY IMPORT MODAL
+   ========================================================= */
+
+.holiday-import-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background: rgba(15, 61, 62, 0.34);
+  backdrop-filter: blur(2px);
+}
+
+
+/* =========================================================
+   MODAL
+   ========================================================= */
+
+.holiday-import-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #ffffff;
+  border: 1px solid #e3e8ea;
+  border-radius: 16px;
+
+  box-shadow:
+    0 24px 60px rgba(15, 31, 35, 0.16),
+    0 4px 12px rgba(15, 31, 35, 0.06);
+}
+
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.holiday-import-header {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+
+  padding: 22px 24px 18px;
+
+  border-bottom: 1px solid #e7ebed;
+}
+
+.holiday-import-eyebrow {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #0ba37f;
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.holiday-import-header h2 {
+  margin: 0;
+
+  color: #1a1f24;
+
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.holiday-import-header p {
+  margin: 6px 0 0;
+
+  color: #6d7880;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+   ========================================================= */
+
+.holiday-import-close {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #f4f6f7;
+  color: #59666e;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.holiday-import-close:hover {
+  background: #e9eeee;
+  color: #0f3d3e;
+}
+
+
+/* =========================================================
+   STEPS
+   ========================================================= */
+
+.holiday-import-steps {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 12px 24px;
+
+  border-bottom: 1px solid #e7ebed;
+
+  background: #fbfcfc;
+
+  color: #8a959c;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.holiday-import-steps > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  white-space: nowrap;
+}
+
+.holiday-import-steps svg {
+  flex-shrink: 0;
+  color: #b4bdc1;
+}
+
+.holiday-import-steps span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 23px;
+  height: 23px;
+
+  border-radius: 50%;
+
+  background: #edf0f1;
+  color: #7a858b;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.holiday-import-steps .active {
+  color: #0f3d3e;
+}
+
+.holiday-import-steps .active span {
+  background: #0f3d3e;
+  color: #ffffff;
+}
+
+.holiday-import-steps .completed span {
+  background: #e4f5ef;
+  color: #0ba37f;
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.holiday-import-error {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 14px 24px 0;
+  padding: 10px 12px;
+
+  border: 1px solid #f2cccc;
+  border-radius: 8px;
+
+  background: #fff4f4;
+  color: #b42318;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.holiday-import-error svg {
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   SCROLLABLE CONTENT
+   ========================================================= */
+
+.holiday-import-content {
+  flex: 1;
+  min-height: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding: 20px 24px 24px;
+
+  scrollbar-width: thin;
+  scrollbar-color: #cbd4d7 transparent;
+}
+
+.holiday-import-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.holiday-import-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.holiday-import-content::-webkit-scrollbar-thumb {
+  background: #cbd4d7;
+  border-radius: 10px;
+}
+
+.holiday-import-content::-webkit-scrollbar-thumb:hover {
+  background: #aeb9bd;
+}
+
+
+/* =========================================================
+   UPLOAD STATE
+   ========================================================= */
+
+.holiday-import-upload {
+  flex: 1;
+  min-height: 300px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 38px 24px;
+
+  text-align: center;
+
+  overflow-y: auto;
+}
+
+.holiday-import-upload-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 58px;
+  height: 58px;
+
+  margin-bottom: 16px;
+
+  border-radius: 14px;
+
+  background: #e8f6f1;
+  color: #0ba37f;
+}
+
+.holiday-import-upload h3 {
+  margin: 0;
+
+  color: #1a1f24;
+
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.holiday-import-upload p {
+  max-width: 440px;
+
+  margin: 7px auto 20px;
+
+  color: #6d7880;
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.holiday-import-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  padding: 9px 15px;
+
+  border-radius: 8px;
+
+  background: #0f3d3e;
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+.holiday-import-upload-button:hover {
+  background: #124d4e;
+}
+
+.holiday-import-upload-button input {
+  display: none;
+}
+
+.holiday-import-required,
+.holiday-import-supported {
+  color: #78838a;
+
+  font-size: 10px;
+}
+
+.holiday-import-required {
+  margin-top: 15px;
+}
+
+.holiday-import-required strong {
+  color: #303b41;
+}
+
+.holiday-import-supported {
+  margin-top: 5px;
+}
+
+
+/* =========================================================
+   FILE INFORMATION
+   ========================================================= */
+
+.holiday-import-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 11px 13px;
+  margin-bottom: 13px;
+
+  border: 1px solid #e3e8ea;
+  border-radius: 9px;
+
+  background: #fafbfb;
+
+  color: #0f3d3e;
+}
+
+.holiday-import-file svg {
+  flex-shrink: 0;
+}
+
+.holiday-import-file div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  min-width: 0;
+}
+
+.holiday-import-file strong {
+  overflow: hidden;
+
+  color: #1a1f24;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.holiday-import-file span {
+  color: #7a858b;
+
+  font-size: 10px;
+}
+
+
+/* =========================================================
+   INFO
+   ========================================================= */
+
+.holiday-import-info {
+  margin-bottom: 13px;
+
+  color: #69757d;
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   COLUMN MAPPING
+   ========================================================= */
+
+.holiday-import-mapping {
+  overflow: hidden;
+
+  border: 1px solid #e3e8ea;
+  border-radius: 10px;
+
+  background: #ffffff;
+}
+
+.holiday-import-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  align-items: center;
+
+  gap: 18px;
+
+  padding: 11px 13px;
+
+  border-bottom: 1px solid #edf0f1;
+}
+
+.holiday-import-mapping-row:last-child {
+  border-bottom: 0;
+}
+
+.holiday-import-mapping-row > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.holiday-import-mapping-row strong {
+  color: #1a1f24;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.holiday-import-mapping-row span {
+  padding: 3px 6px;
+
+  border-radius: 5px;
+
+  background: #fff5dc;
+  color: #8a6500;
+
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.holiday-import-mapping-row select {
+  width: 100%;
+  height: 34px;
+
+  padding: 0 10px;
+
+  border: 1px solid #dce2e5;
+  border-radius: 7px;
+
+  outline: none;
+
+  background: #ffffff;
+  color: #303b41;
+
+  font-family: inherit;
+  font-size: 11px;
+
+  cursor: pointer;
+
+  transition: border-color 0.15s ease;
+}
+
+.holiday-import-mapping-row select:hover {
+  border-color: #bfcacc;
+}
+
+.holiday-import-mapping-row select:focus {
+  border-color: #0ba37f;
+}
+
+
+/* =========================================================
+   WARNING
+   ========================================================= */
+
+.holiday-import-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  margin-top: 13px;
+  padding: 10px 12px;
+
+  border: 1px solid #f0dfaa;
+  border-radius: 8px;
+
+  background: #fff9e8;
+  color: #7a5b00;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.holiday-import-warning svg {
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   PREVIEW SUMMARY
+   ========================================================= */
+
+.holiday-import-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  gap: 9px;
+
+  margin-bottom: 14px;
+}
+
+.holiday-import-summary > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  min-width: 0;
+
+  padding: 10px 11px;
+
+  border: 1px solid #e3e8ea;
+  border-radius: 9px;
+
+  background: #ffffff;
+}
+
+.holiday-import-summary svg {
+  flex-shrink: 0;
+  color: #0ba37f;
+}
+
+.holiday-import-summary strong {
+  color: #1a1f24;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.holiday-import-summary span {
+  overflow: hidden;
+
+  color: #78838a;
+
+  font-size: 9px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   PREVIEW TABLE
+   ========================================================= */
+
+.holiday-import-preview {
+  width: 100%;
+
+  max-height: 280px;
+
+  overflow: auto;
+
+  border: 1px solid #e3e8ea;
+  border-radius: 9px;
+
+  scrollbar-width: thin;
+  scrollbar-color: #cbd4d7 transparent;
+}
+
+.holiday-import-preview::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.holiday-import-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.holiday-import-preview::-webkit-scrollbar-thumb {
+  background: #cbd4d7;
+  border-radius: 10px;
+}
+
+.holiday-import-preview table {
+  width: 100%;
+  min-width: 580px;
+
+  border-collapse: collapse;
+
+  font-size: 10px;
+}
+
+.holiday-import-preview th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
+  padding: 9px 10px;
+
+  background: #f7f9f9;
+
+  border-bottom: 1px solid #e3e8ea;
+
+  color: #59666e;
+
+  text-align: left;
+
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.holiday-import-preview td {
+  padding: 9px 10px;
+
+  border-bottom: 1px solid #edf0f1;
+
+  color: #303b41;
+
+  white-space: nowrap;
+}
+
+.holiday-import-preview tbody tr:hover {
+  background: #fafcfc;
+}
+
+.holiday-import-preview tr:last-child td {
+  border-bottom: 0;
+}
+
+
+/* =========================================================
+   IMPORT STATUS
+   ========================================================= */
+
+.import-status {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 4px 7px;
+
+  border-radius: 5px;
+
+  font-size: 8px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.import-status.valid {
+  background: #e8f6f1;
+  color: #08785e;
+}
+
+.import-status.invalid {
+  background: #fff0f0;
+  color: #b42318;
+}
+
+.import-status.duplicate {
+  background: #fff7df;
+  color: #856404;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.holiday-import-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+
+  margin-top: 18px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 650px) {
+  .holiday-import-overlay {
+    padding: 12px;
+  }
+
+  .holiday-import-modal {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+
+    border-radius: 14px;
+  }
+
+  .holiday-import-header {
+    padding: 18px 18px 15px;
+  }
+
+  .holiday-import-header h2 {
+    font-size: 18px;
+  }
+
+  .holiday-import-header p {
+    font-size: 11px;
+  }
+
+  .holiday-import-steps {
+    gap: 6px;
+    padding: 11px 18px;
+
+    overflow-x: auto;
+  }
+
+  .holiday-import-content {
+    padding: 17px 18px 20px;
+  }
+
+  .holiday-import-upload {
+    min-height: 280px;
+    padding: 30px 18px;
+  }
+
+  .holiday-import-error {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+
+  .holiday-import-mapping-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .holiday-import-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .holiday-import-preview {
+    max-height: 260px;
+  }
+
+  .holiday-import-actions {
+    flex-wrap: wrap;
+  }
+}
+

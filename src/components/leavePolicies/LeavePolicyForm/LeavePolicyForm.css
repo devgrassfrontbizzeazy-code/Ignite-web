@@ -7,51 +7,44 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   padding: 24px;
-
   background: rgba(15, 31, 36, 0.45);
   backdrop-filter: blur(2px);
 }
 
 .leave-policy-form-modal {
-  width: min(560px, 100%);
+  width: min(620px, 100%);
   max-height: calc(100vh - 48px);
-
-  overflow-y: auto;
-
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: #ffffff;
   border-radius: 18px;
-
   box-shadow: 0 20px 60px rgba(15, 61, 62, 0.18);
-
   font-family: "Montserrat", sans-serif;
 }
 
-/* =========================
+/* =========================================================
    HEADER
-========================= */
+========================================================= */
 
 .leave-policy-form-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-
   padding: 20px 22px;
-
   border-bottom: 1px solid #e6eaee;
+  background: #ffffff;
 }
 
 .leave-policy-form-title {
   margin: 0;
-
   color: #1a1f24;
-
   font-size: 17px;
   font-weight: 700;
   line-height: 1.35;
@@ -59,9 +52,7 @@
 
 .leave-policy-form-subtitle {
   margin: 4px 0 0;
-
   color: #64748b;
-
   font-size: 11px;
   font-weight: 500;
   line-height: 1.5;
@@ -70,21 +61,15 @@
 .leave-policy-form-close {
   width: 34px;
   height: 34px;
-
   flex-shrink: 0;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border: 0;
   border-radius: 8px;
-
   background: #f4f6f7;
   color: #64748b;
-
   cursor: pointer;
-
   transition:
     background 0.18s ease,
     color 0.18s ease;
@@ -95,13 +80,50 @@
   color: #1a1f24;
 }
 
-/* =========================
+/* =========================================================
+   FORM
+========================================================= */
+
+.leave-policy-form-modal form {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =========================================================
    BODY
-========================= */
+========================================================= */
 
 .leave-policy-form-body {
+  min-height: 0;
+  overflow-y: auto;
   padding: 22px;
 }
+
+/* =========================================================
+   SECTIONS
+========================================================= */
+
+.leave-policy-form-section {
+  padding-bottom: 20px;
+}
+
+.leave-policy-form-section:not(:first-child) {
+  padding-top: 20px;
+  border-top: 1px solid #edf0f2;
+}
+
+.leave-policy-form-section-title {
+  margin-bottom: 14px;
+  color: #1a1f24;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   GRID
+========================================================= */
 
 .leave-policy-form-grid {
   display: grid;
@@ -113,7 +135,6 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-
   min-width: 0;
 }
 
@@ -121,9 +142,12 @@
   grid-column: 1 / -1;
 }
 
+/* =========================================================
+   LABELS
+========================================================= */
+
 .leave-policy-form-label {
   color: #334155;
-
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
@@ -133,23 +157,22 @@
   color: #dc2626;
 }
 
+/* =========================================================
+   INPUTS
+========================================================= */
+
 .leave-policy-form-input,
 .leave-policy-form-textarea {
   width: 100%;
   box-sizing: border-box;
-
   border: 1px solid #dce3e7;
   border-radius: 9px;
-
   background: #ffffff;
   color: #1a1f24;
-
   font-family: "Montserrat", sans-serif;
   font-size: 12px;
   font-weight: 500;
-
   outline: none;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -162,9 +185,8 @@
 }
 
 .leave-policy-form-textarea {
-  min-height: 82px;
+  min-height: 78px;
   padding: 11px 12px;
-
   resize: vertical;
   line-height: 1.5;
 }
@@ -181,43 +203,56 @@
   box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.09);
 }
 
+/* SELECT */
+
+select.leave-policy-form-input {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 34px;
+}
+
+/* =========================================================
+   HELP TEXT
+========================================================= */
+
 .leave-policy-form-help {
   margin-top: -2px;
-
   color: #94a3b8;
-
   font-size: 9px;
   font-weight: 500;
   line-height: 1.45;
 }
 
-/* =========================
-   TOGGLE OPTIONS
-========================= */
+/* =========================================================
+   CARRY FORWARD FIELDS
+========================================================= */
+
+.leave-policy-carry-forward-fields {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #edf0f2;
+}
+
+/* =========================================================
+   TOGGLE LIST
+========================================================= */
 
 .leave-policy-toggle-list {
-  margin-top: 20px;
-
   border-top: 1px solid #edf0f2;
 }
 
 .leave-policy-toggle-row {
   min-height: 58px;
-
   padding: 10px 0;
-
   border-bottom: 1px solid #edf0f2;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 20px;
 }
 
 .leave-policy-toggle-content {
   min-width: 0;
-
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -225,7 +260,6 @@
 
 .leave-policy-toggle-title {
   color: #1a1f24;
-
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
@@ -233,44 +267,35 @@
 
 .leave-policy-toggle-description {
   color: #64748b;
-
   font-size: 9px;
   font-weight: 500;
   line-height: 1.45;
 }
 
-/* =========================
+/* =========================================================
    FOOTER
-========================= */
+========================================================= */
 
 .leave-policy-form-footer {
+  flex-shrink: 0;
   padding: 16px 22px;
-
   border-top: 1px solid #e6eaee;
-
   display: flex;
   justify-content: flex-end;
   align-items: center;
-
   gap: 10px;
-
   background: #ffffff;
 }
 
 .leave-policy-cancel-button,
 .leave-policy-save-button {
   min-height: 38px;
-
   padding: 0 16px;
-
   border-radius: 8px;
-
   font-family: "Montserrat", sans-serif;
   font-size: 11px;
   font-weight: 700;
-
   cursor: pointer;
-
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
@@ -280,7 +305,6 @@
 
 .leave-policy-cancel-button {
   border: 1px solid #dce3e7;
-
   background: #ffffff;
   color: #536068;
 }
@@ -293,7 +317,6 @@
 
 .leave-policy-save-button {
   border: 1px solid #0f3d3e;
-
   background: #0f3d3e;
   color: #ffffff;
 }
@@ -301,7 +324,6 @@
 .leave-policy-save-button:hover {
   background: #0b3031;
   border-color: #0b3031;
-
   transform: translateY(-1px);
 }
 
@@ -310,30 +332,30 @@
   transform: translateY(0);
 }
 
-/* =========================
+/* =========================================================
    SCROLLBAR
-========================= */
+========================================================= */
 
-.leave-policy-form-modal::-webkit-scrollbar {
+.leave-policy-form-body::-webkit-scrollbar {
   width: 6px;
 }
 
-.leave-policy-form-modal::-webkit-scrollbar-track {
+.leave-policy-form-body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.leave-policy-form-modal::-webkit-scrollbar-thumb {
+.leave-policy-form-body::-webkit-scrollbar-thumb {
   background: #d6dddf;
   border-radius: 10px;
 }
 
-.leave-policy-form-modal::-webkit-scrollbar-thumb:hover {
+.leave-policy-form-body::-webkit-scrollbar-thumb:hover {
   background: #bcc7ca;
 }
 
-/* =========================
+/* =========================================================
    RESPONSIVE
-========================= */
+========================================================= */
 
 @media (max-width: 600px) {
   .leave-policy-form-overlay {

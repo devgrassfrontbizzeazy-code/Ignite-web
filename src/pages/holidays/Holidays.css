@@ -1,3 +1,4 @@
+
 /* ==========================================================================
    IGNITE — HOLIDAYS PAGE
    ========================================================================== */
@@ -17,88 +18,27 @@
 }
 
 /* ==========================================================================
-   PAGE HEADER
+   HEADER ACTIONS
    ========================================================================== */
+  
 
-.holidays-page-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.holidays-page-eyebrow {
+.holidays-header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 7px;
-  color: var(--ignite-emerald, #0ba37f);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.3;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  gap: 9px;
 }
 
-.holidays-page-header h1 {
-  margin: 0;
-  color: var(--color-text-primary, #1a1f24);
-  font-family: var(--font-family-base, "Montserrat", sans-serif);
-  font-size: 22px;
-  font-weight: 750;
-  line-height: 1.25;
-}
-
-.holidays-page-header p {
-  margin: 6px 0 0;
-  color: var(--color-text-secondary, #5b6672);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.5;
-}
-
-/* ==========================================================================
-   ADD HOLIDAY BUTTON
-   ========================================================================== */
-
-.holidays-add-button {
+.holidays-header-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 40px;
-  padding: 0 16px;
-  border: 1px solid var(--ignite-deep-teal, #0f3d3e);
-  border-radius: 9px;
-  background: var(--ignite-deep-teal, #0f3d3e);
-  color: var(--ignite-white, #ffffff);
-  font-family: var(--font-family-base, "Montserrat", sans-serif);
-  font-size: 11px;
-  font-weight: 700;
+}
+
+.holidays-add-icon {
+  font-size: 16px;
+  font-weight: 500;
   line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background-color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-.holidays-add-button:hover {
-  background: var(--ignite-emerald, #0ba37f);
-  border-color: var(--ignite-emerald, #0ba37f);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(15, 61, 62, 0.12);
-}
-
-.holidays-add-button:active {
-  transform: translateY(0);
-}
-
-.holidays-add-button:focus-visible {
-  outline: 2px solid var(--ignite-emerald, #0ba37f);
-  outline-offset: 2px;
 }
 
 /* ==========================================================================
@@ -130,6 +70,10 @@
   border-bottom: 1px solid #edf0f2;
 }
 
+.holidays-section-heading {
+  min-width: 180px;
+}
+
 .holidays-section-header h2 {
   margin: 0 0 5px;
   color: var(--color-text-primary, #1a1f24);
@@ -143,7 +87,7 @@
   margin: 0;
   color: var(--color-text-secondary, #5b6672);
   font-family: var(--font-family-base, "Montserrat", sans-serif);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.5;
 }
@@ -155,7 +99,7 @@
 .holidays-section-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -172,12 +116,21 @@
   line-height: 1;
 }
 
-.holidays-year-control select {
+.holidays-select-wrapper,
+.holidays-filter-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.holidays-select-wrapper select,
+.holidays-filter-wrapper select {
   height: 34px;
   padding: 0 28px 0 10px;
   border: 1px solid #dce3e7;
   border-radius: 7px;
   outline: none;
+  appearance: none;
   background: #ffffff;
   color: #1a1f24;
   font-family: var(--font-family-base, "Montserrat", sans-serif);
@@ -189,10 +142,31 @@
     box-shadow 0.18s ease;
 }
 
-.holidays-year-control select:focus {
+.holidays-select-wrapper select {
+  width: 82px;
+}
+
+.holidays-filter-wrapper select {
+  width: 125px;
+}
+
+.holidays-select-wrapper svg,
+.holidays-filter-wrapper svg {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+  color: #7c878f;
+}
+
+.holidays-select-wrapper select:focus,
+.holidays-filter-wrapper select:focus {
   border-color: var(--ignite-emerald, #0ba37f);
   box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.08);
 }
+
+/* ==========================================================================
+   SEARCH
+   ========================================================================== */
 
 .holidays-search {
   display: flex;
@@ -234,10 +208,361 @@
 }
 
 /* ==========================================================================
+   VIEW TOGGLE
+   ========================================================================== */
+
+.holidays-view-toggle {
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid #dce3e7;
+  border-radius: 8px;
+  background: #f7f9fa;
+}
+
+.holidays-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7b858c;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.holidays-view-toggle button:hover {
+  color: var(--ignite-deep-teal, #0f3d3e);
+}
+
+.holidays-view-toggle button.active {
+  background: #ffffff;
+  color: var(--ignite-deep-teal, #0f3d3e);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   CALENDAR PLACEHOLDER
+   ========================================================================== */
+
+.holidays-calendar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #8a949b;
+}
+
+.holidays-calendar-placeholder svg {
+  margin-bottom: 12px;
+  color: var(--ignite-emerald, #0ba37f);
+}
+
+.holidays-calendar-placeholder h3 {
+  margin: 0 0 5px;
+  color: #1a1f24;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.holidays-calendar-placeholder p {
+  margin: 0;
+  color: #7b858c;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   IMPORT MODAL
+   ========================================================================== */
+
+.holiday-import-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  background: rgba(15, 29, 31, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+.holiday-import-modal {
+  width: min(540px, 100%);
+  overflow: hidden;
+  border: 1px solid #e3e8eb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(15, 61, 62, 0.18);
+}
+
+.holiday-import-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #edf0f2;
+}
+
+.holiday-import-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ignite-emerald, #0ba37f);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.holiday-import-header h2 {
+  margin: 0;
+  color: #1a1f24;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.holiday-import-header p {
+  margin: 6px 0 0;
+  color: #68727a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.holiday-import-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #7d878e;
+  font-size: 21px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.holiday-import-close:hover {
+  background: #f3f6f7;
+  color: #1a1f24;
+}
+
+/* ==========================================================================
+   IMPORT BODY
+   ========================================================================== */
+
+.holiday-import-body {
+  padding: 20px 24px;
+}
+
+.holiday-import-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 16px;
+}
+
+.holiday-import-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.holiday-import-info strong {
+  color: #68727a;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.holiday-import-info span {
+  color: #1a1f24;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.holiday-template-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ignite-deep-teal, #0f3d3e);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.holiday-template-button:hover {
+  color: var(--ignite-emerald, #0ba37f);
+}
+
+/* ==========================================================================
+   UPLOAD AREA
+   ========================================================================== */
+
+.holiday-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 170px;
+  padding: 24px;
+  box-sizing: border-box;
+  border: 1px dashed #cbd5da;
+  border-radius: 11px;
+  background: #fafcfc;
+  color: #7b858c;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.holiday-upload-area:hover,
+.holiday-upload-area.has-file {
+  border-color: var(--ignite-emerald, #0ba37f);
+  background: rgba(11, 163, 127, 0.035);
+}
+
+.holiday-upload-area svg {
+  margin-bottom: 11px;
+  color: var(--ignite-emerald, #0ba37f);
+}
+
+.holiday-upload-area strong {
+  margin-bottom: 5px;
+  color: #1a1f24;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.holiday-upload-area span {
+  max-width: 360px;
+  color: #7b858c;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.holiday-upload-area input {
+  display: none;
+}
+
+/* ==========================================================================
+   IMPORT FORMAT
+   ========================================================================== */
+
+.holiday-import-format {
+  margin-top: 16px;
+}
+
+.holiday-import-format > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #68727a;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.holiday-import-format > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.holiday-import-format code {
+  padding: 5px 7px;
+  border: 1px solid #e3e8eb;
+  border-radius: 5px;
+  background: #f7f9fa;
+  color: #4d5961;
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   IMPORT FOOTER
+   ========================================================================== */
+
+.holiday-import-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 15px 24px;
+  border-top: 1px solid #edf0f2;
+  background: #fafbfc;
+}
+
+.holiday-import-cancel,
+.holiday-import-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.holiday-import-cancel {
+  border: 1px solid #dce3e7;
+  background: #ffffff;
+  color: #4d5961;
+}
+
+.holiday-import-cancel:hover {
+  background: #f4f6f7;
+}
+
+.holiday-import-submit {
+  border: 1px solid var(--ignite-deep-teal, #0f3d3e);
+  background: var(--ignite-deep-teal, #0f3d3e);
+  color: #ffffff;
+}
+
+.holiday-import-submit:hover:not(:disabled) {
+  border-color: var(--ignite-emerald, #0ba37f);
+  background: var(--ignite-emerald, #0ba37f);
+}
+
+.holiday-import-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
    RESPONSIVE
    ========================================================================== */
 
-@media (max-width: 1100px) {
+@media (max-width: 1150px) {
   .holidays-section-header {
     align-items: flex-start;
     flex-direction: column;
@@ -245,7 +570,7 @@
 
   .holidays-section-controls {
     width: 100%;
-    justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }
 
@@ -254,13 +579,12 @@
     padding: 22px 18px;
   }
 
-  .holidays-page-header {
-    align-items: flex-start;
-    flex-direction: column;
+  .holidays-header-actions {
+    width: 100%;
   }
 
-  .holidays-add-button {
-    width: 100%;
+  .holidays-header-actions button {
+    flex: 1;
   }
 
   .holidays-section-controls {
@@ -272,8 +596,16 @@
     justify-content: space-between;
   }
 
+  .holidays-select-wrapper,
+  .holidays-filter-wrapper,
+  .holidays-select-wrapper select,
+  .holidays-filter-wrapper select,
   .holidays-search {
     width: 100%;
+  }
+
+  .holidays-view-toggle {
+    align-self: flex-end;
   }
 }
 
@@ -282,15 +614,31 @@
     padding: 18px 14px;
   }
 
+  .holidays-header-actions {
+    flex-direction: column;
+  }
+
+  .holidays-header-actions button {
+    width: 100%;
+  }
+
   .holidays-section-header {
     padding: 16px;
   }
 
-  .holidays-section-header h2 {
-    font-size: 15px;
+  .holiday-import-overlay {
+    padding: 12px;
   }
 
-  .holidays-section-header p {
-    font-size: 12px;
+  .holiday-import-header,
+  .holiday-import-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .holiday-import-footer {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 }
+

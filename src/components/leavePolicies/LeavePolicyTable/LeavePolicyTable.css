@@ -1,3 +1,4 @@
+
 /* =========================================================
    TABLE WRAPPER
 ========================================================= */
@@ -20,20 +21,14 @@
 
 .leave-policy-table th {
   padding: 14px 18px;
-
   background: #f8fafb;
   border-bottom: 1px solid #e6eaee;
-
   color: #68727a;
-
-  font-family: "Montserrat", sans-serif;
   font-size: 10px;
   font-weight: 700;
-
   text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-
   white-space: nowrap;
 }
 
@@ -43,15 +38,10 @@
 
 .leave-policy-table td {
   padding: 16px 18px;
-
   border-bottom: 1px solid #edf0f2;
-
   color: #394149;
-
-  font-family: "Montserrat", sans-serif;
   font-size: 12px;
   font-weight: 500;
-
   vertical-align: middle;
 }
 
@@ -68,39 +58,18 @@
 }
 
 /* =========================================================
-   LEAVE TYPE
+   LEAVE POLICY
 ========================================================= */
 
 .leave-policy-name-cell {
   display: flex;
   align-items: center;
   gap: 12px;
-
   min-width: 230px;
-}
-
-.leave-policy-name-icon {
-  width: 36px;
-  height: 36px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 9px;
-
-  background: #e8f6f2;
-  color: #0f7560;
-
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .leave-policy-name {
   color: #1a1f24;
-
   font-size: 12px;
   font-weight: 700;
   line-height: 1.4;
@@ -108,31 +77,57 @@
 
 .leave-policy-description {
   max-width: 270px;
-
   margin-top: 3px;
-
   color: #7a838a;
-
   font-size: 10px;
   font-weight: 500;
   line-height: 1.45;
-
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* =========================================================
-   DAYS
+   ALLOCATION
 ========================================================= */
 
-.leave-policy-days {
-  color: #1a1f24;
+.leave-policy-allocation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
 
+.leave-policy-allocation-value {
+  color: #1a1f24;
   font-size: 12px;
   font-weight: 700;
-
   white-space: nowrap;
+}
+
+.leave-policy-allocation-type {
+  width: fit-content;
+  padding: 3px 7px;
+  border-radius: 5px;
+  background: #f1f6f5;
+  color: #0f3d3e;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* =========================================================
+   CARRY FORWARD
+========================================================= */
+
+.leave-policy-carry-value {
+  display: inline-block;
+  max-width: 140px;
+  color: #536068;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 /* =========================================================
@@ -141,7 +136,6 @@
 
 .leave-policy-boolean {
   display: inline-block;
-
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
@@ -163,20 +157,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-
   padding: 6px 9px;
-
   border: 1px solid transparent;
   border-radius: 7px;
-
   background: transparent;
-
   font-family: "Montserrat", sans-serif;
   font-size: 10px;
   font-weight: 700;
-
   cursor: pointer;
-
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
@@ -186,9 +174,7 @@
 .leave-policy-status-dot {
   width: 6px;
   height: 6px;
-
   flex-shrink: 0;
-
   border-radius: 50%;
 }
 
@@ -197,7 +183,6 @@
 .leave-policy-status-active {
   background: #edf9f5;
   border-color: #d8f0e8;
-
   color: #08785d;
 }
 
@@ -210,7 +195,6 @@
 .leave-policy-status-inactive {
   background: #f3f4f5;
   border-color: #e6e8ea;
-
   color: #707980;
 }
 
@@ -230,26 +214,20 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-
   gap: 6px;
 }
 
 .leave-policy-action-button {
   width: 30px;
   height: 30px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border: 1px solid #e2e7e9;
   border-radius: 7px;
-
   background: #ffffff;
   color: #536068;
-
   cursor: pointer;
-
   transition:
     background 0.18s ease,
     border-color 0.18s ease,
@@ -261,7 +239,6 @@
   background: #eef8f5;
   border-color: #cfe9e1;
   color: #08785d;
-
   transform: translateY(-1px);
 }
 
@@ -277,42 +254,32 @@
 
 .leave-policy-empty {
   padding: 60px 24px;
-
   text-align: center;
 }
 
 .leave-policy-empty-icon {
   width: 48px;
   height: 48px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   margin: 0 auto 14px;
-
   border-radius: 12px;
-
   background: #e8f6f2;
   color: #0ba37f;
 }
 
 .leave-policy-empty h3 {
   margin: 0;
-
   color: #1a1f24;
-
   font-size: 14px;
   font-weight: 700;
 }
 
 .leave-policy-empty p {
   max-width: 360px;
-
   margin: 7px auto 0;
-
   color: #737d84;
-
   font-size: 11px;
   font-weight: 500;
   line-height: 1.6;
@@ -327,3 +294,4 @@
     min-width: 850px;
   }
 }
+

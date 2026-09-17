@@ -9,8 +9,11 @@ import "./LeavePolicyForm.css";
 const defaultForm = {
   name: "",
   description: "",
-  daysPerYear: "",
+  allocationType: "Annual",
+  days: "",
   carryForward: false,
+  carryForwardType: "All",
+  carryForwardLimit: "",
   halfDayAllowed: true,
   requiresApproval: true,
 };
@@ -23,9 +26,18 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
       setFormData({
         name: policy.name || "",
         description: policy.description || "",
-        daysPerYear:
-          policy.daysPerYear === null ? "" : policy.daysPerYear,
+        allocationType: policy.allocationType || "Annual",
+        days:
+          policy.days !== undefined && policy.days !== null
+            ? policy.days
+            : "",
         carryForward: Boolean(policy.carryForward),
+        carryForwardType: policy.carryForwardType || "All",
+        carryForwardLimit:
+          policy.carryForwardLimit !== undefined &&
+          policy.carryForwardLimit !== null
+            ? policy.carryForwardLimit
+            : "",
         halfDayAllowed: Boolean(policy.halfDayAllowed),
         requiresApproval: Boolean(policy.requiresApproval),
       });
@@ -48,15 +60,29 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
       return;
     }
 
-    const isUnlimited = formData.daysPerYear === "";
-
     onSave({
       name: formData.name.trim(),
       description: formData.description.trim(),
-      daysPerYear: isUnlimited
-        ? null
-        : Number(formData.daysPerYear),
+
+      allocationType: formData.allocationType,
+
+      days:
+        formData.days === ""
+          ? null
+          : Number(formData.days),
+
       carryForward: formData.carryForward,
+
+      carryForwardType: formData.carryForward
+        ? formData.carryForwardType
+        : null,
+
+      carryForwardLimit:
+        formData.carryForward &&
+        formData.carryForwardType === "Maximum"
+          ? Number(formData.carryForwardLimit)
+          : null,
+
       halfDayAllowed: formData.halfDayAllowed,
       requiresApproval: formData.requiresApproval,
     });
@@ -71,6 +97,7 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
         className="leave-policy-form-modal"
         onMouseDown={(event) => event.stopPropagation()}
       >
+        {/* Header */}
         <div className="leave-policy-form-header">
           <div>
             <h2 className="leave-policy-form-title">
@@ -78,7 +105,7 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
             </h2>
 
             <p className="leave-policy-form-subtitle">
-              Configure the basic rules for this leave type.
+              Configure leave allocation and usage rules.
             </p>
           </div>
 
@@ -94,86 +121,150 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
 
         <form onSubmit={handleSubmit}>
           <div className="leave-policy-form-body">
-            <div className="leave-policy-form-grid">
-              <div className="leave-policy-form-group full">
-                <label
-                  className="leave-policy-form-label"
-                  htmlFor="leave-policy-name"
-                >
-                  Leave Type <span>*</span>
-                </label>
 
-                <input
-                  id="leave-policy-name"
-                  className="leave-policy-form-input"
-                  type="text"
-                  placeholder="e.g. Casual Leave"
-                  value={formData.name}
-                  onChange={(event) =>
-                    updateField("name", event.target.value)
-                  }
-                />
+            {/* BASIC INFORMATION */}
+            <div className="leave-policy-form-section">
+              <div className="leave-policy-form-section-title">
+                Basic Information
               </div>
 
-              <div className="leave-policy-form-group full">
-                <label
-                  className="leave-policy-form-label"
-                  htmlFor="leave-policy-description"
-                >
-                  Description
-                </label>
+              <div className="leave-policy-form-grid">
+                <div className="leave-policy-form-group full">
+                  <label
+                    className="leave-policy-form-label"
+                    htmlFor="leave-policy-name"
+                  >
+                    Leave Name <span>*</span>
+                  </label>
 
-                <textarea
-                  id="leave-policy-description"
-                  className="leave-policy-form-textarea"
-                  rows="3"
-                  placeholder="Briefly describe this leave type..."
-                  value={formData.description}
-                  onChange={(event) =>
-                    updateField("description", event.target.value)
-                  }
-                />
-              </div>
+                  <input
+                    id="leave-policy-name"
+                    className="leave-policy-form-input"
+                    type="text"
+                    placeholder="e.g. Casual Leave"
+                    value={formData.name}
+                    onChange={(event) =>
+                      updateField("name", event.target.value)
+                    }
+                  />
+                </div>
 
-              <div className="leave-policy-form-group">
-                <label
-                  className="leave-policy-form-label"
-                  htmlFor="leave-policy-days"
-                >
-                  Days Per Year
-                </label>
+                <div className="leave-policy-form-group full">
+                  <label
+                    className="leave-policy-form-label"
+                    htmlFor="leave-policy-description"
+                  >
+                    Description
+                  </label>
 
-                <input
-                  id="leave-policy-days"
-                  className="leave-policy-form-input"
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="Leave blank for unlimited"
-                  value={formData.daysPerYear}
-                  onChange={(event) =>
-                    updateField(
-                      "daysPerYear",
-                      event.target.value
-                    )
-                  }
-                />
-
-                <span className="leave-policy-form-help">
-                  Leave blank if there is no fixed annual limit.
-                </span>
+                  <textarea
+                    id="leave-policy-description"
+                    className="leave-policy-form-textarea"
+                    rows="3"
+                    placeholder="Briefly describe this leave policy..."
+                    value={formData.description}
+                    onChange={(event) =>
+                      updateField(
+                        "description",
+                        event.target.value
+                      )
+                    }
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="leave-policy-toggle-list">
+            {/* ALLOCATION */}
+            <div className="leave-policy-form-section">
+              <div className="leave-policy-form-section-title">
+                Leave Allocation
+              </div>
+
+              <div className="leave-policy-form-grid">
+                <div className="leave-policy-form-group">
+                  <label
+                    className="leave-policy-form-label"
+                    htmlFor="leave-policy-allocation"
+                  >
+                    Allocation
+                  </label>
+
+                  <select
+                    id="leave-policy-allocation"
+                    className="leave-policy-form-input"
+                    value={formData.allocationType}
+                    onChange={(event) =>
+                      updateField(
+                        "allocationType",
+                        event.target.value
+                      )
+                    }
+                  >
+                    <option value="Annual">
+                      Annual
+                    </option>
+
+                    <option value="Monthly">
+                      Monthly
+                    </option>
+                  </select>
+
+                  <span className="leave-policy-form-help">
+                    Choose how leave is allocated to employees.
+                  </span>
+                </div>
+
+                <div className="leave-policy-form-group">
+                  <label
+                    className="leave-policy-form-label"
+                    htmlFor="leave-policy-days"
+                  >
+                    Number of Days
+                  </label>
+
+                  <input
+                    id="leave-policy-days"
+                    className="leave-policy-form-input"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder={
+                      formData.allocationType === "Annual"
+                        ? "e.g. 12"
+                        : "e.g. 1"
+                    }
+                    value={formData.days}
+                    onChange={(event) =>
+                      updateField(
+                        "days",
+                        event.target.value
+                      )
+                    }
+                  />
+
+                  <span className="leave-policy-form-help">
+                    {formData.allocationType === "Annual"
+                      ? "Days granted per year."
+                      : "Days granted every month."}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* CARRY FORWARD */}
+            <div className="leave-policy-form-section">
+              <div className="leave-policy-form-section-title">
+                Carry Forward
+              </div>
+
               <div className="leave-policy-toggle-row">
                 <div className="leave-policy-toggle-content">
                   <span className="leave-policy-toggle-title">
-                    Carry Forward
+                    Allow Carry Forward
                   </span>
 
                   <span className="leave-policy-toggle-description">
-                    Allow unused leave to move to the next year.
+                    Allow unused leave to move to the next period.
                   </span>
                 </div>
 
@@ -185,46 +276,124 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                 />
               </div>
 
-              <div className="leave-policy-toggle-row">
-                <div className="leave-policy-toggle-content">
-                  <span className="leave-policy-toggle-title">
-                    Half Day Leave
-                  </span>
+              {formData.carryForward && (
+                <div className="leave-policy-form-grid leave-policy-carry-forward-fields">
+                  <div className="leave-policy-form-group">
+                    <label
+                      className="leave-policy-form-label"
+                      htmlFor="leave-policy-carry-type"
+                    >
+                      Carry Forward Limit
+                    </label>
 
-                  <span className="leave-policy-toggle-description">
-                    Allow employees to apply for half-day leave.
-                  </span>
+                    <select
+                      id="leave-policy-carry-type"
+                      className="leave-policy-form-input"
+                      value={formData.carryForwardType}
+                      onChange={(event) =>
+                        updateField(
+                          "carryForwardType",
+                          event.target.value
+                        )
+                      }
+                    >
+                      <option value="All">
+                        All unused days
+                      </option>
+
+                      <option value="Maximum">
+                        Maximum number of days
+                      </option>
+                    </select>
+                  </div>
+
+                  {formData.carryForwardType === "Maximum" && (
+                    <div className="leave-policy-form-group">
+                      <label
+                        className="leave-policy-form-label"
+                        htmlFor="leave-policy-carry-limit"
+                      >
+                        Maximum Days
+                      </label>
+
+                      <input
+                        id="leave-policy-carry-limit"
+                        className="leave-policy-form-input"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder="e.g. 5"
+                        value={formData.carryForwardLimit}
+                        onChange={(event) =>
+                          updateField(
+                            "carryForwardLimit",
+                            event.target.value
+                          )
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
+              )}
+            </div>
 
-                <Toggle
-                  checked={formData.halfDayAllowed}
-                  onChange={(value) =>
-                    updateField("halfDayAllowed", value)
-                  }
-                />
+            {/* RULES */}
+            <div className="leave-policy-form-section">
+              <div className="leave-policy-form-section-title">
+                Leave Rules
               </div>
 
-              <div className="leave-policy-toggle-row">
-                <div className="leave-policy-toggle-content">
-                  <span className="leave-policy-toggle-title">
-                    Requires Approval
-                  </span>
+              <div className="leave-policy-toggle-list">
 
-                  <span className="leave-policy-toggle-description">
-                    Leave requests must be approved before confirmation.
-                  </span>
+                <div className="leave-policy-toggle-row">
+                  <div className="leave-policy-toggle-content">
+                    <span className="leave-policy-toggle-title">
+                      Half Day Leave
+                    </span>
+
+                    <span className="leave-policy-toggle-description">
+                      Allow employees to apply for half-day leave.
+                    </span>
+                  </div>
+
+                  <Toggle
+                    checked={formData.halfDayAllowed}
+                    onChange={(value) =>
+                      updateField(
+                        "halfDayAllowed",
+                        value
+                      )
+                    }
+                  />
                 </div>
 
-                <Toggle
-                  checked={formData.requiresApproval}
-                  onChange={(value) =>
-                    updateField("requiresApproval", value)
-                  }
-                />
+                <div className="leave-policy-toggle-row">
+                  <div className="leave-policy-toggle-content">
+                    <span className="leave-policy-toggle-title">
+                      Requires Approval
+                    </span>
+
+                    <span className="leave-policy-toggle-description">
+                      Leave requests must be approved before confirmation.
+                    </span>
+                  </div>
+
+                  <Toggle
+                    checked={formData.requiresApproval}
+                    onChange={(value) =>
+                      updateField(
+                        "requiresApproval",
+                        value
+                      )
+                    }
+                  />
+                </div>
+
               </div>
             </div>
           </div>
 
+          {/* FOOTER */}
           <div className="leave-policy-form-footer">
             <button
               type="button"

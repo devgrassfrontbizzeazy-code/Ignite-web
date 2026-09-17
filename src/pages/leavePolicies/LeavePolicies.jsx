@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -15,51 +16,9 @@ import LeavePolicyForm from "../../components/leavePolicies/LeavePolicyForm/Leav
 
 import "./LeavePolicies.css";
 
-const initialPolicies = [
-  {
-    id: 1,
-    name: "Casual Leave",
-    description: "Leave for personal or occasional requirements.",
-    daysPerYear: 12,
-    carryForward: false,
-    halfDayAllowed: true,
-    requiresApproval: true,
-    status: "Active",
-  },
-  {
-    id: 2,
-    name: "Sick Leave",
-    description: "Leave for illness or health-related requirements.",
-    daysPerYear: 10,
-    carryForward: false,
-    halfDayAllowed: true,
-    requiresApproval: true,
-    status: "Active",
-  },
-  {
-    id: 3,
-    name: "Earned Leave",
-    description: "Annual leave earned by employees.",
-    daysPerYear: 18,
-    carryForward: true,
-    halfDayAllowed: true,
-    requiresApproval: true,
-    status: "Active",
-  },
-  {
-    id: 4,
-    name: "Unpaid Leave",
-    description: "Leave taken without paid entitlement.",
-    daysPerYear: null,
-    carryForward: false,
-    halfDayAllowed: true,
-    requiresApproval: true,
-    status: "Active",
-  },
-];
-
 const LeavePolicies = () => {
-  const [policies, setPolicies] = useState(initialPolicies);
+  const [policies, setPolicies] = useState([]);
+
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
 
@@ -68,12 +27,29 @@ const LeavePolicies = () => {
       (policy) => policy.status === "Active"
     );
 
+    /*
+     * Convert monthly allocation into an annual equivalent
+     * so the stat can represent total yearly allocation.
+     *
+     * Example:
+     * 12 days/year = 12
+     * 1 day/month = 12
+     */
     const annualDays = activePolicies.reduce(
-      (total, policy) =>
-        total +
-        (typeof policy.daysPerYear === "number"
-          ? policy.daysPerYear
-          : 0),
+      (total, policy) => {
+        if (
+          typeof policy.days !== "number" ||
+          policy.days < 0
+        ) {
+          return total;
+        }
+
+        if (policy.allocationType === "Monthly") {
+          return total + policy.days * 12;
+        }
+
+        return total + policy.days;
+      },
       0
     );
 
@@ -114,7 +90,7 @@ const LeavePolicies = () => {
       variant: "gold",
     },
     {
-      title: "Annual Leave Days",
+      title: "Allocated Leave Days",
       value: stats.annualDays,
       icon: CalendarDays,
       variant: "teal",
@@ -132,14 +108,20 @@ const LeavePolicies = () => {
   };
 
   const handleDeletePolicy = (id) => {
+    const policy = policies.find(
+      (item) => item.id === id
+    );
+
+    if (!policy) return;
+
     const confirmed = window.confirm(
-      "Are you sure you want to remove this leave policy?"
+      `Are you sure you want to remove "${policy.name}"?`
     );
 
     if (!confirmed) return;
 
     setPolicies((current) =>
-      current.filter((policy) => policy.id !== id)
+      current.filter((item) => item.id !== id)
     );
   };
 
@@ -150,7 +132,9 @@ const LeavePolicies = () => {
           ? {
               ...policy,
               status:
-                policy.status === "Active" ? "Inactive" : "Active",
+                policy.status === "Active"
+                  ? "Inactive"
+                  : "Active",
             }
           : policy
       )
@@ -173,8 +157,8 @@ const LeavePolicies = () => {
       setPolicies((current) => [
         ...current,
         {
-          ...policyData,
           id: Date.now(),
+          ...policyData,
           status: "Active",
         },
       ]);
@@ -194,17 +178,18 @@ const LeavePolicies = () => {
       <PageHeader
         eyebrow="Leave"
         title="Leave Policies"
-        description="Manage the leave types and basic leave rules available to employees."
+        description="Manage leave allocation and rules for your organization."
         action={
-          <Button variant="primary" onClick={handleAddPolicy}>
+          <Button
+            variant="primary"
+            onClick={handleAddPolicy}
+          >
             + Add Leave Policy
           </Button>
         }
       />
 
-      {/* =====================================================
-          POLICY STATS
-      ===================================================== */}
+      {/* POLICY STATS */}
 
       <div className="stats-grid stats-grid--4">
         {policyStats.map((stat) => {
@@ -215,32 +200,37 @@ const LeavePolicies = () => {
               key={stat.title}
               title={stat.title}
               value={stat.value}
-              icon={<Icon size={18} strokeWidth={2} />}
+              icon={
+                <Icon
+                  size={18}
+                  strokeWidth={2}
+                />
+              }
               variant={stat.variant}
             />
           );
         })}
       </div>
 
-      {/* =====================================================
-          LEAVE TYPES
-      ===================================================== */}
+      {/* LEAVE POLICIES */}
 
       <section className="leave-policy-content">
         <div className="leave-policy-section-header">
           <div>
-            <h2>Leave Types</h2>
+            <h2>Leave Policies</h2>
 
             <p>
-              Configure the basic leave options your organization
-              provides.
+              Configure the leave options and rules
+              available to employees.
             </p>
           </div>
 
-          <div className="leave-policy-count">
-            <Clock3 size={15} />
-            {stats.carryForwardPolicies} with carry forward
-          </div>
+          {stats.carryForwardPolicies > 0 && (
+            <div className="leave-policy-count">
+              <Clock3 size={15} />
+              {stats.carryForwardPolicies} with carry forward
+            </div>
+          )}
         </div>
 
         <LeavePolicyTable
@@ -251,9 +241,7 @@ const LeavePolicies = () => {
         />
       </section>
 
-      {/* =====================================================
-          ADD / EDIT POLICY
-      ===================================================== */}
+      {/* ADD / EDIT POLICY */}
 
       {showForm && (
         <LeavePolicyForm
@@ -267,3 +255,4 @@ const LeavePolicies = () => {
 };
 
 export default LeavePolicies;
+
