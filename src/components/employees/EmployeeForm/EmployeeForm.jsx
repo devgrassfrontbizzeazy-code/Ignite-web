@@ -23,6 +23,7 @@ import {
 import { getShifts } from "../../../services/api/workScheduleAPI";
 
 import AdditionalPermissions from "./AdditionalPermissions/AdditionalPermissions";
+import { getAccessProfilePermissions } from "../../../data/accessProfiles";
 
 import "./EmployeeForm.css";
 
@@ -122,6 +123,14 @@ const normalizeDesignation = (designation) => {
         : (designation.department ??
           designation.department_id ??
           ""),
+    accessProfile:
+      designation.access_profile ||
+      designation.accessProfile ||
+      "employee",
+    additionalPermissions:
+      designation.additional_permissions ||
+      designation.additionalPermissions ||
+      [],
     isActive:
       designation.is_active !== undefined
         ? designation.is_active
@@ -320,6 +329,44 @@ const EmployeeForm = ({
       setPhotoFile(null);
     }
   }, [mode, initialData]);
+
+  /*
+   * Compute inherited permissions from selected designation.
+   */
+  const inheritedPermissions = useMemo(() => {
+    const targetDesigId =
+      form.designation_id ||
+      (typeof initialData?.designation === "object"
+        ? initialData.designation?.id
+        : initialData?.designation);
+
+    const desig =
+      designations.find((d) => String(d.id) === String(targetDesigId)) ||
+      (typeof initialData?.designation === "object"
+        ? initialData.designation
+        : null);
+
+    if (!desig) return {};
+
+    const profileKey =
+      desig.accessProfile || desig.access_profile || "employee";
+    const baseProfilePerms = getAccessProfilePermissions(profileKey);
+
+    const combined = JSON.parse(JSON.stringify(baseProfilePerms || {}));
+
+    const extras =
+      desig.additionalPermissions || desig.additional_permissions || [];
+    extras.forEach((item) => {
+      if (!item || !item.module || !item.action) return;
+      if (!combined[item.module]) combined[item.module] = {};
+      combined[item.module][item.action] = {
+        enabled: true,
+        scope: item.scope || "all",
+      };
+    });
+
+    return combined;
+  }, [designations, form.designation_id, initialData]);
 
   /*
    * Filter designations according to selected department.
@@ -1111,6 +1158,7 @@ const EmployeeForm = ({
         <AdditionalPermissions
           value={permissionOverrides}
           onChange={setPermissionOverrides}
+          inheritedPermissions={inheritedPermissions}
         />
       )}
 

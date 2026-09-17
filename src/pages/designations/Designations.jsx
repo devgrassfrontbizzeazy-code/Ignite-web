@@ -67,12 +67,12 @@ const normalizeDesignation = (designation) => {
     companyName: designation.company_name,
 
     accessProfile:
-      designation.access_profile ??
-      designation.accessProfile ??
-      designation.access_profile_key ??
-      designation.accessProfileKey ??
-      designation.access_profile?.key ??
-      "",
+      designation.access_profile ||
+      designation.accessProfile ||
+      designation.access_profile_key ||
+      designation.accessProfileKey ||
+      designation.access_profile?.key ||
+      "employee",
 
     accessProfileName:
       designation.access_profile_name ?? designation.accessProfile?.name ?? "",
@@ -462,6 +462,10 @@ const Designations = () => {
       }
 
       await loadDesignations();
+
+      // Trigger permission refresh for active session
+      window.dispatchEvent(new CustomEvent("ignite:user-updated"));
+      window.dispatchEvent(new Event("storage"));
 
       setShowForm(false);
       setSelectedDesignation(null);

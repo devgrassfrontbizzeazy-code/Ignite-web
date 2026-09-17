@@ -54,13 +54,19 @@ const EditEmployee = () => {
            currentUser.id === updatedObj?.user ||
            currentUser.employee_id === Number(id))
         ) {
+          const effectiveList = Array.isArray(updatedObj?.permissions)
+            ? updatedObj.permissions
+            : Array.isArray(updatedObj?.effective_permissions)
+            ? updatedObj.effective_permissions
+            : null;
+
           const overrides = Array.isArray(updatedObj?.permission_overrides)
             ? updatedObj.permission_overrides
             : [];
           const customPerms = overrides.map(
             (item) => `${item.module}.${item.action}${item.scope ? `_${item.scope}` : ""}`
           );
-          const newPermissions = Array.from(
+          const newPermissions = effectiveList || Array.from(
             new Set([...(currentUser.permissions || []), ...customPerms])
           );
           const updatedUser = {
