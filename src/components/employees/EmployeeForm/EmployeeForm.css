@@ -594,3 +594,156 @@
     width: 100%;
   }
 }
+
+/* =========================================================
+   EMPLOYEE RBAC ACCESS CARD
+   ========================================================= */
+
+.employee-rbac-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.employee-rbac-source-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.employee-rbac-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.employee-rbac-option:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 50%, var(--color-border));
+}
+
+.employee-rbac-option.is-selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--color-bg-surface));
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.employee-rbac-option__radio {
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.employee-rbac-option__radio input[type="radio"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.employee-rbac-option__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.employee-rbac-option__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.employee-rbac-option__title strong {
+  font-size: var(--font-size-sm, 13px);
+  color: var(--color-text-primary);
+}
+
+.employee-rbac-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.employee-rbac-badge--inherited {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+.employee-rbac-badge--override {
+  background: color-mix(in srgb, #f59e0b 15%, transparent);
+  color: #b45309;
+  border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+}
+
+.employee-rbac-badge--none {
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.employee-rbac-option__desc {
+  margin: 0;
+  font-size: var(--font-size-xs, 12px);
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.employee-rbac-override-select {
+  margin-top: 8px;
+  max-width: 320px;
+}
+
+.employee-rbac-select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm, 13px);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.employee-rbac-select:focus {
+  border-color: var(--color-primary);
+}
+
+.employee-rbac-effective-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-sm, 13px);
+}
+
+.employee-rbac-effective-label {
+  color: var(--color-text-secondary);
+}
+
+.employee-rbac-effective-name {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.employee-rbac-effective-source {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs, 12px);
+}

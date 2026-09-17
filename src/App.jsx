@@ -42,6 +42,8 @@ import DepartmentsPage from "./pages/departments/Departments";
 import DesignationsPage from "./pages/designations/Designations";
 
 import RolesPermissions from "./pages/rolesPermissions/RolesPermissions";
+import AddRole from "./pages/rolesPermissions/AddRole/AddRole";
+import EditRole from "./pages/rolesPermissions/EditRole/EditRole";
 
 import Employees from "./pages/employees/Employees";
 import AddEmployee from "./pages/employees/AddEmployee/AddEmployee";
@@ -277,6 +279,18 @@ export default function App() {
                     <Route
                       path="/roles-permissions"
                       element={<RolesPermissions />}
+                    />
+                    <Route
+                      path="/roles-permissions/add"
+                      element={<AddRole />}
+                    />
+                    <Route
+                      path="/roles-permissions/create"
+                      element={<AddRole />}
+                    />
+                    <Route
+                      path="/roles-permissions/:id/edit"
+                      element={<EditRole />}
                     />
                     <Route path="/leave-policies" element={<LeavePolicies />} />
 

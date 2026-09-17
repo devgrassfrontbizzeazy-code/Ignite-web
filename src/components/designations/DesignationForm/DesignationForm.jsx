@@ -1,12 +1,9 @@
-import { useEffect, useState } from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import FormField from "../../common/FormField/FormField";
 import Select from "../../common/Select/Select";
 import Toggle from "../../common/Toggle/Toggle";
 import Button from "../../common/Button/Button";
-
-import AccessProfileSelect from "../AccessProfile/AccessProfileSelect";
-import AdditionalPermissions from "../AdditionalPermissions/AdditionalPermissions";
+import roleService from "../../../services/roleService";
 import "./DesignationForm.css";
 
 const DesignationForm = ({
@@ -17,27 +14,57 @@ const DesignationForm = ({
   loading = false,
   fieldErrors = {},
 }) => {
+  const [availableRoles, setAvailableRoles] = useState(() => roleService.getRoles());
+
+  // Listen for role updates
+  useEffect(() => {
+    const handleRolesUpdate = () => {
+      setAvailableRoles(roleService.getRoles());
+    };
+    window.addEventListener("ignite:roles-updated", handleRolesUpdate);
+    return () => {
+      window.removeEventListener("ignite:roles-updated", handleRolesUpdate);
+    };
+  }, []);
+
+  const roleOptions = useMemo(() => {
+    const active = availableRoles.filter((r) => !r.deletedAt && r.status === "active");
+    return active.map((role) => ({
+      value: String(role.id),
+      label: role.roleName,
+    }));
+  }, [availableRoles]);
+
+  // Derive initial default role ID
+  const getInitialDefaultRoleId = () => {
+    const directRole =
+      initialData.defaultRole ??
+      initialData.default_role ??
+      initialData.default_role_id ??
+      initialData.role_id;
+
+    if (directRole) {
+      if (typeof directRole === "object") return String(directRole.id);
+      return String(directRole);
+    }
+
+    // Try matching by roleName
+    const roleName = initialData.default_role_name || initialData.defaultRoleName;
+    if (roleName) {
+      const match = availableRoles.find((r) => r.roleName.toLowerCase() === roleName.toLowerCase());
+      if (match) return String(match.id);
+    }
+
+    return "";
+  };
+
   const [formData, setFormData] = useState({
     designationCode:
       initialData.designationCode || initialData.designation_code || "",
-
     designationName: initialData.designationName || initialData.name || "",
-
     departmentId: initialData.departmentId ?? initialData.department ?? "",
-
-    accessProfile:
-      initialData.accessProfile ||
-      initialData.access_profile ||
-      initialData.accessProfileKey ||
-      "employee",
-
-    additionalPermissions:
-      initialData.additionalPermissions ||
-      initialData.additional_permissions ||
-      [],
-
+    defaultRole: getInitialDefaultRoleId(),
     description: initialData.description || "",
-
     status: initialData.status || "active",
   });
 
@@ -47,30 +74,14 @@ const DesignationForm = ({
     setFormData({
       designationCode:
         initialData.designationCode || initialData.designation_code || "",
-
       designationName: initialData.designationName || initialData.name || "",
-
       departmentId: initialData.departmentId ?? initialData.department ?? "",
-
-      accessProfile:
-        initialData.accessProfile ||
-        initialData.access_profile ||
-        initialData.accessProfileKey ||
-        initialData.access_profile_key ||
-        "employee",
-
-      additionalPermissions:
-        initialData.additionalPermissions ||
-        initialData.additional_permissions ||
-        [],
-
+      defaultRole: getInitialDefaultRoleId(),
       description: initialData.description || "",
-
       status: initialData.status || "active",
     });
-
     setLocalErrors({});
-  }, [initialData]);
+  }, [initialData, availableRoles]);
 
   const errors = {
     ...localErrors,
@@ -120,12 +131,7 @@ const DesignationForm = ({
       newErrors.departmentId = "Department is required.";
     }
 
-    if (!formData.accessProfile) {
-      newErrors.accessProfile = "Access profile is required.";
-    }
-
     setLocalErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
@@ -136,19 +142,21 @@ const DesignationForm = ({
       return;
     }
 
+    const selectedRoleObj = availableRoles.find(
+      (r) => String(r.id) === String(formData.defaultRole)
+    );
+
     onSubmit?.({
       designationCode: formData.designationCode.trim().toUpperCase(),
-
       designationName: formData.designationName.trim(),
-
       departmentId: formData.departmentId,
-
-      accessProfile: formData.accessProfile,
-
-      additionalPermissions: formData.additionalPermissions,
-
+      defaultRole: formData.defaultRole,
+      default_role: formData.defaultRole ? Number(formData.defaultRole) || formData.defaultRole : null,
+      default_role_name: selectedRoleObj?.roleName || "",
+      // Preserved fields for backend compatibility
+      accessProfile: "employee",
+      additionalPermissions: [],
       description: formData.description.trim(),
-
       status: formData.status,
     });
   };
@@ -164,7 +172,7 @@ const DesignationForm = ({
           htmlFor="designation-code"
           required
           error={errors.designationCode}
-          hint="Enter a unique code for this designation."
+          hint="Enter a unique uppercase code for this designation."
         >
           <input
             id="designation-code"
@@ -193,7 +201,7 @@ const DesignationForm = ({
             onChange={(event) =>
               handleChange("designationName", event.target.value)
             }
-            placeholder="e.g. Software Engineer"
+            placeholder="e.g. Senior Manager"
             maxLength={100}
             disabled={loading}
           />
@@ -213,7 +221,7 @@ const DesignationForm = ({
         >
           <Select
             id="designation-department"
-            value={formData.departmentId}
+            value={formData.departmentId ? String(formData.departmentId) : ""}
             onChange={(value) => handleChange("departmentId", value)}
             options={departmentOptions}
             placeholder={
@@ -223,34 +231,22 @@ const DesignationForm = ({
           />
         </FormField>
 
-        {/* Access Profile */}
+        {/* Default Role */}
         <FormField
-          label="Access Profile"
-          htmlFor="designation-access-profile"
-          required
-          error={errors.accessProfile}
-          hint="The access profile controls the additional permissions available to employees with this designation."
+          label="Default Role"
+          htmlFor="designation-default-role"
+          error={errors.defaultRole}
+          hint="Employees with this designation will automatically inherit this role unless overridden."
         >
-          <AccessProfileSelect
-            value={formData.accessProfile}
-            onChange={(value) => handleChange("accessProfile", value)}
-            disabled={loading}
-          />
-        </FormField>
-
-        {/* Additional Permissions */}
-        <FormField
-          label=""
-          htmlFor="additional-permissions"
-          hint="Add extra permissions for this designation without changing the selected access profile."
-        >
-          <AdditionalPermissions
-            profileKey={formData.accessProfile}
-            value={formData.additionalPermissions}
-            onChange={(permissions) =>
-              handleChange("additionalPermissions", permissions)
+          <Select
+            id="designation-default-role"
+            value={formData.defaultRole ? String(formData.defaultRole) : ""}
+            onChange={(value) => handleChange("defaultRole", value)}
+            options={roleOptions}
+            placeholder={
+              roleOptions.length > 0 ? "Select default role" : "No roles available"
             }
-            disabled={loading}
+            disabled={loading || roleOptions.length === 0}
           />
         </FormField>
 
@@ -267,7 +263,7 @@ const DesignationForm = ({
               handleChange("description", event.target.value)
             }
             placeholder="Enter designation description..."
-            rows={4}
+            rows={3}
             maxLength={500}
             disabled={loading}
           />

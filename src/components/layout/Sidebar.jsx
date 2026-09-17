@@ -184,6 +184,12 @@ const NAV_ITEMS = [
     permission: "view_designation",
   },
   {
+    label: "Roles & Permissions",
+    path: "/roles-permissions",
+    icon: RolesIcon,
+    adminOnly: true,
+  },
+  {
     label: "Employees",
     path: "/employees",
     icon: EmployeesIcon,
@@ -409,10 +415,10 @@ export default function Sidebar({
       {/* Profile Footer */}
       <div className="sidebar__footer">
         <div
-  className="sidebar__profile-wrapper"
-  onMouseEnter={() => setProfileOpen(true)}
-  onMouseLeave={() => setProfileOpen(false)}
->
+          className="sidebar__profile-wrapper"
+          onMouseEnter={() => setProfileOpen(true)}
+          onMouseLeave={() => setProfileOpen(false)}
+        >
           {profileOpen && (
             <div className="sidebar__profile-menu">
               <button
@@ -438,7 +444,7 @@ export default function Sidebar({
           <button
             type="button"
             className={`sidebar__profile${profileOpen ? " is-open" : ""}`}
-            
+
             aria-expanded={profileOpen}
             aria-label="Open profile menu"
           >

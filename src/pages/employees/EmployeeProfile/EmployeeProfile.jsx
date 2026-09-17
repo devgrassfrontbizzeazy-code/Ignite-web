@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FiEdit2,
@@ -9,6 +9,7 @@ import BackButton from "../../../components/common/BackButton/BackButton";
 import Button from "../../../components/common/Button/Button";
 import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import employeeService from "../../../services/employeeService";
+import roleService from "../../../services/roleService";
 import { canUpdateEmployees } from "../../../utils/permissionUtils";
 
 import "./EmployeeProfile.css";
@@ -76,11 +77,9 @@ const EmployeeProfile = () => {
         setError("");
 
         const response = await employeeService.getById(id);
-
         setEmployee(response);
       } catch (err) {
         console.error("Failed to load employee profile:", err);
-
         setError(
           err?.response?.data?.message ||
             "Unable to load employee profile."
@@ -92,6 +91,30 @@ const EmployeeProfile = () => {
 
     loadEmployee();
   }, [id]);
+
+  // RBAC Role Resolution
+  const desigRole = useMemo(() => {
+    if (!employee) return null;
+    const desigId =
+      employee.designation_id ??
+      (typeof employee.designation === "object"
+        ? employee.designation?.id
+        : employee.designation);
+    return desigId ? roleService.getDesignationRole(desigId) : null;
+  }, [employee]);
+
+  const overrideRole = useMemo(() => {
+    if (!employee) return null;
+    return (
+      (employee.id ? roleService.getEmployeeOverrideRole(employee.id) : null) ||
+      (employee.override_role ? roleService.getRoleById(employee.override_role) : null)
+    );
+  }, [employee]);
+
+  const effectiveRole = useMemo(() => {
+    if (!employee) return null;
+    return roleService.getEffectiveRole(employee);
+  }, [employee]);
 
   if (loading) {
     return <IgniteLoader text="Loading employee profile..." />;
@@ -128,7 +151,6 @@ const EmployeeProfile = () => {
       {/* =========================
           PAGE TOP
       ========================= */}
-
       <div className="employee-profile__topbar">
         <BackButton
           label="Back to Employees"
@@ -151,7 +173,6 @@ const EmployeeProfile = () => {
       {/* =========================
           PROFILE HEADER
       ========================= */}
-
       <section className="employee-profile__header">
         <div className="employee-profile__avatar">
           {employee.profile_photo_url ? (
@@ -206,7 +227,6 @@ const EmployeeProfile = () => {
       {/* =========================
           PERSONAL INFORMATION
       ========================= */}
-
       <section className="employee-profile__section">
         <h2>Personal Information</h2>
 
@@ -241,7 +261,6 @@ const EmployeeProfile = () => {
       {/* =========================
           CONTACT INFORMATION
       ========================= */}
-
       <section className="employee-profile__section">
         <h2>Contact Information</h2>
 
@@ -266,7 +285,6 @@ const EmployeeProfile = () => {
       {/* =========================
           EMPLOYMENT INFORMATION
       ========================= */}
-
       <section className="employee-profile__section">
         <h2>Employment Information</h2>
 
@@ -301,7 +319,6 @@ const EmployeeProfile = () => {
       {/* =========================
           ORGANIZATION
       ========================= */}
-
       <section className="employee-profile__section">
         <h2>Organization Hierarchy</h2>
 
@@ -322,72 +339,72 @@ const EmployeeProfile = () => {
           />
 
           <InfoItem
-            label="Default Role"
+            label="Designation Role"
             value={
-              employee.default_role_name || "Member"
+              desigRole?.roleName || employee.default_role_name || "None"
             }
           />
         </div>
       </section>
 
       {/* =========================
-          ACCESS SUMMARY
+          RBAC ACCESS SUMMARY
       ========================= */}
-
       <section className="employee-profile__access">
         <div className="employee-profile__access-header">
           <div>
-            <h2>Access Summary</h2>
-
+            <h2>RBAC Access Summary</h2>
             <p>
-              Employee access is determined by the assigned
-              department and designation.
+              Permissions are derived from the employee's effective role.
             </p>
           </div>
         </div>
 
         <div className="employee-profile__access-flow">
           <div>
-            <span>Department</span>
+            <span>Designation Role</span>
             <strong>
-              {employee.department_name || "—"}
+              {desigRole?.roleName || "No Role"}
             </strong>
           </div>
 
           <span className="employee-profile__arrow">
-            →
+            {overrideRole ? "⚡ (Overridden by)" : "→"}
           </span>
 
           <div>
-            <span>Designation</span>
+            <span>Employee Override</span>
             <strong>
-              {employee.designation_name || "—"}
+              {overrideRole ? overrideRole.roleName : "None"}
             </strong>
           </div>
 
           <span className="employee-profile__arrow">
-            →
+            ═►
           </span>
 
           <div>
-            <span>Default Role</span>
-            <strong>
-              {employee.default_role_name || "Member"}
+            <span>Effective Role</span>
+            <strong style={{ color: "var(--color-primary)" }}>
+              {effectiveRole ? effectiveRole.label : "No Role Assigned"}
             </strong>
           </div>
         </div>
 
         <div className="employee-profile__access-note">
-          Permissions and scopes are inherited from the
-          employee's assigned designation and organizational
-          access configuration.
+          {effectiveRole
+            ? `Active access granted via "${effectiveRole.label}" (${
+                effectiveRole.source === "override"
+                  ? "Employee Override"
+                  : "Designation Inheritance"
+              }).`
+            : "No elevated permissions assigned. Built-in employee self-service only."}
         </div>
       </section>
 
       {/* =========================
           EMERGENCY CONTACT
       ========================= */}
-
       <section className="employee-profile__section">
         <h2>Emergency Contact</h2>
 
@@ -407,22 +424,18 @@ const EmployeeProfile = () => {
       {/* =========================
           INVITATION ACTION
       ========================= */}
-
       {!isAccepted && (
         <section className="employee-profile__invite">
           <div>
             <h3>Invitation Pending</h3>
             <p>
-              This employee has not accepted their invitation
-              yet.
+              This employee has not accepted their invitation yet.
             </p>
           </div>
 
           <Button
             variant="outline"
             onClick={() => {
-              // We'll connect the existing resend handler
-              // after the page structure is verified.
               console.log("Resend invite:", employee.id);
             }}
           >

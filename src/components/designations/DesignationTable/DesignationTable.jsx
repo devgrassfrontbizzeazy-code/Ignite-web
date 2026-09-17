@@ -1,6 +1,6 @@
 import DesignationRowActions from "../DesignationRowActions/DesignationRowActions";
 import { formatDate } from "../../../utils/dateUtils";
-
+import roleService from "../../../services/roleService";
 import "./DesignationTable.css";
 
 const DesignationTable = ({
@@ -16,37 +16,33 @@ const DesignationTable = ({
 
   return (
     <div className="designation-table-wrapper">
-      {" "}
       <table className="designation-table">
-        {" "}
         <thead>
-          {" "}
           <tr>
-            {" "}
-            <th>Designation Code</th> <th>Designation Name</th>{" "}
-            <th>Department</th> <th>Access Profile</th> <th>Description</th>{" "}
-            <th>Status</th> <th>Created At</th> <th>Actions</th>{" "}
-          </tr>{" "}
+            <th>Designation Code</th>
+            <th>Designation Name</th>
+            <th>Department</th>
+            <th>Default Role</th>
+            <th>Description</th>
+            <th>Status</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
         </thead>
         <tbody>
           {designations.map((designation) => {
             const isActive = designation.status === "active";
 
-            const accessProfileName =
-              designation.accessProfileName ||
-              designation.accessProfile?.name ||
-              "Employee";
+            // Resolve role name
+            const role =
+              designation.defaultRoleObj ||
+              (designation.id ? roleService.getDesignationRole(designation.id) : null) ||
+              (designation.defaultRole ? roleService.getRoleById(designation.defaultRole) : null);
 
-            const additionalPermissions =
-              designation.additionalPermissions ??
-              designation.additional_permissions ??
-              [];
-
-            const additionalPermissionCount = Array.isArray(
-              additionalPermissions,
-            )
-              ? additionalPermissions.length
-              : 0;
+            const roleName =
+              role?.roleName ||
+              designation.defaultRoleName ||
+              "—";
 
             return (
               <tr
@@ -66,16 +62,21 @@ const DesignationTable = ({
 
                 <td>{designation.departmentName || "—"}</td>
 
-                {/* Access Profile */}
+                {/* Default Role */}
                 <td>
                   <div className="designation-table__access-profile">
-                    <span className="designation-table__access-profile-name">
-                      {accessProfileName}
+                    <span
+                      className="designation-table__access-profile-name"
+                      style={{
+                        fontWeight: role ? 600 : 400,
+                        color: role ? "var(--color-primary)" : "var(--color-text-secondary)",
+                      }}
+                    >
+                      {roleName}
                     </span>
-
-                    {additionalPermissionCount > 0 && (
+                    {role && (
                       <span className="designation-table__access-profile-extra">
-                        +{additionalPermissionCount}
+                        {role.permissionCount ?? role.permissions?.length ?? 0} perms
                       </span>
                     )}
                   </div>
@@ -95,7 +96,6 @@ const DesignationTable = ({
                     }`}
                   >
                     <span className="designation-table__status-dot" />
-
                     {isActive ? "Active" : "Inactive"}
                   </span>
                 </td>

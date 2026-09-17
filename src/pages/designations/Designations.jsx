@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
 import EmptyState from "../../components/common/EmptyState/EmptyState";
@@ -21,7 +20,7 @@ import {
 } from "../../services/api/designationAPI";
 
 import { getDepartments } from "../../services/api/departmentAPI";
-
+import roleService from "../../services/roleService";
 import { extractApiError } from "../../utils/apiErrorUtils";
 import { canCreateDesignations } from "../../utils/permissionUtils";
 
@@ -32,8 +31,27 @@ const normalizeDesignation = (designation) => {
     return null;
   }
 
+  const id = designation.id ?? designation.designation_id ?? designation.pk;
+  const boundRole = roleService.getDesignationRole(id);
+
+  const defaultRoleId =
+    designation.default_role_id ??
+    (typeof designation.default_role === "object"
+      ? designation.default_role?.id
+      : designation.default_role) ??
+    boundRole?.id ??
+    "";
+
+  const defaultRoleName =
+    designation.default_role_name ??
+    (typeof designation.default_role === "object"
+      ? designation.default_role?.role_name ?? designation.default_role?.name
+      : null) ??
+    boundRole?.roleName ??
+    "";
+
   return {
-    id: designation.id ?? designation.designation_id ?? designation.pk,
+    id,
 
     designationCode:
       designation.designation_code ?? designation.designationCode ?? "",
@@ -52,6 +70,11 @@ const normalizeDesignation = (designation) => {
     departmentName:
       designation.department_name ?? designation.department?.name ?? "",
 
+    defaultRole: defaultRoleId,
+    defaultRoleId,
+    defaultRoleName,
+    defaultRoleObj: boundRole || (defaultRoleId ? roleService.getRoleById(defaultRoleId) : null),
+
     description: designation.description ?? "",
 
     status: String(
@@ -65,21 +88,6 @@ const normalizeDesignation = (designation) => {
     company: designation.company,
 
     companyName: designation.company_name,
-
-    accessProfile:
-      designation.access_profile ||
-      designation.accessProfile ||
-      designation.access_profile_key ||
-      designation.accessProfileKey ||
-      designation.access_profile?.key ||
-      "employee",
-
-    accessProfileName:
-      designation.access_profile_name ?? designation.accessProfile?.name ?? "",
-    additionalPermissions:
-      designation.additional_permissions ??
-      designation.additionalPermissions ??
-      [],
 
     createdAt: designation.created_at ?? designation.createdAt,
 
@@ -139,29 +147,17 @@ const normalizeDepartment = (department) => {
 
 const Designations = () => {
   const [designations, setDesignations] = useState([]);
-
   const [departments, setDepartments] = useState([]);
-
   const [search, setSearch] = useState("");
-
   const [department, setDepartment] = useState("all");
-
   const [status, setStatus] = useState("all");
-
   const [sortBy, setSortBy] = useState("name");
-
   const [showForm, setShowForm] = useState(false);
-
   const [showDetails, setShowDetails] = useState(false);
-
   const [selectedDesignation, setSelectedDesignation] = useState(null);
-
   const [loading, setLoading] = useState(false);
-
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
-
   const [error, setError] = useState("");
-
   const [formFieldErrors, setFormFieldErrors] = useState({});
 
   /*
@@ -170,11 +166,8 @@ const Designations = () => {
   const loadDepartments = async () => {
     try {
       setDepartmentsLoading(true);
-
       const response = await getDepartments();
-
       const departmentList = extractList(response);
-
       const normalizedDepartments = departmentList
         .map(normalizeDepartment)
         .filter(Boolean);
@@ -182,12 +175,10 @@ const Designations = () => {
       setDepartments(normalizedDepartments);
     } catch (error) {
       console.error("Failed to load departments:", error);
-
       const { generalError } = extractApiError(error, {
         context: "department",
         action: "load",
       });
-
       setError(generalError || "Failed to load departments. Please try again.");
     } finally {
       setDepartmentsLoading(false);
@@ -203,7 +194,6 @@ const Designations = () => {
       setError("");
 
       const response = await getDesignations();
-
       const designationList = extractList(response);
 
       const normalizedDesignations = designationList
@@ -213,12 +203,10 @@ const Designations = () => {
       setDesignations(normalizedDesignations);
     } catch (error) {
       console.error("Failed to load designations:", error);
-
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "load",
       });
-
       setError(
         generalError || "Failed to load designations. Please try again.",
       );
@@ -230,6 +218,18 @@ const Designations = () => {
   useEffect(() => {
     loadDepartments();
     loadDesignations();
+
+    const handleDesignationRolesUpdated = () => {
+      loadDesignations();
+    };
+
+    window.addEventListener("ignite:designation-roles-updated", handleDesignationRolesUpdated);
+    window.addEventListener("ignite:roles-updated", handleDesignationRolesUpdated);
+
+    return () => {
+      window.removeEventListener("ignite:designation-roles-updated", handleDesignationRolesUpdated);
+      window.removeEventListener("ignite:roles-updated", handleDesignationRolesUpdated);
+    };
   }, []);
 
   /*
@@ -237,11 +237,9 @@ const Designations = () => {
    */
   const stats = useMemo(() => {
     const total = designations.length;
-
     const active = designations.filter(
       (designation) => designation.status === "active",
     ).length;
-
     const inactive = designations.filter(
       (designation) => designation.status === "inactive",
     ).length;
@@ -261,14 +259,13 @@ const Designations = () => {
 
     if (search.trim()) {
       const searchValue = search.toLowerCase().trim();
-
       result = result.filter(
         (designation) =>
           designation.designationName?.toLowerCase().includes(searchValue) ||
           designation.designationCode?.toLowerCase().includes(searchValue) ||
           designation.departmentName?.toLowerCase().includes(searchValue) ||
-          designation.description?.toLowerCase().includes(searchValue) ||
-          designation.accessProfileName?.toLowerCase().includes(searchValue),
+          designation.defaultRoleName?.toLowerCase().includes(searchValue) ||
+          designation.description?.toLowerCase().includes(searchValue),
       );
     }
 
@@ -354,6 +351,7 @@ const Designations = () => {
       setError("");
 
       await deleteDesignation(designation.id);
+      roleService.setDesignationRole(designation.id, null);
 
       setDesignations((previous) =>
         previous.filter((item) => item.id !== designation.id),
@@ -365,12 +363,10 @@ const Designations = () => {
       }
     } catch (error) {
       console.error("Failed to delete designation:", error);
-
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "delete",
       });
-
       setError(
         generalError || "Failed to delete designation. Please try again.",
       );
@@ -393,7 +389,6 @@ const Designations = () => {
       setError("");
 
       const newStatus = designation.status === "active" ? "Inactive" : "Active";
-
       const response = await patchDesignation(designation.id, {
         status: newStatus,
         is_active: newStatus === "Active",
@@ -414,12 +409,10 @@ const Designations = () => {
       }
     } catch (error) {
       console.error("Failed to update designation status:", error);
-
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "toggle",
       });
-
       setError(
         generalError ||
           "Failed to update designation status. Please try again.",
@@ -440,30 +433,30 @@ const Designations = () => {
 
       const payload = {
         designation_code: formData.designationCode?.trim().toUpperCase() || "",
-
         name: formData.designationName?.trim() || "",
-
         department: Number(formData.departmentId),
-
-        access_profile: formData.accessProfile || "employee",
-        additional_permissions: formData.additionalPermissions || [],
-
+        access_profile: "employee",
+        additional_permissions: [],
         description: formData.description?.trim() || "",
-
         status: formData.status === "active" ? "Active" : "Inactive",
-
         is_active: formData.status === "active",
       };
 
+      let result;
       if (selectedDesignation) {
-        await updateDesignation(selectedDesignation.id, payload);
+        result = await updateDesignation(selectedDesignation.id, payload);
+        roleService.setDesignationRole(selectedDesignation.id, formData.defaultRole);
       } else {
-        await createDesignation(payload);
+        result = await createDesignation(payload);
+        const newId = result?.id ?? result?.designation_id ?? result?.pk;
+        if (newId) {
+          roleService.setDesignationRole(newId, formData.defaultRole);
+        }
       }
 
       await loadDesignations();
 
-      // Trigger permission refresh for active session
+      // Trigger user session refresh
       window.dispatchEvent(new CustomEvent("ignite:user-updated"));
       window.dispatchEvent(new Event("storage"));
 
@@ -472,12 +465,10 @@ const Designations = () => {
       setFormFieldErrors({});
     } catch (error) {
       console.error("Failed to save designation:", error);
-
       const apiError = error.response?.data;
 
       if (apiError && typeof apiError === "object") {
         const fieldErrors = {};
-
         Object.entries(apiError).forEach(([field, value]) => {
           if (Array.isArray(value)) {
             fieldErrors[field] = value.join(" ");
@@ -485,7 +476,6 @@ const Designations = () => {
             fieldErrors[field] = value;
           }
         });
-
         setFormFieldErrors(fieldErrors);
       }
 

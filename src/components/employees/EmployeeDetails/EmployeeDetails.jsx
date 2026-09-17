@@ -1,6 +1,7 @@
 import Modal from "../../common/Modal/Modal";
 import Button from "../../common/Button/Button";
 import { FiSend } from "react-icons/fi";
+import roleService from "../../../services/roleService";
 import "./EmployeeDetails.css";
 
 const formatName = (employee) =>
@@ -56,12 +57,21 @@ const EmployeeDetails = ({ open, employee, onClose, onResendInvite }) => {
     "EM";
   const isAccepted = employee.invitation_status === "ACCEPTED";
 
+  // RBAC Role calculations
+  const effectiveRole = roleService.getEffectiveRole(employee);
+  const desigRole =
+    (employee.designation_id ? roleService.getDesignationRole(employee.designation_id) : null) ||
+    (typeof employee.designation === "object" ? roleService.getDesignationRole(employee.designation?.id) : null);
+  const overrideRole =
+    (employee.id ? roleService.getEmployeeOverrideRole(employee.id) : null) ||
+    (employee.override_role ? roleService.getRoleById(employee.override_role) : null);
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title="Employee Details"
-      description="View employee personal info, organization details and access hierarchy."
+      description="View employee personal info, organization details and RBAC access hierarchy."
       size="large"
       footer={
         <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", width: "100%" }}>
@@ -213,47 +223,52 @@ const EmployeeDetails = ({ open, employee, onClose, onResendInvite }) => {
             />
 
             <InfoItem
-              label="Default Role"
-              value={employee.default_role_name || "Member"}
+              label="Designation Role"
+              value={desigRole?.roleName || employee.default_role_name || "None"}
             />
           </div>
         </section>
 
+        {/* RBAC ACCESS SUMMARY */}
         <section className="employee-details__access">
           <div className="employee-details__access-header">
             <div>
-              <h3>Access Summary</h3>
+              <h3>RBAC Access & Role Evaluation</h3>
               <p>
-                Employee access is inherited through the assigned designation
-                and its default role.
+                Permissions are evaluated from the effective role (Employee Override Role or Designation Default Role).
               </p>
             </div>
           </div>
 
           <div className="employee-details__access-flow">
             <div>
-              <span>Department</span>
-              <strong>{employee.department_name || "—"}</strong>
+              <span>Designation Role</span>
+              <strong>{desigRole?.roleName || "No Role"}</strong>
             </div>
 
-            <span className="employee-details__arrow">→</span>
+            <span className="employee-details__arrow">
+              {overrideRole ? "⚡ (Overridden by)" : "→"}
+            </span>
 
             <div>
-              <span>Designation</span>
-              <strong>{employee.designation_name || "—"}</strong>
+              <span>Employee Override</span>
+              <strong>{overrideRole ? overrideRole.roleName : "None"}</strong>
             </div>
 
-            <span className="employee-details__arrow">→</span>
+            <span className="employee-details__arrow">═►</span>
 
             <div>
-              <span>Default Role</span>
-              <strong>{employee.default_role_name || "Member"}</strong>
+              <span>Effective Role</span>
+              <strong style={{ color: "var(--color-primary)" }}>
+                {effectiveRole?.label || "No Role Assigned"}
+              </strong>
             </div>
           </div>
 
           <div className="employee-details__access-note">
-            Permissions and scopes are managed by the role. The employee does
-            not require separate manual role configuration.
+            {effectiveRole
+              ? `Final access granted via "${effectiveRole.label}" (${effectiveRole.source === "override" ? "Employee Override" : "Designation Inheritance"}).`
+              : "No elevated permissions assigned. Built-in employee self-service only."}
           </div>
         </section>
 
