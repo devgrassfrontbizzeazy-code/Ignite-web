@@ -1,5 +1,5 @@
-import initialRoles from "../data/roles";
 import { RBAC_MODULES, SCOPE_OPTIONS, ALL_ACTIONS } from "../data/rbacCatalogue";
+import * as roleAPI from "./api/roleAPI";
 
 const STORAGE_KEY = "ignite_roles_v2";
 const DESIG_ROLE_KEY = "ignite_designation_roles_v2";
@@ -7,24 +7,24 @@ const EMP_OVERRIDE_KEY = "ignite_employee_overrides_v2";
 const EVENT_NAME = "ignite:roles-updated";
 
 /**
- * Initializes and retrieves roles from local storage or defaults.
+ * Retrieves roles from local cache (synced with backend).
  */
 export const getRoles = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialRoles));
-      return [...initialRoles];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initialRoles));
-      return [...initialRoles];
+    if (!Array.isArray(parsed)) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      return [];
     }
     return parsed;
   } catch (error) {
     console.error("Failed to read roles from localStorage:", error);
-    return [...initialRoles];
+    return [];
   }
 };
 
@@ -40,6 +40,53 @@ const saveRoles = (roles) => {
     console.error("Failed to persist roles:", error);
   }
 };
+
+/**
+ * Normalizes backend role object to frontend structure.
+ */
+const normalizeRole = (r) => {
+  if (!r) return null;
+  return {
+    id: r.id,
+    roleName: r.role_name || r.roleName || "",
+    roleCode: r.role_code || r.roleCode || "",
+    description: r.description || "",
+    status: (r.status || (r.is_active ? "active" : "inactive")).toLowerCase(),
+    isSystem: Boolean(r.is_system),
+    permissionCount: r.permission_count ?? r.permissionCount ?? (Array.isArray(r.permissions) ? r.permissions.length : 0),
+    employeeCount: r.employee_count ?? r.employeeCount ?? 0,
+    permissions: Array.isArray(r.permissions) ? r.permissions : [],
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt,
+    deletedAt: r.deleted_at || r.deletedAt || null,
+  };
+};
+
+/**
+ * Asynchronously syncs roles from backend API into local cache and notifies subscribers.
+ */
+export const syncRolesFromBackend = async () => {
+  try {
+    const response = await roleAPI.getRoles();
+    const rawList = Array.isArray(response)
+      ? response
+      : Array.isArray(response?.results)
+      ? response.results
+      : Array.isArray(response?.data)
+      ? response.data
+      : [];
+
+    const normalized = rawList.map(normalizeRole).filter(Boolean);
+    saveRoles(normalized);
+    return normalized;
+  } catch (err) {
+    console.warn("Could not sync roles from backend API, using local cache:", err);
+  }
+  return getRoles();
+};
+
+// Initial background sync
+syncRolesFromBackend();
 
 /**
  * Retrieves a role by ID or Name.
@@ -65,22 +112,14 @@ export const getActiveRoles = () => {
 /**
  * Creates a new role.
  */
-export const createRole = (roleData) => {
-  const roles = getRoles();
-  const permissions = Array.isArray(roleData?.permissions)
-    ? roleData.permissions
-    : [];
+export const createRole = async (roleData) => {
+  const permissions = Array.isArray(roleData?.permissions) ? roleData.permissions : [];
 
-  const newRole = {
-    id: Date.now(),
-    roleName: (roleData?.roleName || "").trim(),
-    roleCode: (roleData?.roleCode || "").trim().toUpperCase(),
+  const payload = {
+    role_name: (roleData?.roleName || "").trim(),
+    role_code: (roleData?.roleCode || "").trim().toUpperCase(),
     description: (roleData?.description || "").trim(),
-    employeeCount: 0,
-    permissionCount: permissions.length,
     status: roleData?.status || "active",
-    createdAt: new Date().toISOString(),
-    assignedUsers: [],
     permissions: permissions.map((p) => ({
       module: p.module,
       functionality: p.functionality,
@@ -89,15 +128,42 @@ export const createRole = (roleData) => {
     })),
   };
 
-  const updated = [newRole, ...roles];
-  saveRoles(updated);
-  return newRole;
+  // Optimistic local save
+  const tempRole = {
+    id: Date.now(),
+    roleName: payload.role_name,
+    roleCode: payload.role_code,
+    description: payload.description,
+    employeeCount: 0,
+    permissionCount: permissions.length,
+    status: payload.status,
+    createdAt: new Date().toISOString(),
+    assignedUsers: [],
+    permissions: payload.permissions,
+  };
+
+  const currentRoles = getRoles();
+  saveRoles([tempRole, ...currentRoles]);
+
+  try {
+    const backendRole = await roleAPI.createRole(payload);
+    const normalized = normalizeRole(backendRole);
+    if (normalized) {
+      const updated = getRoles().map((r) => (r.id === tempRole.id ? normalized : r));
+      saveRoles(updated);
+      return normalized;
+    }
+  } catch (err) {
+    console.error("Failed to create role in backend, keeping local optimistic role:", err);
+  }
+
+  return tempRole;
 };
 
 /**
  * Updates an existing role.
  */
-export const updateRole = (id, roleData) => {
+export const updateRole = async (id, roleData) => {
   const roles = getRoles();
   const target = roles.find((r) => String(r.id) === String(id));
   if (!target) {
@@ -108,44 +174,65 @@ export const updateRole = (id, roleData) => {
     ? roleData.permissions
     : target.permissions || [];
 
-  const updatedRole = {
-    ...target,
-    roleName: (roleData?.roleName || target.roleName).trim(),
-    roleCode: (roleData?.roleCode || target.roleCode).trim().toUpperCase(),
-    description:
-      roleData?.description !== undefined ? roleData.description : target.description,
+  const payload = {
+    role_name: (roleData?.roleName || target.roleName).trim(),
+    role_code: (roleData?.roleCode || target.roleCode).trim().toUpperCase(),
+    description: roleData?.description !== undefined ? roleData.description : target.description,
     status: roleData?.status || target.status,
-    permissionCount: permissions.length,
     permissions: permissions.map((p) => ({
       module: p.module,
       functionality: p.functionality,
       action: p.action,
       ...(p.scope ? { scope: p.scope } : {}),
     })),
+  };
+
+  const updatedRole = {
+    ...target,
+    roleName: payload.role_name,
+    roleCode: payload.role_code,
+    description: payload.description,
+    status: payload.status,
+    permissionCount: permissions.length,
+    permissions: payload.permissions,
     updatedAt: new Date().toISOString(),
   };
 
-  const updated = roles.map((r) => (String(r.id) === String(id) ? updatedRole : r));
-  saveRoles(updated);
+  saveRoles(roles.map((r) => (String(r.id) === String(id) ? updatedRole : r)));
+
+  try {
+    const backendRole = await roleAPI.updateRole(id, payload);
+    const normalized = normalizeRole(backendRole);
+    if (normalized) {
+      saveRoles(getRoles().map((r) => (String(r.id) === String(id) ? normalized : r)));
+      return normalized;
+    }
+  } catch (err) {
+    console.error("Failed to update role on backend API:", err);
+  }
+
   return updatedRole;
 };
 
 /**
  * Soft-deletes a role.
  */
-export const deleteRole = (id) => {
+export const deleteRole = async (id) => {
   const roles = getRoles();
   const deletedAt = new Date().toISOString();
-  const updated = roles.map((r) =>
-    String(r.id) === String(id) ? { ...r, deletedAt } : r
-  );
-  saveRoles(updated);
+  saveRoles(roles.map((r) => (String(r.id) === String(id) ? { ...r, deletedAt } : r)));
+
+  try {
+    await roleAPI.deleteRole(id);
+  } catch (err) {
+    console.error("Failed to delete role on backend API:", err);
+  }
 };
 
 /**
  * Toggles active/inactive status.
  */
-export const toggleRoleStatus = (id) => {
+export const toggleRoleStatus = async (id) => {
   const roles = getRoles();
   const target = roles.find((r) => String(r.id) === String(id));
   if (!target) return null;
@@ -157,18 +244,40 @@ export const toggleRoleStatus = (id) => {
     updatedAt: new Date().toISOString(),
   };
 
-  const updated = roles.map((r) => (String(r.id) === String(id) ? updatedRole : r));
-  saveRoles(updated);
+  saveRoles(roles.map((r) => (String(r.id) === String(id) ? updatedRole : r)));
+
+  try {
+    const backendRole = await roleAPI.toggleRoleStatus(id);
+    const normalized = normalizeRole(backendRole);
+    if (normalized) {
+      saveRoles(getRoles().map((r) => (String(r.id) === String(id) ? normalized : r)));
+      return normalized;
+    }
+  } catch (err) {
+    console.error("Failed to toggle role status on backend API:", err);
+  }
+
   return updatedRole;
 };
 
 /**
  * Clones an existing role with a unique name.
  */
-export const cloneRole = (id) => {
+export const cloneRole = async (id) => {
   const roles = getRoles();
   const source = roles.find((r) => String(r.id) === String(id));
   if (!source) throw new Error("Source role not found");
+
+  try {
+    const backendRole = await roleAPI.cloneRole(id);
+    const normalized = normalizeRole(backendRole);
+    if (normalized) {
+      saveRoles([normalized, ...getRoles()]);
+      return normalized;
+    }
+  } catch (err) {
+    console.error("Backend clone failed, performing local fallback clone:", err);
+  }
 
   const baseName = `${source.roleName} Copy`;
   let clonedName = baseName;
@@ -199,8 +308,7 @@ export const cloneRole = (id) => {
     deletedAt: null,
   };
 
-  const updated = [clonedRole, ...roles];
-  saveRoles(updated);
+  saveRoles([clonedRole, ...roles]);
   return clonedRole;
 };
 
@@ -371,6 +479,7 @@ export const roleService = {
   getRoles,
   getRoleById,
   getActiveRoles,
+  syncRolesFromBackend,
   createRole,
   updateRole,
   deleteRole,

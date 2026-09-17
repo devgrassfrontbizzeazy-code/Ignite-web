@@ -92,6 +92,18 @@ const normalizeEmployee = (emp) => {
       "",
     invitation_status: emp.invitation_status || emp.invitationStatus || "PENDING",
     is_active: emp.is_active !== undefined ? emp.is_active : true,
+    override_role:
+      emp.override_role ??
+      emp.override_role_id ??
+      emp.overrideRole ??
+      (typeof emp.override_role === "object" ? emp.override_role?.id : null) ??
+      "",
+    override_role_id:
+      emp.override_role_id ??
+      emp.override_role ??
+      emp.overrideRole ??
+      (typeof emp.override_role === "object" ? emp.override_role?.id : null) ??
+      "",
   };
 };
 
