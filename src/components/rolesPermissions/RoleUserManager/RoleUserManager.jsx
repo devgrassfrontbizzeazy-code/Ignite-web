@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 
 import Button from "../../common/Button/Button";
-import { mockUsers } from "../../../data/mockUsers";
+import employeeService from "../../../services/employeeService";
 
 import "./RoleUserManager.css";
 
@@ -14,6 +14,9 @@ const RoleUserManager = ({
     const [search, setSearch] = useState("");
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [removingUserId, setRemovingUserId] = useState(null);
+    const [employees, setEmployees] = useState([]);
+    const [employeesLoading, setEmployeesLoading] = useState(false);
+    const [employeesError, setEmployeesError] = useState("");
 
     if (!role) {
         return null;
@@ -30,10 +33,10 @@ const RoleUserManager = ({
             assignedUsers.map((user) => user.id),
         );
 
-        return mockUsers.filter(
+        return employees.filter(
             (user) => !assignedIds.has(user.id),
         );
-    }, [assignedUsers]);
+    }, [assignedUsers, employees]);
 
     /*
      * Search available employees.
@@ -50,16 +53,21 @@ const RoleUserManager = ({
                 user.name
                     ?.toLowerCase()
                     .includes(searchValue) ||
+                [user.first_name, user.middle_name, user.last_name]
+                    .filter(Boolean)
+                    .join(" ")
+                    .toLowerCase()
+                    .includes(searchValue) ||
                 user.email
                     ?.toLowerCase()
                     .includes(searchValue) ||
-                user.employeeCode
+                user.employee_code
                     ?.toLowerCase()
                     .includes(searchValue) ||
-                user.department
+                user.department_name
                     ?.toLowerCase()
                     .includes(searchValue) ||
-                user.designation
+                user.designation_name
                     ?.toLowerCase()
                     .includes(searchValue),
         );
@@ -68,10 +76,23 @@ const RoleUserManager = ({
     /*
      * Open assign employee section.
      */
-    const handleOpenAssign = () => {
+    const handleOpenAssign = async () => {
         setSearch("");
         setSelectedUserId(null);
         setShowAssign(true);
+        setEmployeesLoading(true);
+        setEmployeesError("");
+
+        try {
+            const data = await employeeService.getAll();
+            setEmployees(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error("Failed to load employees:", error);
+            setEmployees([]);
+            setEmployeesError("Failed to load employees from the server.");
+        } finally {
+            setEmployeesLoading(false);
+        }
     };
 
     /*
@@ -91,7 +112,7 @@ const RoleUserManager = ({
             return;
         }
 
-        const selectedUser = mockUsers.find(
+        const selectedUser = employees.find(
             (user) => user.id === selectedUserId,
         );
 
@@ -184,10 +205,25 @@ const RoleUserManager = ({
                     </div>
 
                     <div className="role-user-manager__available">
-                        {filteredUsers.length > 0 ? (
+                        {employeesLoading ? (
+                            <div className="role-user-manager__empty">
+                                <strong>Loading employees...</strong>
+                            </div>
+                        ) : employeesError ? (
+                            <div className="role-user-manager__empty">
+                                <strong>{employeesError}</strong>
+                            </div>
+                        ) : filteredUsers.length > 0 ? (
                             filteredUsers.map((user) => {
                                 const isSelected =
                                     selectedUserId === user.id;
+                                const userName =
+                                    [user.first_name, user.middle_name, user.last_name]
+                                        .filter(Boolean)
+                                        .join(" ") ||
+                                    user.full_name ||
+                                    user.name ||
+                                    "Employee";
 
                                 return (
                                     <button
@@ -210,13 +246,15 @@ const RoleUserManager = ({
 
                                         <span className="role-user-manager__user-info">
                                             <strong>
-                                                {user.name}
+                                                {userName}
                                             </strong>
 
                                             <span>
-                                                {user.employeeCode}{" "}
+                                                {user.employee_code || user.id}{" "}
                                                 ·{" "}
-                                                {user.department}
+                                                {user.department_name || "No department"}
+                                                {" · "}
+                                                {user.designation_name || "No designation"}
                                             </span>
 
                                             <small>
@@ -272,20 +310,26 @@ const RoleUserManager = ({
                                 key={user.id}
                             >
                                 <div className="role-user-manager__avatar">
-                                    {user.name
+                                    {([user.first_name, user.middle_name, user.last_name]
+                                        .filter(Boolean)
+                                        .join(" ") || user.name || "E")
                                         ?.charAt(0)
                                         .toUpperCase()}
                                 </div>
 
                                 <div className="role-user-manager__assigned-info">
                                     <strong>
-                                        {user.name}
+                                        {[user.first_name, user.middle_name, user.last_name]
+                                            .filter(Boolean)
+                                            .join(" ") || user.full_name || user.name || "Employee"}
                                     </strong>
 
                                     <span>
-                                        {user.employeeCode}{" "}
+                                        {user.employee_code || user.employeeCode || user.id}{" "}
                                         ·{" "}
-                                        {user.department}
+                                        {user.department_name || user.department || "No department"}
+                                        {" · "}
+                                        {user.designation_name || user.designation || "No designation"}
                                     </span>
 
                                     <small>

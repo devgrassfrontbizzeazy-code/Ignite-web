@@ -435,6 +435,7 @@ const Designations = () => {
         designation_code: formData.designationCode?.trim().toUpperCase() || "",
         name: formData.designationName?.trim() || "",
         department: Number(formData.departmentId),
+        default_role: formData.defaultRole || null,
         access_profile: "employee",
         additional_permissions: [],
         description: formData.description?.trim() || "",
@@ -446,6 +447,19 @@ const Designations = () => {
       if (selectedDesignation) {
         result = await updateDesignation(selectedDesignation.id, payload);
         roleService.setDesignationRole(selectedDesignation.id, formData.defaultRole);
+
+        const updatedDesignation = normalizeDesignation(result);
+        if (updatedDesignation) {
+          setDesignations((previous) =>
+            previous.map((item) =>
+              item.id === selectedDesignation.id ? updatedDesignation : item,
+            ),
+          );
+        }
+
+        setShowForm(false);
+        setSelectedDesignation(null);
+        setFormFieldErrors({});
       } else {
         result = await createDesignation(payload);
         const newId = result?.id ?? result?.designation_id ?? result?.pk;
@@ -460,9 +474,11 @@ const Designations = () => {
       window.dispatchEvent(new CustomEvent("ignite:user-updated"));
       window.dispatchEvent(new Event("storage"));
 
-      setShowForm(false);
-      setSelectedDesignation(null);
-      setFormFieldErrors({});
+      if (!selectedDesignation) {
+        setShowForm(false);
+        setSelectedDesignation(null);
+        setFormFieldErrors({});
+      }
     } catch (error) {
       console.error("Failed to save designation:", error);
       const apiError = error.response?.data;
