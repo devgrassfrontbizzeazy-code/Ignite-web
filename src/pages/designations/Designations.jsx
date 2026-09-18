@@ -218,6 +218,7 @@ const Designations = () => {
   useEffect(() => {
     loadDepartments();
     loadDesignations();
+    roleService.syncRolesFromBackend();
 
     const handleDesignationRolesUpdated = () => {
       loadDesignations();
@@ -431,6 +432,10 @@ const Designations = () => {
       setError("");
       setFormFieldErrors({});
 
+      const defaultRoleId = formData.defaultRole
+        ? Number(formData.defaultRole) || formData.defaultRole
+        : null;
+
       const payload = {
         designation_code: formData.designationCode?.trim().toUpperCase() || "",
         name: formData.designationName?.trim() || "",
@@ -463,8 +468,8 @@ const Designations = () => {
       } else {
         result = await createDesignation(payload);
         const newId = result?.id ?? result?.designation_id ?? result?.pk;
-        if (newId) {
-          roleService.setDesignationRole(newId, formData.defaultRole);
+        if (newId && defaultRoleId) {
+          roleService.setDesignationRole(newId, defaultRoleId);
         }
       }
 

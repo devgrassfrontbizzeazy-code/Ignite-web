@@ -16,11 +16,18 @@ const DesignationForm = ({
 }) => {
   const [availableRoles, setAvailableRoles] = useState(() => roleService.getRoles());
 
-  // Listen for role updates
+  // Listen for role updates and sync on mount
   useEffect(() => {
     const handleRolesUpdate = () => {
       setAvailableRoles(roleService.getRoles());
     };
+
+    roleService.syncRolesFromBackend().then((roles) => {
+      if (Array.isArray(roles) && roles.length > 0) {
+        setAvailableRoles(roles);
+      }
+    }).catch((e) => console.warn("Failed to sync roles:", e));
+
     window.addEventListener("ignite:roles-updated", handleRolesUpdate);
     return () => {
       window.removeEventListener("ignite:roles-updated", handleRolesUpdate);
@@ -41,17 +48,23 @@ const DesignationForm = ({
       initialData.defaultRole ??
       initialData.default_role ??
       initialData.default_role_id ??
+      initialData.defaultRoleId ??
       initialData.role_id;
 
-    if (directRole) {
+    if (directRole !== undefined && directRole !== null && directRole !== "") {
       if (typeof directRole === "object") return String(directRole.id);
       return String(directRole);
+    }
+
+    if (initialData.id) {
+      const boundRole = roleService.getDesignationRole(initialData.id);
+      if (boundRole?.id) return String(boundRole.id);
     }
 
     // Try matching by roleName
     const roleName = initialData.default_role_name || initialData.defaultRoleName;
     if (roleName) {
-      const match = availableRoles.find((r) => r.roleName.toLowerCase() === roleName.toLowerCase());
+      const match = availableRoles.find((r) => r.roleName.toLowerCase() === roleName.toLowerCase() || r.roleCode.toLowerCase() === roleName.toLowerCase());
       if (match) return String(match.id);
     }
 
