@@ -155,6 +155,11 @@ const AttendanceHistory = ({
                     <tr key={record.id || record.attendanceDate || record.date}>
                       <td>
                         <strong>{record.date}</strong>
+                        {record.holidayName && (
+                          <div className="attendance-history__holiday-name">
+                            {record.holidayName}
+                          </div>
+                        )}
                       </td>
 
                       <td>{record.checkIn}</td>
@@ -186,13 +191,17 @@ const AttendanceHistory = ({
                       </td>
 
                       <td>
-                        <button
-                          type="button"
-                          className="attendance-history__details"
-                          onClick={() => onViewDetails?.(record)}
-                        >
-                          View Details
-                        </button>
+                        {record.id ? (
+                          <button
+                            type="button"
+                            className="attendance-history__details"
+                            onClick={() => onViewDetails?.(record)}
+                          >
+                            View Details
+                          </button>
+                        ) : (
+                          <span className="attendance-history__no-action">—</span>
+                        )}
                       </td>
                     </tr>
                   );

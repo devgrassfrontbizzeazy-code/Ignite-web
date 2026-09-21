@@ -188,6 +188,25 @@
   color: #991b1b;
 }
 
+.attendance-history__status--holiday {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.attendance-history__holiday-name {
+  font-size: 11px;
+  color: #7e22ce;
+  margin-top: 3px;
+  font-weight: var(--font-weight-medium);
+}
+
+.attendance-history__no-action {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  padding: 0 4px;
+}
+
 .attendance-history__details {
   border: none;
   background: transparent;
