@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
@@ -9,16 +8,22 @@ import "./LeavePolicyForm.css";
 const defaultForm = {
   name: "",
   description: "",
-  allocationType: "Annual",
+  allocationType: "YEARLY",
   days: "",
   carryForward: false,
-  carryForwardType: "All",
+  carryForwardType: "NONE",
   carryForwardLimit: "",
   halfDayAllowed: true,
   requiresApproval: true,
+  isPaid: true,
 };
 
-const LeavePolicyForm = ({ policy, onSave, onClose }) => {
+const LeavePolicyForm = ({
+  policy,
+  onSave,
+  onClose,
+  saving = false,
+}) => {
   const [formData, setFormData] = useState(defaultForm);
 
   useEffect(() => {
@@ -26,20 +31,55 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
       setFormData({
         name: policy.name || "",
         description: policy.description || "",
-        allocationType: policy.allocationType || "Annual",
+
+        allocationType:
+          policy.allocationType ||
+          policy.allocation_type ||
+          "YEARLY",
+
         days:
-          policy.days !== undefined && policy.days !== null
+          policy.days !== undefined &&
+          policy.days !== null
             ? policy.days
-            : "",
-        carryForward: Boolean(policy.carryForward),
-        carryForwardType: policy.carryForwardType || "All",
+            : policy.allocation_days !== undefined &&
+                policy.allocation_days !== null
+              ? policy.allocation_days
+              : "",
+
+        carryForward: Boolean(
+          policy.carryForward ??
+            policy.is_carry_forward
+        ),
+
+        carryForwardType:
+          policy.carryForwardType ||
+          policy.carry_forward_type ||
+          "NONE",
+
         carryForwardLimit:
           policy.carryForwardLimit !== undefined &&
           policy.carryForwardLimit !== null
             ? policy.carryForwardLimit
-            : "",
-        halfDayAllowed: Boolean(policy.halfDayAllowed),
-        requiresApproval: Boolean(policy.requiresApproval),
+            : policy.max_carry_forward_days !==
+                  undefined &&
+                policy.max_carry_forward_days !== null
+              ? policy.max_carry_forward_days
+              : "",
+
+        halfDayAllowed: Boolean(
+          policy.halfDayAllowed ??
+            policy.allow_half_day
+        ),
+
+        requiresApproval: Boolean(
+          policy.requiresApproval ??
+            policy.requires_approval
+        ),
+
+        isPaid: Boolean(
+          policy.isPaid ??
+            policy.is_paid
+        ),
       });
     } else {
       setFormData(defaultForm);
@@ -56,7 +96,7 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!formData.name.trim()) {
+    if (!formData.name.trim() || saving) {
       return;
     }
 
@@ -75,16 +115,21 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
 
       carryForwardType: formData.carryForward
         ? formData.carryForwardType
-        : null,
+        : "NONE",
 
       carryForwardLimit:
         formData.carryForward &&
-        formData.carryForwardType === "Maximum"
+        formData.carryForwardType === "MAXIMUM"
           ? Number(formData.carryForwardLimit)
           : null,
 
-      halfDayAllowed: formData.halfDayAllowed,
-      requiresApproval: formData.requiresApproval,
+      halfDayAllowed:
+        formData.halfDayAllowed,
+
+      requiresApproval:
+        formData.requiresApproval,
+
+      isPaid: formData.isPaid,
     });
   };
 
@@ -95,13 +140,16 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
     >
       <div
         className="leave-policy-form-modal"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
       >
-        {/* Header */}
         <div className="leave-policy-form-header">
           <div>
             <h2 className="leave-policy-form-title">
-              {policy ? "Edit Leave Policy" : "Add Leave Policy"}
+              {policy
+                ? "Edit Leave Policy"
+                : "Add Leave Policy"}
             </h2>
 
             <p className="leave-policy-form-subtitle">
@@ -114,14 +162,17 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
             className="leave-policy-form-close"
             onClick={onClose}
             aria-label="Close"
+            disabled={saving}
           >
-            <X size={18} strokeWidth={2} />
+            <X
+              size={18}
+              strokeWidth={2}
+            />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="leave-policy-form-body">
-
             {/* BASIC INFORMATION */}
             <div className="leave-policy-form-section">
               <div className="leave-policy-form-section-title">
@@ -144,8 +195,12 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                     placeholder="e.g. Casual Leave"
                     value={formData.name}
                     onChange={(event) =>
-                      updateField("name", event.target.value)
+                      updateField(
+                        "name",
+                        event.target.value
+                      )
                     }
+                    disabled={saving}
                   />
                 </div>
 
@@ -169,6 +224,7 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                         event.target.value
                       )
                     }
+                    disabled={saving}
                   />
                 </div>
               </div>
@@ -199,12 +255,13 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                         event.target.value
                       )
                     }
+                    disabled={saving}
                   >
-                    <option value="Annual">
-                      Annual
+                    <option value="YEARLY">
+                      Yearly
                     </option>
 
-                    <option value="Monthly">
+                    <option value="MONTHLY">
                       Monthly
                     </option>
                   </select>
@@ -229,7 +286,8 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                     min="0"
                     step="0.5"
                     placeholder={
-                      formData.allocationType === "Annual"
+                      formData.allocationType ===
+                      "YEARLY"
                         ? "e.g. 12"
                         : "e.g. 1"
                     }
@@ -240,10 +298,12 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                         event.target.value
                       )
                     }
+                    disabled={saving}
                   />
 
                   <span className="leave-policy-form-help">
-                    {formData.allocationType === "Annual"
+                    {formData.allocationType ===
+                    "YEARLY"
                       ? "Days granted per year."
                       : "Days granted every month."}
                   </span>
@@ -271,8 +331,12 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                 <Toggle
                   checked={formData.carryForward}
                   onChange={(value) =>
-                    updateField("carryForward", value)
+                    updateField(
+                      "carryForward",
+                      value
+                    )
                   }
+                  disabled={saving}
                 />
               </div>
 
@@ -289,25 +353,33 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                     <select
                       id="leave-policy-carry-type"
                       className="leave-policy-form-input"
-                      value={formData.carryForwardType}
+                      value={
+                        formData.carryForwardType
+                      }
                       onChange={(event) =>
                         updateField(
                           "carryForwardType",
                           event.target.value
                         )
                       }
+                      disabled={saving}
                     >
-                      <option value="All">
+                      <option value="NONE">
+                        No carry forward
+                      </option>
+
+                      <option value="ALL">
                         All unused days
                       </option>
 
-                      <option value="Maximum">
+                      <option value="MAXIMUM">
                         Maximum number of days
                       </option>
                     </select>
                   </div>
 
-                  {formData.carryForwardType === "Maximum" && (
+                  {formData.carryForwardType ===
+                    "MAXIMUM" && (
                     <div className="leave-policy-form-group">
                       <label
                         className="leave-policy-form-label"
@@ -323,13 +395,16 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                         min="0"
                         step="0.5"
                         placeholder="e.g. 5"
-                        value={formData.carryForwardLimit}
+                        value={
+                          formData.carryForwardLimit
+                        }
                         onChange={(event) =>
                           updateField(
                             "carryForwardLimit",
                             event.target.value
                           )
                         }
+                        disabled={saving}
                       />
                     </div>
                   )}
@@ -344,7 +419,6 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
               </div>
 
               <div className="leave-policy-toggle-list">
-
                 <div className="leave-policy-toggle-row">
                   <div className="leave-policy-toggle-content">
                     <span className="leave-policy-toggle-title">
@@ -357,13 +431,16 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                   </div>
 
                   <Toggle
-                    checked={formData.halfDayAllowed}
+                    checked={
+                      formData.halfDayAllowed
+                    }
                     onChange={(value) =>
                       updateField(
                         "halfDayAllowed",
                         value
                       )
                     }
+                    disabled={saving}
                   />
                 </div>
 
@@ -379,16 +456,41 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
                   </div>
 
                   <Toggle
-                    checked={formData.requiresApproval}
+                    checked={
+                      formData.requiresApproval
+                    }
                     onChange={(value) =>
                       updateField(
                         "requiresApproval",
                         value
                       )
                     }
+                    disabled={saving}
                   />
                 </div>
 
+                <div className="leave-policy-toggle-row">
+                  <div className="leave-policy-toggle-content">
+                    <span className="leave-policy-toggle-title">
+                      Paid Leave
+                    </span>
+
+                    <span className="leave-policy-toggle-description">
+                      Employees receive their regular salary during this leave.
+                    </span>
+                  </div>
+
+                  <Toggle
+                    checked={formData.isPaid}
+                    onChange={(value) =>
+                      updateField(
+                        "isPaid",
+                        value
+                      )
+                    }
+                    disabled={saving}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -399,6 +501,7 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
               type="button"
               className="leave-policy-cancel-button"
               onClick={onClose}
+              disabled={saving}
             >
               Cancel
             </button>
@@ -406,8 +509,13 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
             <button
               type="submit"
               className="leave-policy-save-button"
+              disabled={saving}
             >
-              {policy ? "Save Changes" : "Create Policy"}
+              {saving
+                ? "Saving..."
+                : policy
+                  ? "Save Changes"
+                  : "Create Policy"}
             </button>
           </div>
         </form>
@@ -417,4 +525,3 @@ const LeavePolicyForm = ({ policy, onSave, onClose }) => {
 };
 
 export default LeavePolicyForm;
-

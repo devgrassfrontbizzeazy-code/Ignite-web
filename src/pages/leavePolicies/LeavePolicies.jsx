@@ -1,5 +1,4 @@
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -13,8 +12,116 @@ import PageHeader from "../../components/common/PageHeader/PageHeader";
 import StatCard from "../../components/common/StatCard/StatCard";
 import LeavePolicyTable from "../../components/leavePolicies/LeavePolicyTable/LeavePolicyTable";
 import LeavePolicyForm from "../../components/leavePolicies/LeavePolicyForm/LeavePolicyForm";
+import leavePolicyApi from "../../services/api/leavePolicyAPI";
 
 import "./LeavePolicies.css";
+
+const normalizePolicy = (policy) => ({
+  ...policy,
+
+  id: policy.id,
+
+  name: policy.name || "",
+  description: policy.description || "",
+
+  allocationType:
+    policy.allocation_type ||
+    policy.allocationType ||
+    "YEARLY",
+
+  days:
+    policy.allocation_days !== undefined &&
+    policy.allocation_days !== null
+      ? Number(policy.allocation_days)
+      : policy.days !== undefined && policy.days !== null
+        ? Number(policy.days)
+        : null,
+
+  carryForward:
+    policy.is_carry_forward !== undefined
+      ? Boolean(policy.is_carry_forward)
+      : Boolean(policy.carryForward),
+
+  carryForwardType:
+    policy.carry_forward_type ||
+    policy.carryForwardType ||
+    "NONE",
+
+  carryForwardLimit:
+    policy.max_carry_forward_days !== undefined &&
+    policy.max_carry_forward_days !== null &&
+    policy.max_carry_forward_days !== "-"
+      ? Number(policy.max_carry_forward_days)
+      : policy.carryForwardLimit !== undefined &&
+          policy.carryForwardLimit !== null
+        ? Number(policy.carryForwardLimit)
+        : null,
+
+  halfDayAllowed:
+    policy.allow_half_day !== undefined
+      ? Boolean(policy.allow_half_day)
+      : Boolean(policy.halfDayAllowed),
+
+  requiresApproval:
+    policy.requires_approval !== undefined
+      ? Boolean(policy.requires_approval)
+      : Boolean(policy.requiresApproval),
+
+  isPaid:
+    policy.is_paid !== undefined
+      ? Boolean(policy.is_paid)
+      : policy.isPaid !== undefined
+        ? Boolean(policy.isPaid)
+        : true,
+
+  status:
+    policy.is_active !== undefined
+      ? policy.is_active
+        ? "Active"
+        : "Inactive"
+      : policy.status || "Inactive",
+});
+
+const buildPolicyPayload = (policy) => ({
+  name: policy.name?.trim() || "",
+  description: policy.description?.trim() || "",
+
+  allocation_type: policy.allocationType,
+
+  allocation_days:
+    policy.days === "" ||
+    policy.days === null ||
+    policy.days === undefined
+      ? null
+      : String(policy.days),
+
+  is_carry_forward: Boolean(policy.carryForward),
+
+  carry_forward_type:
+    policy.carryForward && policy.carryForwardType
+      ? policy.carryForwardType
+      : "NONE",
+
+  max_carry_forward_days:
+    policy.carryForward &&
+    policy.carryForwardType !== "NONE" &&
+    policy.carryForwardLimit !== "" &&
+    policy.carryForwardLimit !== null &&
+    policy.carryForwardLimit !== undefined
+      ? String(policy.carryForwardLimit)
+      : null,
+
+  allow_half_day: Boolean(policy.halfDayAllowed),
+
+  requires_approval: Boolean(policy.requiresApproval),
+
+  is_paid: Boolean(policy.isPaid),
+
+  is_active:
+    policy.status !== undefined
+      ? policy.status === "Active"
+      : true,
+});
 
 const LeavePolicies = () => {
   const [policies, setPolicies] = useState([]);
@@ -22,29 +129,54 @@ const LeavePolicies = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
 
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchPolicies = async () => {
+  try {
+    setLoading(true);
+    setError("");
+
+    const data = await leavePolicyApi.getPolicies();
+
+    const policyList = Array.isArray(data)
+  ? data
+  : data?.data || data?.results || [];
+
+    setPolicies(policyList.map(normalizePolicy));
+  } catch (err) {
+    console.error("Failed to fetch leave policies:", err);
+
+    setError(
+      err.response?.data?.detail ||
+        "Unable to load leave policies."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+    fetchPolicies();
+  }, []);
+
   const stats = useMemo(() => {
     const activePolicies = policies.filter(
       (policy) => policy.status === "Active"
     );
 
-    /*
-     * Convert monthly allocation into an annual equivalent
-     * so the stat can represent total yearly allocation.
-     *
-     * Example:
-     * 12 days/year = 12
-     * 1 day/month = 12
-     */
     const annualDays = activePolicies.reduce(
       (total, policy) => {
         if (
           typeof policy.days !== "number" ||
+          Number.isNaN(policy.days) ||
           policy.days < 0
         ) {
           return total;
         }
 
-        if (policy.allocationType === "Monthly") {
+        if (policy.allocationType === "MONTHLY") {
           return total + policy.days * 12;
         }
 
@@ -100,14 +232,16 @@ const LeavePolicies = () => {
   const handleAddPolicy = () => {
     setEditingPolicy(null);
     setShowForm(true);
+    setError("");
   };
 
   const handleEditPolicy = (policy) => {
     setEditingPolicy(policy);
     setShowForm(true);
+    setError("");
   };
 
-  const handleDeletePolicy = (id) => {
+  const handleDeletePolicy = async (id) => {
     const policy = policies.find(
       (item) => item.id === id
     );
@@ -120,55 +254,84 @@ const LeavePolicies = () => {
 
     if (!confirmed) return;
 
-    setPolicies((current) =>
-      current.filter((item) => item.id !== id)
-    );
-  };
+    try {
+      setError("");
 
-  const handleToggleStatus = (id) => {
-    setPolicies((current) =>
-      current.map((policy) =>
-        policy.id === id
-          ? {
-              ...policy,
-              status:
-                policy.status === "Active"
-                  ? "Inactive"
-                  : "Active",
-            }
-          : policy
-      )
-    );
-  };
+      await leavePolicyApi.deletePolicy(id);
 
-  const handleSavePolicy = (policyData) => {
-    if (editingPolicy) {
-      setPolicies((current) =>
-        current.map((policy) =>
-          policy.id === editingPolicy.id
-            ? {
-                ...policy,
-                ...policyData,
-              }
-            : policy
-        )
+      await fetchPolicies();
+    } catch (err) {
+      console.error("Failed to delete leave policy:", err);
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to delete leave policy."
       );
-    } else {
-      setPolicies((current) => [
-        ...current,
-        {
-          id: Date.now(),
-          ...policyData,
-          status: "Active",
-        },
-      ]);
     }
+  };
 
-    setShowForm(false);
-    setEditingPolicy(null);
+  const handleToggleStatus = async (id) => {
+    try {
+      setError("");
+
+      await leavePolicyApi.togglePolicyStatus(id);
+
+      await fetchPolicies();
+    } catch (err) {
+      console.error(
+        "Failed to toggle leave policy status:",
+        err
+      );
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to update leave policy status."
+      );
+    }
+  };
+
+  const handleSavePolicy = async (policyData) => {
+    try {
+      setSaving(true);
+      setError("");
+
+      const payload = buildPolicyPayload(policyData);
+
+      if (editingPolicy) {
+        await leavePolicyApi.partialUpdatePolicy(
+          editingPolicy.id,
+          payload
+        );
+      } else {
+        await leavePolicyApi.createPolicy(payload);
+      }
+
+      await fetchPolicies();
+
+      setShowForm(false);
+      setEditingPolicy(null);
+    } catch (err) {
+      console.error("Failed to save leave policy:", err);
+
+      const responseData = err.response?.data;
+
+      if (typeof responseData === "string") {
+        setError(responseData);
+      } else if (responseData?.detail) {
+        setError(responseData.detail);
+      } else {
+        setError(
+          "Unable to save leave policy. Please check the entered values."
+        );
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCloseForm = () => {
+    if (saving) return;
+
     setShowForm(false);
     setEditingPolicy(null);
   };
@@ -189,7 +352,11 @@ const LeavePolicies = () => {
         }
       />
 
-      {/* POLICY STATS */}
+      {error && (
+        <div className="leave-policy-error">
+          {error}
+        </div>
+      )}
 
       <div className="stats-grid stats-grid--4">
         {policyStats.map((stat) => {
@@ -212,8 +379,6 @@ const LeavePolicies = () => {
         })}
       </div>
 
-      {/* LEAVE POLICIES */}
-
       <section className="leave-policy-content">
         <div className="leave-policy-section-header">
           <div>
@@ -233,21 +398,34 @@ const LeavePolicies = () => {
           )}
         </div>
 
-        <LeavePolicyTable
-          policies={policies}
-          onEdit={handleEditPolicy}
-          onDelete={handleDeletePolicy}
-          onToggleStatus={handleToggleStatus}
-        />
-      </section>
+        {loading ? (
+          <div className="leave-policy-empty">
+            <div className="leave-policy-empty-icon">
+              <Clock3 size={22} />
+            </div>
 
-      {/* ADD / EDIT POLICY */}
+            <h3>Loading leave policies...</h3>
+
+            <p>
+              Please wait while we fetch your leave policies.
+            </p>
+          </div>
+        ) : (
+          <LeavePolicyTable
+            policies={policies}
+            onEdit={handleEditPolicy}
+            onDelete={handleDeletePolicy}
+            onToggleStatus={handleToggleStatus}
+          />
+        )}
+      </section>
 
       {showForm && (
         <LeavePolicyForm
           policy={editingPolicy}
           onSave={handleSavePolicy}
           onClose={handleCloseForm}
+          saving={saving}
         />
       )}
     </div>
@@ -255,4 +433,3 @@ const LeavePolicies = () => {
 };
 
 export default LeavePolicies;
-
