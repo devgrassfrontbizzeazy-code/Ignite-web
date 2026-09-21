@@ -1,41 +1,49 @@
 import api from "./axios";
 
-export const holidayAPI = {
-  /**
-   * Fetch list of holidays for the company, optionally filtered by year
-   * @param {number|string} year
-   */
-  getHolidays: async (year) => {
-    const params = year ? { year } : {};
-    const response = await api.get("/holidays/", { params });
+const holidayAPI = {
+  // Get company holidays with optional filters
+  getHolidays: async (params = {}) => {
+    const response = await api.get("/holidays/", {
+      params,
+    });
+
     return response.data;
   },
 
-  /**
-   * Add a new holiday
-   * @param {Object} data - { name, date, description, is_optional }
-   */
-  createHoliday: async (data) => {
-    const response = await api.post("/holidays/", data);
+  // Get a single holiday
+  getHoliday: async (id) => {
+    const response = await api.get(`/holidays/${id}/`);
+
     return response.data;
   },
 
-  /**
-   * Update an existing holiday
-   * @param {number|string} id
-   * @param {Object} data
-   */
-  updateHoliday: async (id, data) => {
-    const response = await api.put(`/holidays/${id}/`, data);
+  // Create a holiday
+  createHoliday: async (holidayData) => {
+    const response = await api.post("/holidays/", holidayData);
+
     return response.data;
   },
 
-  /**
-   * Delete a holiday
-   * @param {number|string} id
-   */
+  // Update a holiday
+  updateHoliday: async (id, holidayData) => {
+    const response = await api.patch(`/holidays/${id}/`, holidayData);
+
+    return response.data;
+  },
+
+  // Delete a holiday
   deleteHoliday: async (id) => {
     const response = await api.delete(`/holidays/${id}/`);
+
+    return response.data;
+  },
+
+  // Get upcoming holidays
+  getUpcomingHolidays: async (params = {}) => {
+    const response = await api.get("/holidays/upcoming/", {
+      params,
+    });
+
     return response.data;
   },
 };

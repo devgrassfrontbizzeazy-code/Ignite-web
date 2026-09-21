@@ -1,5 +1,5 @@
 
-import { CalendarDays, Pencil, Power, Trash2 } from "lucide-react";
+import { CalendarDays, Pencil, Trash2 } from "lucide-react";
 import {
   canUpdateHolidays,
   canDeleteHolidays,
@@ -11,7 +11,6 @@ const HolidayTable = ({
   holidays,
   onEdit,
   onDelete,
-  onToggleStatus,
 }) => {
   if (!holidays.length) {
     return (
@@ -40,7 +39,6 @@ const HolidayTable = ({
             <th>Day</th>
             <th>Type</th>
             <th>Recurring</th>
-            <th>Status</th>
             <th className="holiday-actions-header">
               Actions
             </th>
@@ -50,6 +48,7 @@ const HolidayTable = ({
         <tbody>
           {holidays.map((holiday) => (
             <tr key={holiday.id}>
+              {/* Holiday */}
               <td>
                 <div className="holiday-name-cell">
                   <div className="holiday-name-icon">
@@ -70,70 +69,57 @@ const HolidayTable = ({
                 </div>
               </td>
 
+              {/* Date */}
               <td>
                 <span className="holiday-date">
                   {holiday.date}
                 </span>
               </td>
 
+              {/* Day */}
               <td>
                 <span className="holiday-day">
-                  {holiday.day}
+                  {holiday.day ||
+                    new Date(
+                      `${holiday.date}T00:00:00`
+                    ).toLocaleDateString("en-US", {
+                      weekday: "long",
+                    })}
                 </span>
               </td>
 
+              {/* Type */}
               <td>
                 <span
-                  className={`holiday-type holiday-type-${holiday.type
+                  className={`holiday-type holiday-type-${String(
+                    holiday.type || ""
+                  )
                     .toLowerCase()
                     .replace(/\s+/g, "-")}`}
                 >
-                  {holiday.type}
+                  {holiday.type || "—"}
                 </span>
               </td>
 
+              {/* Recurring */}
               <td>
                 <span
-                  className={`holiday-boolean ${
-                    holiday.recurring
+                  className={`holiday-boolean ${holiday.recurring_every_year ??
+                      holiday.recurringEveryYear ??
+                      holiday.recurring
                       ? "holiday-boolean-yes"
                       : "holiday-boolean-no"
-                  }`}
+                    }`}
                 >
-                  {holiday.recurring ? "Yes" : "No"}
+                  {holiday.recurring_every_year ??
+                    holiday.recurringEveryYear ??
+                    holiday.recurring
+                    ? "Yes"
+                    : "No"}
                 </span>
               </td>
 
-              <td>
-                {canUpdateHolidays() ? (
-                  <button
-                    type="button"
-                    className={`holiday-status ${
-                      holiday.status === "Active"
-                        ? "holiday-status-active"
-                        : "holiday-status-inactive"
-                    }`}
-                    onClick={() => onToggleStatus(holiday.id)}
-                    title="Toggle status"
-                  >
-                    <span className="holiday-status-dot" />
-                    {holiday.status}
-                  </button>
-                ) : (
-                  <span
-                    className={`holiday-status ${
-                      holiday.status === "Active"
-                        ? "holiday-status-active"
-                        : "holiday-status-inactive"
-                    }`}
-                    style={{ cursor: "default" }}
-                  >
-                    <span className="holiday-status-dot" />
-                    {holiday.status}
-                  </span>
-                )}
-              </td>
-
+              {/* Actions */}
               <td>
                 <div className="holiday-actions">
                   {canUpdateHolidays() && (
@@ -159,8 +145,16 @@ const HolidayTable = ({
                       <Trash2 size={15} strokeWidth={2} />
                     </button>
                   )}
+
                   {!canUpdateHolidays() && !canDeleteHolidays() && (
-                    <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>—</span>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        color: "var(--color-text-muted)",
+                      }}
+                    >
+                      —
+                    </span>
                   )}
                 </div>
               </td>

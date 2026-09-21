@@ -3,15 +3,16 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import Toggle from "../../common/Toggle/Toggle";
+import DatePicker from "../../common/DatePicker/DatePicker";
 
 import "./HolidayForm.css";
 
 const defaultForm = {
   name: "",
   date: "",
-  type: "Public Holiday",
+  holiday_type: "PUBLIC_HOLIDAY",
   description: "",
-  recurring: true,
+  recurring_every_year: true,
 };
 
 const HolidayForm = ({ holiday, onSave, onClose }) => {
@@ -20,11 +21,25 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
   useEffect(() => {
     if (holiday) {
       setFormData({
-        name: holiday.name || "",
+        name:
+          holiday.name ||
+          holiday.holiday_name ||
+          holiday.holidayName ||
+          "",
+
         date: holiday.date || "",
-        type: holiday.type || "Public Holiday",
+
+        holiday_type:
+          holiday.holiday_type ||
+          holiday.holidayType ||
+          "PUBLIC_HOLIDAY",
+
         description: holiday.description || "",
-        recurring: Boolean(holiday.recurring),
+
+        recurring_every_year:
+          holiday.recurring_every_year ??
+          holiday.recurringEveryYear ??
+          true,
       });
     } else {
       setFormData(defaultForm);
@@ -45,19 +60,12 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
       return;
     }
 
-    const selectedDate = new Date(`${formData.date}T00:00:00`);
-
-    const day = selectedDate.toLocaleDateString("en-US", {
-      weekday: "long",
-    });
-
     onSave({
       name: formData.name.trim(),
       date: formData.date,
-      day,
-      type: formData.type,
+      holiday_type: formData.holiday_type,
       description: formData.description.trim(),
-      recurring: formData.recurring,
+      recurring_every_year: formData.recurring_every_year,
     });
   };
 
@@ -94,6 +102,7 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
         <form onSubmit={handleSubmit}>
           <div className="holiday-form-body">
             <div className="holiday-form-grid">
+              {/* Holiday Name */}
               <div className="holiday-form-group full">
                 <label
                   className="holiday-form-label"
@@ -114,25 +123,22 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
                 />
               </div>
 
+              {/* Date */}
               <div className="holiday-form-group">
-                <label
-                  className="holiday-form-label"
-                  htmlFor="holiday-date"
-                >
+                <label className="holiday-form-label">
                   Date <span>*</span>
                 </label>
 
-                <input
-                  id="holiday-date"
-                  className="holiday-form-input"
-                  type="date"
+                <DatePicker
                   value={formData.date}
-                  onChange={(event) =>
-                    updateField("date", event.target.value)
+                  onChange={(value) =>
+                    updateField("date", value)
                   }
+                  placeholder="Select holiday date"
                 />
               </div>
 
+              {/* Holiday Type */}
               <div className="holiday-form-group">
                 <label
                   className="holiday-form-label"
@@ -144,25 +150,29 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
                 <select
                   id="holiday-type"
                   className="holiday-form-input holiday-form-select"
-                  value={formData.type}
+                  value={formData.holiday_type}
                   onChange={(event) =>
-                    updateField("type", event.target.value)
+                    updateField(
+                      "holiday_type",
+                      event.target.value
+                    )
                   }
                 >
-                  <option value="Public Holiday">
+                  <option value="PUBLIC_HOLIDAY">
                     Public Holiday
                   </option>
 
-                  <option value="Company Holiday">
+                  <option value="COMPANY_HOLIDAY">
                     Company Holiday
                   </option>
 
-                  <option value="Optional Holiday">
+                  <option value="OPTIONAL_HOLIDAY">
                     Optional Holiday
                   </option>
                 </select>
               </div>
 
+              {/* Description */}
               <div className="holiday-form-group full">
                 <label
                   className="holiday-form-label"
@@ -187,6 +197,7 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
               </div>
             </div>
 
+            {/* Recurring */}
             <div className="holiday-form-toggle-list">
               <div className="holiday-form-toggle-row">
                 <div className="holiday-form-toggle-content">
@@ -201,9 +212,12 @@ const HolidayForm = ({ holiday, onSave, onClose }) => {
                 </div>
 
                 <Toggle
-                  checked={formData.recurring}
+                  checked={formData.recurring_every_year}
                   onChange={(value) =>
-                    updateField("recurring", value)
+                    updateField(
+                      "recurring_every_year",
+                      value
+                    )
                   }
                 />
               </div>

@@ -40,13 +40,6 @@ const IGNITE_FIELDS = [
   },
 ];
 
-const normalizeHeader = (value) =>
-  String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ");
-
 const HEADER_ALIASES = {
   name: [
     "name",
@@ -84,6 +77,13 @@ const HEADER_ALIASES = {
   ],
 };
 
+const normalizeHeader = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+
 const autoMapColumns = (headers) => {
   const mapping = {};
 
@@ -91,7 +91,7 @@ const autoMapColumns = (headers) => {
     const aliases = HEADER_ALIASES[field.key] || [];
 
     const matchedHeader = headers.find((header) =>
-      aliases.includes(normalizeHeader(header))
+      aliases.includes(normalizeHeader(header)),
     );
 
     mapping[field.key] = matchedHeader || "";
@@ -159,9 +159,18 @@ const parseCSV = (text) => {
 };
 
 const normalizeBoolean = (value) => {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
 
-  return ["yes", "true", "1", "y", "annual", "yearly"].includes(normalized);
+  return [
+    "yes",
+    "true",
+    "1",
+    "y",
+    "annual",
+    "yearly",
+  ].includes(normalized);
 };
 
 const normalizeDate = (value) => {
@@ -175,12 +184,17 @@ const normalizeDate = (value) => {
   }
 
   // DD/MM/YYYY or DD-MM-YYYY
-  const ddmmyyyy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  const ddmmyyyy = raw.match(
+    /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/,
+  );
 
   if (ddmmyyyy) {
     const [, day, month, year] = ddmmyyyy;
 
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(
+      2,
+      "0",
+    )}`;
   }
 
   const parsed = new Date(raw);
@@ -190,8 +204,17 @@ const normalizeDate = (value) => {
   }
 
   return `${parsed.getFullYear()}-${String(
-    parsed.getMonth() + 1
-  ).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+    parsed.getMonth() + 1,
+  ).padStart(2, "0")}-${String(parsed.getDate()).padStart(
+    2,
+    "0",
+  )}`;
+};
+
+const normalizeComparisonDate = (value) => {
+  if (!value) return "";
+
+  return normalizeDate(value);
 };
 
 const getDayName = (date) => {
@@ -202,7 +225,44 @@ const getDayName = (date) => {
   });
 };
 
-const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
+const normalizeHolidayType = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ");
+
+  if (
+    normalized === "optional" ||
+    normalized === "optional holiday"
+  ) {
+    return {
+      value: "OPTIONAL_HOLIDAY",
+      label: "Optional Holiday",
+    };
+  }
+
+  if (
+    normalized === "company" ||
+    normalized === "company holiday"
+  ) {
+    return {
+      value: "COMPANY_HOLIDAY",
+      label: "Company Holiday",
+    };
+  }
+
+  return {
+    value: "PUBLIC_HOLIDAY",
+    label: "Public Holiday",
+  };
+};
+
+const HolidayImportModal = ({
+  existingHolidays = [],
+  onImport,
+  onClose,
+}) => {
   const [step, setStep] = useState("upload");
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState([]);
@@ -230,7 +290,9 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
         const parsed = parseCSV(text);
 
         if (!parsed.headers.length) {
-          throw new Error("No columns were found in the CSV file.");
+          throw new Error(
+            "No columns were found in the CSV file.",
+          );
         }
 
         setFileName(file.name);
@@ -240,7 +302,8 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
         setStep("mapping");
       } catch (parseError) {
         setError(
-          parseError.message || "Unable to read this CSV file."
+          parseError.message ||
+          "Unable to read this CSV file.",
         );
       }
     };
@@ -253,9 +316,11 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
       const name = String(row[mapping.name] || "").trim();
       const date = normalizeDate(row[mapping.date]);
 
-      const type = mapping.type
+      const rawType = mapping.type
         ? String(row[mapping.type] || "").trim()
         : "";
+
+      const holidayType = normalizeHolidayType(rawType);
 
       const description = mapping.description
         ? String(row[mapping.description] || "").trim()
@@ -275,21 +340,51 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
         errors.push("Date is missing or invalid");
       }
 
-      const duplicate = existingHolidays.some(
-        (holiday) =>
-          holiday.name?.trim().toLowerCase() === name.toLowerCase() &&
-          holiday.date === date
-      );
+      /*
+       * A holiday is a duplicate ONLY when:
+       *
+       * 1. Holiday name is the same
+       * 2. Exact date is the same
+       *
+       * Therefore:
+       *
+       * Independence Day - 2026-08-15
+       * Independence Day - 2027-08-15
+       *
+       * are NOT duplicates.
+       */
+      const normalizedName = name.toLowerCase();
+
+      const duplicate = existingHolidays.some((holiday) => {
+        const existingName = String(
+          holiday.name ||
+          holiday.holiday_name ||
+          holiday.holidayName ||
+          "",
+        )
+          .trim()
+          .toLowerCase();
+
+        const existingDate = normalizeComparisonDate(
+          holiday.date,
+        );
+
+        return (
+          existingName === normalizedName &&
+          existingDate === date
+        );
+      });
 
       return {
         rowNumber: index + 2,
         name,
         date,
         day: date ? getDayName(date) : "",
-        type: type || "Public Holiday",
+        type: holidayType.label,
+        holiday_type: holidayType.value,
         description,
         recurring,
-        status: "Active",
+        recurring_every_year: recurring,
         errors,
         duplicate,
       };
@@ -297,15 +392,19 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
   }, [rows, mapping, existingHolidays]);
 
   const validRows = mappedRows.filter(
-    (row) => row.errors.length === 0 && !row.duplicate
+    (row) =>
+      row.errors.length === 0 &&
+      !row.duplicate,
   );
 
   const invalidRows = mappedRows.filter(
-    (row) => row.errors.length > 0
+    (row) => row.errors.length > 0,
   );
 
   const duplicateRows = mappedRows.filter(
-    (row) => row.errors.length === 0 && row.duplicate
+    (row) =>
+      row.errors.length === 0 &&
+      row.duplicate,
   );
 
   const missingRequiredMapping =
@@ -314,7 +413,16 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
   const handleImport = () => {
     if (!validRows.length) return;
 
-    onImport(validRows);
+    onImport(
+      validRows.map((holiday) => ({
+        name: holiday.name,
+        date: holiday.date,
+        holiday_type: holiday.holiday_type,
+        description: holiday.description,
+        recurring_every_year:
+          holiday.recurring_every_year,
+      })),
+    );
   };
 
   const updateMapping = (field, value) => {
@@ -336,7 +444,8 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
             <h2>Import Holidays</h2>
 
             <p>
-              Upload your company's CSV and map its columns to Ignite.
+              Upload your company's CSV and map its columns
+              to Ignite.
             </p>
           </div>
 
@@ -351,21 +460,39 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
         </div>
 
         <div className="holiday-import-steps">
-          <div className={step === "upload" ? "active" : "completed"}>
+          <div
+            className={
+              step === "upload"
+                ? "active"
+                : "completed"
+            }
+          >
             <span>1</span>
             Upload
           </div>
 
           <ChevronRight size={15} />
 
-          <div className={step === "mapping" ? "active" : "completed"}>
+          <div
+            className={
+              step === "mapping"
+                ? "active"
+                : "completed"
+            }
+          >
             <span>2</span>
             Map Columns
           </div>
 
           <ChevronRight size={15} />
 
-          <div className={step === "preview" ? "active" : ""}>
+          <div
+            className={
+              step === "preview"
+                ? "active"
+                : ""
+            }
+          >
             <span>3</span>
             Preview
           </div>
@@ -387,13 +514,14 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
             <h3>Upload your CSV file</h3>
 
             <p>
-              Your CSV can use any column names or column order.
-              Ignite will help you map them.
+              Your CSV can use any column names or column
+              order. Ignite will help you map them.
             </p>
 
             <label className="holiday-import-upload-button">
               <Upload size={16} />
               Choose CSV File
+
               <input
                 type="file"
                 accept=".csv,text/csv"
@@ -402,7 +530,8 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
             </label>
 
             <div className="holiday-import-required">
-              <strong>Required:</strong> Holiday Name and Date
+              <strong>Required:</strong> Holiday Name and
+              Date
             </div>
 
             <div className="holiday-import-supported">
@@ -415,35 +544,52 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
           <div className="holiday-import-content">
             <div className="holiday-import-file">
               <FileSpreadsheet size={18} />
+
               <div>
                 <strong>{fileName}</strong>
-                <span>{rows.length} rows found</span>
+                <span>
+                  {rows.length} rows found
+                </span>
               </div>
             </div>
 
             <div className="holiday-import-info">
-              Match the columns from your CSV with the fields used by
-              Ignite.
+              Match the columns from your CSV with the
+              fields used by Ignite.
             </div>
 
             <div className="holiday-import-mapping">
               {IGNITE_FIELDS.map((field) => (
-                <div className="holiday-import-mapping-row" key={field.key}>
+                <div
+                  className="holiday-import-mapping-row"
+                  key={field.key}
+                >
                   <div>
                     <strong>{field.label}</strong>
-                    {field.required && <span>Required</span>}
+
+                    {field.required && (
+                      <span>Required</span>
+                    )}
                   </div>
 
                   <select
                     value={mapping[field.key] || ""}
                     onChange={(event) =>
-                      updateMapping(field.key, event.target.value)
+                      updateMapping(
+                        field.key,
+                        event.target.value,
+                      )
                     }
                   >
-                    <option value="">Not available</option>
+                    <option value="">
+                      Not available
+                    </option>
 
                     {headers.map((header) => (
-                      <option key={header} value={header}>
+                      <option
+                        key={header}
+                        value={header}
+                      >
                         {header}
                       </option>
                     ))}
@@ -455,12 +601,17 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
             {missingRequiredMapping && (
               <div className="holiday-import-warning">
                 <AlertCircle size={16} />
-                Please map both Holiday Name and Date before continuing.
+
+                Please map both Holiday Name and Date
+                before continuing.
               </div>
             )}
 
             <div className="holiday-import-actions">
-              <Button variant="secondary" onClick={() => setStep("upload")}>
+              <Button
+                variant="secondary"
+                onClick={() => setStep("upload")}
+              >
                 Back
               </Button>
 
@@ -481,19 +632,31 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
             <div className="holiday-import-summary">
               <div>
                 <CheckCircle2 size={17} />
-                <strong>{validRows.length}</strong>
+
+                <strong>
+                  {validRows.length}
+                </strong>
+
                 <span>Ready to import</span>
               </div>
 
               <div>
                 <AlertCircle size={17} />
-                <strong>{invalidRows.length}</strong>
+
+                <strong>
+                  {invalidRows.length}
+                </strong>
+
                 <span>Invalid rows</span>
               </div>
 
               <div>
                 <AlertCircle size={17} />
-                <strong>{duplicateRows.length}</strong>
+
+                <strong>
+                  {duplicateRows.length}
+                </strong>
+
                 <span>Duplicates</span>
               </div>
             </div>
@@ -514,9 +677,17 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
                   {mappedRows.map((row) => (
                     <tr key={row.rowNumber}>
                       <td>{row.rowNumber}</td>
-                      <td>{row.name || "—"}</td>
-                      <td>{row.date || "—"}</td>
+
+                      <td>
+                        {row.name || "—"}
+                      </td>
+
+                      <td>
+                        {row.date || "—"}
+                      </td>
+
                       <td>{row.type}</td>
+
                       <td>
                         {row.errors.length > 0 ? (
                           <span className="import-status invalid">
@@ -539,7 +710,10 @@ const HolidayImportModal = ({ existingHolidays = [], onImport, onClose }) => {
             </div>
 
             <div className="holiday-import-actions">
-              <Button variant="secondary" onClick={() => setStep("mapping")}>
+              <Button
+                variant="secondary"
+                onClick={() => setStep("mapping")}
+              >
                 Back
               </Button>
 
