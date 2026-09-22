@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
-import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
-import EmptyState from "../../components/common/EmptyState/EmptyState";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
-import Modal from "../../components/common/Modal/Modal";
+import PageHeader from "../../components/common/PageHeader/PageHeader";
 
-import DepartmentStats from "../../components/departments/DepartmentStats/DepartmentStats";
-import DepartmentFilters from "../../components/departments/DepartmentFilters/DepartmentFilters";
-import DepartmentTable from "../../components/departments/DepartmentTable/DepartmentTable";
-
-import DepartmentForm from "../../components/departments/DepartmentForm/DepartmentForm";
 import DepartmentDetails from "../../components/departments/DepartmentDetails/DepartmentDetails";
+import DepartmentFilters from "../../components/departments/DepartmentFilters/DepartmentFilters";
+import DepartmentForm from "../../components/departments/DepartmentForm/DepartmentForm";
+import DepartmentStats from "../../components/departments/DepartmentStats/DepartmentStats";
+import DepartmentTable from "../../components/departments/DepartmentTable/DepartmentTable";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 
 import {
   getDepartments,
@@ -21,102 +19,172 @@ import {
   deleteDepartment,
 } from "../../services/api/departmentAPI";
 
-import { extractApiError } from "../../utils/apiErrorUtils";
-import { canCreateDepartments } from "../../utils/permissionUtils";
+import roleService from "../../services/roleService";
+import { useNotification } from "../../context/NotificationContext";
 
 import "./Departments.css";
 
-/*
- * Convert backend department data into
- * the structure expected by frontend components.
- */
-const normalizeDepartment = (department) => {
-  if (!department) {
-    return null;
-  }
-
-  return {
-    id: department.id ?? department.department_id ?? department.pk,
-    departmentCode:
-      department.department_code ?? department.departmentCode ?? "",
-
-    departmentName: department.name ?? department.department_name ?? "",
-
-    description: department.description ?? "",
-
-    status: (
-      department.status ?? (department.is_active ? "Active" : "Inactive")
-    ).toLowerCase(),
-
-    isActive: Boolean(department.is_active),
-
-    company: department.company,
-
-    companyName: department.company_name,
-
-    createdAt: department.created_at ?? department.createdAt,
-
-    updatedAt: department.updated_at ?? department.updatedAt,
-
-    deletedAt: department.deleted_at ?? department.deletedAt,
-  };
-};
-
-/*
- * Extract department array from the API response.
- *
- * Supports:
- * - Direct array
- * - { results: [] }
- * - { data: [] }
- */
 const extractDepartmentList = (response) => {
   if (Array.isArray(response)) {
     return response;
-  }
-
-  if (Array.isArray(response?.results)) {
-    return response.results;
   }
 
   if (Array.isArray(response?.data)) {
     return response.data;
   }
 
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  if (Array.isArray(response?.data?.results)) {
+    return response.data.results;
+  }
+
   return [];
 };
 
+const normalizeDepartment = (department) => {
+  if (!department) {
+    return null;
+  }
+
+  const rawStatus = department.status ?? department.is_active;
+
+  let normalizedStatus = "active";
+
+  if (typeof rawStatus === "boolean") {
+    normalizedStatus = rawStatus ? "active" : "inactive";
+  } else if (typeof rawStatus === "string") {
+    normalizedStatus =
+      rawStatus.toLowerCase() === "active" || rawStatus.toLowerCase() === "true"
+        ? "active"
+        : "inactive";
+  }
+
+  return {
+    ...department,
+    id: department.id ?? department.department_id,
+    departmentName:
+      department.departmentName ??
+      department.name ??
+      department.department_name ??
+      "Unnamed Department",
+    departmentCode:
+      department.departmentCode ??
+      department.code ??
+      department.department_code ??
+      "—",
+    description: department.description ?? "",
+    status: normalizedStatus,
+    createdAt:
+      department.createdAt ??
+      department.created_at ??
+      new Date().toISOString(),
+
+    headOfDepartment:
+      department.headOfDepartment ??
+      department.head_of_department ??
+      department.manager ??
+      null,
+
+    employeeCount:
+      department.employeeCount ??
+      department.employee_count ??
+      department.total_employees ??
+      0,
+
+    rolesCount:
+      department.rolesCount ??
+      department.roles_count ??
+      department.total_roles ??
+      0,
+  };
+};
+
+const extractApiError = (error, fallbackContext = {}) => {
+  const data = error?.response?.data;
+
+  if (!data) {
+    return {
+      fieldErrors: {},
+      generalError: error?.message || "An unexpected error occurred.",
+    };
+  }
+
+  if (typeof data === "string") {
+    return {
+      fieldErrors: {},
+      generalError: data,
+    };
+  }
+
+  const fieldErrors = {};
+  let generalError = "";
+
+  if (data.detail && typeof data.detail === "string") {
+    generalError = data.detail;
+  } else if (data.message && typeof data.message === "string") {
+    generalError = data.message;
+  } else if (data.error && typeof data.error === "string") {
+    generalError = data.error;
+  }
+
+  Object.keys(data).forEach((key) => {
+    if (
+      key === "detail" ||
+      key === "message" ||
+      key === "error" ||
+      key === "status_code"
+    ) {
+      return;
+    }
+
+    const value = data[key];
+
+    if (Array.isArray(value)) {
+      fieldErrors[key] = value.join(" ");
+    } else if (typeof value === "string") {
+      fieldErrors[key] = value;
+    }
+  });
+
+  return {
+    fieldErrors,
+    generalError:
+      generalError ||
+      (Object.keys(fieldErrors).length > 0
+        ? "Please fix the validation errors below."
+        : "Failed to process request."),
+  };
+};
+
 const Departments = () => {
+  const { notify } = useNotification();
   const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
-
   const [status, setStatus] = useState("all");
-
   const [sortBy, setSortBy] = useState("name");
 
   const [showForm, setShowForm] = useState(false);
-
-  const [showDetails, setShowDetails] = useState(false);
-
   const [selectedDepartment, setSelectedDepartment] = useState(null);
-
-  const [loading, setLoading] = useState(false);
-
-  const [error, setError] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
 
   const [formFieldErrors, setFormFieldErrors] = useState({});
 
-  /*
-   * Load all departments.
-   */
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    department: null,
+    loading: false,
+  });
+
   const loadDepartments = async () => {
     try {
       setLoading(true);
-      setError("");
 
       const response = await getDepartments();
-
       const departmentList = extractDepartmentList(response);
 
       const normalizedDepartments = departmentList
@@ -132,78 +200,51 @@ const Departments = () => {
         action: "load",
       });
 
-      setError(generalError || "Failed to load departments. Please try again.");
+      notify.error(generalError || "Failed to load departments. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Load departments when page mounts.
-   */
   useEffect(() => {
     loadDepartments();
   }, []);
 
-  /*
-   * Department statistics.
-   */
   const stats = useMemo(() => {
     const total = departments.length;
+    const active = departments.filter((d) => d.status === "active").length;
+    const inactive = departments.filter((d) => d.status === "inactive").length;
 
-    const active = departments.filter(
-      (department) => department.status === "active",
-    ).length;
-
-    const inactive = departments.filter(
-      (department) => department.status === "inactive",
-    ).length;
-
-    return {
-      total,
-      active,
-      inactive,
-    };
+    return { total, active, inactive };
   }, [departments]);
 
-  /*
-   * Search, filter and sort departments.
-   */
   const filteredDepartments = useMemo(() => {
     let result = [...departments];
 
-    /*
-     * Search by department name
-     * or description.
-     */
     if (search.trim()) {
       const searchValue = search.toLowerCase().trim();
-
       result = result.filter(
         (department) =>
           department.departmentName?.toLowerCase().includes(searchValue) ||
+          department.departmentCode?.toLowerCase().includes(searchValue) ||
           department.description?.toLowerCase().includes(searchValue),
       );
     }
 
-    /*
-     * Status filter.
-     */
     if (status !== "all") {
       result = result.filter((department) => department.status === status);
     }
 
-    /*
-     * Sorting.
-     */
     result.sort((a, b) => {
       switch (sortBy) {
         case "newest":
           return new Date(b.createdAt) - new Date(a.createdAt);
-
         case "oldest":
           return new Date(a.createdAt) - new Date(b.createdAt);
-
+        case "code":
+          return (a.departmentCode || "").localeCompare(b.departmentCode || "");
+        case "employees":
+          return (b.employeeCount || 0) - (a.employeeCount || 0);
         case "name":
         default:
           return (a.departmentName || "").localeCompare(b.departmentName || "");
@@ -213,86 +254,68 @@ const Departments = () => {
     return result;
   }, [departments, search, status, sortBy]);
 
-  /*
-   * Open Add Department form.
-   */
   const handleAddDepartment = () => {
-    setError("");
     setFormFieldErrors({});
     setSelectedDepartment(null);
     setShowForm(true);
   };
 
-  /*
-   * View Department.
-   *
-   * Fetches the latest department
-   * details from the backend.
-   */
   const handleViewDepartment = (department) => {
-    setError("");
     setSelectedDepartment(department);
     setShowDetails(true);
   };
 
-  /*
-   * Open Edit Department form.
-   */
   const handleEditDepartment = (department) => {
-    setError("");
     setFormFieldErrors({});
     setShowDetails(false);
     setSelectedDepartment(department);
     setShowForm(true);
   };
 
-  /*
-   * Close Details modal.
-   */
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setSelectedDepartment(null);
+    setFormFieldErrors({});
+  };
+
   const handleCloseDetails = () => {
     setShowDetails(false);
     setSelectedDepartment(null);
   };
 
-  /*
-   * Delete Department.
-   */
-  const handleDeleteDepartment = async (department) => {
+  const handleDeleteClick = (department) => {
     if (!department?.id) {
-      setError("Unable to delete department: department ID is missing.");
+      notify.error("Unable to delete department: department ID is missing.");
       return;
     }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${department.departmentName}"?`,
-    );
+    setDeleteModal({
+      open: true,
+      department,
+      loading: false,
+    });
+  };
 
-    if (!confirmed) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    const department = deleteModal.department;
+    if (!department) return;
 
     try {
-      setLoading(true);
-      setError("");
+      setDeleteModal((prev) => ({ ...prev, loading: true }));
 
       await deleteDepartment(department.id);
 
-      /*
-       * Remove deleted department
-       * from local state.
-       */
       setDepartments((previous) =>
         previous.filter((item) => item.id !== department.id),
       );
 
-      /*
-       * Close details if the
-       * deleted department was open.
-       */
       if (selectedDepartment?.id === department.id) {
         setSelectedDepartment(null);
         setShowDetails(false);
       }
+
+      setDeleteModal({ open: false, department: null, loading: false });
+      notify.success(`Department "${department.departmentName}" deleted successfully.`);
     } catch (error) {
       console.error("Failed to delete department:", error);
 
@@ -301,24 +324,19 @@ const Departments = () => {
         action: "delete",
       });
 
-      setError(generalError || "Failed to delete department. Please try again.");
-    } finally {
-      setLoading(false);
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
+      notify.error(generalError || "Failed to delete department. Please try again.");
     }
   };
 
-  /*
-   * Activate / Deactivate Department.
-   */
   const handleToggleDepartmentStatus = async (department) => {
     if (!department?.id) {
-      setError("Unable to update department: department ID is missing.");
+      notify.error("Unable to update department: department ID is missing.");
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
 
       const newStatus = department.status === "active" ? "Inactive" : "Active";
 
@@ -327,24 +345,14 @@ const Departments = () => {
         is_active: newStatus === "Active",
       });
 
-      /*
-       * Reload departments from backend
-       * so the UI always reflects the
-       * actual saved state.
-       */
       const response = await getDepartments();
-
       const departmentList = extractDepartmentList(response);
-
       const normalizedDepartments = departmentList
         .map(normalizeDepartment)
         .filter(Boolean);
 
       setDepartments(normalizedDepartments);
 
-      /*
-       * Keep details modal synchronized.
-       */
       const updatedDepartment = normalizedDepartments.find(
         (item) => item.id === department.id,
       );
@@ -352,6 +360,10 @@ const Departments = () => {
       if (updatedDepartment) {
         setSelectedDepartment(updatedDepartment);
       }
+
+      notify.success(
+        `Department "${department.departmentName}" ${newStatus === "Active" ? "activated" : "deactivated"} successfully.`,
+      );
     } catch (error) {
       console.error("Failed to update department status:", error);
 
@@ -360,69 +372,51 @@ const Departments = () => {
         action: "toggle",
       });
 
-      setError(generalError || "Failed to update department status. Please try again.");
+      notify.error(generalError || "Failed to update department status. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Add / Edit Department.
-   */
   const handleSubmitDepartment = async (formData) => {
     try {
       setLoading(true);
-      setError("");
       setFormFieldErrors({});
 
       const payload = {
         department_code: formData.departmentCode?.trim() || "",
-
-        name: formData.departmentName?.trim() || "",
-
+        department_name: formData.departmentName?.trim() || "",
         description: formData.description?.trim() || "",
-
-        status: formData.status === "active" ? "Active" : "Inactive",
-
-        is_active: formData.status === "active",
+        status: formData.status || "Active",
+        is_active: (formData.status || "Active") === "Active",
       };
 
-      /*
-       * Edit existing department.
-       */
-      if (selectedDepartment) {
+      if (selectedDepartment?.id) {
         await updateDepartment(selectedDepartment.id, payload);
+
+        if (formData.defaultRoleId) {
+          roleService.setDepartmentRole(
+            selectedDepartment.id,
+            formData.defaultRoleId,
+          );
+        }
+
+        notify.success("Department updated successfully.");
       } else {
-        /*
-         * Create new department.
-         */
-        await createDepartment(payload);
+        const response = await createDepartment(payload);
+
+        const newDeptId =
+          response?.data?.id || response?.id || response?.department_id;
+
+        if (newDeptId && formData.defaultRoleId) {
+          roleService.setDepartmentRole(newDeptId, formData.defaultRoleId);
+        }
+
+        notify.success("Department created successfully.");
       }
 
-      /*
-       * Always reload from backend
-       * after create/update.
-       *
-       * This guarantees that the
-       * frontend uses the same data
-       * structure as a page refresh.
-       */
-      const response = await getDepartments();
-
-      const departmentList = extractDepartmentList(response);
-
-      const normalizedDepartments = departmentList
-        .map(normalizeDepartment)
-        .filter(Boolean);
-
-      setDepartments(normalizedDepartments);
-
-      /*
-       * Close form.
-       */
-      setShowForm(false);
-      setSelectedDepartment(null);
-      setFormFieldErrors({});
+      await loadDepartments();
+      handleCloseForm();
     } catch (error) {
       console.error("Failed to save department:", error);
 
@@ -432,138 +426,83 @@ const Departments = () => {
       });
 
       setFormFieldErrors(fieldErrors);
-      setError(generalError || "Failed to save department. Please try again.");
+      notify.error(generalError || "Failed to save department.");
     } finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Cancel Add / Edit form.
-   */
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setSelectedDepartment(null);
-    setError("");
-  };
-
   return (
-    <div className="departments-page">
-      {/* Page Header */}
+    <main className="departments-page">
       <PageHeader
         eyebrow="Organization"
         title="Departments"
-        description="Manage your organization's departments and structure."
+        description="Manage organizational units, structure, and department assignments."
         action={
-          canCreateDepartments() ? (
-            <Button variant="primary" onClick={handleAddDepartment}>
-              + Add Department
-            </Button>
-          ) : null
+          <Button variant="primary" onClick={handleAddDepartment}>
+            + Add Department
+          </Button>
         }
       />
 
-      <div className="departments-page__content">
-        {/* Error */}
-        {error && (
-          <div className="departments-page__error" role="alert">
-            {error}
-          </div>
-        )}
+      <DepartmentStats stats={stats} />
 
-        {/* Statistics */}
-        <DepartmentStats
-          total={stats.total}
-          active={stats.active}
-          inactive={stats.inactive}
+      <section className="departments-page__content">
+        <DepartmentFilters
+          search={search}
+          onSearchChange={setSearch}
+          status={status}
+          onStatusChange={setStatus}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
         />
 
-        {/* Filters */}
-        {departments.length > 0 && (
-          <DepartmentFilters
-            search={search}
-            onSearch={(value) => setSearch(value?.target?.value ?? value ?? "")}
-            status={status}
-            onStatusChange={setStatus}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-          />
-        )}
-
-        {/* Loading */}
-        {loading && departments.length === 0 ? (
-          <IgniteLoader text="Loading departments..." />
-        ) : departments.length === 0 ? (
-          /* No Departments */
-          <div className="departments-page__empty">
-            <EmptyState
-              title="No departments yet"
-              description="Create your first department to start organizing your workforce."
-              action={
-                canCreateDepartments() ? (
-                  <Button variant="primary" onClick={handleAddDepartment}>
-                    + Add Department
-                  </Button>
-                ) : null
-              }
-            />
-          </div>
-        ) : filteredDepartments.length === 0 ? (
-          /* No Search Results */
-          <div className="departments-page__empty">
-            <EmptyState
-              title="No departments found"
-              description="Try changing your search or status filter."
-            />
+        {loading ? (
+          <div className="departments-page__loading">
+            <IgniteLoader message="Loading departments..." />
           </div>
         ) : (
-          /* Department Table */
-          <div className="departments-page__table">
-            <DepartmentTable
-              departments={filteredDepartments}
-              onView={handleViewDepartment}
-              onEdit={handleEditDepartment}
-              onDelete={handleDeleteDepartment}
-              onToggleStatus={handleToggleDepartmentStatus}
-            />
-          </div>
+          <DepartmentTable
+            departments={filteredDepartments}
+            onView={handleViewDepartment}
+            onEdit={handleEditDepartment}
+            onDelete={handleDeleteClick}
+            onToggleStatus={handleToggleDepartmentStatus}
+          />
         )}
-      </div>
+      </section>
 
-      {/* Department Details Modal */}
-      <Modal
-        open={showDetails && !!selectedDepartment}
-        onClose={handleCloseDetails}
-        size="medium"
-      >
+      {showForm && (
+        <DepartmentForm
+          department={selectedDepartment}
+          onSubmit={handleSubmitDepartment}
+          onCancel={handleCloseForm}
+          errors={formFieldErrors}
+        />
+      )}
+
+      {showDetails && selectedDepartment && (
         <DepartmentDetails
           department={selectedDepartment}
           onClose={handleCloseDetails}
-          onEdit={handleEditDepartment}
+          onEdit={() => handleEditDepartment(selectedDepartment)}
+          onDelete={() => handleDeleteClick(selectedDepartment)}
+          onToggleStatus={() => handleToggleDepartmentStatus(selectedDepartment)}
         />
-      </Modal>
+      )}
 
-      {/* Add / Edit Modal */}
-      <Modal
-        open={showForm}
-        onClose={handleCancelForm}
-        title={selectedDepartment ? "Edit Department" : "Add Department"}
-        description={
-          selectedDepartment
-            ? "Update the department details below."
-            : "Add a new department to your organization."
-        }
-        size="medium"
-      >
-        <DepartmentForm
-          initialData={selectedDepartment || {}}
-          onSubmit={handleSubmitDepartment}
-          onCancel={handleCancelForm}
-          loading={loading}
-          fieldErrors={formFieldErrors}
+      {deleteModal.open && (
+        <ConfirmModal
+          open={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, department: null, loading: false })}
+          onConfirm={handleConfirmDelete}
+          title="Delete Department?"
+          itemName={deleteModal.department?.departmentName}
+          confirmText="Delete"
+          loading={deleteModal.loading}
         />
-      </Modal>
-    </div>
+      )}
+    </main>
   );
 };
 

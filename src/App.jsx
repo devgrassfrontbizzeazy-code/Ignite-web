@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import { OrganizationProvider } from "./context/OrganizationContext/OrganizationContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
 /* Website */
 import HomePage from "./pages/landingPage/HomePage";
@@ -58,6 +59,10 @@ import Leaves from "./pages/leaves/Leaves";
 
 import Holidays from "./pages/holidays/Holidays";
 
+import Teams from "./pages/Teams/Teams";
+
+import Tasks from "./pages/Tasks/Tasks";
+
 /* =========================================================
    TEMPORARY / DASHBOARD
 ========================================================= */
@@ -88,9 +93,10 @@ function Settings() {
 export default function App() {
   return (
     <OrganizationProvider>
-      <BrowserRouter>
-        <CompanySetupProvider>
-          <Routes>
+      <NotificationProvider>
+        <BrowserRouter>
+          <CompanySetupProvider>
+            <Routes>
             {/* =====================================================
                 PUBLIC WEBSITE
             ===================================================== */}
@@ -266,6 +272,10 @@ export default function App() {
 
                   <Route path="/holidays" element={<Holidays />} />
 
+                 <Route path="/teams" element={<Teams />} />
+
+                 <Route path="/tasks" element={<Tasks />} />
+
                   {/* =================================================
                       ADMIN ONLY ROUTES
                   ================================================= */}
@@ -351,6 +361,7 @@ export default function App() {
           </Routes>
         </CompanySetupProvider>
       </BrowserRouter>
-    </OrganizationProvider>
+    </NotificationProvider>
+  </OrganizationProvider>
   );
 }

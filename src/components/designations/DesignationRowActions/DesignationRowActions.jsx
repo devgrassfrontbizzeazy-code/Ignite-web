@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { FiEye, FiEdit2, FiPower, FiTrash2 } from "react-icons/fi";
 import {
   canUpdateDesignations,
   canDeleteDesignations,
 } from "../../../utils/permissionUtils";
-
-import "./DesignationRowActions.css";
+import RowActions from "../../common/RowActions/RowActions";
 
 const DesignationRowActions = ({
   designation,
@@ -13,185 +12,53 @@ const DesignationRowActions = ({
   onDelete,
   onToggleStatus,
 }) => {
-  const [open, setOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({
-    top: 0,
-    left: 0,
-    placement: "bottom",
-  });
-
-  const triggerRef = useRef(null);
-  const menuRef = useRef(null);
-
   const canEdit = canUpdateDesignations();
   const canDelete = canDeleteDesignations();
+  const isActive = designation?.status === "active";
 
-  const updateMenuPosition = () => {
-    if (!triggerRef.current) {
-      return;
-    }
-
-    const triggerRect = triggerRef.current.getBoundingClientRect();
-    const menuEl = menuRef.current;
-    const menuWidth = menuEl?.offsetWidth || 150;
-
-    let itemCount = 1; // View
-    if (canEdit) itemCount += 2; // Edit, Status
-    if (canDelete) itemCount += 1; // Delete
-
-    const menuHeight = menuEl?.offsetHeight || (itemCount * 36 + 12);
-    const gap = 4;
-    const viewportPadding = 8;
-
-    let left = triggerRect.right - menuWidth;
-
-    if (left < viewportPadding) {
-      left = viewportPadding;
-    }
-
-    if (left + menuWidth > window.innerWidth - viewportPadding) {
-      left = window.innerWidth - menuWidth - viewportPadding;
-    }
-
-    const spaceBelow = window.innerHeight - triggerRect.bottom;
-    const spaceAbove = triggerRect.top;
-
-    const shouldOpenUp = spaceBelow < menuHeight && spaceAbove >= menuHeight;
-
-    let top = shouldOpenUp
-      ? triggerRect.top - menuHeight - gap
-      : triggerRect.bottom + gap;
-
-    setMenuPosition({
-      top: Math.round(top),
-      left: Math.round(left),
-      placement: shouldOpenUp ? "top" : "bottom",
-    });
-  };
-
-  const handleToggle = () => {
-    if (!open) {
-      updateMenuPosition();
-    }
-
-    setOpen((previous) => !previous);
-  };
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    updateMenuPosition();
-    const animId = requestAnimationFrame(() => {
-      updateMenuPosition();
-    });
-
-    const handleOutsideClick = (event) => {
-      if (
-        triggerRef.current &&
-        triggerRef.current.contains(event.target)
-      ) {
-        return;
-      }
-
-      if (
-        menuRef.current &&
-        menuRef.current.contains(event.target)
-      ) {
-        return;
-      }
-
-      setOpen(false);
-    };
-
-    const handlePositionUpdate = () => {
-      updateMenuPosition();
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    window.addEventListener("scroll", handlePositionUpdate, true);
-    window.addEventListener("resize", handlePositionUpdate);
-
-    return () => {
-      cancelAnimationFrame(animId);
-      document.removeEventListener("mousedown", handleOutsideClick);
-      window.removeEventListener("scroll", handlePositionUpdate, true);
-      window.removeEventListener("resize", handlePositionUpdate);
-    };
-  }, [open, canEdit, canDelete]);
-
-  const handleAction = (callback) => {
-    setOpen(false);
-
-    if (typeof callback === "function") {
-      callback(designation);
-    }
-  };
-
-  const isActive = designation.status === "active";
+  const actions = [
+    {
+      key: "view",
+      label: "View Details",
+      icon: FiEye,
+      onClick: () => onView?.(designation),
+    },
+    ...(canEdit
+      ? [
+          {
+            key: "edit",
+            label: "Edit",
+            icon: FiEdit2,
+            onClick: () => onEdit?.(designation),
+          },
+          {
+            key: "toggleStatus",
+            label: isActive ? "Deactivate" : "Activate",
+            icon: FiPower,
+            onClick: () => onToggleStatus?.(designation),
+          },
+        ]
+      : []),
+    ...(canDelete && canEdit ? [{ key: "divider-1", isDivider: true }] : []),
+    ...(canDelete
+      ? [
+          {
+            key: "delete",
+            label: "Delete",
+            icon: FiTrash2,
+            isDanger: true,
+            onClick: () => onDelete?.(designation),
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <div className="designation-row-actions">
-      <button
-        ref={triggerRef}
-        type="button"
-        className="designation-row-actions__trigger"
-        onClick={handleToggle}
-        aria-label={`Actions for ${designation.designationName || "designation"}`}
-        aria-expanded={open}
-      >
-        ⋮
-      </button>
-
-      {open && (
-        <div
-          ref={menuRef}
-          className={`designation-row-actions__menu designation-row-actions__menu--${menuPosition.placement}`}
-          style={{
-            top: `${menuPosition.top}px`,
-            left: `${menuPosition.left}px`,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => handleAction(onView)}
-          >
-            View
-          </button>
-
-          {canEdit && (
-            <button
-              type="button"
-              onClick={() => handleAction(onEdit)}
-            >
-              Edit
-            </button>
-          )}
-
-          {canEdit && (
-            <button
-              type="button"
-              onClick={() => handleAction(onToggleStatus)}
-            >
-              {isActive ? "Deactivate" : "Activate"}
-            </button>
-          )}
-
-          {canDelete && (
-            <button
-              type="button"
-              className="designation-row-actions__delete"
-              onClick={() => handleAction(onDelete)}
-            >
-              Delete
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+    <RowActions
+      actions={actions}
+      title={`Actions for ${designation?.designationName || "designation"}`}
+    />
   );
 };
 
 export default DesignationRowActions;
-

@@ -1,0 +1,347 @@
+.task-form {
+  width: 100%;
+}
+
+.task-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+.task-form input[type="text"],
+.task-form input[type="date"],
+.task-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 11px 13px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  outline: none;
+
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+
+  font-family: var(--font-family-base);
+  font-size: 13px;
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.task-form input[type="text"],
+.task-form input[type="date"] {
+  min-height: 42px;
+}
+
+.task-form textarea {
+  min-height: 105px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.task-form input::placeholder,
+.task-form textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.task-form input:focus,
+.task-form textarea:focus {
+  border-color: var(--ignite-emerald);
+
+  box-shadow:
+    0 0 0 3px var(--ignite-emerald-100);
+}
+
+.task-form input:disabled,
+.task-form textarea:disabled {
+  background: var(--color-bg-page);
+  cursor: not-allowed;
+}
+
+/* =========================
+   ASSIGNEE
+========================= */
+
+.task-form__disabled-message {
+  display: flex;
+  align-items: center;
+
+  min-height: 42px;
+  padding: 0 13px;
+
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+
+  background: var(--color-bg-page);
+
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.task-form__member-picker {
+  position: relative;
+}
+
+.task-form__member-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-height: 42px;
+  padding: 0 12px;
+
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.task-form__member-search:focus-within {
+  border-color: var(--ignite-emerald);
+
+  box-shadow:
+    0 0 0 3px var(--ignite-emerald-100);
+}
+
+.task-form__member-search input {
+  width: 100%;
+  min-height: 38px;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+  color: var(--color-text-primary);
+
+  font-family: var(--font-family-base);
+  font-size: 13px;
+}
+
+.task-form__member-search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* =========================
+   MEMBER RESULTS
+========================= */
+
+.task-form__member-results {
+  display: flex;
+  flex-direction: column;
+
+  max-height: 220px;
+  margin-top: 8px;
+
+  overflow-y: auto;
+
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+
+  background: var(--color-bg-surface);
+}
+
+.task-form__member-option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  width: 100%;
+  padding: 11px 12px;
+
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+
+  background: transparent;
+
+  text-align: left;
+  cursor: pointer;
+
+  transition: background 0.15s ease;
+}
+
+.task-form__member-option:last-child {
+  border-bottom: 0;
+}
+
+.task-form__member-option:hover {
+  background: var(--ignite-teal-050);
+}
+
+/* =========================
+   MEMBER AVATAR
+========================= */
+
+.task-form__member-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+
+  border-radius: 50%;
+
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.task-form__member-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  min-width: 0;
+}
+
+.task-form__member-info strong {
+  overflow: hidden;
+
+  color: var(--color-text-primary);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-form__member-info span {
+  overflow: hidden;
+
+  color: var(--color-text-muted);
+
+  font-size: 11px;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   SELECTED MEMBER
+========================= */
+
+.task-form__selected-member {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  min-height: 58px;
+  padding: 9px 11px;
+
+  border: 1px solid var(--ignite-emerald);
+  border-radius: 9px;
+
+  background: var(--ignite-teal-050);
+}
+
+.task-form__selected-member .task-form__member-info {
+  flex: 1;
+}
+
+.task-form__remove-member {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: transparent;
+  color: var(--color-text-muted);
+
+  cursor: pointer;
+}
+
+.task-form__remove-member:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #b42318;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
+.task-form__member-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 80px;
+  padding: 16px;
+
+  color: var(--color-text-muted);
+
+  font-size: 12px;
+  text-align: center;
+}
+
+/* =========================
+   FOOTER
+========================= */
+
+.task-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  margin-top: 28px;
+  padding-top: 20px;
+
+  border-top: 1px solid var(--color-border);
+}
+
+/* =========================
+   SCROLLBAR
+========================= */
+
+.task-form__member-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.task-form__member-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-form__member-results::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #cbd5d9;
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+  .task-form__fields {
+    gap: 18px;
+  }
+
+  .task-form__footer {
+    flex-direction: column-reverse;
+  }
+
+  .task-form__footer button {
+    width: 100%;
+  }
+}

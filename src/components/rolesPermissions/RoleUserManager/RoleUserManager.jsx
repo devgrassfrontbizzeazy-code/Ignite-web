@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import Button from "../../common/Button/Button";
+import ConfirmModal from "../../common/ConfirmModal/ConfirmModal";
 import employeeService from "../../../services/employeeService";
 
 import "./RoleUserManager.css";
@@ -125,21 +126,22 @@ const RoleUserManager = ({
         handleCloseAssign();
     };
 
+    const [removeModal, setRemoveModal] = useState({ open: false, user: null });
+
     /*
      * Remove employee from role.
      */
-    const handleRemove = (user) => {
-        const confirmed = window.confirm(
-            `Remove "${user.name}" from the "${role.roleName}" role?`,
-        );
+    const handleRemoveClick = (user) => {
+        setRemoveModal({ open: true, user });
+    };
 
-        if (!confirmed) {
-            return;
-        }
+    const handleConfirmRemove = () => {
+        const user = removeModal.user;
+        if (!user) return;
 
         setRemovingUserId(user.id);
-
         onRemoveUser?.(user.id);
+        setRemoveModal({ open: false, user: null });
 
         setTimeout(() => {
             setRemovingUserId(null);
@@ -229,11 +231,10 @@ const RoleUserManager = ({
                                     <button
                                         key={user.id}
                                         type="button"
-                                        className={`role-user-manager__user-option ${
-                                            isSelected
+                                        className={`role-user-manager__user-option ${isSelected
                                                 ? "is-selected"
                                                 : ""
-                                        }`}
+                                            }`}
                                         onClick={() =>
                                             setSelectedUserId(
                                                 user.id,
@@ -341,7 +342,7 @@ const RoleUserManager = ({
                                     type="button"
                                     className="role-user-manager__remove"
                                     onClick={() =>
-                                        handleRemove(user)
+                                        handleRemoveClick(user)
                                     }
                                     disabled={
                                         removingUserId ===
@@ -349,7 +350,7 @@ const RoleUserManager = ({
                                     }
                                 >
                                     {removingUserId ===
-                                    user.id
+                                        user.id
                                         ? "Removing..."
                                         : "Remove"}
                                 </button>
@@ -368,6 +369,17 @@ const RoleUserManager = ({
                         </div>
                     )}
                 </div>
+            )}
+
+            {removeModal.open && (
+                <ConfirmModal
+                    open={removeModal.open}
+                    onClose={() => setRemoveModal({ open: false, user: null })}
+                    onConfirm={handleConfirmRemove}
+                    title="Remove Employee from Role?"
+                    description={`Are you sure you want to remove "${removeModal.user?.name}" from the "${role.roleName}" role?`}
+                    confirmText="Remove"
+                />
             )}
         </div>
     );

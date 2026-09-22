@@ -1,19 +1,19 @@
 import { useState } from "react";
-import {
-  CalendarDays,
-  FileText,
-} from "lucide-react";
+import { FileText } from "lucide-react";
 
 import Button from "../../components/common/Button/Button";
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import LeaveBalanceCards from "../../components/leave/LeaveBalanceCards/LeaveBalanceCards";
 import ApplyLeaveModal from "../../components/leave/ApplyLeaveModal/ApplyLeaveModal";
 import LeaveRequests from "../../components/leave/LeaveRequests/LeaveRequests";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 import { canCreateLeaves } from "../../utils/permissionUtils";
+import { useNotification } from "../../context/NotificationContext";
 
 import "./Leaves.css";
 
 const Leave = () => {
+  const { notify } = useNotification();
   const [showApplyModal, setShowApplyModal] = useState(false);
 
   const [leaveRequests, setLeaveRequests] = useState([
@@ -48,6 +48,11 @@ const Leave = () => {
       reason: "Personal vacation",
     },
   ]);
+
+  const [cancelModal, setCancelModal] = useState({
+    open: false,
+    request: null,
+  });
 
   const leaveBalances = [
     {
@@ -98,6 +103,26 @@ const Leave = () => {
     ]);
 
     setShowApplyModal(false);
+    notify.success("Leave request submitted successfully.");
+  };
+
+  const handleCancelRequestClick = (request) => {
+    setCancelModal({
+      open: true,
+      request,
+    });
+  };
+
+  const handleConfirmCancelRequest = () => {
+    const request = cancelModal.request;
+    if (!request) return;
+
+    setLeaveRequests((prev) =>
+      prev.map((r) => (r.id === request.id ? { ...r, status: "Cancelled" } : r))
+    );
+
+    setCancelModal({ open: false, request: null });
+    notify.success(`${request.type} request cancelled successfully.`);
   };
 
   return (
@@ -142,7 +167,10 @@ const Leave = () => {
           </div>
         </div>
 
-        <LeaveRequests requests={leaveRequests} />
+        <LeaveRequests
+          requests={leaveRequests}
+          onCancel={handleCancelRequestClick}
+        />
       </section>
 
       {/* Apply Leave Modal */}
@@ -150,6 +178,18 @@ const Leave = () => {
         <ApplyLeaveModal
           onClose={() => setShowApplyModal(false)}
           onSubmit={handleApplyLeave}
+        />
+      )}
+
+      {cancelModal.open && (
+        <ConfirmModal
+          open={cancelModal.open}
+          onClose={() => setCancelModal({ open: false, request: null })}
+          onConfirm={handleConfirmCancelRequest}
+          title="Cancel Leave Request?"
+          description={`Are you sure you want to cancel your ${cancelModal.request?.type} request (${cancelModal.request?.from})?`}
+          confirmText="Cancel Request"
+          variant="danger"
         />
       )}
     </div>

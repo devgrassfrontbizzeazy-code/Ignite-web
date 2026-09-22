@@ -12,6 +12,7 @@ import Button from "../../components/common/Button/Button";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 import { attendanceAPI } from "../../services/api/attendanceAPI";
+import { useNotification } from "../../context/NotificationContext";
 import "./Attendance.css";
 
 const STATUS_LABELS = {
@@ -88,14 +89,10 @@ const Attendance = () => {
     data: null,
   });
 
-  // Toast state
-  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const { showNotification } = useNotification();
 
   const showToast = (message, type = "success") => {
-    setToast({ show: true, message, type });
-    setTimeout(() => {
-      setToast({ show: false, message: "", type: "success" });
-    }, 4500);
+    showNotification({ type, message });
   };
 
   // Fetch today's attendance state
@@ -442,14 +439,6 @@ const Attendance = () => {
         initialData={detailModal.data}
         onClose={() => setDetailModal({ open: false, attendanceId: null, data: null })}
       />
-
-      {/* TOAST FEEDBACK NOTIFICATION */}
-      {toast.show && (
-        <div className={`attendance-toast attendance-toast--${toast.type}`}>
-          {toast.type === "success" ? <FiCheckCircle /> : <FiAlertCircle />}
-          <span>{toast.message}</span>
-        </div>
-      )}
     </main>
   );
 };

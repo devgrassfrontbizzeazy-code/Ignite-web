@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -16,9 +15,11 @@ import HolidayTable from "../../components/holidays/HolidayTable/HolidayTable";
 import HolidayForm from "../../components/holidays/HolidayForm/HolidayForm";
 import HolidayCalendar from "../../components/holidays/HolidayCalendar/HolidayCalendar";
 import HolidayImportModal from "../../components/holidays/HolidayImportModal/HolidayImportModal";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 
 import { canCreateHolidays } from "../../utils/permissionUtils";
 import holidayAPI from "../../services/api/holidayAPI";
+import { useNotification } from "../../context/NotificationContext";
 
 import "../../styles/variables.css";
 import "../../styles/global.css";
@@ -67,9 +68,9 @@ const normalizeHoliday = (holiday) => ({
 });
 
 const Holidays = () => {
+  const { notify } = useNotification();
   const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedType, setSelectedType] = useState("All Types");
@@ -80,6 +81,12 @@ const Holidays = () => {
   const [showImport, setShowImport] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState(null);
 
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    holiday: null,
+    loading: false,
+  });
+
   const years = useMemo(() => {
     const currentYear = new Date().getFullYear();
 
@@ -89,7 +96,6 @@ const Holidays = () => {
   const fetchHolidays = async () => {
     try {
       setLoading(true);
-      setError("");
 
       const response = await holidayAPI.getHolidays({
         year: selectedYear,
@@ -104,8 +110,7 @@ const Holidays = () => {
       setHolidays(holidayData.map(normalizeHoliday));
     } catch (error) {
       console.error("Failed to fetch holidays:", error);
-
-      setError("Failed to load holidays. Please try again.");
+      notify.error("Failed to load holidays. Please try again.");
       setHolidays([]);
     } finally {
       setLoading(false);
@@ -246,8 +251,6 @@ const Holidays = () => {
 
   const handleSave = async (holidayData) => {
     try {
-      setError("");
-
       if (editingHoliday) {
         const response = await holidayAPI.updateHoliday(
           editingHoliday.id,
@@ -264,6 +267,7 @@ const Holidays = () => {
               : holiday,
           ),
         );
+        notify.success("Holiday updated successfully.");
       } else {
         const response =
           await holidayAPI.createHoliday(holidayData);
@@ -275,6 +279,7 @@ const Holidays = () => {
           ...current,
           normalizeHoliday(createdHoliday),
         ]);
+        notify.success("Holiday created successfully.");
       }
 
       handleCloseForm();
@@ -286,65 +291,60 @@ const Holidays = () => {
         error?.response?.data?.detail ||
         error?.response?.data?.error;
 
-      setError(
+      notify.error(
         backendMessage ||
         "Failed to save holiday. Please try again.",
       );
     }
   };
 
-  const handleDelete = async (holidayId) => {
+  const handleDeleteClick = (holidayId) => {
     const holiday = holidays.find(
       (item) => item.id === holidayId,
     );
 
-    if (!holiday) {
-      return;
-    }
+    if (!holiday) return;
 
-    const shouldDelete = window.confirm(
-      `Delete "${holiday.name}"? This action cannot be undone.`,
-    );
+    setDeleteModal({
+      open: true,
+      holiday,
+      loading: false,
+    });
+  };
 
-    if (!shouldDelete) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    const holiday = deleteModal.holiday;
+    if (!holiday) return;
 
     try {
-      setError("");
+      setDeleteModal((prev) => ({ ...prev, loading: true }));
 
-      await holidayAPI.deleteHoliday(holidayId);
+      await holidayAPI.deleteHoliday(holiday.id);
 
       setHolidays((current) =>
         current.filter(
-          (item) => item.id !== holidayId,
+          (item) => item.id !== holiday.id,
         ),
       );
+
+      setDeleteModal({ open: false, holiday: null, loading: false });
+      notify.success(`Holiday "${holiday.name}" deleted successfully.`);
     } catch (error) {
-      console.error(
-        "Failed to delete holiday:",
-        error,
-      );
+      console.error("Failed to delete holiday:", error);
 
       const backendMessage =
         error?.response?.data?.message ||
         error?.response?.data?.detail ||
         error?.response?.data?.error;
 
-      setError(
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
+      notify.error(
         backendMessage ||
         "Failed to delete holiday. Please try again.",
       );
     }
   };
 
-  /*
-   * CSV IMPORT
-   *
-   * The modal only validates and prepares the rows.
-   * This function is responsible for actually
-   * creating every holiday through the backend API.
-   */
   const handleImport = async (importedHolidays) => {
     if (
       !Array.isArray(importedHolidays) ||
@@ -354,15 +354,8 @@ const Holidays = () => {
     }
 
     try {
-      setError("");
       setLoading(true);
 
-      /*
-       * Create every imported holiday through the API.
-       *
-       * Using Promise.all ensures all rows are sent
-       * to the backend instead of only updating local state.
-       */
       await Promise.all(
         importedHolidays.map((holiday) =>
           holidayAPI.createHoliday({
@@ -379,31 +372,21 @@ const Holidays = () => {
         ),
       );
 
-      /*
-       * Close the modal only after all API calls succeed.
-       */
       setShowImport(false);
-
-      /*
-       * Reload from backend so the table contains
-       * the actual persisted records and IDs.
-       */
       await fetchHolidays();
 
       setSearchTerm("");
       setSelectedType("All Types");
+      notify.success("Holidays imported successfully.");
     } catch (error) {
-      console.error(
-        "Failed to import holidays:",
-        error,
-      );
+      console.error("Failed to import holidays:", error);
 
       const backendMessage =
         error?.response?.data?.message ||
         error?.response?.data?.detail ||
         error?.response?.data?.error;
 
-      setError(
+      notify.error(
         backendMessage ||
         "Failed to import holidays. Please try again.",
       );
@@ -444,12 +427,6 @@ const Holidays = () => {
           ) : null
         }
       />
-
-      {error && (
-        <div className="holidays-error" role="alert">
-          {error}
-        </div>
-      )}
 
       <div className="stats-grid stats-grid--4">
         {holidayStats.map((stat) => {
@@ -618,7 +595,7 @@ const Holidays = () => {
                 handleEdit(originalHoliday);
               }
             }}
-            onDelete={handleDelete}
+            onDelete={handleDeleteClick}
           />
         ) : (
           <HolidayCalendar
@@ -644,6 +621,18 @@ const Holidays = () => {
           holiday={editingHoliday}
           onSave={handleSave}
           onClose={handleCloseForm}
+        />
+      )}
+
+      {deleteModal.open && (
+        <ConfirmModal
+          open={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, holiday: null, loading: false })}
+          onConfirm={handleConfirmDelete}
+          title="Delete Holiday?"
+          itemName={deleteModal.holiday?.name}
+          confirmText="Delete"
+          loading={deleteModal.loading}
         />
       )}
     </div>

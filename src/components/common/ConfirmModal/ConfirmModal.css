@@ -1,0 +1,23 @@
+/* ==========================================================================
+   CONFIRM MODAL STYLING
+   ========================================================================== */
+
+.confirm-modal__body {
+  padding: 4px 0 12px 0;
+}
+
+.confirm-modal__description {
+  font-family: var(--font-primary, 'Montserrat', sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.confirm-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}

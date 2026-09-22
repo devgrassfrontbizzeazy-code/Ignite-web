@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Clock3, Edit3, MoreVertical, Plus, Trash2 } from "lucide-react";
-
+import { Clock3, Plus } from "lucide-react";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import RowActions from "../../common/RowActions/RowActions";
 import ShiftForm from "../ShiftForm/ShiftForm";
+import ConfirmModal from "../../common/ConfirmModal/ConfirmModal";
+import { useNotification } from "../../../context/NotificationContext";
 
 import {
   createShift,
@@ -12,10 +15,17 @@ import {
 import "./ShiftList.css";
 
 function ShiftList({ shifts, onChange }) {
+  const { notify } = useNotification();
   const [showForm, setShowForm] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
-  const [menuId, setMenuId] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    shiftId: null,
+    shiftName: "",
+    loading: false,
+  });
 
   const handleAdd = () => {
     setEditingShift(null);
@@ -25,27 +35,35 @@ function ShiftList({ shifts, onChange }) {
   const handleEdit = (shift) => {
     setEditingShift(shift);
     setShowForm(true);
-    setMenuId(null);
   };
 
-  const handleDelete = async (shiftId) => {
-    const confirmed = window.confirm(
-      "Delete this shift? Days using this shift will become unassigned.",
-    );
+  const handleDeleteClick = (shift) => {
+    setDeleteModal({
+      open: true,
+      shiftId: shift.id,
+      shiftName: shift.name,
+      loading: false,
+    });
+  };
 
-    if (!confirmed) return;
+  const handleConfirmDelete = async () => {
+    const { shiftId, shiftName } = deleteModal;
+    if (!shiftId) return;
 
     try {
+      setDeleteModal((prev) => ({ ...prev, loading: true }));
       setSaving(true);
 
       await deleteShift(shiftId);
 
       onChange(shifts.filter((shift) => shift.id !== shiftId));
-      setMenuId(null);
+      setDeleteModal({ open: false, shiftId: null, shiftName: "", loading: false });
+      notify.success(`Shift "${shiftName}" deleted successfully.`);
     } catch (error) {
       console.error("Failed to delete shift:", error);
 
-      window.alert(
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
+      notify.error(
         error?.response?.data?.detail ||
           "Unable to delete this shift. Please try again.",
       );
@@ -78,6 +96,7 @@ function ShiftList({ shifts, onChange }) {
             shift.id === editingShift.id ? updatedShift : shift,
           ),
         );
+        notify.success("Shift updated successfully.");
       } else {
         const response = await createShift(payload);
 
@@ -90,6 +109,7 @@ function ShiftList({ shifts, onChange }) {
         }
 
         onChange([...shifts, createdShift]);
+        notify.success("Shift created successfully.");
       }
 
       setShowForm(false);
@@ -97,7 +117,7 @@ function ShiftList({ shifts, onChange }) {
     } catch (error) {
       console.error("Failed to save shift:", error);
 
-      window.alert(
+      notify.error(
         error?.response?.data?.detail ||
           "Unable to save the shift. Please check the details and try again.",
       );
@@ -167,32 +187,25 @@ function ShiftList({ shifts, onChange }) {
                   </div>
 
                   <div className="shift-actions">
-                    <button
-                      className="shift-menu-button"
-                      onClick={() =>
-                        setMenuId(menuId === shift.id ? null : shift.id)
-                      }
-                      disabled={saving}
-                    >
-                      <MoreVertical size={17} />
-                    </button>
-
-                    {menuId === shift.id && (
-                      <div className="shift-menu">
-                        <button onClick={() => handleEdit(shift)}>
-                          <Edit3 size={14} />
-                          Edit
-                        </button>
-
-                        <button
-                          className="danger"
-                          onClick={() => handleDelete(shift.id)}
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                    <RowActions
+                      actions={[
+                        {
+                          key: "edit",
+                          label: "Edit",
+                          icon: FiEdit2,
+                          onClick: () => handleEdit(shift),
+                        },
+                        { key: "divider-1", isDivider: true },
+                        {
+                          key: "delete",
+                          label: "Delete",
+                          icon: FiTrash2,
+                          isDanger: true,
+                          onClick: () => handleDeleteClick(shift),
+                        },
+                      ]}
+                      title={`Actions for ${shift.name}`}
+                    />
                   </div>
                 </div>
               ))}
@@ -224,9 +237,23 @@ function ShiftList({ shifts, onChange }) {
           }}
         />
       )}
+
+      {deleteModal.open && (
+        <ConfirmModal
+          open={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, shiftId: null, shiftName: "", loading: false })}
+          onConfirm={handleConfirmDelete}
+          title="Delete Shift?"
+          itemName={deleteModal.shiftName}
+          description={`Are you sure you want to delete "${deleteModal.shiftName}"? Days using this shift will become unassigned.`}
+          confirmText="Delete"
+          loading={deleteModal.loading}
+        />
+      )}
     </>
   );
 }
+
 function normalizeShift(shift) {
   if (!shift) return null;
 

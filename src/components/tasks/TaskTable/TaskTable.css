@@ -1,0 +1,358 @@
+.task-table-card {
+  overflow: hidden;
+
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.task-table__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 68px;
+  padding: 0 20px;
+
+  border-bottom: 1px solid var(--color-border);
+}
+
+.task-table__header h2 {
+  margin: 0;
+
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.task-table__header span {
+  display: block;
+  margin-top: 3px;
+
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.task-table__wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.task-table {
+  width: 100%;
+  min-width: 1050px;
+
+  border-collapse: collapse;
+}
+
+.task-table th {
+  padding: 12px 18px;
+
+  border-bottom: 1px solid var(--color-border);
+
+  background: var(--color-bg-page);
+
+  color: var(--color-text-muted);
+
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  white-space: nowrap;
+}
+
+.task-table td {
+  padding: 15px 18px;
+
+  border-bottom: 1px solid var(--color-border);
+
+  color: var(--color-text-secondary);
+
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.task-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.task-table tbody tr:hover {
+  background: var(--ignite-teal-050);
+}
+
+/* =========================
+   TASK
+========================= */
+
+.task-table__task {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  width: 260px;
+}
+
+.task-table__task strong {
+  overflow: hidden;
+
+  color: var(--color-text-primary);
+
+  font-size: 13px;
+  font-weight: 700;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-table__task span {
+  overflow: hidden;
+
+  color: var(--color-text-muted);
+
+  font-size: 11px;
+  line-height: 1.4;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   TEAM
+========================= */
+
+.task-table__team {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* =========================
+   ASSIGNEE
+========================= */
+
+.task-table__assignee {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-width: 150px;
+}
+
+.task-table__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+
+  border-radius: 50%;
+
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.task-table__assignee span {
+  overflow: hidden;
+
+  color: var(--color-text-primary);
+
+  font-size: 12px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   BADGES
+========================= */
+
+.task-table__badge {
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 26px;
+  padding: 0 9px;
+
+  border-radius: var(--radius-pill);
+
+  font-size: 11px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+/* Priority */
+
+.task-table__priority--low {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+.task-table__priority--medium {
+  background: #fff7df;
+  color: #856404;
+}
+
+.task-table__priority--high {
+  background: #fff0e6;
+  color: #a94b00;
+}
+
+.task-table__priority--urgent {
+  background: #ffe8e8;
+  color: #a12828;
+}
+
+/* Status */
+
+.task-table__status--to-do {
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+}
+
+.task-table__status--in-progress {
+  background: #eef5ff;
+  color: #245a9c;
+}
+
+.task-table__status--completed {
+  background: #e9f8f1;
+  color: #17734f;
+}
+
+/* =========================
+   DATE
+========================= */
+
+.task-table__date {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+.task-table__actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.task-table__actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+
+  border: 0;
+  border-radius: 7px;
+
+  background: transparent;
+  color: var(--color-text-secondary);
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.task-table__actions button:hover {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+.task-table__actions .task-table__delete:hover {
+  background: #fff0f0;
+  color: #b42318;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
+.task-table__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 300px;
+  padding: 40px 24px;
+
+  text-align: center;
+}
+
+.task-table__empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 52px;
+  height: 52px;
+  margin-bottom: 14px;
+
+  border-radius: 14px;
+
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+
+  font-size: 18px;
+}
+
+.task-table__empty h3 {
+  margin: 0;
+
+  color: var(--color-text-primary);
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.task-table__empty p {
+  margin: 6px 0 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 12px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 700px) {
+  .task-table__header {
+    padding: 0 15px;
+  }
+
+  .task-table th,
+  .task-table td {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}

@@ -1,0 +1,195 @@
+/* ==========================================================================
+   ROW ACTIONS — REUSABLE DROPDOWN
+   Matches EmployeeRowActions visual reference exactly.
+   ========================================================================== */
+
+.row-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* =========================
+   THREE DOT BUTTON
+========================= */
+
+.row-actions__trigger {
+  position: relative;
+  z-index: 2;
+
+  display: inline-flex;
+  width: 31px;
+  height: 31px;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  border: 1px solid transparent;
+  border-radius: 7px;
+
+  background: transparent;
+  color: var(--color-text-secondary);
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.row-actions__trigger svg {
+  width: 17px;
+  height: 17px;
+}
+
+.row-actions__trigger:hover,
+.row-actions__trigger--active {
+  border-color: var(--ignite-teal-100);
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  outline: none;
+}
+
+/* =========================
+   PORTALED ACTION MENU
+   IMPORTANT:
+   position: fixed because
+   menu is rendered into BODY
+========================= */
+
+.row-actions__menu {
+  position: fixed;
+
+  z-index: 999999;
+
+  width: 165px;
+
+  padding: 5px;
+
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+
+  background: var(--color-bg-surface);
+
+  box-shadow:
+    0 14px 35px rgba(15, 61, 62, 0.16),
+    0 4px 10px rgba(15, 61, 62, 0.07);
+
+  box-sizing: border-box;
+}
+
+/* =========================
+   ANIMATION
+========================= */
+
+.row-actions__menu--down {
+  animation: rowActionMenuDown 0.14s ease-out;
+}
+
+.row-actions__menu--up {
+  animation: rowActionMenuUp 0.14s ease-out;
+}
+
+@keyframes rowActionMenuDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rowActionMenuUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================
+   MENU BUTTONS
+========================= */
+
+.row-actions__menu button {
+  display: flex;
+
+  width: 100%;
+  min-height: 33px;
+
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 7px 9px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: var(--color-text-secondary);
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.row-actions__menu button svg {
+  width: 14px;
+  height: 14px;
+
+  flex-shrink: 0;
+}
+
+.row-actions__menu button:hover {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+/* =========================
+   DANGER ACTIONS
+========================= */
+
+.row-actions__menu
+  button.row-actions__danger {
+  color: #c7362f;
+}
+
+.row-actions__menu
+  button.row-actions__danger:hover {
+  background: #fff0ef;
+  color: #b42318;
+}
+
+/* =========================
+   DIVIDER
+========================= */
+
+.row-actions__divider {
+  height: 1px;
+
+  margin: 4px 5px;
+
+  background: var(--color-border);
+}

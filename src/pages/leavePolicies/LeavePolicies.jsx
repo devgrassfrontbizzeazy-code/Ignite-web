@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
-  Clock3,
   FileText,
   ShieldCheck,
 } from "lucide-react";
@@ -12,7 +11,9 @@ import PageHeader from "../../components/common/PageHeader/PageHeader";
 import StatCard from "../../components/common/StatCard/StatCard";
 import LeavePolicyTable from "../../components/leavePolicies/LeavePolicyTable/LeavePolicyTable";
 import LeavePolicyForm from "../../components/leavePolicies/LeavePolicyForm/LeavePolicyForm";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 import leavePolicyApi from "../../services/api/leavePolicyAPI";
+import { useNotification } from "../../context/NotificationContext";
 
 import "./LeavePolicies.css";
 
@@ -30,17 +31,14 @@ const normalizePolicy = (policy) => ({
     "YEARLY",
 
   days:
-    policy.allocation_days !== undefined &&
-    policy.allocation_days !== null
-      ? Number(policy.allocation_days)
-      : policy.days !== undefined && policy.days !== null
-        ? Number(policy.days)
-        : null,
+    policy.days !== undefined
+      ? policy.days
+      : policy.leave_days,
 
   carryForward:
-    policy.is_carry_forward !== undefined
-      ? Boolean(policy.is_carry_forward)
-      : Boolean(policy.carryForward),
+    policy.carry_forward ??
+    policy.carryForward ??
+    false,
 
   carryForwardType:
     policy.carry_forward_type ||
@@ -48,114 +46,63 @@ const normalizePolicy = (policy) => ({
     "NONE",
 
   carryForwardLimit:
-    policy.max_carry_forward_days !== undefined &&
-    policy.max_carry_forward_days !== null &&
-    policy.max_carry_forward_days !== "-"
-      ? Number(policy.max_carry_forward_days)
-      : policy.carryForwardLimit !== undefined &&
-          policy.carryForwardLimit !== null
-        ? Number(policy.carryForwardLimit)
-        : null,
+    policy.carry_forward_limit ??
+    policy.carryForwardLimit ??
+    0,
 
   halfDayAllowed:
-    policy.allow_half_day !== undefined
-      ? Boolean(policy.allow_half_day)
-      : Boolean(policy.halfDayAllowed),
+    policy.half_day_allowed ??
+    policy.halfDayAllowed ??
+    false,
 
   requiresApproval:
-    policy.requires_approval !== undefined
-      ? Boolean(policy.requires_approval)
-      : Boolean(policy.requiresApproval),
+    policy.requires_approval ??
+    policy.requiresApproval ??
+    false,
 
-  isPaid:
-    policy.is_paid !== undefined
-      ? Boolean(policy.is_paid)
-      : policy.isPaid !== undefined
-        ? Boolean(policy.isPaid)
-        : true,
+  isPaid: policy.is_paid ?? policy.isPaid ?? false,
 
   status:
-    policy.is_active !== undefined
-      ? policy.is_active
-        ? "Active"
-        : "Inactive"
-      : policy.status || "Inactive",
-});
-
-const buildPolicyPayload = (policy) => ({
-  name: policy.name?.trim() || "",
-  description: policy.description?.trim() || "",
-
-  allocation_type: policy.allocationType,
-
-  allocation_days:
-    policy.days === "" ||
-    policy.days === null ||
-    policy.days === undefined
-      ? null
-      : String(policy.days),
-
-  is_carry_forward: Boolean(policy.carryForward),
-
-  carry_forward_type:
-    policy.carryForward && policy.carryForwardType
-      ? policy.carryForwardType
-      : "NONE",
-
-  max_carry_forward_days:
-    policy.carryForward &&
-    policy.carryForwardType !== "NONE" &&
-    policy.carryForwardLimit !== "" &&
-    policy.carryForwardLimit !== null &&
-    policy.carryForwardLimit !== undefined
-      ? String(policy.carryForwardLimit)
-      : null,
-
-  allow_half_day: Boolean(policy.halfDayAllowed),
-
-  requires_approval: Boolean(policy.requiresApproval),
-
-  is_paid: Boolean(policy.isPaid),
-
-  is_active:
-    policy.status !== undefined
-      ? policy.status === "Active"
-      : true,
+    policy.status ||
+    (policy.is_active ? "Active" : "Inactive"),
 });
 
 const LeavePolicies = () => {
+  const { notify } = useNotification();
+
   const [policies, setPolicies] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    policy: null,
+    loading: false,
+  });
 
   const fetchPolicies = async () => {
-  try {
-    setLoading(true);
-    setError("");
+    try {
+      setLoading(true);
 
-    const data = await leavePolicyApi.getPolicies();
+      const response = await leavePolicyApi.getPolicies();
 
-    const policyList = Array.isArray(data)
-  ? data
-  : data?.data || data?.results || [];
+      const policyList = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
 
-    setPolicies(policyList.map(normalizePolicy));
-  } catch (err) {
-    console.error("Failed to fetch leave policies:", err);
-
-    setError(
-      err.response?.data?.detail ||
-        "Unable to load leave policies."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+      setPolicies(policyList.map(normalizePolicy));
+    } catch (err) {
+      console.error("Failed to load leave policies:", err);
+      notify.error("Unable to load leave policies.");
+      setPolicies([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchPolicies();
@@ -168,13 +115,7 @@ const LeavePolicies = () => {
 
     const annualDays = activePolicies.reduce(
       (total, policy) => {
-        if (
-          typeof policy.days !== "number" ||
-          Number.isNaN(policy.days) ||
-          policy.days < 0
-        ) {
-          return total;
-        }
+        if (!policy.days) return total;
 
         if (policy.allocationType === "MONTHLY") {
           return total + policy.days * 12;
@@ -232,38 +173,44 @@ const LeavePolicies = () => {
   const handleAddPolicy = () => {
     setEditingPolicy(null);
     setShowForm(true);
-    setError("");
   };
 
   const handleEditPolicy = (policy) => {
     setEditingPolicy(policy);
     setShowForm(true);
-    setError("");
   };
 
-  const handleDeletePolicy = async (id) => {
+  const handleDeleteClick = (id) => {
     const policy = policies.find(
       (item) => item.id === id
     );
 
     if (!policy) return;
 
-    const confirmed = window.confirm(
-      `Are you sure you want to remove "${policy.name}"?`
-    );
+    setDeleteModal({
+      open: true,
+      policy,
+      loading: false,
+    });
+  };
 
-    if (!confirmed) return;
+  const handleConfirmDelete = async () => {
+    const policy = deleteModal.policy;
+    if (!policy) return;
 
     try {
-      setError("");
+      setDeleteModal((prev) => ({ ...prev, loading: true }));
 
-      await leavePolicyApi.deletePolicy(id);
-
+      await leavePolicyApi.deletePolicy(policy.id);
       await fetchPolicies();
+
+      setDeleteModal({ open: false, policy: null, loading: false });
+      notify.success(`Leave policy "${policy.name}" deleted successfully.`);
     } catch (err) {
       console.error("Failed to delete leave policy:", err);
 
-      setError(
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
+      notify.error(
         err.response?.data?.detail ||
           "Unable to delete leave policy."
       );
@@ -271,92 +218,65 @@ const LeavePolicies = () => {
   };
 
   const handleToggleStatus = async (id) => {
+    const policy = policies.find((item) => item.id === id);
     try {
-      setError("");
-
       await leavePolicyApi.togglePolicyStatus(id);
-
       await fetchPolicies();
+      notify.success(
+        `Leave policy "${policy?.name || ""}" status updated successfully.`
+      );
     } catch (err) {
       console.error(
         "Failed to toggle leave policy status:",
         err
       );
-
-      setError(
+      notify.error(
         err.response?.data?.detail ||
           "Unable to update leave policy status."
       );
     }
   };
 
-  const handleSavePolicy = async (policyData) => {
+  const handleSavePolicy = async (payload) => {
     try {
-      setSaving(true);
-      setError("");
-
-      const payload = buildPolicyPayload(policyData);
-
       if (editingPolicy) {
-        await leavePolicyApi.partialUpdatePolicy(
+        await leavePolicyApi.updatePolicy(
           editingPolicy.id,
           payload
         );
+        notify.success("Leave policy updated successfully.");
       } else {
         await leavePolicyApi.createPolicy(payload);
+        notify.success("Leave policy created successfully.");
       }
 
       await fetchPolicies();
-
       setShowForm(false);
       setEditingPolicy(null);
     } catch (err) {
       console.error("Failed to save leave policy:", err);
-
-      const responseData = err.response?.data;
-
-      if (typeof responseData === "string") {
-        setError(responseData);
-      } else if (responseData?.detail) {
-        setError(responseData.detail);
-      } else {
-        setError(
-          "Unable to save leave policy. Please check the entered values."
-        );
-      }
-    } finally {
-      setSaving(false);
+      notify.error(
+        err.response?.data?.detail ||
+          "Unable to save leave policy."
+      );
     }
-  };
-
-  const handleCloseForm = () => {
-    if (saving) return;
-
-    setShowForm(false);
-    setEditingPolicy(null);
   };
 
   return (
     <div className="leave-policies-page">
       <PageHeader
-        eyebrow="Leave"
+        eyebrow="Organization"
         title="Leave Policies"
-        description="Manage leave allocation and rules for your organization."
+        description="Configure paid and unpaid leave types, allocations, and approval rules."
         action={
           <Button
             variant="primary"
             onClick={handleAddPolicy}
           >
-            + Add Leave Policy
+            + Create Leave Policy
           </Button>
         }
       />
-
-      {error && (
-        <div className="leave-policy-error">
-          {error}
-        </div>
-      )}
 
       <div className="stats-grid stats-grid--4">
         {policyStats.map((stat) => {
@@ -379,42 +299,27 @@ const LeavePolicies = () => {
         })}
       </div>
 
-      <section className="leave-policy-content">
-        <div className="leave-policy-section-header">
+      <section className="leave-policies-section">
+        <div className="leave-policies-section-header">
           <div>
-            <h2>Leave Policies</h2>
+            <h2>Policy Configuration</h2>
 
             <p>
-              Configure the leave options and rules
-              available to employees.
+              Manage rules for employee leave requests and
+              carry forwards.
             </p>
           </div>
-
-          {stats.carryForwardPolicies > 0 && (
-            <div className="leave-policy-count">
-              <Clock3 size={15} />
-              {stats.carryForwardPolicies} with carry forward
-            </div>
-          )}
         </div>
 
         {loading ? (
-          <div className="leave-policy-empty">
-            <div className="leave-policy-empty-icon">
-              <Clock3 size={22} />
-            </div>
-
-            <h3>Loading leave policies...</h3>
-
-            <p>
-              Please wait while we fetch your leave policies.
-            </p>
+          <div className="leave-policies-loading">
+            Loading leave policies...
           </div>
         ) : (
           <LeavePolicyTable
             policies={policies}
             onEdit={handleEditPolicy}
-            onDelete={handleDeletePolicy}
+            onDelete={handleDeleteClick}
             onToggleStatus={handleToggleStatus}
           />
         )}
@@ -424,8 +329,22 @@ const LeavePolicies = () => {
         <LeavePolicyForm
           policy={editingPolicy}
           onSave={handleSavePolicy}
-          onClose={handleCloseForm}
-          saving={saving}
+          onClose={() => {
+            setShowForm(false);
+            setEditingPolicy(null);
+          }}
+        />
+      )}
+
+      {deleteModal.open && (
+        <ConfirmModal
+          open={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, policy: null, loading: false })}
+          onConfirm={handleConfirmDelete}
+          title="Delete Leave Policy?"
+          itemName={deleteModal.policy?.name}
+          confirmText="Delete"
+          loading={deleteModal.loading}
         />
       )}
     </div>

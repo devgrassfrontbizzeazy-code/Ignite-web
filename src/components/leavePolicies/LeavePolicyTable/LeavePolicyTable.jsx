@@ -1,4 +1,6 @@
-import { Pencil, Power, Trash2 } from "lucide-react";
+import { Power } from "lucide-react";
+import { FiEdit2, FiPower, FiTrash2 } from "react-icons/fi";
+import RowActions from "../../common/RowActions/RowActions";
 
 import "./LeavePolicyTable.css";
 
@@ -44,134 +46,138 @@ const LeavePolicyTable = ({
         </thead>
 
         <tbody>
-          {policies.map((policy) => (
-            <tr key={policy.id}>
-              <td>
-                <div className="leave-policy-name-cell">
-                  <div>
-                    <div className="leave-policy-name">
-                      {policy.name}
-                    </div>
+          {policies.map((policy) => {
+            const isActive = policy.status === "Active";
 
-                    {policy.description && (
-                      <div className="leave-policy-description">
-                        {policy.description}
+            const actions = [
+              {
+                key: "edit",
+                label: "Edit",
+                icon: FiEdit2,
+                onClick: () => onEdit(policy),
+              },
+              ...(onToggleStatus
+                ? [
+                    {
+                      key: "toggleStatus",
+                      label: isActive ? "Deactivate" : "Activate",
+                      icon: FiPower,
+                      onClick: () => onToggleStatus(policy.id),
+                    },
+                  ]
+                : []),
+              { key: "divider-1", isDivider: true },
+              {
+                key: "delete",
+                label: "Delete",
+                icon: FiTrash2,
+                isDanger: true,
+                onClick: () => onDelete(policy.id),
+              },
+            ];
+
+            return (
+              <tr key={policy.id}>
+                <td>
+                  <div className="leave-policy-name-cell">
+                    <div>
+                      <div className="leave-policy-name">
+                        {policy.name}
                       </div>
-                    )}
+
+                      {policy.description && (
+                        <div className="leave-policy-description">
+                          {policy.description}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </td>
+                </td>
 
-              <td>
-                <div className="leave-policy-allocation">
-                  <span className="leave-policy-allocation-value">
-                    {policy.days === null ||
-                    policy.days === undefined
-                      ? "Unlimited"
-                      : `${policy.days} ${
-                          policy.allocationType ===
-                          "MONTHLY"
-                            ? "day/month"
-                            : "days/year"
-                        }`}
-                  </span>
+                <td>
+                  <div className="leave-policy-allocation">
+                    <span className="leave-policy-allocation-value">
+                      {policy.days === null ||
+                      policy.days === undefined
+                        ? "Unlimited"
+                        : `${policy.days} ${
+                            policy.allocationType ===
+                            "MONTHLY"
+                              ? "day/month"
+                              : "days/year"
+                          }`}
+                    </span>
 
-                  <span className="leave-policy-allocation-type">
-                    {policy.allocationType ===
-                    "MONTHLY"
-                      ? "Monthly"
-                      : "Yearly"}
-                  </span>
-                </div>
-              </td>
+                    <span className="leave-policy-allocation-type">
+                      {policy.allocationType ===
+                      "MONTHLY"
+                        ? "Monthly"
+                        : "Yearly"}
+                    </span>
+                  </div>
+                </td>
 
-              <td>
-                {policy.carryForward ? (
-                  <span className="leave-policy-carry-value">
-                    {policy.carryForwardType ===
-                    "MAXIMUM"
-                      ? `Up to ${policy.carryForwardLimit} days`
-                      : policy.carryForwardType ===
-                          "ALL"
-                        ? "All unused days"
-                        : "No carry forward"}
-                  </span>
-                ) : (
-                  <PolicyBoolean value={false} />
-                )}
-              </td>
+                <td>
+                  {policy.carryForward ? (
+                    <span className="leave-policy-carry-value">
+                      {policy.carryForwardType ===
+                      "MAXIMUM"
+                        ? `Up to ${policy.carryForwardLimit} days`
+                        : policy.carryForwardType ===
+                            "ALL"
+                          ? "All unused days"
+                          : "No carry forward"}
+                    </span>
+                  ) : (
+                    <PolicyBoolean value={false} />
+                  )}
+                </td>
 
-              <td>
-                <PolicyBoolean
-                  value={policy.halfDayAllowed}
-                />
-              </td>
+                <td>
+                  <PolicyBoolean
+                    value={policy.halfDayAllowed}
+                  />
+                </td>
 
-              <td>
-                <PolicyBoolean
-                  value={policy.requiresApproval}
-                />
-              </td>
+                <td>
+                  <PolicyBoolean
+                    value={policy.requiresApproval}
+                  />
+                </td>
 
-              <td>
-                <PolicyBoolean
-                  value={policy.isPaid}
-                />
-              </td>
+                <td>
+                  <PolicyBoolean
+                    value={policy.isPaid}
+                  />
+                </td>
 
-              <td>
-                <button
-                  type="button"
-                  className={`leave-policy-status ${
-                    policy.status === "Active"
-                      ? "leave-policy-status-active"
-                      : "leave-policy-status-inactive"
-                  }`}
-                  onClick={() =>
-                    onToggleStatus(policy.id)
-                  }
-                  title="Toggle status"
-                >
-                  <span className="leave-policy-status-dot" />
-                  {policy.status}
-                </button>
-              </td>
-
-              <td>
-                <div className="leave-policy-actions">
+                <td>
                   <button
                     type="button"
-                    className="leave-policy-action-button"
+                    className={`leave-policy-status ${
+                      isActive
+                        ? "leave-policy-status-active"
+                        : "leave-policy-status-inactive"
+                    }`}
                     onClick={() =>
-                      onEdit(policy)
+                      onToggleStatus?.(policy.id)
                     }
-                    title="Edit policy"
-                    aria-label={`Edit ${policy.name}`}
+                    title="Toggle status"
                   >
-                    <Pencil
-                      size={15}
-                      strokeWidth={2}
-                    />
+                    <span className="leave-policy-status-dot" />
+                    {policy.status}
                   </button>
+                </td>
 
-                  <button
-                    type="button"
-                    className="leave-policy-action-button leave-policy-action-danger"
-                    onClick={() =>
-                      onDelete(policy.id)
-                    }
-                    title="Delete policy"
-                    aria-label={`Delete ${policy.name}`}
-                  >
-                    <Trash2
-                      size={15}
-                      strokeWidth={2}
-                    />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
+                <td>
+                  <RowActions
+                    actions={actions}
+                    title={`Actions for ${policy.name}`}
+                  />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

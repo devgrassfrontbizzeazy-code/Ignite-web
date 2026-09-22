@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import PageHeader from "../../components/common/PageHeader/PageHeader";
+
 import Button from "../../components/common/Button/Button";
-import EmptyState from "../../components/common/EmptyState/EmptyState";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
-import Modal from "../../components/common/Modal/Modal";
+import PageHeader from "../../components/common/PageHeader/PageHeader";
 
-import DesignationStats from "../../components/designations/DesignationStats/DesignationStats";
-import DesignationFilters from "../../components/designations/DesignationFilters/DesignationFilters";
-import DesignationTable from "../../components/designations/DesignationTable/DesignationTable";
-import DesignationForm from "../../components/designations/DesignationForm/DesignationForm";
 import DesignationDetails from "../../components/designations/DesignationDetails/DesignationDetails";
+import DesignationFilters from "../../components/designations/DesignationFilters/DesignationFilters";
+import DesignationForm from "../../components/designations/DesignationForm/DesignationForm";
+import DesignationStats from "../../components/designations/DesignationStats/DesignationStats";
+import DesignationTable from "../../components/designations/DesignationTable/DesignationTable";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 
+import { getDepartments } from "../../services/api/departmentAPI";
 import {
   getDesignations,
   createDesignation,
@@ -19,242 +20,259 @@ import {
   deleteDesignation,
 } from "../../services/api/designationAPI";
 
-import { getDepartments } from "../../services/api/departmentAPI";
 import roleService from "../../services/roleService";
-import { extractApiError } from "../../utils/apiErrorUtils";
-import { canCreateDesignations } from "../../utils/permissionUtils";
+import { useNotification } from "../../context/NotificationContext";
 
 import "./Designations.css";
 
-const normalizeDesignation = (designation) => {
-  if (!designation) {
-    return null;
-  }
-
-  const id = designation.id ?? designation.designation_id ?? designation.pk;
-  const boundRole = roleService.getDesignationRole(id);
-
-  const defaultRoleId =
-    designation.default_role_id ??
-    (typeof designation.default_role === "object"
-      ? designation.default_role?.id
-      : designation.default_role) ??
-    boundRole?.id ??
-    "";
-
-  const defaultRoleName =
-    designation.default_role_name ??
-    (typeof designation.default_role === "object"
-      ? designation.default_role?.role_name ?? designation.default_role?.name
-      : null) ??
-    boundRole?.roleName ??
-    "";
-
-  return {
-    id,
-
-    designationCode:
-      designation.designation_code ?? designation.designationCode ?? "",
-
-    designationName:
-      designation.name ??
-      designation.designation_name ??
-      designation.title ??
-      "",
-
-    departmentId:
-      typeof designation.department === "object"
-        ? designation.department?.id
-        : (designation.department ?? designation.department_id ?? ""),
-
-    departmentName:
-      designation.department_name ?? designation.department?.name ?? "",
-
-    defaultRole: defaultRoleId,
-    defaultRoleId,
-    defaultRoleName,
-    defaultRoleObj: boundRole || (defaultRoleId ? roleService.getRoleById(defaultRoleId) : null),
-
-    description: designation.description ?? "",
-
-    status: String(
-      designation.status ?? (designation.is_active ? "Active" : "Inactive"),
-    ).toLowerCase(),
-
-    isActive:
-      designation.is_active ??
-      String(designation.status).toLowerCase() === "active",
-
-    company: designation.company,
-
-    companyName: designation.company_name,
-
-    createdAt: designation.created_at ?? designation.createdAt,
-
-    updatedAt: designation.updated_at ?? designation.updatedAt,
-
-    deletedAt: designation.deleted_at ?? designation.deletedAt,
-  };
-};
-
-const extractList = (response) => {
+const extractDataList = (response) => {
   if (Array.isArray(response)) {
     return response;
-  }
-
-  if (Array.isArray(response?.results)) {
-    return response.results;
   }
 
   if (Array.isArray(response?.data)) {
     return response.data;
   }
 
+  if (Array.isArray(response?.results)) {
+    return response.results;
+  }
+
+  if (Array.isArray(response?.data?.results)) {
+    return response.data.results;
+  }
+
   return [];
 };
 
-const normalizeDepartment = (department) => {
-  if (!department) {
+const normalizeDepartmentOption = (dept) => {
+  if (!dept) return null;
+
+  return {
+    id: dept.id ?? dept.department_id,
+    name:
+      dept.departmentName ??
+      dept.name ??
+      dept.department_name ??
+      "Unnamed Department",
+  };
+};
+
+const normalizeDesignation = (designation, departmentMap = {}) => {
+  if (!designation) {
     return null;
   }
 
+  const rawStatus = designation.status ?? designation.is_active;
+
+  let normalizedStatus = "active";
+
+  if (typeof rawStatus === "boolean") {
+    normalizedStatus = rawStatus ? "active" : "inactive";
+  } else if (typeof rawStatus === "string") {
+    normalizedStatus =
+      rawStatus.toLowerCase() === "active" || rawStatus.toLowerCase() === "true"
+        ? "active"
+        : "inactive";
+  }
+
+  const deptId =
+    designation.departmentId ??
+    designation.department ??
+    designation.department_id ??
+    null;
+
+  const deptNameFromMap = deptId ? departmentMap[deptId] : null;
+
+  const deptObj = designation.department_detail || designation.department_info;
+
+  const deptNameFromObj = deptObj
+    ? deptObj.name || deptObj.department_name
+    : null;
+
+  const finalDeptName =
+    deptNameFromMap ||
+    deptNameFromObj ||
+    designation.departmentName ||
+    designation.department_name ||
+    "—";
+
+  const defaultRole = roleService.getDesignationRole(
+    designation.id ?? designation.designation_id,
+  );
+
   return {
-    id: department.id ?? department.department_id ?? department.pk,
+    ...designation,
+    id: designation.id ?? designation.designation_id,
+    designationName:
+      designation.designationName ??
+      designation.name ??
+      designation.designation_name ??
+      "Unnamed Designation",
+    designationCode:
+      designation.designationCode ??
+      designation.code ??
+      designation.designation_code ??
+      "—",
+    departmentId: deptId,
+    departmentName: finalDeptName,
 
-    departmentName: department.departmentName ?? department.name ?? "",
+    defaultRoleId:
+      designation.defaultRoleId ??
+      designation.default_role_id ??
+      defaultRole?.id ??
+      null,
 
-    name: department.name ?? department.departmentName ?? "",
+    defaultRoleName:
+      designation.defaultRoleName ??
+      designation.default_role_name ??
+      defaultRole?.roleName ??
+      "—",
 
-    description: department.description ?? "",
+    description: designation.description ?? "",
+    status: normalizedStatus,
+    createdAt:
+      designation.createdAt ??
+      designation.created_at ??
+      new Date().toISOString(),
 
-    status: String(
-      department.status ?? (department.is_active ? "Active" : "Inactive"),
-    ).toLowerCase(),
+    employeeCount:
+      designation.employeeCount ??
+      designation.employee_count ??
+      designation.total_employees ??
+      0,
+  };
+};
 
-    isActive:
-      department.is_active ??
-      String(department.status).toLowerCase() === "active",
+const extractApiError = (error, fallbackContext = {}) => {
+  const data = error?.response?.data;
 
-    company: department.company,
+  if (!data) {
+    return {
+      fieldErrors: {},
+      generalError: error?.message || "An unexpected error occurred.",
+    };
+  }
 
-    companyName: department.company_name,
+  if (typeof data === "string") {
+    return {
+      fieldErrors: {},
+      generalError: data,
+    };
+  }
 
-    createdAt: department.created_at ?? department.createdAt,
+  const fieldErrors = {};
+  let generalError = "";
 
-    updatedAt: department.updated_at ?? department.updatedAt,
+  if (data.detail && typeof data.detail === "string") {
+    generalError = data.detail;
+  } else if (data.message && typeof data.message === "string") {
+    generalError = data.message;
+  } else if (data.error && typeof data.error === "string") {
+    generalError = data.error;
+  }
+
+  Object.keys(data).forEach((key) => {
+    if (
+      key === "detail" ||
+      key === "message" ||
+      key === "error" ||
+      key === "status_code"
+    ) {
+      return;
+    }
+
+    const value = data[key];
+
+    if (Array.isArray(value)) {
+      fieldErrors[key] = value.join(" ");
+    } else if (typeof value === "string") {
+      fieldErrors[key] = value;
+    }
+  });
+
+  return {
+    fieldErrors,
+    generalError:
+      generalError ||
+      (Object.keys(fieldErrors).length > 0
+        ? "Please fix the validation errors below."
+        : "Failed to process request."),
   };
 };
 
 const Designations = () => {
+  const { notify } = useNotification();
   const [designations, setDesignations] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("all");
   const [status, setStatus] = useState("all");
   const [sortBy, setSortBy] = useState("name");
+
   const [showForm, setShowForm] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
   const [selectedDesignation, setSelectedDesignation] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [departmentsLoading, setDepartmentsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
   const [formFieldErrors, setFormFieldErrors] = useState({});
 
-  /*
-   * Load Departments
-   */
-  const loadDepartments = async () => {
-    try {
-      setDepartmentsLoading(true);
-      const response = await getDepartments();
-      const departmentList = extractList(response);
-      const normalizedDepartments = departmentList
-        .map(normalizeDepartment)
-        .filter(Boolean);
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    designation: null,
+    loading: false,
+  });
 
-      setDepartments(normalizedDepartments);
-    } catch (error) {
-      console.error("Failed to load departments:", error);
-      const { generalError } = extractApiError(error, {
-        context: "department",
-        action: "load",
-      });
-      setError(generalError || "Failed to load departments. Please try again.");
-    } finally {
-      setDepartmentsLoading(false);
-    }
-  };
-
-  /*
-   * Load Designations
-   */
-  const loadDesignations = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      setError("");
 
-      const response = await getDesignations();
-      const designationList = extractList(response);
+      const [deptRes, desigRes] = await Promise.all([
+        getDepartments(),
+        getDesignations(),
+      ]);
 
-      const normalizedDesignations = designationList
-        .map(normalizeDesignation)
+      const deptList = extractDataList(deptRes)
+        .map(normalizeDepartmentOption)
         .filter(Boolean);
 
-      setDesignations(normalizedDesignations);
+      setDepartments(deptList);
+
+      const deptMap = {};
+      deptList.forEach((d) => {
+        deptMap[d.id] = d.name;
+      });
+
+      const desigList = extractDataList(desigRes);
+      const normalized = desigList
+        .map((d) => normalizeDesignation(d, deptMap))
+        .filter(Boolean);
+
+      setDesignations(normalized);
     } catch (error) {
-      console.error("Failed to load designations:", error);
+      console.error("Failed to load designations data:", error);
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "load",
       });
-      setError(
-        generalError || "Failed to load designations. Please try again.",
-      );
+      notify.error(generalError || "Failed to load designations. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadDepartments();
-    loadDesignations();
-    roleService.syncRolesFromBackend();
-
-    const handleDesignationRolesUpdated = () => {
-      loadDesignations();
-    };
-
-    window.addEventListener("ignite:designation-roles-updated", handleDesignationRolesUpdated);
-    window.addEventListener("ignite:roles-updated", handleDesignationRolesUpdated);
-
-    return () => {
-      window.removeEventListener("ignite:designation-roles-updated", handleDesignationRolesUpdated);
-      window.removeEventListener("ignite:roles-updated", handleDesignationRolesUpdated);
-    };
+    loadData();
   }, []);
 
-  /*
-   * Stats
-   */
   const stats = useMemo(() => {
     const total = designations.length;
-    const active = designations.filter(
-      (designation) => designation.status === "active",
-    ).length;
-    const inactive = designations.filter(
-      (designation) => designation.status === "inactive",
-    ).length;
+    const active = designations.filter((d) => d.status === "active").length;
+    const inactive = designations.filter((d) => d.status === "inactive").length;
 
-    return {
-      total,
-      active,
-      inactive,
-    };
+    return { total, active, inactive };
   }, [designations]);
 
-  /*
-   * Filters + Sorting
-   */
   const filteredDesignations = useMemo(() => {
     let result = [...designations];
 
@@ -285,10 +303,8 @@ const Designations = () => {
       switch (sortBy) {
         case "newest":
           return new Date(b.createdAt) - new Date(a.createdAt);
-
         case "oldest":
           return new Date(a.createdAt) - new Date(b.createdAt);
-
         case "name":
         default:
           return (a.designationName || "").localeCompare(
@@ -300,56 +316,43 @@ const Designations = () => {
     return result;
   }, [designations, search, department, status, sortBy]);
 
-  /*
-   * Add
-   */
   const handleAddDesignation = () => {
-    setError("");
     setFormFieldErrors({});
     setSelectedDesignation(null);
     setShowForm(true);
   };
 
-  /*
-   * View
-   */
   const handleViewDesignation = (designation) => {
-    setError("");
     setSelectedDesignation(designation);
     setShowDetails(true);
   };
 
-  /*
-   * Edit
-   */
   const handleEditDesignation = (designation) => {
-    setError("");
     setFormFieldErrors({});
     setShowDetails(false);
     setSelectedDesignation(designation);
     setShowForm(true);
   };
 
-  /*
-   * Delete
-   */
-  const handleDeleteDesignation = async (designation) => {
+  const handleDeleteClick = (designation) => {
     if (!designation?.id) {
-      setError("Unable to delete designation: designation ID is missing.");
+      notify.error("Unable to delete designation: designation ID is missing.");
       return;
     }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${designation.designationName}"?`,
-    );
+    setDeleteModal({
+      open: true,
+      designation,
+      loading: false,
+    });
+  };
 
-    if (!confirmed) {
-      return;
-    }
+  const handleConfirmDelete = async () => {
+    const designation = deleteModal.designation;
+    if (!designation) return;
 
     try {
-      setLoading(true);
-      setError("");
+      setDeleteModal((prev) => ({ ...prev, loading: true }));
 
       await deleteDesignation(designation.id);
       roleService.setDesignationRole(designation.id, null);
@@ -362,284 +365,184 @@ const Designations = () => {
         setSelectedDesignation(null);
         setShowDetails(false);
       }
+
+      setDeleteModal({ open: false, designation: null, loading: false });
+      notify.success(`Designation "${designation.designationName}" deleted successfully.`);
     } catch (error) {
       console.error("Failed to delete designation:", error);
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "delete",
       });
-      setError(
-        generalError || "Failed to delete designation. Please try again.",
-      );
-    } finally {
-      setLoading(false);
+      setDeleteModal((prev) => ({ ...prev, loading: false }));
+      notify.error(generalError || "Failed to delete designation. Please try again.");
     }
   };
 
-  /*
-   * Toggle Status
-   */
-  const handleToggleDesignationStatus = async (designation) => {
+  const handleToggleStatus = async (designation) => {
     if (!designation?.id) {
-      setError("Unable to update designation: designation ID is missing.");
+      notify.error("Unable to update designation: designation ID is missing.");
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
 
       const newStatus = designation.status === "active" ? "Inactive" : "Active";
-      const response = await patchDesignation(designation.id, {
+
+      await patchDesignation(designation.id, {
         status: newStatus,
         is_active: newStatus === "Active",
       });
 
-      const updated = normalizeDesignation(response);
-
-      if (updated) {
-        setDesignations((previous) =>
-          previous.map((item) => (item.id === designation.id ? updated : item)),
-        );
-
-        if (selectedDesignation?.id === designation.id) {
-          setSelectedDesignation(updated);
-        }
-      } else {
-        await loadDesignations();
-      }
+      await loadData();
+      notify.success(`Designation "${designation.designationName}" ${newStatus === "Active" ? "activated" : "deactivated"} successfully.`);
     } catch (error) {
-      console.error("Failed to update designation status:", error);
+      console.error("Failed to toggle designation status:", error);
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "toggle",
       });
-      setError(
-        generalError ||
-          "Failed to update designation status. Please try again.",
-      );
+      notify.error(generalError || "Failed to update designation status. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Submit Add/Edit
-   */
   const handleSubmitDesignation = async (formData) => {
     try {
       setLoading(true);
-      setError("");
       setFormFieldErrors({});
 
-      const defaultRoleId = formData.defaultRole
-        ? Number(formData.defaultRole) || formData.defaultRole
-        : null;
-
       const payload = {
-        designation_code: formData.designationCode?.trim().toUpperCase() || "",
-        name: formData.designationName?.trim() || "",
-        department: Number(formData.departmentId),
-        default_role: formData.defaultRole || null,
-        access_profile: "employee",
-        additional_permissions: [],
+        designation_code: formData.designationCode?.trim() || "",
+        designation_name: formData.designationName?.trim() || "",
+        department: formData.departmentId ? Number(formData.departmentId) : null,
         description: formData.description?.trim() || "",
-        status: formData.status === "active" ? "Active" : "Inactive",
-        is_active: formData.status === "active",
+        status: formData.status || "Active",
+        is_active: (formData.status || "Active") === "Active",
       };
 
-      let result;
-      if (selectedDesignation) {
-        result = await updateDesignation(selectedDesignation.id, payload);
-        roleService.setDesignationRole(selectedDesignation.id, formData.defaultRole);
+      if (selectedDesignation?.id) {
+        await updateDesignation(selectedDesignation.id, payload);
 
-        const updatedDesignation = normalizeDesignation(result);
-        if (updatedDesignation) {
-          setDesignations((previous) =>
-            previous.map((item) =>
-              item.id === selectedDesignation.id ? updatedDesignation : item,
-            ),
-          );
-        }
+        roleService.setDesignationRole(
+          selectedDesignation.id,
+          formData.defaultRoleId || null,
+        );
 
-        setShowForm(false);
-        setSelectedDesignation(null);
-        setFormFieldErrors({});
+        notify.success("Designation updated successfully.");
       } else {
-        result = await createDesignation(payload);
-        const newId = result?.id ?? result?.designation_id ?? result?.pk;
-        if (newId && defaultRoleId) {
-          roleService.setDesignationRole(newId, defaultRoleId);
+        const response = await createDesignation(payload);
+
+        const newId =
+          response?.data?.id || response?.id || response?.designation_id;
+
+        if (newId && formData.defaultRoleId) {
+          roleService.setDesignationRole(newId, formData.defaultRoleId);
         }
+
+        notify.success("Designation created successfully.");
       }
 
-      await loadDesignations();
-
-      // Trigger user session refresh
-      window.dispatchEvent(new CustomEvent("ignite:user-updated"));
-      window.dispatchEvent(new Event("storage"));
-
-      if (!selectedDesignation) {
-        setShowForm(false);
-        setSelectedDesignation(null);
-        setFormFieldErrors({});
-      }
+      await loadData();
+      setShowForm(false);
+      setSelectedDesignation(null);
     } catch (error) {
       console.error("Failed to save designation:", error);
-      const apiError = error.response?.data;
+      const { fieldErrors, generalError } = extractApiError(error, {
+        context: "designation",
+        action: selectedDesignation ? "update" : "create",
+      });
 
-      if (apiError && typeof apiError === "object") {
-        const fieldErrors = {};
-        Object.entries(apiError).forEach(([field, value]) => {
-          if (Array.isArray(value)) {
-            fieldErrors[field] = value.join(" ");
-          } else if (typeof value === "string") {
-            fieldErrors[field] = value;
-          }
-        });
-        setFormFieldErrors(fieldErrors);
-      }
-
-      setError(
-        apiError?.detail || apiError?.message || "Failed to save designation.",
-      );
+      setFormFieldErrors(fieldErrors);
+      notify.error(generalError || "Failed to save designation.");
     } finally {
       setLoading(false);
     }
   };
 
-  /*
-   * Close Details
-   */
-  const handleCloseDetails = () => {
-    setShowDetails(false);
-    setSelectedDesignation(null);
-  };
-
-  /*
-   * Cancel Form
-   */
-  const handleCancelForm = () => {
-    setShowForm(false);
-    setSelectedDesignation(null);
-    setFormFieldErrors({});
-    setError("");
-  };
-
   return (
-    <div className="designations-page">
+    <main className="designations-page">
       <PageHeader
         eyebrow="Organization"
         title="Designations"
-        description="Manage your organization's designations and their department assignments."
+        description="Manage job titles, roles, hierarchy, and department links."
         action={
-          canCreateDesignations() ? (
-            <Button variant="primary" onClick={handleAddDesignation}>
-              + Add Designation
-            </Button>
-          ) : null
+          <Button variant="primary" onClick={handleAddDesignation}>
+            + Add Designation
+          </Button>
         }
       />
 
-      <div className="designations-page__content">
-        {error && (
-          <div className="designations-page__error" role="alert">
-            {error}
-          </div>
-        )}
+      <DesignationStats stats={stats} />
 
-        <DesignationStats
-          total={stats.total}
-          active={stats.active}
-          inactive={stats.inactive}
+      <section className="designations-page__content">
+        <DesignationFilters
+          search={search}
+          onSearchChange={setSearch}
+          department={department}
+          onDepartmentChange={setDepartment}
+          status={status}
+          onStatusChange={setStatus}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          departments={departments}
         />
 
-        {designations.length > 0 && (
-          <DesignationFilters
-            search={search}
-            onSearch={(value) => setSearch(value?.target?.value ?? value ?? "")}
-            department={department}
-            onDepartmentChange={setDepartment}
-            status={status}
-            onStatusChange={setStatus}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            departments={departments}
-          />
-        )}
-
-        {loading && designations.length === 0 ? (
-          <IgniteLoader text="Loading designations..." />
-        ) : designations.length === 0 ? (
-          <div className="designations-page__empty">
-            <EmptyState
-              title="No designations yet"
-              description="Create your first designation to start defining job positions in your organization."
-              action={
-                canCreateDesignations() ? (
-                  <Button variant="primary" onClick={handleAddDesignation}>
-                    + Add Designation
-                  </Button>
-                ) : null
-              }
-            />
-          </div>
-        ) : filteredDesignations.length === 0 ? (
-          <div className="designations-page__empty">
-            <EmptyState
-              title="No designations found"
-              description="Try changing your search or filter options."
-            />
+        {loading ? (
+          <div className="designations-page__loading">
+            <IgniteLoader message="Loading designations..." />
           </div>
         ) : (
-          <div className="designations-page__table">
-            <DesignationTable
-              designations={filteredDesignations}
-              onView={handleViewDesignation}
-              onEdit={handleEditDesignation}
-              onDelete={handleDeleteDesignation}
-              onToggleStatus={handleToggleDesignationStatus}
-            />
-          </div>
+          <DesignationTable
+            designations={filteredDesignations}
+            onView={handleViewDesignation}
+            onEdit={handleEditDesignation}
+            onDelete={handleDeleteClick}
+            onToggleStatus={handleToggleStatus}
+          />
         )}
-      </div>
+      </section>
 
-      {/* Details Modal */}
-      <Modal
-        open={showDetails && !!selectedDesignation}
-        onClose={handleCloseDetails}
-        title="Designation Details"
-        size="medium"
-      >
-        <DesignationDetails
-          designation={selectedDesignation}
-          onClose={handleCloseDetails}
-          onEdit={handleEditDesignation}
-        />
-      </Modal>
-
-      {/* Add/Edit Modal */}
-      <Modal
-        open={showForm}
-        onClose={handleCancelForm}
-        title={selectedDesignation ? "Edit Designation" : "Add Designation"}
-        description={
-          selectedDesignation
-            ? "Update the designation details below."
-            : "Add a new designation to your organization."
-        }
-        size="medium"
-      >
+      {showForm && (
         <DesignationForm
-          initialData={selectedDesignation || {}}
+          designation={selectedDesignation}
           departments={departments}
           onSubmit={handleSubmitDesignation}
-          onCancel={handleCancelForm}
-          loading={loading || departmentsLoading}
-          fieldErrors={formFieldErrors}
+          onCancel={() => {
+            setShowForm(false);
+            setSelectedDesignation(null);
+          }}
+          errors={formFieldErrors}
         />
-      </Modal>
-    </div>
+      )}
+
+      {showDetails && selectedDesignation && (
+        <DesignationDetails
+          designation={selectedDesignation}
+          onClose={() => {
+            setShowDetails(false);
+            setSelectedDesignation(null);
+          }}
+          onEdit={() => handleEditDesignation(selectedDesignation)}
+          onDelete={() => handleDeleteClick(selectedDesignation)}
+          onToggleStatus={() => handleToggleStatus(selectedDesignation)}
+        />
+      )}
+
+      {deleteModal.open && (
+        <ConfirmModal
+          open={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, designation: null, loading: false })}
+          onConfirm={handleConfirmDelete}
+          title="Delete Designation?"
+          itemName={deleteModal.designation?.designationName}
+          confirmText="Delete"
+          loading={deleteModal.loading}
+        />
+      )}
+    </main>
   );
 };
 

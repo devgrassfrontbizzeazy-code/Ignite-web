@@ -66,6 +66,21 @@ const EmployeesIcon = () => (
     <path d="M13 12.2c2.4.2 4 2 4 4.8" />
   </svg>
 );
+const TeamsIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="7" cy="7" r="2.5" />
+    <circle cx="14.5" cy="8" r="2" />
+    <path d="M2.5 16.5c0-3 2-5 4.5-5s4.5 2 4.5 5" />
+    <path d="M12 13c2.2.2 3.8 1.4 4.2 3.5" />
+  </svg>
+);const TasksIcon = () => (
+  <svg {...iconProps}>
+    <rect x="3" y="3" width="14" height="14" rx="2" />
+    <path d="M6.5 7.5h7" />
+    <path d="M6.5 10h7" />
+    <path d="M6.5 12.5h4.5" />
+  </svg>
+);
 
 const AttendanceIcon = () => (
   <svg {...iconProps}>
@@ -195,6 +210,18 @@ const NAV_ITEMS = [
     icon: EmployeesIcon,
     permission: "view_user",
   },
+  {
+  label: "Teams",
+  path: "/teams",
+  icon: TeamsIcon,
+  permission: "view_team",
+},
+{
+  label: "Tasks",
+  path: "/tasks",
+  icon: TasksIcon,
+  permission: "view_task",
+},
   {
     label: "Attendance",
     path: "/attendance",

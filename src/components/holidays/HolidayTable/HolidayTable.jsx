@@ -1,9 +1,10 @@
-
-import { CalendarDays, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import {
   canUpdateHolidays,
   canDeleteHolidays,
 } from "../../../utils/permissionUtils";
+import RowActions from "../../common/RowActions/RowActions";
 
 import "./HolidayTable.css";
 
@@ -29,6 +30,9 @@ const HolidayTable = ({
     );
   }
 
+  const canEdit = canUpdateHolidays();
+  const canDelete = canDeleteHolidays();
+
   return (
     <div className="holiday-table-wrapper">
       <table className="holiday-table">
@@ -46,107 +50,116 @@ const HolidayTable = ({
         </thead>
 
         <tbody>
-          {holidays.map((holiday) => (
-            <tr key={holiday.id}>
-              {/* Holiday */}
-              <td>
-                <div className="holiday-name-cell">
-                  <div className="holiday-name-icon">
-                    <CalendarDays size={16} strokeWidth={1.8} />
-                  </div>
+          {holidays.map((holiday) => {
+            const actions = [
+              ...(canEdit
+                ? [
+                    {
+                      key: "edit",
+                      label: "Edit",
+                      icon: FiEdit2,
+                      onClick: () => onEdit(holiday),
+                    },
+                  ]
+                : []),
+              ...(canDelete && canEdit
+                ? [{ key: "divider-1", isDivider: true }]
+                : []),
+              ...(canDelete
+                ? [
+                    {
+                      key: "delete",
+                      label: "Delete",
+                      icon: FiTrash2,
+                      isDanger: true,
+                      onClick: () => onDelete(holiday.id),
+                    },
+                  ]
+                : []),
+            ];
 
-                  <div>
-                    <div className="holiday-name">
-                      {holiday.name}
+            return (
+              <tr key={holiday.id}>
+                {/* Holiday */}
+                <td>
+                  <div className="holiday-name-cell">
+                    <div className="holiday-name-icon">
+                      <CalendarDays size={16} strokeWidth={1.8} />
                     </div>
 
-                    {holiday.description && (
-                      <div className="holiday-description">
-                        {holiday.description}
+                    <div>
+                      <div className="holiday-name">
+                        {holiday.name}
                       </div>
-                    )}
+
+                      {holiday.description && (
+                        <div className="holiday-description">
+                          {holiday.description}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </td>
+                </td>
 
-              {/* Date */}
-              <td>
-                <span className="holiday-date">
-                  {holiday.date}
-                </span>
-              </td>
+                {/* Date */}
+                <td>
+                  <span className="holiday-date">
+                    {holiday.date}
+                  </span>
+                </td>
 
-              {/* Day */}
-              <td>
-                <span className="holiday-day">
-                  {holiday.day ||
-                    new Date(
-                      `${holiday.date}T00:00:00`
-                    ).toLocaleDateString("en-US", {
-                      weekday: "long",
-                    })}
-                </span>
-              </td>
+                {/* Day */}
+                <td>
+                  <span className="holiday-day">
+                    {holiday.day ||
+                      new Date(
+                        `${holiday.date}T00:00:00`
+                      ).toLocaleDateString("en-US", {
+                        weekday: "long",
+                      })}
+                  </span>
+                </td>
 
-              {/* Type */}
-              <td>
-                <span
-                  className={`holiday-type holiday-type-${String(
-                    holiday.type || ""
-                  )
-                    .toLowerCase()
-                    .replace(/\s+/g, "-")}`}
-                >
-                  {holiday.type || "—"}
-                </span>
-              </td>
+                {/* Type */}
+                <td>
+                  <span
+                    className={`holiday-type holiday-type-${String(
+                      holiday.type || ""
+                    )
+                      .toLowerCase()
+                      .replace(/\s+/g, "-")}`}
+                  >
+                    {holiday.type || "—"}
+                  </span>
+                </td>
 
-              {/* Recurring */}
-              <td>
-                <span
-                  className={`holiday-boolean ${holiday.recurring_every_year ??
+                {/* Recurring */}
+                <td>
+                  <span
+                    className={`holiday-boolean ${
+                      holiday.recurring_every_year ??
                       holiday.recurringEveryYear ??
                       holiday.recurring
-                      ? "holiday-boolean-yes"
-                      : "holiday-boolean-no"
+                        ? "holiday-boolean-yes"
+                        : "holiday-boolean-no"
                     }`}
-                >
-                  {holiday.recurring_every_year ??
+                  >
+                    {holiday.recurring_every_year ??
                     holiday.recurringEveryYear ??
                     holiday.recurring
-                    ? "Yes"
-                    : "No"}
-                </span>
-              </td>
+                      ? "Yes"
+                      : "No"}
+                  </span>
+                </td>
 
-              {/* Actions */}
-              <td>
-                <div className="holiday-actions">
-                  {canUpdateHolidays() && (
-                    <button
-                      type="button"
-                      className="holiday-action-button"
-                      onClick={() => onEdit(holiday)}
-                      title="Edit holiday"
-                      aria-label={`Edit ${holiday.name}`}
-                    >
-                      <Pencil size={15} strokeWidth={2} />
-                    </button>
-                  )}
-
-                  {canDeleteHolidays() && (
-                    <button
-                      type="button"
-                      className="holiday-action-button holiday-action-danger"
-                      onClick={() => onDelete(holiday.id)}
-                      title="Delete holiday"
-                      aria-label={`Delete ${holiday.name}`}
-                    >
-                      <Trash2 size={15} strokeWidth={2} />
-                    </button>
-                  )}
-
-                  {!canUpdateHolidays() && !canDeleteHolidays() && (
+                {/* Actions */}
+                <td>
+                  {actions.length > 0 ? (
+                    <RowActions
+                      actions={actions}
+                      title={`Actions for ${holiday.name}`}
+                    />
+                  ) : (
                     <span
                       style={{
                         fontSize: "11px",
@@ -156,10 +169,10 @@ const HolidayTable = ({
                       —
                     </span>
                   )}
-                </div>
-              </td>
-            </tr>
-          ))}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -167,4 +180,3 @@ const HolidayTable = ({
 };
 
 export default HolidayTable;
-
