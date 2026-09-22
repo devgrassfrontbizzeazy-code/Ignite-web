@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CalendarDays } from "lucide-react";
-import { FiEye, FiSlash } from "react-icons/fi";
+import { FiEye, FiSlash, FiCheck, FiX } from "react-icons/fi";
 import RowActions from "../../common/RowActions/RowActions";
 import { useNotification } from "../../../context/NotificationContext";
 
@@ -14,7 +14,14 @@ const FILTERS = [
   "Cancelled",
 ];
 
-const LeaveRequests = ({ requests = [], onView, onCancel }) => {
+const LeaveRequests = ({
+  requests = [],
+  onView,
+  onCancel,
+  management = false,
+  onApprove,
+  onReject,
+}) => {
   const { notify } = useNotification();
   const [activeFilter, setActiveFilter] = useState("All");
 
@@ -47,6 +54,7 @@ const LeaveRequests = ({ requests = [], onView, onCancel }) => {
         <table className="leave-requests__table">
           <thead>
             <tr>
+              {management && <th>Employee</th>}
               <th>Leave Type</th>
               <th>Dates</th>
               <th>Days</th>
@@ -59,7 +67,7 @@ const LeaveRequests = ({ requests = [], onView, onCancel }) => {
           <tbody>
             {filteredRequests.length > 0 ? (
               filteredRequests.map((request) => {
-                const isPending = request.status === "Pending";
+                const isPending = String(request.status).toUpperCase() === "PENDING";
 
                 const actions = [
                   {
@@ -73,9 +81,31 @@ const LeaveRequests = ({ requests = [], onView, onCancel }) => {
                           `Leave Request: ${request.type} (${request.from} - ${request.to}) [${request.status}]`
                         ),
                   },
-                  ...(isPending && onCancel
+                  ...(management && isPending && onApprove
                     ? [
-                      { key: "divider-1", isDivider: true },
+                      {
+                        key: "approve",
+                        label: "Approve",
+                        icon: FiCheck,
+                        onClick: () => onApprove(request),
+                      },
+                    ]
+                    : []),
+                  ...(management && isPending && onReject
+                    ? [
+                      { key: "divider-reject", isDivider: true },
+                      {
+                        key: "reject",
+                        label: "Reject",
+                        icon: FiX,
+                        isDanger: true,
+                        onClick: () => onReject(request),
+                      },
+                    ]
+                    : []),
+                  ...(!management && isPending && onCancel
+                    ? [
+                      { key: "divider-cancel", isDivider: true },
                       {
                         key: "cancel",
                         label: "Cancel Request",
@@ -89,6 +119,14 @@ const LeaveRequests = ({ requests = [], onView, onCancel }) => {
 
                 return (
                   <tr key={request.id}>
+                    {management && (
+                      <td>
+                        <div className="leave-request-employee">
+                          <strong>{request.employeeName || "Employee"}</strong>
+                          <span>{request.employeeCode || request.employeeEmail || "—"}</span>
+                        </div>
+                      </td>
+                    )}
                     <td>
                       <div className="leave-request-type">
                         <div className="leave-request-type__icon">
@@ -147,7 +185,7 @@ const LeaveRequests = ({ requests = [], onView, onCancel }) => {
             ) : (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan={management ? 7 : 6}
                   className="leave-requests__empty"
                 >
                   No {activeFilter.toLowerCase()} leave

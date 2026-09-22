@@ -44,8 +44,10 @@ const TeamTable = ({
             <thead>
               <tr>
                 <th>Team</th>
-                <th>Description</th>
+                <th>Team Lead</th>
                 <th>Members</th>
+                <th>Active Tasks</th>
+                <th>Completed Tasks</th>
                 <th>Status</th>
                 <th>Created</th>
                 <th className="team-table__actions-header">
@@ -81,17 +83,17 @@ const TeamTable = ({
                     </div>
                   </td>
 
-                  <td>
-                    <span className="team-table__description">
-                      {team.description || "—"}
-                    </span>
-                  </td>
+                  <td>{team.teamLeadName || team.team_lead_name || "—"}</td>
 
                   <td>
                     <span className="team-table__member-count">
-                      {team.memberIds?.length || 0}
+                      {team.memberCount ?? team.memberIds?.length ?? 0}
                     </span>
                   </td>
+
+                  <td>{team.activeTaskCount ?? 0}</td>
+
+                  <td>{team.completedTaskCount ?? 0}</td>
 
                   <td>
                     <span

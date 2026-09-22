@@ -9,15 +9,25 @@ import "./TeamForm.css";
 
 const getEmployeeName = (employee) =>
   [
-    employee.first_name,
-    employee.middle_name,
-    employee.last_name,
+    employee.first_name || employee.firstName,
+    employee.middle_name || employee.middleName,
+    employee.last_name || employee.lastName,
   ]
     .filter(Boolean)
     .join(" ") ||
   employee.full_name ||
+  employee.fullName ||
   employee.email ||
   "Employee";
+
+const getEmployeeDepartment = (employee) =>
+  employee.department?.name ||
+  employee.department_name ||
+  employee.departmentName ||
+  "No department";
+
+const getEmployeeCode = (employee) =>
+  employee.employee_code || employee.employeeCode || "No employee code";
 
 const TeamForm = ({
   initialData,
@@ -45,7 +55,9 @@ const TeamForm = ({
       teamName: initialData?.teamName || initialData?.name || "",
       description: initialData?.description || "",
       teamLeadId: initialData?.teamLeadId || "",
-      memberIds: Array.isArray(initialData?.memberIds) ? initialData.memberIds : [],
+      memberIds: Array.isArray(initialData?.memberIds)
+        ? initialData.memberIds
+        : [],
       status: initialData?.status || "active",
     });
     setLocalErrors({});
@@ -73,25 +85,17 @@ const TeamForm = ({
 
     return employees
       .filter((employee) => {
-        const name =
-          getEmployeeName(employee).toLowerCase();
+        const name = getEmployeeName(employee).toLowerCase();
 
         return (
           name.includes(searchValue) ||
-          employee.email
-            ?.toLowerCase()
-            .includes(searchValue) ||
-          employee.employee_code
-            ?.toLowerCase()
-            .includes(searchValue)
+          employee.email?.toLowerCase().includes(searchValue) ||
+          getEmployeeCode(employee).toLowerCase().includes(searchValue)
         );
       })
       .filter(
         (employee) =>
-          !formData.memberIds.some(
-            (id) =>
-              String(id) === String(employee.id)
-          )
+          !formData.memberIds.some((id) => String(id) === String(employee.id)),
       )
       .slice(0, 8);
   }, [employees, memberSearch, formData.memberIds]);
@@ -104,10 +108,7 @@ const TeamForm = ({
 
   const selectedEmployees = useMemo(() => {
     return employees.filter((employee) =>
-      formData.memberIds.some(
-        (id) =>
-          String(id) === String(employee.id)
-      )
+      formData.memberIds.some((id) => String(id) === String(employee.id)),
     );
   }, [employees, formData.memberIds]);
 
@@ -140,22 +141,14 @@ const TeamForm = ({
   const handleMemberToggle = (employeeId) => {
     setFormData((previous) => {
       const exists = previous.memberIds.some(
-        (id) =>
-          String(id) === String(employeeId)
+        (id) => String(id) === String(employeeId),
       );
 
       return {
         ...previous,
         memberIds: exists
-          ? previous.memberIds.filter(
-              (id) =>
-                String(id) !==
-                String(employeeId)
-            )
-          : [
-              ...previous.memberIds,
-              employeeId,
-            ],
+          ? previous.memberIds.filter((id) => String(id) !== String(employeeId))
+          : [...previous.memberIds, employeeId],
       };
     });
 
@@ -179,8 +172,7 @@ const TeamForm = ({
     setFormData((previous) => ({
       ...previous,
       memberIds: previous.memberIds.filter(
-        (id) =>
-          String(id) !== String(employeeId)
+        (id) => String(id) !== String(employeeId),
       ),
     }));
   };
@@ -195,18 +187,20 @@ const TeamForm = ({
     const newErrors = {};
 
     if (!formData.teamName.trim()) {
-      newErrors.teamName =
-        "Team name is required.";
+      newErrors.teamName = "Team name is required.";
     }
 
     if (formData.memberIds.length === 0) {
-      newErrors.memberIds =
-        "Select at least one team member.";
+      newErrors.memberIds = "Select at least one team member.";
     }
 
     if (!formData.teamLeadId) {
       newErrors.teamLeadId = "Select a team lead.";
-    } else if (!formData.memberIds.some((id) => String(id) === String(formData.teamLeadId))) {
+    } else if (
+      !formData.memberIds.some(
+        (id) => String(id) === String(formData.teamLeadId),
+      )
+    ) {
       newErrors.teamLeadId = "The team lead must be a selected member.";
     }
 
@@ -238,10 +232,7 @@ const TeamForm = ({
   };
 
   return (
-    <form
-      className="team-form"
-      onSubmit={handleSubmit}
-    >
+    <form className="team-form" onSubmit={handleSubmit}>
       <div className="team-form__fields">
         {/* TEAM NAME */}
 
@@ -255,12 +246,7 @@ const TeamForm = ({
             id="team-name"
             type="text"
             value={formData.teamName}
-            onChange={(event) =>
-              handleChange(
-                "teamName",
-                event.target.value
-              )
-            }
+            onChange={(event) => handleChange("teamName", event.target.value)}
             placeholder="e.g. Product Development"
             disabled={loading}
             maxLength={100}
@@ -279,10 +265,7 @@ const TeamForm = ({
             id="team-description"
             value={formData.description}
             onChange={(event) =>
-              handleChange(
-                "description",
-                event.target.value
-              )
+              handleChange("description", event.target.value)
             }
             placeholder="Enter team description..."
             rows={4}
@@ -306,11 +289,7 @@ const TeamForm = ({
               <input
                 type="text"
                 value={memberSearch}
-                onChange={(event) =>
-                  setMemberSearch(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setMemberSearch(event.target.value)}
                 placeholder="Search employees by name, email or employee code..."
                 disabled={loading}
               />
@@ -321,65 +300,47 @@ const TeamForm = ({
             {selectedEmployees.length > 0 && (
               <div className="team-form__selected">
                 <div className="team-form__selected-title">
-                  Selected Members (
-                  {selectedEmployees.length})
+                  Selected Members ({selectedEmployees.length})
                 </div>
 
                 <div className="team-form__selected-list">
-                  {selectedEmployees.map(
-                    (employee) => {
-                      const name =
-                        getEmployeeName(
-                          employee
-                        );
+                  {selectedEmployees.map((employee) => {
+                    const name = getEmployeeName(employee);
 
-                      return (
-                        <div
-                          className="team-form__selected-member"
-                          key={employee.id}
-                        >
-                          <div className="team-form__selected-avatar">
-                            {employee.profile_photo_url ? (
-                              <img
-                                src={
-                                  employee.profile_photo_url
-                                }
-                                alt={name}
-                              />
-                            ) : (
-                              name
-                                .charAt(0)
-                                .toUpperCase()
-                            )}
-                          </div>
-
-                          <div className="team-form__selected-info">
-                            <span>
-                              {name}
-                            </span>
-
-                            <small>
-                              {employee.department_name ||
-                                "No department"}
-                            </small>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeMember(
-                                employee.id
-                              )
-                            }
-                            disabled={loading}
-                            aria-label={`Remove ${name}`}
-                          >
-                            ×
-                          </button>
+                    return (
+                      <div
+                        className="team-form__selected-member"
+                        key={employee.id}
+                      >
+                        <div className="team-form__selected-avatar">
+                          {employee.profile_photo_url ? (
+                            <img src={employee.profile_photo_url} alt={name} />
+                          ) : (
+                            name.charAt(0).toUpperCase()
+                          )}
                         </div>
-                      );
-                    }
-                  )}
+
+                        <div className="team-form__selected-info">
+                          <span>{name}</span>
+
+                          <small>
+                            {getEmployeeDepartment(employee)}
+                            {" • "}
+                            {getEmployeeCode(employee)}
+                          </small>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => removeMember(employee.id)}
+                          disabled={loading}
+                          aria-label={`Remove ${name}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -388,8 +349,7 @@ const TeamForm = ({
 
             {memberSearch.trim() && (
               <div className="team-form__employee-list">
-                {filteredEmployees.length ===
-                0 ? (
+                {filteredEmployees.length === 0 ? (
                   <div className="team-form__employee-empty">
                     No available employees found.
                   </div>
@@ -399,58 +359,44 @@ const TeamForm = ({
                       Search Results
                     </div>
 
-                    {filteredEmployees.map(
-                      (employee) => {
-                        const name =
-                          getEmployeeName(
-                            employee
-                          );
+                    {filteredEmployees.map((employee) => {
+                      const name = getEmployeeName(employee);
 
-                        return (
-                          <button
-                            type="button"
-                            className="team-form__employee-option"
-                            key={employee.id}
-                            onClick={() =>
-                              handleMemberToggle(
-                                employee.id
-                              )
-                            }
-                            disabled={loading}
-                          >
-                            <div className="team-form__employee-avatar">
-                              {employee.profile_photo_url ? (
-                                <img
-                                  src={
-                                    employee.profile_photo_url
-                                  }
-                                  alt={name}
-                                />
-                              ) : (
-                                name
-                                  .charAt(0)
-                                  .toUpperCase()
-                              )}
-                            </div>
+                      return (
+                        <button
+                          type="button"
+                          className="team-form__employee-option"
+                          key={employee.id}
+                          onClick={() => handleMemberToggle(employee.id)}
+                          disabled={loading}
+                        >
+                          <div className="team-form__selected-avatar">
+                            {employee.profile_photo_url ||
+                            employee.profilePhotoUrl ? (
+                              <img
+                                src={
+                                  employee.profile_photo_url ||
+                                  employee.profilePhotoUrl
+                                }
+                                alt={name}
+                              />
+                            ) : (
+                              name.charAt(0).toUpperCase()
+                            )}
+                          </div>
 
-                            <div className="team-form__employee-info">
-                              <span className="team-form__employee-name">
-                                {name}
-                              </span>
+                          <div className="team-form__selected-info">
+                            <span>{name}</span>
 
-                              <span className="team-form__employee-meta">
-                                {employee.department_name ||
-                                  "No department"}
-
-                                {employee.employee_code
-                                  ? ` • ${employee.employee_code}`
-                                  : ""}
-                              </span>
-                            </div>
-                          </button>
-                        );
-                      }
-                    )}
+                            <small>
+                              {getEmployeeDepartment(employee)}
+                              {" • "}
+                              {getEmployeeCode(employee)}
+                            </small>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </>
                 )}
               </div>
@@ -458,12 +404,11 @@ const TeamForm = ({
 
             {/* SEARCH HINT */}
 
-            {!memberSearch.trim() &&
-              selectedEmployees.length === 0 && (
-                <div className="team-form__search-hint">
-                  Start typing to search for employees.
-                </div>
-              )}
+            {!memberSearch.trim() && selectedEmployees.length === 0 && (
+              <div className="team-form__search-hint">
+                Start typing to search for employees.
+              </div>
+            )}
           </div>
         </FormField>
 
@@ -482,7 +427,11 @@ const TeamForm = ({
               value: employee.id,
               label: getEmployeeName(employee),
             }))}
-            placeholder={selectedEmployees.length ? "Select team lead" : "Select members first"}
+            placeholder={
+              selectedEmployees.length
+                ? "Select team lead"
+                : "Select members first"
+            }
             disabled={loading || selectedEmployees.length === 0}
           />
         </FormField>
@@ -494,22 +443,11 @@ const TeamForm = ({
           hint="Inactive teams won't be available for new assignments."
         >
           <Toggle
-            checked={
-              formData.status === "active"
-            }
+            checked={formData.status === "active"}
             onChange={(checked) =>
-              handleChange(
-                "status",
-                checked
-                  ? "active"
-                  : "inactive"
-              )
+              handleChange("status", checked ? "active" : "inactive")
             }
-            label={
-              formData.status === "active"
-                ? "Active"
-                : "Inactive"
-            }
+            label={formData.status === "active" ? "Active" : "Inactive"}
             disabled={loading}
           />
         </FormField>
@@ -527,12 +465,12 @@ const TeamForm = ({
           Cancel
         </Button>
 
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={loading}
-        >
-          {loading ? "Saving..." : initialData?.id ? "Save Changes" : "Create Team"}
+        <Button type="submit" variant="primary" disabled={loading}>
+          {loading
+            ? "Saving..."
+            : initialData?.id
+              ? "Save Changes"
+              : "Create Team"}
         </Button>
       </div>
     </form>

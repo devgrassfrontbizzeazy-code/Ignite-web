@@ -1,6 +1,5 @@
 import api from "./axios";
 
-// Helper to determine if data has File object
 const isFormDataRequired = (data) => {
   if (data instanceof FormData) return true;
   if (!data || typeof data !== "object") return false;
@@ -26,9 +25,15 @@ const buildFormData = (data) => {
   return formData;
 };
 
-// ==========================================
-// CORE EMPLOYEE CRUD & OPTIONS
-// ==========================================
+const unwrapEmployeeResponse = (response) => {
+  const payload = response?.data;
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.data)) return payload.data;
+
+  return [];
+};
 
 export const getEmployees = async (params = {}) => {
   const response = await api.get("/employees/", { params });
@@ -43,9 +48,7 @@ export const getEmployee = async (id) => {
 export const createEmployee = async (employeeData) => {
   const hasFiles = isFormDataRequired(employeeData);
   const payload = hasFiles ? buildFormData(employeeData) : employeeData;
-  const headers = hasFiles
-    ? { "Content-Type": "multipart/form-data" }
-    : undefined;
+  const headers = hasFiles ? { "Content-Type": "multipart/form-data" } : undefined;
 
   const response = await api.post("/employees/", payload, { headers });
   return response.data;
@@ -54,9 +57,7 @@ export const createEmployee = async (employeeData) => {
 export const updateEmployee = async (id, employeeData) => {
   const hasFiles = isFormDataRequired(employeeData);
   const payload = hasFiles ? buildFormData(employeeData) : employeeData;
-  const headers = hasFiles
-    ? { "Content-Type": "multipart/form-data" }
-    : undefined;
+  const headers = hasFiles ? { "Content-Type": "multipart/form-data" } : undefined;
 
   const response = await api.put(`/employees/${id}/`, payload, { headers });
   return response.data;
@@ -65,9 +66,7 @@ export const updateEmployee = async (id, employeeData) => {
 export const patchEmployee = async (id, employeeData) => {
   const hasFiles = isFormDataRequired(employeeData);
   const payload = hasFiles ? buildFormData(employeeData) : employeeData;
-  const headers = hasFiles
-    ? { "Content-Type": "multipart/form-data" }
-    : undefined;
+  const headers = hasFiles ? { "Content-Type": "multipart/form-data" } : undefined;
 
   const response = await api.patch(`/employees/${id}/`, payload, { headers });
   return response.data;
@@ -93,10 +92,6 @@ export const getEmployeeManagers = async () => {
   return response.data;
 };
 
-// ==========================================
-// INVITATION & ONBOARDING WORKFLOW (PUBLIC)
-// ==========================================
-
 export const getInvitationDetails = async (token) => {
   const response = await api.get("/employees/invitation-details/", {
     params: { token },
@@ -121,12 +116,7 @@ export const verifyInvitationOTP = async (token, email, otp) => {
   return response.data;
 };
 
-export const acceptInvitation = async ({
-  token,
-  email,
-  password,
-  confirm_password,
-}) => {
+export const acceptInvitation = async ({ token, email, password, confirm_password }) => {
   const response = await api.post("/employees/invitation/accept/", {
     token,
     email,
@@ -135,3 +125,6 @@ export const acceptInvitation = async ({
   });
   return response.data;
 };
+
+export { unwrapEmployeeResponse };
+

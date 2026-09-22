@@ -21,10 +21,15 @@ const STATUS_OPTIONS = [
 ];
 
 const getEmployeeName = (employee) =>
-  [employee?.first_name, employee?.middle_name, employee?.last_name]
+  [
+    employee?.first_name || employee?.firstName,
+    employee?.middle_name || employee?.middleName,
+    employee?.last_name || employee?.lastName,
+  ]
     .filter(Boolean)
     .join(" ") ||
   employee?.full_name ||
+  employee?.fullName ||
   employee?.name ||
   employee?.email ||
   "Employee";
@@ -38,6 +43,7 @@ const TaskForm = ({
   initialData = {},
   teams = [],
   employees = [],
+  fetchTeamMembers,
   onSubmit,
   onCancel,
   loading = false,
@@ -58,6 +64,8 @@ const TaskForm = ({
 
   const [localErrors, setLocalErrors] = useState({});
   const [memberSearch, setMemberSearch] = useState("");
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const errors = {
     ...localErrors,
@@ -91,6 +99,40 @@ const TaskForm = ({
     );
   }, [teams, formData.teamId]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadTeamMembers = async () => {
+      if (!formData.teamId || typeof fetchTeamMembers !== "function") {
+        setTeamMembers([]);
+        return;
+      }
+
+      setMembersLoading(true);
+
+      try {
+        const members = await fetchTeamMembers(formData.teamId);
+        if (mounted) {
+          setTeamMembers(Array.isArray(members) ? members : []);
+        }
+      } catch {
+        if (mounted) {
+          setTeamMembers([]);
+        }
+      } finally {
+        if (mounted) {
+          setMembersLoading(false);
+        }
+      }
+    };
+
+    loadTeamMembers();
+
+    return () => {
+      mounted = false;
+    };
+  }, [fetchTeamMembers, formData.teamId]);
+
   /*
    * Get members belonging to selected team.
    *
@@ -99,7 +141,7 @@ const TaskForm = ({
    * - members
    * - employeeIds
    */
-  const teamMembers = useMemo(() => {
+  const fallbackTeamMembers = useMemo(() => {
     if (!selectedTeam) return [];
 
     let memberIds = [];
@@ -121,6 +163,10 @@ const TaskForm = ({
     );
   }, [selectedTeam, employees]);
 
+  const availableTeamMembers = fetchTeamMembers
+    ? teamMembers
+    : fallbackTeamMembers;
+
   /*
    * Search within selected team members only.
    */
@@ -128,15 +174,15 @@ const TaskForm = ({
     const searchValue = memberSearch.trim().toLowerCase();
 
     if (!searchValue) {
-      return teamMembers.slice(0, 8);
+      return availableTeamMembers.slice(0, 8);
     }
 
-    return teamMembers
+    return availableTeamMembers
       .filter((employee) => {
         const name = getEmployeeName(employee).toLowerCase();
         const email = employee?.email?.toLowerCase() || "";
         const code =
-          employee?.employee_code?.toLowerCase() || "";
+          (employee?.employee_code || employee?.employeeCode || "").toLowerCase();
 
         return (
           name.includes(searchValue) ||
@@ -145,14 +191,14 @@ const TaskForm = ({
         );
       })
       .slice(0, 8);
-  }, [teamMembers, memberSearch]);
+  }, [availableTeamMembers, memberSearch]);
 
   const selectedEmployee = useMemo(() => {
-    return teamMembers.find(
+    return availableTeamMembers.find(
       (employee) =>
         String(employee.id) === String(formData.assignedTo)
     );
-  }, [teamMembers, formData.assignedTo]);
+  }, [availableTeamMembers, formData.assignedTo]);
 
   const handleChange = (field, value) => {
     setFormData((current) => ({
@@ -273,7 +319,7 @@ const TaskForm = ({
             onChange={(event) =>
               handleChange("title", event.target.value)
             }
-            disabled={loading || Boolean(fixedTeamId)}
+            disabled={loading}
           />
         </FormField>
 
@@ -308,7 +354,7 @@ const TaskForm = ({
             onChange={handleTeamChange}
             options={teamOptions}
             placeholder="Select a team"
-            disabled={loading}
+            disabled={loading || Boolean(fixedTeamId)}
           />
         </FormField>
 
@@ -381,7 +427,11 @@ const TaskForm = ({
                     />
                   </div>
 
-                  {teamMembers.length === 0 ? (
+                  {membersLoading ? (
+                    <div className="task-form__member-empty">
+                      <span>Loading team members...</span>
+                    </div>
+                  ) : availableTeamMembers.length === 0 ? (
                     <div className="task-form__member-empty">
                       <UserRound size={18} />
 
@@ -413,7 +463,8 @@ const TaskForm = ({
 
                             <span>
                               {employee.email ||
-                                employee.employee_code ||
+                                        employee.employee_code ||
+                                        employee.employeeCode ||
                                 "Team Member"}
                             </span>
                           </div>

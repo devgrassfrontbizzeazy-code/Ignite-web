@@ -1130,3 +1130,16 @@ p {
     scroll-margin-top: 78px;
   }
 }
+
+.sidebar__nav-children {
+  margin: 0 0 8px 18px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(184, 199, 199, 0.2);
+}
+
+.sidebar__nav-item--child {
+  min-height: 40px;
+  padding: 0 12px;
+  gap: 10px;
+  font-size: 0.82rem;
+}

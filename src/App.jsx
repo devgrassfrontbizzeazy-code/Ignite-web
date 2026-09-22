@@ -63,6 +63,8 @@ import Teams from "./pages/Teams/Teams";
 import TeamDetails from "./pages/Teams/TeamDetails";
 
 import Tasks from "./pages/Tasks/Tasks";
+import TaskDetailsPage from "./pages/Tasks/TaskDetailsPage";
+import WorkManagement from "./pages/workManagement/WorkManagement";
 import { TeamsTasksProvider } from "./context/TeamsTasksContext";
 
 /* =========================================================
@@ -275,10 +277,11 @@ export default function App() {
 
                   <Route path="/holidays" element={<Holidays />} />
 
-                 <Route path="/teams" element={<Teams />} />
-                 <Route path="/teams/:id" element={<TeamDetails />} />
-
-                 <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/work-management" element={<WorkManagement />} />
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/teams/:id" element={<TeamDetails />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/tasks/:id" element={<TaskDetailsPage />} />
 
                   {/* =================================================
                       ADMIN ONLY ROUTES

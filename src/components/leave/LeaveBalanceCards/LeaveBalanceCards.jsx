@@ -28,7 +28,7 @@ const LeaveBalanceCards = ({ balances = [] }) => {
         return (
           <StatCard
             key={balance.id}
-            title="Available"
+            title={balance.title || "Available"}
             value={`${balance.available}`}
             description={`${balance.used} days used • ${balance.total} total`}
             icon={<Icon size={18} strokeWidth={2} />}

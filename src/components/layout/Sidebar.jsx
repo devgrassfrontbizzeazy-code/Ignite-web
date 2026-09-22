@@ -211,17 +211,15 @@ const NAV_ITEMS = [
     permission: "view_user",
   },
   {
-  label: "Teams",
-  path: "/teams",
-  icon: TeamsIcon,
-  permission: "view_team",
-},
-{
-  label: "Tasks",
-  path: "/tasks",
-  icon: TasksIcon,
-  permission: "view_task",
-},
+    label: "Work Management",
+    path: "/work-management",
+    icon: TeamsIcon,
+    permission: "view_team",
+    children: [
+      { label: "Teams", path: "/teams", icon: TeamsIcon },
+      { label: "Tasks", path: "/tasks", icon: TasksIcon },
+    ],
+  },
   {
     label: "Attendance",
     path: "/attendance",
@@ -421,22 +419,64 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="sidebar__nav">
-        {filteredNavItems.map(({ label, path, icon: Icon }) => (
-          <NavLink
-            key={path}
-            to={path}
-            className={({ isActive }) =>
-              `sidebar__nav-item${isActive ? " is-active" : ""}`
-            }
-            title={collapsed ? label : undefined}
-          >
-            <span className="sidebar__nav-icon">
-              <Icon />
-            </span>
+        {filteredNavItems.map(({ label, path, icon: Icon, children }) => {
+          const isGroup = Array.isArray(children) && children.length > 0;
 
-            <span className="sidebar__nav-label">{label}</span>
-          </NavLink>
-        ))}
+          if (isGroup) {
+            return (
+              <div key={path} className="sidebar__nav-group">
+                <NavLink
+                  to={path}
+                  className={({ isActive }) =>
+                    `sidebar__nav-item${isActive ? " is-active" : ""}`
+                  }
+                  title={collapsed ? label : undefined}
+                >
+                  <span className="sidebar__nav-icon">
+                    <Icon />
+                  </span>
+                  <span className="sidebar__nav-label">{label}</span>
+                </NavLink>
+
+                {!collapsed && (
+                  <div className="sidebar__nav-children">
+                    {children.map(({ label: childLabel, path: childPath, icon: ChildIcon }) => (
+                      <NavLink
+                        key={childPath}
+                        to={childPath}
+                        className={({ isActive }) =>
+                          `sidebar__nav-item sidebar__nav-item--child${isActive ? " is-active" : ""}`
+                        }
+                      >
+                        <span className="sidebar__nav-icon">
+                          <ChildIcon />
+                        </span>
+                        <span className="sidebar__nav-label">{childLabel}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <NavLink
+              key={path}
+              to={path}
+              className={({ isActive }) =>
+                `sidebar__nav-item${isActive ? " is-active" : ""}`
+              }
+              title={collapsed ? label : undefined}
+            >
+              <span className="sidebar__nav-icon">
+                <Icon />
+              </span>
+
+              <span className="sidebar__nav-label">{label}</span>
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Profile Footer */}
