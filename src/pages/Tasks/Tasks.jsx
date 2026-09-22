@@ -1,363 +1,73 @@
-import { useEffect, useMemo, useState } from "react";
-import { ListTodo, Plus, Search } from "lucide-react";
-
+import { useMemo, useState } from "react";
+import { ListTodo, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/common/Button/Button";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 import Drawer from "../../components/common/Drawer/Drawer";
+import Modal from "../../components/common/Modal/Modal";
+import PageHeader from "../../components/common/PageHeader/PageHeader";
+import Select from "../../components/common/Select/Select";
+import TaskDetails from "../../components/tasks/TaskDetails/TaskDetails";
 import TaskForm from "../../components/tasks/TaskForm/TaskForm";
 import TaskTable from "../../components/tasks/TaskTable/TaskTable";
-import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
-
-import employeeService from "../../services/employeeService";
+import { useTeamsTasks } from "../../context/TeamsTasksContext";
 import { useNotification } from "../../context/NotificationContext";
-
 import "./Tasks.css";
 
-const INITIAL_TEAMS = [
-  {
-    id: "team-1",
-    name: "HR Operations",
-    description: "HR and employee operations team",
-    memberIds: ["1", "2", "3"],
-    status: "active",
-  },
-  {
-    id: "team-2",
-    name: "Product Team",
-    description: "Product and development team",
-    memberIds: ["2", "4", "5"],
-    status: "active",
-  },
-  {
-    id: "team-3",
-    name: "Management Team",
-    description: "Management and coordination team",
-    memberIds: ["1", "4"],
-    status: "active",
-  },
-];
-
-const INITIAL_TASKS = [
-  {
-    id: "task-1",
-    title: "Complete employee onboarding",
-    description:
-      "Finish onboarding documentation for the new employees.",
-    teamId: "team-1",
-    teamName: "HR Operations",
-    assignedTo: "1",
-    assignedToName: "Rahul Kumar",
-    priority: "High",
-    dueDate: "2026-09-25",
-    status: "To Do",
-  },
-  {
-    id: "task-2",
-    title: "Prepare monthly attendance report",
-    description:
-      "Prepare and verify the attendance report.",
-    teamId: "team-1",
-    teamName: "HR Operations",
-    assignedTo: "2",
-    assignedToName: "Priya Sharma",
-    priority: "Medium",
-    dueDate: "2026-09-27",
-    status: "In Progress",
-  },
-  {
-    id: "task-3",
-    title: "Update team documentation",
-    description:
-      "Review and update the team documentation.",
-    teamId: "team-2",
-    teamName: "Product Team",
-    assignedTo: "4",
-    assignedToName: "Aman Verma",
-    priority: "Low",
-    dueDate: "2026-09-30",
-    status: "Completed",
-  },
-];
-
-const STATUS_OPTIONS = [
-  "All",
-  "To Do",
-  "In Progress",
-  "Completed",
-];
+const STATUS_OPTIONS = ["All", "To Do", "In Progress", "Completed"];
 
 const Tasks = () => {
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
-  const [teams] = useState(INITIAL_TEAMS);
-
-  const [employees, setEmployees] = useState([]);
-  const [employeesLoading, setEmployeesLoading] = useState(false);
-
+  const navigate = useNavigate();
+  const { notify } = useNotification();
+  const { employees, enrichedTeams, enrichedTasks, currentViewer, viewers, changeViewer, createTask, updateTask, deleteTask } = useTeamsTasks();
+  const isAdmin = currentViewer.id === "admin";
+  const [scope, setScope] = useState("team");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [status, setStatus] = useState("All");
+  const [teamId, setTeamId] = useState("all");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const [showCreateDrawer, setShowCreateDrawer] =
-    useState(false);
+  const accessibleTeams = useMemo(() => isAdmin ? enrichedTeams : enrichedTeams.filter((team) => team.memberIds.includes(currentViewer.id)), [enrichedTeams, currentViewer.id, isAdmin]);
+  const accessibleTeamIds = accessibleTeams.map((team) => team.id);
+  const canAssign = isAdmin || enrichedTeams.some((team) => String(team.teamLeadId) === String(currentViewer.id));
+  const canEdit = (task) => canAssign || String(task.assignedTo) === String(currentViewer.id);
 
-  const { showNotification } = useNotification();
-
-  /*
-   * Load employees from existing employee API/service.
-   */
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadEmployees = async () => {
-      try {
-        setEmployeesLoading(true);
-
-        const response = await employeeService.getAll();
-
-        if (!isMounted) return;
-
-        /*
-         * Supports both:
-         * response = []
-         * response.data = []
-         * response.data.results = []
-         */
-        const employeeList = Array.isArray(response)
-          ? response
-          : Array.isArray(response?.data)
-            ? response.data
-            : Array.isArray(response?.data?.results)
-              ? response.data.results
-              : Array.isArray(response?.results)
-                ? response.results
-                : [];
-
-        setEmployees(employeeList);
-      } catch (error) {
-        console.error("Failed to fetch employees:", error);
-
-        if (isMounted) {
-          showNotification({ type: "error", message: "Unable to load employees. Please try again." });
-        }
-      } finally {
-        if (isMounted) {
-          setEmployeesLoading(false);
-        }
-      }
-    };
-
-    loadEmployees();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  /*
-   * Search + status filtering.
-   */
-  const filteredTasks = useMemo(() => {
-    const searchValue = search.trim().toLowerCase();
-
-    return tasks.filter((task) => {
-      const matchesSearch =
-        !searchValue ||
-        task.title?.toLowerCase().includes(searchValue) ||
-        task.description?.toLowerCase().includes(searchValue) ||
-        task.teamName?.toLowerCase().includes(searchValue) ||
-        task.assignedToName?.toLowerCase().includes(searchValue);
-
-      const matchesStatus =
-        statusFilter === "All" ||
-        task.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+  const visibleTasks = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return enrichedTasks.filter((task) => {
+      const inScope = isAdmin || accessibleTeamIds.includes(task.teamId);
+      const scopeMatch = scope === "mine" ? String(task.assignedTo) === String(currentViewer.id) : scope === "team" ? accessibleTeamIds.includes(task.teamId) : isAdmin;
+      const searchMatch = !query || [task.title, task.description, task.teamName, task.assignedToName].some((value) => value?.toLowerCase().includes(query));
+      return inScope && scopeMatch && searchMatch && (status === "All" || task.status === status) && (teamId === "all" || String(task.teamId) === String(teamId));
     });
-  }, [tasks, search, statusFilter]);
+  }, [enrichedTasks, accessibleTeamIds, currentViewer.id, isAdmin, scope, search, status, teamId]);
 
-  /*
-   * Create task.
-   */
-  const handleCreateTask = (formData) => {
-    const newTask = {
-      id: `task-${Date.now()}`,
-      ...formData,
-    };
-
-    setTasks((currentTasks) => [
-      newTask,
-      ...currentTasks,
-    ]);
-
-    setShowCreateDrawer(false);
-    showNotification({ type: "success", message: "Task created successfully." });
+  const submitTask = (data) => {
+    if (selectedTask) { updateTask(selectedTask.id, data); notify.success("Task updated in local workspace."); }
+    else { createTask(data); notify.success("Task created in local workspace."); }
+    setDrawerOpen(false);
+    setSelectedTask(null);
   };
 
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    taskId: null,
-    taskTitle: "",
-  });
-
-  /*
-   * Delete task.
-   */
-  const handleDeleteTask = (taskId) => {
-    const task = tasks.find((t) => t.id === taskId);
-    setDeleteModal({
-      open: true,
-      taskId,
-      taskTitle: task?.title || "",
-    });
-  };
-
-  const handleConfirmDeleteTask = () => {
-    const { taskId, taskTitle } = deleteModal;
-    if (!taskId) return;
-
-    setTasks((currentTasks) =>
-      currentTasks.filter((task) => task.id !== taskId)
-    );
-
-    setDeleteModal({ open: false, taskId: null, taskTitle: "" });
-    showNotification({ type: "success", message: `Task "${taskTitle || "item"}" deleted successfully.` });
-  };
-
-  /*
-   * View task.
-   */
-  const handleViewTask = (task) => {
-    showNotification({
-      type: "info",
-      message: `Task: "${task.title}" — Assigned to ${task.assignedToName} (${task.status})`,
-    });
-  };
-
-  /*
-   * Edit placeholder for now.
-   */
-  const handleEditTask = (task) => {
-    console.log("Edit task:", task);
-    showNotification({ type: "info", message: "Task editing will be connected in the next step." });
+  const updateStatus = (task, nextStatus) => {
+    updateTask(task.id, { status: nextStatus });
+    setSelectedTask((current) => current ? { ...current, status: nextStatus } : current);
+    notify.success("Task status updated in local workspace.");
   };
 
   return (
-    <div className="tasks-page">
-      {/* =========================
-          HEADER
-      ========================= */}
-
-      <div className="tasks-page__header">
-        <div className="tasks-page__heading">
-          <div className="tasks-page__eyebrow">
-            <ListTodo size={15} />
-            Task Management
-          </div>
-
-          <h1>Tasks</h1>
-
-          <p>
-            Create, assign and manage tasks across your teams.
-          </p>
-        </div>
-
-        <div className="tasks-page__actions">
-          <span className="tasks-page__date">
-            {new Date().toLocaleDateString("en-IN", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })}
-          </span>
-
-          <Button
-            variant="primary"
-            size="md"
-            onClick={() => setShowCreateDrawer(true)}
-          >
-            <Plus size={17} />
-            Create Task
-          </Button>
-        </div>
-      </div>
-
-      {/* =========================
-          TOOLBAR
-      ========================= */}
-
-      <div className="tasks-page__toolbar">
-        <div className="tasks-page__search">
-          <Search size={17} />
-
-          <input
-            type="text"
-            placeholder="Search tasks, teams or assignees..."
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-          />
-        </div>
-
-        <div className="tasks-page__filters">
-          {STATUS_OPTIONS.map((status) => (
-            <button
-              key={status}
-              type="button"
-              className={`tasks-page__filter ${statusFilter === status
-                  ? "tasks-page__filter--active"
-                  : ""
-                }`}
-              onClick={() => setStatusFilter(status)}
-            >
-              {status}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* =========================
-          TABLE
-      ========================= */}
-
-      <div className="tasks-page__content">
-        <TaskTable
-          tasks={filteredTasks}
-          onView={handleViewTask}
-          onEdit={handleEditTask}
-          onDelete={handleDeleteTask}
-        />
-      </div>
-
-      {/* =========================
-          CREATE TASK DRAWER
-      ========================= */}
-
-      <Drawer
-        open={showCreateDrawer}
-        onClose={() => setShowCreateDrawer(false)}
-        title="Create Task"
-        description="Create a task and assign it to a member of your team."
-        width="520px"
-      >
-        <TaskForm
-          teams={teams}
-          employees={employees}
-          loading={employeesLoading}
-          onSubmit={handleCreateTask}
-          onCancel={() => setShowCreateDrawer(false)}
-        />
-      </Drawer>
-
-      {deleteModal.open && (
-        <ConfirmModal
-          open={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, taskId: null, taskTitle: "" })}
-          onConfirm={handleConfirmDeleteTask}
-          title="Delete Task?"
-          itemName={deleteModal.taskTitle}
-          confirmText="Delete"
-        />
-      )}
-    </div>
+    <main className="tasks-page">
+      <PageHeader eyebrow="Work Management" title="Tasks" description="A broader workspace for work inside your teams." action={<Button variant="primary" onClick={() => { setSelectedTask(null); setDrawerOpen(true); }}><Plus size={16} /> Create Task</Button>} />
+      <div className="tasks-page__preview"><span>Preview as</span><select value={currentViewer.id} onChange={(event) => changeViewer(event.target.value)}>{viewers.map((viewer) => <option key={viewer.id} value={viewer.id}>{viewer.name} · {viewer.role}</option>)}</select></div>
+      <nav className="tasks-page__tabs"><button type="button" className={scope === "mine" ? "is-active" : ""} onClick={() => setScope("mine")}>My Tasks</button><button type="button" className={scope === "team" ? "is-active" : ""} onClick={() => setScope("team")}>Team Tasks</button>{isAdmin && <button type="button" className={scope === "all" ? "is-active" : ""} onClick={() => setScope("all")}>All Tasks</button>}</nav>
+      <section className="tasks-page__toolbar"><div className="tasks-page__search"><ListTodo size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search tasks, teams, or assignees..." /></div><Select value={teamId} onChange={setTeamId} options={[{ value: "all", label: "All teams" }, ...accessibleTeams.map((team) => ({ value: team.id, label: team.name }))]} placeholder="Team" /><div className="tasks-page__filters">{STATUS_OPTIONS.map((item) => <button type="button" key={item} className={status === item ? "is-active" : ""} onClick={() => setStatus(item)}>{item}</button>)}</div></section>
+      <TaskTable tasks={visibleTasks} onView={setSelectedTask} onEdit={(task) => { if (canEdit(task)) { setSelectedTask(task); setDrawerOpen(true); } else notify.error("You can only edit your own tasks."); }} onDelete={(taskId) => { const task = enrichedTasks.find((item) => item.id === taskId); if (task && canEdit(task)) setDeleteTarget(task); else notify.error("You can only delete your own tasks."); }} canEdit={canEdit} canDelete={canEdit} />
+      <Drawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setSelectedTask(null); }} title={selectedTask ? "Edit Task" : "Create Task"} description={canAssign ? "Assign work only within a selected team." : "Create a task assigned to you."} width="520px"><TaskForm teams={accessibleTeams} employees={employees} initialData={selectedTask || {}} restrictAssignee={!canAssign} currentEmployeeId={currentViewer.id} onSubmit={submitTask} onCancel={() => { setDrawerOpen(false); setSelectedTask(null); }} /></Drawer>
+      <Modal open={Boolean(selectedTask) && !drawerOpen} onClose={() => setSelectedTask(null)} title={selectedTask?.title || "Task Details"} size="medium"><TaskDetails task={selectedTask} onClose={() => setSelectedTask(null)} onEdit={(task) => { setDrawerOpen(true); setSelectedTask(task); }} onViewTeam={(task) => navigate(`/teams/${task.teamId}`)} canEdit={selectedTask ? canEdit(selectedTask) : false} onStatusChange={updateStatus} /></Modal>
+      <ConfirmModal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} onConfirm={() => { deleteTask(deleteTarget.id); setDeleteTarget(null); notify.success("Task deleted from local workspace."); }} title="Delete Task?" itemName={deleteTarget?.title} confirmText="Delete" />
+    </main>
   );
 };
 

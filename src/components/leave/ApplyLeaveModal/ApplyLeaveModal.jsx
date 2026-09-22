@@ -1,11 +1,17 @@
+
 import { useState } from "react";
 import { X, CalendarDays } from "lucide-react";
 
 import "./ApplyLeaveModal.css";
 
-const ApplyLeaveModal = ({ onClose, onSubmit }) => {
+const ApplyLeaveModal = ({
+  onClose,
+  onSubmit,
+  options = [],
+  submitting = false,
+}) => {
   const [formData, setFormData] = useState({
-    leaveType: "",
+    leavePolicyId: "",
     fromDate: "",
     toDate: "",
     reason: "",
@@ -32,8 +38,7 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
       return 0;
     }
 
-    const difference =
-      end.getTime() - start.getTime();
+    const difference = end.getTime() - start.getTime();
 
     return Math.floor(
       difference / (1000 * 60 * 60 * 24)
@@ -42,10 +47,15 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
 
   const days = calculateDays();
 
+  const selectedPolicy = options.find(
+    (option) =>
+      String(option.id) === String(formData.leavePolicyId)
+  );
+
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!formData.leaveType) {
+    if (!formData.leavePolicyId) {
       return;
     }
 
@@ -58,8 +68,10 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
     }
 
     onSubmit({
-      ...formData,
-      days,
+      leave_policy_id: Number(formData.leavePolicyId),
+      from_date: formData.fromDate,
+      to_date: formData.toDate,
+      reason: formData.reason.trim(),
     });
   };
 
@@ -89,6 +101,7 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
             type="button"
             className="apply-leave-modal__close"
             onClick={onClose}
+            disabled={submitting}
           >
             <X size={19} />
           </button>
@@ -99,33 +112,44 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
           onSubmit={handleSubmit}
         >
           <div className="apply-leave-field">
-            <label htmlFor="leaveType">
+            <label htmlFor="leavePolicyId">
               Leave Type
             </label>
 
             <select
-              id="leaveType"
-              name="leaveType"
-              value={formData.leaveType}
+              id="leavePolicyId"
+              name="leavePolicyId"
+              value={formData.leavePolicyId}
               onChange={handleChange}
               required
+              disabled={submitting}
             >
               <option value="">
                 Select leave type
               </option>
-              <option value="Casual Leave">
-                Casual Leave
-              </option>
-              <option value="Sick Leave">
-                Sick Leave
-              </option>
-              <option value="Earned Leave">
-                Earned Leave
-              </option>
-              <option value="Other Leave">
-                Other Leave
-              </option>
+
+              {options.map((option) => (
+                <option
+                  key={option.id}
+                  value={option.id}
+                  disabled={option.remaining_balance <= 0}
+                >
+                  {option.name}{" "}
+                  ({option.remaining_balance}{" "}
+                  {option.remaining_balance === 1 ? "day" : "days"} available)
+                </option>
+              ))}
             </select>
+
+            {selectedPolicy && (
+              <small>
+                {selectedPolicy.remaining_balance}{" "}
+                {selectedPolicy.remaining_balance === 1
+                  ? "day"
+                  : "days"}{" "}
+                remaining
+              </small>
+            )}
           </div>
 
           <div className="apply-leave-date-grid">
@@ -141,6 +165,7 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
                 value={formData.fromDate}
                 onChange={handleChange}
                 required
+                disabled={submitting}
               />
             </div>
 
@@ -157,6 +182,7 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
                 min={formData.fromDate || undefined}
                 onChange={handleChange}
                 required
+                disabled={submitting}
               />
             </div>
           </div>
@@ -164,7 +190,9 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
           <div className="apply-leave-duration">
             <span>Duration</span>
             <strong>
-              {days > 0 ? `${days} ${days === 1 ? "Day" : "Days"}` : "—"}
+              {days > 0
+                ? `${days} ${days === 1 ? "Day" : "Days"}`
+                : "—"}
             </strong>
           </div>
 
@@ -181,6 +209,7 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
               placeholder="Enter the reason for your leave..."
               rows={4}
               required
+              disabled={submitting}
             />
           </div>
 
@@ -189,6 +218,7 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
               type="button"
               className="apply-leave-cancel"
               onClick={onClose}
+              disabled={submitting}
             >
               Cancel
             </button>
@@ -196,8 +226,9 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
             <button
               type="submit"
               className="apply-leave-submit"
+              disabled={submitting}
             >
-              Submit Request
+              {submitting ? "Submitting..." : "Submit Request"}
             </button>
           </div>
         </form>
@@ -207,3 +238,4 @@ const ApplyLeaveModal = ({ onClose, onSubmit }) => {
 };
 
 export default ApplyLeaveModal;
+

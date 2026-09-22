@@ -10,6 +10,7 @@ import DesignationForm from "../../components/designations/DesignationForm/Desig
 import DesignationStats from "../../components/designations/DesignationStats/DesignationStats";
 import DesignationTable from "../../components/designations/DesignationTable/DesignationTable";
 import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
+import Modal from "../../components/common/Modal/Modal";
 
 import { getDepartments } from "../../services/api/departmentAPI";
 import {
@@ -100,6 +101,19 @@ const normalizeDesignation = (designation, departmentMap = {}) => {
   const defaultRole = roleService.getDesignationRole(
     designation.id ?? designation.designation_id,
   );
+  const responseDefaultRole =
+    designation.defaultRole ??
+    designation.default_role ??
+    designation.default_role_id ??
+    designation.defaultRoleId;
+  const responseDefaultRoleId =
+    typeof responseDefaultRole === "object"
+      ? responseDefaultRole?.id
+      : responseDefaultRole;
+  const responseDefaultRoleName =
+    typeof responseDefaultRole === "object"
+      ? responseDefaultRole?.roleName || responseDefaultRole?.name
+      : null;
 
   return {
     ...designation,
@@ -118,14 +132,14 @@ const normalizeDesignation = (designation, departmentMap = {}) => {
     departmentName: finalDeptName,
 
     defaultRoleId:
-      designation.defaultRoleId ??
-      designation.default_role_id ??
+      responseDefaultRoleId ??
       defaultRole?.id ??
       null,
 
     defaultRoleName:
       designation.defaultRoleName ??
       designation.default_role_name ??
+      responseDefaultRoleName ??
       defaultRole?.roleName ??
       "—",
 
@@ -255,7 +269,9 @@ const Designations = () => {
         context: "designation",
         action: "load",
       });
-      notify.error(generalError || "Failed to load designations. Please try again.");
+      notify.error(
+        generalError || "Failed to load designations. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -367,7 +383,9 @@ const Designations = () => {
       }
 
       setDeleteModal({ open: false, designation: null, loading: false });
-      notify.success(`Designation "${designation.designationName}" deleted successfully.`);
+      notify.success(
+        `Designation "${designation.designationName}" deleted successfully.`,
+      );
     } catch (error) {
       console.error("Failed to delete designation:", error);
       const { generalError } = extractApiError(error, {
@@ -375,7 +393,9 @@ const Designations = () => {
         action: "delete",
       });
       setDeleteModal((prev) => ({ ...prev, loading: false }));
-      notify.error(generalError || "Failed to delete designation. Please try again.");
+      notify.error(
+        generalError || "Failed to delete designation. Please try again.",
+      );
     }
   };
 
@@ -396,14 +416,19 @@ const Designations = () => {
       });
 
       await loadData();
-      notify.success(`Designation "${designation.designationName}" ${newStatus === "Active" ? "activated" : "deactivated"} successfully.`);
+      notify.success(
+        `Designation "${designation.designationName}" ${newStatus === "Active" ? "activated" : "deactivated"} successfully.`,
+      );
     } catch (error) {
       console.error("Failed to toggle designation status:", error);
       const { generalError } = extractApiError(error, {
         context: "designation",
         action: "toggle",
       });
-      notify.error(generalError || "Failed to update designation status. Please try again.");
+      notify.error(
+        generalError ||
+          "Failed to update designation status. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -414,13 +439,18 @@ const Designations = () => {
       setLoading(true);
       setFormFieldErrors({});
 
+      const isActive = String(formData.status || "active").toLowerCase() === "active";
+
       const payload = {
         designation_code: formData.designationCode?.trim() || "",
         designation_name: formData.designationName?.trim() || "",
-        department: formData.departmentId ? Number(formData.departmentId) : null,
+        department: formData.departmentId
+          ? Number(formData.departmentId)
+          : null,
         description: formData.description?.trim() || "",
-        status: formData.status || "Active",
-        is_active: (formData.status || "Active") === "Active",
+        status: isActive ? "Active" : "Inactive",
+        is_active: isActive,
+        default_role: formData.default_role ?? formData.defaultRole ?? null,
       };
 
       if (selectedDesignation?.id) {
@@ -475,7 +505,7 @@ const Designations = () => {
         }
       />
 
-      <DesignationStats stats={stats} />
+      <DesignationStats {...stats} />
 
       <section className="designations-page__content">
         <DesignationFilters
@@ -506,35 +536,59 @@ const Designations = () => {
       </section>
 
       {showForm && (
-        <DesignationForm
-          designation={selectedDesignation}
-          departments={departments}
-          onSubmit={handleSubmitDesignation}
-          onCancel={() => {
+        <Modal
+          open={showForm}
+          onClose={() => {
             setShowForm(false);
             setSelectedDesignation(null);
           }}
-          errors={formFieldErrors}
-        />
+          title={selectedDesignation ? "Edit Designation" : "Add Designation"}
+          description="Manage designation details, department, and default role."
+          size="large"
+        >
+          <DesignationForm
+            initialData={selectedDesignation || {}}
+            departments={departments}
+            onSubmit={handleSubmitDesignation}
+            onCancel={() => {
+              setShowForm(false);
+              setSelectedDesignation(null);
+            }}
+            loading={loading}
+            fieldErrors={formFieldErrors}
+          />
+        </Modal>
       )}
 
       {showDetails && selectedDesignation && (
-        <DesignationDetails
-          designation={selectedDesignation}
+        <Modal
+          open={showDetails}
           onClose={() => {
             setShowDetails(false);
             setSelectedDesignation(null);
           }}
-          onEdit={() => handleEditDesignation(selectedDesignation)}
-          onDelete={() => handleDeleteClick(selectedDesignation)}
-          onToggleStatus={() => handleToggleStatus(selectedDesignation)}
-        />
+          title="Designation Details"
+          size="large"
+        >
+          <DesignationDetails
+            designation={selectedDesignation}
+            onClose={() => {
+              setShowDetails(false);
+              setSelectedDesignation(null);
+            }}
+            onEdit={() => handleEditDesignation(selectedDesignation)}
+            onDelete={() => handleDeleteClick(selectedDesignation)}
+            onToggleStatus={() => handleToggleStatus(selectedDesignation)}
+          />
+        </Modal>
       )}
 
       {deleteModal.open && (
         <ConfirmModal
           open={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, designation: null, loading: false })}
+          onClose={() =>
+            setDeleteModal({ open: false, designation: null, loading: false })
+          }
           onConfirm={handleConfirmDelete}
           title="Delete Designation?"
           itemName={deleteModal.designation?.designationName}

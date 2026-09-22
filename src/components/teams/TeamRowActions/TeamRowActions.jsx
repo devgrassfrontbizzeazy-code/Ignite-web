@@ -6,6 +6,8 @@ const TeamRowActions = ({
   onView,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }) => {
   const actions = [
     {
@@ -14,21 +16,21 @@ const TeamRowActions = ({
       icon: FiEye,
       onClick: () => onView?.(team),
     },
-    {
+    canEdit && {
       key: "edit",
       label: "Edit",
       icon: FiEdit2,
       onClick: () => onEdit?.(team),
     },
-    { key: "divider-1", isDivider: true },
-    {
+    canDelete && { key: "divider-1", isDivider: true },
+    canDelete && {
       key: "delete",
       label: "Delete",
       icon: FiTrash2,
       isDanger: true,
       onClick: () => onDelete?.(team),
     },
-  ];
+  ].filter(Boolean);
 
   return (
     <RowActions

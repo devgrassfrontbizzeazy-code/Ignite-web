@@ -26,31 +26,35 @@ const normalizePolicy = (policy) => ({
   description: policy.description || "",
 
   allocationType:
-    policy.allocation_type ||
-    policy.allocationType ||
+    policy.allocation_type ??
+    policy.allocationType ??
     "YEARLY",
 
   days:
-    policy.days !== undefined
-      ? policy.days
-      : policy.leave_days,
+    policy.allocation_days ??
+    policy.days ??
+    policy.leave_days ??
+    0,
 
   carryForward:
+    policy.is_carry_forward ??
     policy.carry_forward ??
     policy.carryForward ??
     false,
 
   carryForwardType:
-    policy.carry_forward_type ||
-    policy.carryForwardType ||
+    policy.carry_forward_type ??
+    policy.carryForwardType ??
     "NONE",
 
   carryForwardLimit:
+    policy.max_carry_forward_days ??
     policy.carry_forward_limit ??
     policy.carryForwardLimit ??
     0,
 
   halfDayAllowed:
+    policy.allow_half_day ??
     policy.half_day_allowed ??
     policy.halfDayAllowed ??
     false,
@@ -60,12 +64,17 @@ const normalizePolicy = (policy) => ({
     policy.requiresApproval ??
     false,
 
-  isPaid: policy.is_paid ?? policy.isPaid ?? false,
+  isPaid:
+    policy.is_paid ??
+    policy.isPaid ??
+    false,
 
   status:
     policy.status ||
     (policy.is_active ? "Active" : "Inactive"),
 });
+
+
 
 const LeavePolicies = () => {
   const { notify } = useNotification();
@@ -113,18 +122,21 @@ const LeavePolicies = () => {
       (policy) => policy.status === "Active"
     );
 
-    const annualDays = activePolicies.reduce(
-      (total, policy) => {
-        if (!policy.days) return total;
 
-        if (policy.allocationType === "MONTHLY") {
-          return total + policy.days * 12;
-        }
+const annualDays = activePolicies.reduce(
+  (total, policy) => {
+    const days = Number(policy.days) || 0;
 
-        return total + policy.days;
-      },
-      0
-    );
+    if (policy.allocationType === "MONTHLY") {
+      return total + days * 12;
+    }
+
+    return total + days;
+  },
+  0
+);
+
+
 
     const approvalRequired = activePolicies.filter(
       (policy) => policy.requiresApproval
@@ -300,7 +312,7 @@ const LeavePolicies = () => {
       </div>
 
       <section className="leave-policies-section">
-        <div className="leave-policies-section-header">
+        {/* <div className="leave-policies-section-header">
           <div>
             <h2>Policy Configuration</h2>
 
@@ -309,7 +321,7 @@ const LeavePolicies = () => {
               carry forwards.
             </p>
           </div>
-        </div>
+        </div> */}
 
         {loading ? (
           <div className="leave-policies-loading">

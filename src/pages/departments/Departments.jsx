@@ -10,6 +10,7 @@ import DepartmentForm from "../../components/departments/DepartmentForm/Departme
 import DepartmentStats from "../../components/departments/DepartmentStats/DepartmentStats";
 import DepartmentTable from "../../components/departments/DepartmentTable/DepartmentTable";
 import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
+import Modal from "../../components/common/Modal/Modal";
 
 import {
   getDepartments,
@@ -383,12 +384,14 @@ const Departments = () => {
       setLoading(true);
       setFormFieldErrors({});
 
+      const isActive = String(formData.status || "active").toLowerCase() === "active";
+
       const payload = {
         department_code: formData.departmentCode?.trim() || "",
         department_name: formData.departmentName?.trim() || "",
         description: formData.description?.trim() || "",
-        status: formData.status || "Active",
-        is_active: (formData.status || "Active") === "Active",
+        status: isActive ? "Active" : "Inactive",
+        is_active: isActive,
       };
 
       if (selectedDepartment?.id) {
@@ -445,7 +448,7 @@ const Departments = () => {
         }
       />
 
-      <DepartmentStats stats={stats} />
+      <DepartmentStats {...stats} />
 
       <section className="departments-page__content">
         <DepartmentFilters
@@ -473,22 +476,38 @@ const Departments = () => {
       </section>
 
       {showForm && (
-        <DepartmentForm
-          department={selectedDepartment}
-          onSubmit={handleSubmitDepartment}
-          onCancel={handleCloseForm}
-          errors={formFieldErrors}
-        />
+        <Modal
+          open={showForm}
+          onClose={handleCloseForm}
+          title={selectedDepartment ? "Edit Department" : "Add Department"}
+          description="Manage department information and availability."
+          size="medium"
+        >
+          <DepartmentForm
+            initialData={selectedDepartment || {}}
+            onSubmit={handleSubmitDepartment}
+            onCancel={handleCloseForm}
+            loading={loading}
+            fieldErrors={formFieldErrors}
+          />
+        </Modal>
       )}
 
       {showDetails && selectedDepartment && (
-        <DepartmentDetails
-          department={selectedDepartment}
+        <Modal
+          open={showDetails}
           onClose={handleCloseDetails}
-          onEdit={() => handleEditDepartment(selectedDepartment)}
-          onDelete={() => handleDeleteClick(selectedDepartment)}
-          onToggleStatus={() => handleToggleDepartmentStatus(selectedDepartment)}
-        />
+          title="Department Details"
+          size="large"
+        >
+          <DepartmentDetails
+            department={selectedDepartment}
+            onClose={handleCloseDetails}
+            onEdit={() => handleEditDepartment(selectedDepartment)}
+            onDelete={() => handleDeleteClick(selectedDepartment)}
+            onToggleStatus={() => handleToggleDepartmentStatus(selectedDepartment)}
+          />
+        </Modal>
       )}
 
       {deleteModal.open && (

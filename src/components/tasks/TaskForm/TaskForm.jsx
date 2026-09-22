@@ -42,12 +42,15 @@ const TaskForm = ({
   onCancel,
   loading = false,
   fieldErrors = {},
+  fixedTeamId = "",
+  restrictAssignee = false,
+  currentEmployeeId = "",
 }) => {
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
     description: initialData?.description || "",
-    teamId: initialData?.teamId || "",
-    assignedTo: initialData?.assignedTo || "",
+    teamId: initialData?.teamId || fixedTeamId || "",
+    assignedTo: initialData?.assignedTo || (restrictAssignee ? currentEmployeeId : ""),
     priority: initialData?.priority || "Medium",
     dueDate: initialData?.dueDate || "",
     status: initialData?.status || "To Do",
@@ -68,8 +71,8 @@ const TaskForm = ({
     setFormData({
       title: initialData?.title || "",
       description: initialData?.description || "",
-      teamId: initialData?.teamId || "",
-      assignedTo: initialData?.assignedTo || "",
+      teamId: initialData?.teamId || fixedTeamId || "",
+      assignedTo: initialData?.assignedTo || (restrictAssignee ? currentEmployeeId : ""),
       priority: initialData?.priority || "Medium",
       dueDate: initialData?.dueDate || "",
       status: initialData?.status || "To Do",
@@ -77,7 +80,7 @@ const TaskForm = ({
 
     setLocalErrors({});
     setMemberSearch("");
-  }, [initialData]);
+  }, [initialData, fixedTeamId, restrictAssignee, currentEmployeeId]);
 
   /*
    * Find selected team.
@@ -169,7 +172,7 @@ const TaskForm = ({
     setFormData((current) => ({
       ...current,
       teamId: value,
-      assignedTo: "",
+      assignedTo: restrictAssignee ? currentEmployeeId : "",
     }));
 
     setMemberSearch("");
@@ -246,7 +249,7 @@ const TaskForm = ({
     });
   };
 
-  const teamOptions = teams.map((team) => ({
+  const teamOptions = teams.filter((team) => !fixedTeamId || String(team.id) === String(fixedTeamId)).map((team) => ({
     value: team.id,
     label: getTeamName(team),
   }));
@@ -270,7 +273,7 @@ const TaskForm = ({
             onChange={(event) =>
               handleChange("title", event.target.value)
             }
-            disabled={loading}
+            disabled={loading || Boolean(fixedTeamId)}
           />
         </FormField>
 
@@ -327,7 +330,12 @@ const TaskForm = ({
             </div>
           ) : (
             <>
-              {selectedEmployee ? (
+              {restrictAssignee ? (
+                <div className="task-form__selected-member">
+                  <div className="task-form__member-avatar">{getEmployeeName(selectedEmployee || {}).charAt(0).toUpperCase()}</div>
+                  <div className="task-form__member-info"><strong>{selectedEmployee ? getEmployeeName(selectedEmployee) : "You"}</strong><span>Assigned to you</span></div>
+                </div>
+              ) : selectedEmployee ? (
                 <div className="task-form__selected-member">
                   <div className="task-form__member-avatar">
                     {getEmployeeName(selectedEmployee)
@@ -500,7 +508,7 @@ const TaskForm = ({
           variant="primary"
           loading={loading}
         >
-          Create Task
+          {initialData?.id ? "Save Changes" : "Create Task"}
         </Button>
       </div>
     </form>

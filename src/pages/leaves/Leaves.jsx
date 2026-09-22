@@ -1,109 +1,220 @@
-import { useState } from "react";
+
+
+import { useEffect, useMemo, useState } from "react";
 import { FileText } from "lucide-react";
 
 import Button from "../../components/common/Button/Button";
 import PageHeader from "../../components/common/PageHeader/PageHeader";
+import StatCard from "../../components/common/StatCard/StatCard";
 import LeaveBalanceCards from "../../components/leave/LeaveBalanceCards/LeaveBalanceCards";
 import ApplyLeaveModal from "../../components/leave/ApplyLeaveModal/ApplyLeaveModal";
 import LeaveRequests from "../../components/leave/LeaveRequests/LeaveRequests";
 import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 import { canCreateLeaves } from "../../utils/permissionUtils";
 import { useNotification } from "../../context/NotificationContext";
+import leaveApplicationAPI from "../../services/api/leaveApplicationAPI";
 
 import "./Leaves.css";
 
-const Leave = () => {
+
+
+const Leaves = () => {
   const { notify } = useNotification();
+
   const [showApplyModal, setShowApplyModal] = useState(false);
 
-  const [leaveRequests, setLeaveRequests] = useState([
-    {
-      id: 1,
-      type: "Casual Leave",
-      from: "15 Sep 2026",
-      to: "16 Sep 2026",
-      days: 2,
-      appliedOn: "12 Sep 2026",
-      status: "Pending",
-      reason: "Personal work",
-    },
-    {
-      id: 2,
-      type: "Sick Leave",
-      from: "05 Sep 2026",
-      to: "05 Sep 2026",
-      days: 1,
-      appliedOn: "04 Sep 2026",
-      status: "Approved",
-      reason: "Not feeling well",
-    },
-    {
-      id: 3,
-      type: "Earned Leave",
-      from: "20 Aug 2026",
-      to: "22 Aug 2026",
-      days: 3,
-      appliedOn: "18 Aug 2026",
-      status: "Rejected",
-      reason: "Personal vacation",
-    },
-  ]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveOptions, setLeaveOptions] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [cancelModal, setCancelModal] = useState({
     open: false,
     request: null,
   });
 
-  const leaveBalances = [
-    {
-      id: "casual",
-      title: "Casual Leave",
-      available: 8,
-      total: 12,
-      used: 4,
-    },
-    {
-      id: "sick",
-      title: "Sick Leave",
-      available: 5,
-      total: 10,
-      used: 5,
-    },
-    {
-      id: "earned",
-      title: "Earned Leave",
-      available: 12,
-      total: 15,
-      used: 3,
-    },
-    {
-      id: "other",
-      title: "Other Leave",
-      available: 2,
-      total: 5,
-      used: 3,
-    },
-  ];
+  const formatDate = (dateString) => {
+    if (!dateString) return "—";
 
-  const handleApplyLeave = (leaveData) => {
-    const newRequest = {
-      id: Date.now(),
-      type: leaveData.leaveType,
-      from: leaveData.fromDate,
-      to: leaveData.toDate,
-      days: leaveData.days,
-      appliedOn: "12 Sep 2026",
-      status: "Pending",
-      reason: leaveData.reason,
-    };
+    const date = new Date(dateString);
 
-    setLeaveRequests((previous) => [
-      newRequest,
-      ...previous,
-    ]);
+    if (Number.isNaN(date.getTime())) {
+      return dateString;
+    }
 
-    setShowApplyModal(false);
-    notify.success("Leave request submitted successfully.");
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatAppliedDate = (dateString) => {
+    if (!dateString) return "—";
+
+    const date = new Date(dateString);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateString;
+    }
+
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const mapLeaveRequest = (leave) => ({
+    id: leave.id,
+    type: leave.leave_policy_name,
+    from: formatDate(leave.from_date),
+    to: formatDate(leave.to_date),
+    days: Number(leave.duration),
+    appliedOn: formatAppliedDate(leave.applied_at),
+    status: leave.status,
+    reason: leave.reason,
+  });
+
+
+const fetchLeaveData = async () => {
+  try {
+    setLoading(true);
+
+    const [optionsResponse, requestsResponse] =
+      await Promise.all([
+        leaveApplicationAPI.getApplyOptions(),
+        leaveApplicationAPI.getMyLeaves(),
+      ]);
+
+    const options = Array.isArray(optionsResponse)
+      ? optionsResponse
+      : Array.isArray(optionsResponse?.data)
+        ? optionsResponse.data
+        : [];
+
+    const requests = Array.isArray(requestsResponse)
+      ? requestsResponse
+      : Array.isArray(requestsResponse?.data)
+        ? requestsResponse.data
+        : [];
+
+    setLeaveOptions(options);
+
+    const mappedRequests = requests.map(mapLeaveRequest);
+
+    setLeaveRequests(mappedRequests);
+  } catch (error) {
+    console.error(
+      "Failed to fetch leave data:",
+      error
+    );
+
+    notify.error(
+      error?.response?.data?.detail ||
+        "Failed to load leave information."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
+  useEffect(() => {
+    fetchLeaveData();
+  }, []);
+
+  const leaveBalances = leaveOptions.map((leave) => ({
+    id: leave.id,
+    title: leave.name,
+    available: Number(leave.remaining_balance),
+    total: Number(leave.allocated_days),
+    used:
+      Number(leave.allocated_days) -
+      Number(leave.remaining_balance),
+  }));
+ 
+const leaveStats = useMemo(() => {
+  const available = leaveOptions.reduce(
+    (total, leave) =>
+      total + (Number(leave.remaining_balance) || 0),
+    0
+  );
+
+  const allocated = leaveOptions.reduce(
+    (total, leave) =>
+      total + (Number(leave.allocated_days) || 0),
+    0
+  );
+
+  const used = Math.max(allocated - available, 0);
+
+  const pending = leaveRequests.filter(
+    (request) =>
+      String(request.status).toUpperCase() === "PENDING"
+  ).length;
+
+  return {
+    available,
+    allocated,
+    used,
+    pending,
+  };
+}, [leaveOptions, leaveRequests]);
+
+const leaveStatCards = [
+  {
+    title: "Available Leave",
+    value: leaveStats.available,
+    icon: FileText,
+    variant: "teal",
+  },
+  {
+    title: "Allocated Leave",
+    value: leaveStats.allocated,
+    icon: FileText,
+    variant: "blue",
+  },
+  {
+    title: "Leave Used",
+    value: leaveStats.used,
+    icon: FileText,
+    variant: "gold",
+  },
+  {
+    title: "Pending Requests",
+    value: leaveStats.pending,
+    icon: FileText,
+    variant: "green",
+  },
+];
+
+
+  const handleApplyLeave = async (leaveData) => {
+    try {
+      setSubmitting(true);
+
+      await leaveApplicationAPI.applyLeave(leaveData);
+
+      notify.success(
+        "Leave request submitted successfully."
+      );
+
+      setShowApplyModal(false);
+
+      await fetchLeaveData();
+    } catch (error) {
+      console.error("Failed to apply for leave:", error);
+
+      notify.error(
+        error?.response?.data?.detail ||
+          "Failed to submit leave request."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCancelRequestClick = (request) => {
@@ -113,16 +224,36 @@ const Leave = () => {
     });
   };
 
-  const handleConfirmCancelRequest = () => {
+  const handleConfirmCancelRequest = async () => {
     const request = cancelModal.request;
+
     if (!request) return;
 
-    setLeaveRequests((prev) =>
-      prev.map((r) => (r.id === request.id ? { ...r, status: "Cancelled" } : r))
-    );
+    try {
+      setSubmitting(true);
 
-    setCancelModal({ open: false, request: null });
-    notify.success(`${request.type} request cancelled successfully.`);
+      await leaveApplicationAPI.cancelLeave(request.id);
+
+      notify.success(
+        `${request.type} request cancelled successfully.`
+      );
+
+      setCancelModal({
+        open: false,
+        request: null,
+      });
+
+      await fetchLeaveData();
+    } catch (error) {
+      console.error("Failed to cancel leave:", error);
+
+      notify.error(
+        error?.response?.data?.detail ||
+          "Failed to cancel leave request."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -133,7 +264,11 @@ const Leave = () => {
         description="Manage your leave balances and requests."
         action={
           canCreateLeaves() ? (
-            <Button variant="primary" onClick={() => setShowApplyModal(true)}>
+            <Button
+              variant="primary"
+              onClick={() => setShowApplyModal(true)}
+              disabled={loading}
+            >
               + Apply for Leave
             </Button>
           ) : null
@@ -142,14 +277,28 @@ const Leave = () => {
 
       {/* Leave Balances */}
       <section className="leave-page__section">
-        <div className="leave-page__section-heading">
-          <div>
-            <h2>Leave Balance</h2>
-            <p>View your available leave days</p>
-          </div>
-        </div>
+      <div className="stats-grid stats-grid--4">
+        {leaveStatCards.map((stat) => {
+          const Icon = stat.icon;
 
-        <LeaveBalanceCards balances={leaveBalances} />
+          return (
+            <StatCard
+              key={stat.title}
+              title={stat.title}
+              value={stat.value}
+              icon={
+                <Icon
+                  size={18}
+                  strokeWidth={2}
+                />
+              }
+              variant={stat.variant}
+            />
+          );
+        })}
+      </div>
+
+
       </section>
 
       {/* Leave Requests */}
@@ -176,19 +325,35 @@ const Leave = () => {
       {/* Apply Leave Modal */}
       {showApplyModal && (
         <ApplyLeaveModal
-          onClose={() => setShowApplyModal(false)}
+          options={leaveOptions}
+          submitting={submitting}
+          onClose={() => {
+            if (!submitting) {
+              setShowApplyModal(false);
+            }
+          }}
           onSubmit={handleApplyLeave}
         />
       )}
 
+      {/* Cancel Confirmation */}
       {cancelModal.open && (
         <ConfirmModal
           open={cancelModal.open}
-          onClose={() => setCancelModal({ open: false, request: null })}
+          onClose={() => {
+            if (!submitting) {
+              setCancelModal({
+                open: false,
+                request: null,
+              });
+            }
+          }}
           onConfirm={handleConfirmCancelRequest}
           title="Cancel Leave Request?"
           description={`Are you sure you want to cancel your ${cancelModal.request?.type} request (${cancelModal.request?.from})?`}
-          confirmText="Cancel Request"
+          confirmText={
+            submitting ? "Cancelling..." : "Cancel Request"
+          }
           variant="danger"
         />
       )}
@@ -196,4 +361,5 @@ const Leave = () => {
   );
 };
 
-export default Leave;
+export default Leaves;
+

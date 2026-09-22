@@ -84,17 +84,38 @@ const DesignationForm = ({
   const [localErrors, setLocalErrors] = useState({});
 
   useEffect(() => {
-    setFormData({
-      designationCode:
-        initialData.designationCode || initialData.designation_code || "",
-      designationName: initialData.designationName || initialData.name || "",
-      departmentId: initialData.departmentId ?? initialData.department ?? "",
-      defaultRole: getInitialDefaultRoleId(),
-      description: initialData.description || "",
-      status: initialData.status || "active",
-    });
-    setLocalErrors({});
-  }, [initialData, availableRoles]);
+  setFormData({
+    designationCode:
+      initialData.designationCode || initialData.designation_code || "",
+    designationName:
+      initialData.designationName || initialData.name || "",
+    departmentId:
+      initialData.departmentId ?? initialData.department ?? "",
+    defaultRole: getInitialDefaultRoleId(),
+    description: initialData.description || "",
+    status: initialData.status || "active",
+  });
+
+  setLocalErrors({});
+}, [
+  initialData.id,
+  initialData.designationCode,
+  initialData.designation_code,
+  initialData.designationName,
+  initialData.name,
+  initialData.departmentId,
+  initialData.department,
+  initialData.defaultRole,
+  initialData.default_role,
+  initialData.default_role_id,
+  initialData.defaultRoleId,
+  initialData.role_id,
+  initialData.default_role_name,
+  initialData.defaultRoleName,
+  initialData.description,
+  initialData.status,
+  availableRoles,
+]);
 
   const errors = {
     ...localErrors,

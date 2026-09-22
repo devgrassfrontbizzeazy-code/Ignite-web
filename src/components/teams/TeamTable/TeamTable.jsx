@@ -9,6 +9,8 @@ const TeamTable = ({
   onView,
   onEdit,
   onDelete,
+  canEdit = Boolean(onEdit),
+  canDelete = Boolean(onDelete),
 }) => {
   return (
     <div className="team-table-card">
@@ -121,6 +123,8 @@ const TeamTable = ({
                       onView={onView}
                       onEdit={onEdit}
                       onDelete={onDelete}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
                     />
                   </td>
                 </tr>

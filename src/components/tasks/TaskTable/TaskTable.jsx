@@ -7,6 +7,8 @@ const TaskTable = ({
   onView,
   onEdit,
   onDelete,
+  canEdit = () => true,
+  canDelete = () => true,
 }) => {
   const formatDate = (date) => {
     if (!date) return "—";
@@ -144,21 +146,21 @@ const TaskTable = ({
                         icon: FiEye,
                         onClick: () => onView?.(task),
                       },
-                      {
+                      canEdit(task) && {
                         key: "edit",
                         label: "Edit",
                         icon: FiEdit2,
                         onClick: () => onEdit?.(task),
                       },
-                      { key: "divider-1", isDivider: true },
-                      {
+                      canDelete(task) && { key: "divider-1", isDivider: true },
+                      canDelete(task) && {
                         key: "delete",
                         label: "Delete",
                         icon: FiTrash2,
                         isDanger: true,
                         onClick: () => onDelete?.(task.id),
                       },
-                    ]}
+                    ].filter(Boolean)}
                     title={`Actions for ${task.title}`}
                   />
                 </td>

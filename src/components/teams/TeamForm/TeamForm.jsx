@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import FormField from "../../common/FormField/FormField";
+import Select from "../../common/Select/Select";
 import Toggle from "../../common/Toggle/Toggle";
 import Button from "../../common/Button/Button";
 
@@ -29,6 +30,7 @@ const TeamForm = ({
   const [formData, setFormData] = useState(() => ({
     teamName: initialData?.teamName || "",
     description: initialData?.description || "",
+    teamLeadId: initialData?.teamLeadId || "",
     memberIds: Array.isArray(initialData?.memberIds)
       ? initialData.memberIds
       : [],
@@ -37,6 +39,18 @@ const TeamForm = ({
 
   const [localErrors, setLocalErrors] = useState({});
   const [memberSearch, setMemberSearch] = useState("");
+
+  useEffect(() => {
+    setFormData({
+      teamName: initialData?.teamName || initialData?.name || "",
+      description: initialData?.description || "",
+      teamLeadId: initialData?.teamLeadId || "",
+      memberIds: Array.isArray(initialData?.memberIds) ? initialData.memberIds : [],
+      status: initialData?.status || "active",
+    });
+    setLocalErrors({});
+    setMemberSearch("");
+  }, [initialData]);
 
   const errors = {
     ...localErrors,
@@ -190,6 +204,12 @@ const TeamForm = ({
         "Select at least one team member.";
     }
 
+    if (!formData.teamLeadId) {
+      newErrors.teamLeadId = "Select a team lead.";
+    } else if (!formData.memberIds.some((id) => String(id) === String(formData.teamLeadId))) {
+      newErrors.teamLeadId = "The team lead must be a selected member.";
+    }
+
     setLocalErrors(newErrors);
 
     return Object.keys(newErrors).length === 0;
@@ -213,6 +233,7 @@ const TeamForm = ({
       teamName: formData.teamName.trim(),
       description: formData.description.trim(),
       memberIds: formData.memberIds,
+      teamLeadId: formData.teamLeadId,
     });
   };
 
@@ -446,6 +467,26 @@ const TeamForm = ({
           </div>
         </FormField>
 
+        <FormField
+          label="Team Lead"
+          htmlFor="team-lead"
+          required
+          error={errors.teamLeadId}
+          hint="This is a team position and does not change the employee's global role."
+        >
+          <Select
+            id="team-lead"
+            value={formData.teamLeadId}
+            onChange={(value) => handleChange("teamLeadId", value)}
+            options={selectedEmployees.map((employee) => ({
+              value: employee.id,
+              label: getEmployeeName(employee),
+            }))}
+            placeholder={selectedEmployees.length ? "Select team lead" : "Select members first"}
+            disabled={loading || selectedEmployees.length === 0}
+          />
+        </FormField>
+
         {/* STATUS */}
 
         <FormField
@@ -491,9 +532,7 @@ const TeamForm = ({
           variant="primary"
           disabled={loading}
         >
-          {loading
-            ? "Creating..."
-            : "Create Team"}
+          {loading ? "Saving..." : initialData?.id ? "Save Changes" : "Create Team"}
         </Button>
       </div>
     </form>

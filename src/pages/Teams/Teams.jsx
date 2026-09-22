@@ -1,402 +1,58 @@
-import { useEffect, useMemo, useState } from "react";
-import { Users } from "lucide-react";
-
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/common/Button/Button";
+import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 import Modal from "../../components/common/Modal/Modal";
-import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
-
+import PageHeader from "../../components/common/PageHeader/PageHeader";
 import TeamForm from "../../components/teams/TeamForm/TeamForm";
 import TeamTable from "../../components/teams/TeamTable/TeamTable";
-import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
-
-import employeeService from "../../services/employeeService";
+import { useTeamsTasks } from "../../context/TeamsTasksContext";
 import { useNotification } from "../../context/NotificationContext";
-
 import "./Teams.css";
 
-const getEmployeeName = (employee) =>
-  [
-    employee.first_name,
-    employee.middle_name,
-    employee.last_name,
-  ]
-    .filter(Boolean)
-    .join(" ") ||
-  employee.full_name ||
-  employee.email ||
-  "Employee";
-
 const Teams = () => {
-  /*
-   * =========================
-   * EMPLOYEES
-   * =========================
-   */
-
-  const [employees, setEmployees] = useState([]);
-  const [employeesLoading, setEmployeesLoading] =
-    useState(true);
-
-  /*
-   * =========================
-   * TEAMS
-   * =========================
-   */
-
-  const [teams, setTeams] = useState([]);
-
-  /*
-   * =========================
-   * UI
-   * =========================
-   */
-
-  const [showCreateModal, setShowCreateModal] =
-    useState(false);
-
-  const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
+  const { notify } = useNotification();
+  const { employees, enrichedTeams, currentViewer, viewers, changeViewer, createTeam, updateTeam, deleteTeam } = useTeamsTasks();
+  const isAdmin = currentViewer.id === "admin";
   const [search, setSearch] = useState("");
- /*
-   * =========================
-   * NOTIFICATION
-   * =========================
-   */
+  const [status, setStatus] = useState("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const { showNotification } = useNotification();
-  /*
-   * =========================
-   * LOAD EMPLOYEES
-   * =========================
-   */
-
-  useEffect(() => {
-    const loadEmployees = async () => {
-      try {
-        setEmployeesLoading(true);
-
-        const data =
-          await employeeService.getAll();
-
-        setEmployees(
-          Array.isArray(data) ? data : []
-        );
-      } catch (error) {
-        console.error(
-          "Failed to load employees:",
-          error
-        );
-
-        setEmployees([]);
-
-        showNotification(
-          "error",
-          "Failed to load employees."
-        );
-      } finally {
-        setEmployeesLoading(false);
-      }
-    };
-
-    loadEmployees();
-  }, []);
-
- 
-
-  /*
-   * =========================
-   * FILTER TEAMS
-   * =========================
-   */
-
-  const filteredTeams = useMemo(() => {
-    const searchValue =
-      search.trim().toLowerCase();
-
-    if (!searchValue) {
-      return teams;
-    }
-
-    return teams.filter((team) => {
-      return (
-        team.name
-          ?.toLowerCase()
-          .includes(searchValue) ||
-        team.description
-          ?.toLowerCase()
-          .includes(searchValue) ||
-        team.memberNames?.some((name) =>
-          name.toLowerCase().includes(searchValue)
-        )
-      );
+  const visibleTeams = useMemo(() => {
+    const accessible = isAdmin ? enrichedTeams : enrichedTeams.filter((team) => team.memberIds.includes(currentViewer.id));
+    const query = search.trim().toLowerCase();
+    return accessible.filter((team) => {
+      const matchesSearch = !query || [team.name, team.description, team.teamLeadName, ...team.memberNames].some((value) => value?.toLowerCase().includes(query));
+      return matchesSearch && (status === "all" || team.status === status);
     });
-  }, [teams, search]);
+  }, [enrichedTeams, currentViewer.id, isAdmin, search, status]);
 
-  /*
-   * =========================
-   * CREATE TEAM
-   * =========================
-   */
-
-  const handleCreateTeam = async (formData) => {
-    try {
-      setLoading(true);
-
-      const selectedEmployees =
-        employees.filter((employee) =>
-          formData.memberIds.some(
-            (id) =>
-              String(id) ===
-              String(employee.id)
-          )
-        );
-
-      const newTeam = {
-        id: `team-${Date.now()}`,
-        name: formData.teamName,
-        description: formData.description,
-        memberIds: formData.memberIds,
-        memberNames: selectedEmployees.map(
-          getEmployeeName
-        ),
-        status: formData.status,
-        createdAt: new Date().toISOString(),
-      };
-
-      setTeams((previous) => [
-        newTeam,
-        ...previous,
-      ]);
-
-      setShowCreateModal(false);
-
-      showNotification(
-        "success",
-        "Team created successfully."
-      );
-    } catch (error) {
-      console.error(
-        "Failed to create team:",
-        error
-      );
-
-      showNotification(
-        "error",
-        "Unable to create team."
-      );
-    } finally {
-      setLoading(false);
-    }
+  const submitTeam = (formData) => {
+    const data = { name: formData.teamName, description: formData.description, teamLeadId: formData.teamLeadId, memberIds: formData.memberIds, status: formData.status };
+    if (selectedTeam) { updateTeam(selectedTeam.id, data); notify.success("Team updated in local workspace."); }
+    else { createTeam(data); notify.success("Team created in local workspace."); }
+    setFormOpen(false);
+    setSelectedTeam(null);
   };
 
-  /*
-   * =========================
-   * VIEW TEAM
-   * =========================
-   */
-
-  const handleViewTeam = (team) => {
-    console.log("View team:", team);
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteTeam(deleteTarget.id);
+    notify.success(`Team "${deleteTarget.name}" deleted from local workspace.`);
+    setDeleteTarget(null);
   };
-
-  /*
-   * =========================
-   * EDIT TEAM
-   * =========================
-   */
-
-  const handleEditTeam = (team) => {
-    console.log("Edit team:", team);
-
-    showNotification(
-      "success",
-      "Team editing will be connected in the next step."
-    );
-  };
-
-  const [deleteModal, setDeleteModal] = useState({
-    open: false,
-    team: null,
-  });
-
-  const handleDeleteTeam = (team) => {
-    setDeleteModal({
-      open: true,
-      team,
-    });
-  };
-
-  const handleConfirmDeleteTeam = () => {
-    const team = deleteModal.team;
-    if (!team) return;
-
-    setTeams((previous) =>
-      previous.filter((item) => item.id !== team.id)
-    );
-
-    setDeleteModal({ open: false, team: null });
-    showNotification("success", `Team "${team.name}" deleted successfully.`);
-  };
-
-  /*
-   * =========================
-   * DATE
-   * =========================
-   */
-
-  const formattedDate =
-    new Intl.DateTimeFormat("en-IN", {
-      weekday: "long",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }).format(new Date());
-
-  /*
-   * =========================
-   * LOADING
-   * =========================
-   */
-
-  if (employeesLoading) {
-    return (
-      <main className="teams-page">
-        <header className="teams-page__header">
-          <div>
-            <span className="teams-page__eyebrow">
-              TEAMS
-            </span>
-
-            <h1>Teams</h1>
-
-            <p>
-              Organize employees into collaborative
-              teams across departments.
-            </p>
-          </div>
-
-          <div className="teams-page__header-actions">
-            <div className="teams-page__date">
-              <Users size={15} />
-              <span>{formattedDate}</span>
-            </div>
-          </div>
-        </header>
-
-        <IgniteLoader text="Loading employees..." />
-      </main>
-    );
-  }
-
-  /*
-   * =========================
-   * PAGE
-   * =========================
-   */
 
   return (
     <main className="teams-page">
-      {/* HEADER */}
-      <header className="teams-page__header">
-        <div>
-          <span className="teams-page__eyebrow">
-            TEAMS
-          </span>
-
-          <h1>Teams</h1>
-
-          <p>
-            Organize employees into collaborative
-            teams across departments.
-          </p>
-        </div>
-
-        <div className="teams-page__header-actions">
-          <div className="teams-page__date">
-            <Users size={15} />
-            <span>{formattedDate}</span>
-          </div>
-
-          <Button
-            variant="primary"
-            onClick={() =>
-              setShowCreateModal(true)
-            }
-          >
-            + Create Team
-          </Button>
-        </div>
-      </header>
-
-      {/* SEARCH */}
-      <section className="teams-page__toolbar">
-        <div className="teams-page__search">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-            placeholder="Search teams or members..."
-          />
-        </div>
-
-        <div className="teams-page__count">
-          {filteredTeams.length}{" "}
-          {filteredTeams.length === 1
-            ? "team"
-            : "teams"}
-        </div>
-      </section>
-
-      {/* TABLE */}
-      <TeamTable
-        teams={filteredTeams}
-        onView={handleViewTeam}
-        onEdit={handleEditTeam}
-        onDelete={handleDeleteTeam}
-      />
-
-      {/* CREATE MODAL */}
-      <Modal
-        open={showCreateModal}
-        onClose={() =>
-          !loading &&
-          setShowCreateModal(false)
-        }
-        title="Create Team"
-        description="Create a team and select the employees who will be part of it."
-        size="medium"
-        closeOnBackdrop={!loading}
-        closeOnEscape={!loading}
-      >
-        <TeamForm
-  initialData={{
-    teamName: "",
-    description: "",
-    memberIds: [],
-    status: "active",
-  }}
-  employees={employees}
-  onSubmit={handleCreateTeam}
-  onCancel={() =>
-    !loading &&
-    setShowCreateModal(false)
-  }
-  loading={loading}
-/>
-      </Modal>
-
-      {deleteModal.open && (
-        <ConfirmModal
-          open={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, team: null })}
-          onConfirm={handleConfirmDeleteTeam}
-          title="Delete Team?"
-          itemName={deleteModal.team?.name}
-          confirmText="Delete"
-        />
-      )}
+      <PageHeader eyebrow="Organization" title="Teams" description="Teams are the context for people, membership, and work." action={isAdmin ? <Button variant="primary" onClick={() => { setSelectedTeam(null); setFormOpen(true); }}>+ Create Team</Button> : null} />
+      <div className="teams-page__preview"><span>Preview as</span><select value={currentViewer.id} onChange={(event) => changeViewer(event.target.value)}>{viewers.map((viewer) => <option key={viewer.id} value={viewer.id}>{viewer.name} · {viewer.role}</option>)}</select></div>
+      <section className="teams-page__toolbar"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search teams, leads, or members..." /><select value={status} onChange={(event) => setStatus(event.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option></select><span>{visibleTeams.length} {visibleTeams.length === 1 ? "team" : "teams"}</span></section>
+      <TeamTable teams={visibleTeams} onView={(team) => navigate(`/teams/${team.id}`)} onEdit={isAdmin ? (team) => { setSelectedTeam(team); setFormOpen(true); } : undefined} onDelete={isAdmin ? setDeleteTarget : undefined} />
+      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={selectedTeam ? "Edit Team" : "Create Team"} description="Teams can include employees from different departments." size="medium"><TeamForm initialData={selectedTeam || { teamName: "", description: "", teamLeadId: "", memberIds: [], status: "active" }} employees={employees} onSubmit={submitTeam} onCancel={() => setFormOpen(false)} /></Modal>
+      <ConfirmModal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} title="Delete Team?" itemName={deleteTarget?.name} confirmText="Delete" />
     </main>
   );
 };

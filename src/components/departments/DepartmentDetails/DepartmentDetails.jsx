@@ -37,12 +37,12 @@ const DepartmentDetails = ({ department, onClose, onEdit }) => {
           <h3>Department Information</h3>
 
           <div className="department-details__grid">
-            <div className="department-details__item">
-              <span className="department-details__label">Department Code</span>
+            <div className="department-details__field">
+              <span>Department Code</span>
 
-              <span className="department-details__value">
+              <strong>
                 {department.departmentCode || "—"}
-              </span>
+              </strong>
             </div>
             <div className="department-details__field">
               <span>Department Name</span>

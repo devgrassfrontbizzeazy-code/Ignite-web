@@ -60,8 +60,10 @@ import Leaves from "./pages/leaves/Leaves";
 import Holidays from "./pages/holidays/Holidays";
 
 import Teams from "./pages/Teams/Teams";
+import TeamDetails from "./pages/Teams/TeamDetails";
 
 import Tasks from "./pages/Tasks/Tasks";
+import { TeamsTasksProvider } from "./context/TeamsTasksContext";
 
 /* =========================================================
    TEMPORARY / DASHBOARD
@@ -92,7 +94,8 @@ function Settings() {
 
 export default function App() {
   return (
-    <OrganizationProvider>
+    <TeamsTasksProvider>
+      <OrganizationProvider>
       <NotificationProvider>
         <BrowserRouter>
           <CompanySetupProvider>
@@ -273,6 +276,7 @@ export default function App() {
                   <Route path="/holidays" element={<Holidays />} />
 
                  <Route path="/teams" element={<Teams />} />
+                 <Route path="/teams/:id" element={<TeamDetails />} />
 
                  <Route path="/tasks" element={<Tasks />} />
 
@@ -361,7 +365,8 @@ export default function App() {
           </Routes>
         </CompanySetupProvider>
       </BrowserRouter>
-    </NotificationProvider>
-  </OrganizationProvider>
+      </NotificationProvider>
+      </OrganizationProvider>
+    </TeamsTasksProvider>
   );
 }
