@@ -176,7 +176,7 @@ const Leaves = () => {
 
     try {
       const response =
-        await leaveApplicationAPI.getPendingApprovals();
+        await leaveApplicationAPI.getCompanyLeaves();
 
       setManagementRequests(
         unwrapArray(response).map(mapLeaveRequest)

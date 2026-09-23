@@ -24,8 +24,18 @@ const leaveApplicationAPI = {
   },
 
   // Pending leaves for approval
-  getPendingApprovals: async () => {
-    const response = await api.get("/leaves/pending-approvals/");
+  getPendingApprovals: async (params = {}) => {
+    const response = await api.get("/leaves/pending-approvals/", {
+      params,
+    });
+    return response.data;
+  },
+
+  // All company/employee-level leave applications (all statuses)
+  getCompanyLeaves: async (params = {}) => {
+    const response = await api.get("/leaves/applications/", {
+      params,
+    });
     return response.data;
   },
 
