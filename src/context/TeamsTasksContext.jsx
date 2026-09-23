@@ -28,54 +28,132 @@ const getEmployeeName = (employee = {}) => {
   const middle = employee.middle_name || employee.middleName || "";
   const last = employee.last_name || employee.lastName || "";
 
-  return [first, middle, last].filter(Boolean).join(" ") || employee.full_name || employee.fullName || employee.email || "Employee";
+  return (
+    [first, middle, last].filter(Boolean).join(" ") ||
+    employee.full_name ||
+    employee.fullName ||
+    employee.email ||
+    "Employee"
+  );
 };
 
 const normalizeEmployee = (employee = {}) => ({
   ...employee,
-  id: employee.id ?? employee.employee_id ?? employee.employeeId ?? employee.pk ?? null,
+  id:
+    employee.id ??
+    employee.employee_id ??
+    employee.employeeId ??
+    employee.pk ??
+    null,
   name: getEmployeeName(employee),
   firstName: employee.first_name || employee.firstName || "",
   lastName: employee.last_name || employee.lastName || "",
-  fullName: employee.full_name || employee.fullName || getEmployeeName(employee),
+  fullName:
+    employee.full_name || employee.fullName || getEmployeeName(employee),
   department: employee.department || {
     id: employee.department_id ?? employee.departmentId,
-    name: employee.department_name || employee.departmentName || employee.department?.name || "",
+    name:
+      employee.department_name ||
+      employee.departmentName ||
+      employee.department?.name ||
+      "",
   },
   designation: employee.designation || {
     id: employee.designation_id ?? employee.designationId,
-    name: employee.designation_name || employee.designationName || employee.designation?.name || "",
+    name:
+      employee.designation_name ||
+      employee.designationName ||
+      employee.designation?.name ||
+      "",
   },
   profilePhotoUrl: employee.profile_photo_url || employee.profilePhotoUrl || "",
 });
 
 const normalizeTeam = (team = {}) => ({
   ...team,
+
   id: team.id ?? team.team_id ?? team.teamId ?? null,
+
   teamName: team.teamName || team.name || "",
   name: team.name || team.teamName || "",
+
   description: team.description || "",
-  teamLeadId: team.teamLeadId ?? (typeof team.team_lead === "object" ? team.team_lead.id : team.team_lead) ?? team.teamLead?.id ?? null,
+
+  teamLeadId:
+    team.teamLeadId ??
+    (typeof team.team_lead === "object" ? team.team_lead.id : team.team_lead) ??
+    team.teamLead?.id ??
+    null,
+
   memberIds: Array.isArray(team.memberIds)
     ? team.memberIds
     : Array.isArray(team.members)
-      ? team.members.map((member) => (typeof member === "object" ? member.id : member))
+      ? team.members.map((member) =>
+          typeof member === "object" ? member.id : member,
+        )
       : Array.isArray(team.employeeIds)
         ? team.employeeIds
         : [],
-  memberCount: team.memberCount ?? team.member_count ?? team.members_count ?? (Array.isArray(team.members) ? team.members.length : 0),
-  status: team.status === "Inactive" || team.status === "inactive" || team.is_active === false ? "inactive" : "active",
+
+  memberNames: Array.isArray(team.members_details)
+    ? team.members_details
+        .map(
+          (member) =>
+            member.full_name ||
+            member.fullName ||
+            [member.first_name, member.last_name].filter(Boolean).join(" "),
+        )
+        .filter(Boolean)
+    : [],
+
+  memberCount:
+    team.memberCount ??
+    team.member_count ??
+    team.members_count ??
+    team.total_members ??
+    (Array.isArray(team.members) ? team.members.length : 0),
+    
+  teamLeadName:
+    team.teamLeadName ||
+    team.team_lead_name ||
+    team.teamLead?.name ||
+    team.teamLead?.full_name ||
+    team.team_lead_details?.full_name ||
+    team.team_lead_details?.fullName ||
+    "",
+
+  status:
+    team.status === "Inactive" ||
+    team.status === "inactive" ||
+    team.is_active === false
+      ? "inactive"
+      : "active",
+
   isActive: team.isActive ?? team.is_active ?? true,
-  teamLeadName: team.teamLeadName || team.team_lead_name || team.teamLead?.name || team.teamLead?.full_name || "",
+
+  createdAt: team.createdAt || team.created_at || "",
+
+  updatedAt: team.updatedAt || team.updated_at || "",
 });
 
 const normalizeTask = (task = {}) => ({
   ...task,
   id: task.id ?? task.task_id ?? task.taskId ?? null,
-  teamId: task.teamId ?? task.team_id ?? (typeof task.team === "object" ? task.team.id : task.team) ?? null,
+  teamId:
+    task.teamId ??
+    task.team_id ??
+    (typeof task.team === "object" ? task.team.id : task.team) ??
+    null,
   teamName: task.teamName || task.team_name || task.team?.name || "",
   assignedTo: task.assignedTo ?? task.assigned_to ?? task.assignee?.id ?? null,
-  assignedToName: task.assignedToName || task.assigned_to_name || task.assignee?.full_name || task.assignee?.name || task.assigned_to_details?.full_name || task.assigned_to_details?.fullName || "",
+  assignedToName:
+    task.assignedToName ||
+    task.assigned_to_name ||
+    task.assignee?.full_name ||
+    task.assignee?.name ||
+    task.assigned_to_details?.full_name ||
+    task.assigned_to_details?.fullName ||
+    "",
   dueDate: task.dueDate || task.due_date || "",
   priority: task.priority || "Medium",
   status: task.status || "To Do",
@@ -202,9 +280,7 @@ export const TeamsTasksProvider = ({ children }) => {
 
     const data = getResponseData(response);
 
-    return Array.isArray(data)
-      ? data.map(normalizeTask)
-      : [];
+    return Array.isArray(data) ? data.map(normalizeTask) : [];
   }, []);
 
   /*
@@ -221,11 +297,7 @@ export const TeamsTasksProvider = ({ children }) => {
       setError(null);
 
       try {
-        await Promise.all([
-          fetchEmployees(),
-          fetchTeams(),
-          fetchTasks(),
-        ]);
+        await Promise.all([fetchEmployees(), fetchTeams(), fetchTasks()]);
       } catch (err) {
         if (mounted) {
           setError(err);
@@ -253,34 +325,22 @@ export const TeamsTasksProvider = ({ children }) => {
   const createTeam = useCallback(async (teamData) => {
     const response = await teamAPI.createTeam(teamData);
 
-    const createdTeam = normalizeTeam(
-      getResponseData(response)
-    );
+    const createdTeam = normalizeTeam(getResponseData(response));
 
-    setTeams((current) => [
-      createdTeam,
-      ...current,
-    ]);
+    setTeams((current) => [createdTeam, ...current]);
 
     return createdTeam;
   }, []);
 
   const updateTeam = useCallback(async (id, teamData) => {
-    const response = await teamAPI.updateTeam(
-      id,
-      teamData
-    );
+    const response = await teamAPI.updateTeam(id, teamData);
 
-    const updatedTeam = normalizeTeam(
-      getResponseData(response)
-    );
+    const updatedTeam = normalizeTeam(getResponseData(response));
 
     setTeams((current) =>
       current.map((team) =>
-        String(team.id) === String(id)
-          ? updatedTeam
-          : team
-      )
+        String(team.id) === String(id) ? updatedTeam : team,
+      ),
     );
 
     return updatedTeam;
@@ -295,10 +355,7 @@ export const TeamsTasksProvider = ({ children }) => {
      * but do NOT delete tasks locally.
      */
     setTeams((current) =>
-      current.filter(
-        (team) =>
-          String(team.id) !== String(id)
-      )
+      current.filter((team) => String(team.id) !== String(id)),
     );
   }, []);
 
@@ -309,80 +366,54 @@ export const TeamsTasksProvider = ({ children }) => {
    */
 
   const createTask = useCallback(async (taskData) => {
-    const response = await taskAPI.createTask(
-      taskData
-    );
+    const response = await taskAPI.createTask(taskData);
 
-    const createdTask = normalizeTask(
-      getResponseData(response)
-    );
+    const createdTask = normalizeTask(getResponseData(response));
 
-    setTasks((current) => [
-      createdTask,
-      ...current,
-    ]);
+    setTasks((current) => [createdTask, ...current]);
 
     return createdTask;
   }, []);
 
   const updateTask = useCallback(async (id, taskData) => {
-    const response = await taskAPI.updateTask(
-      id,
-      taskData
-    );
+    const response = await taskAPI.updateTask(id, taskData);
 
-    const updatedTask = normalizeTask(
-      getResponseData(response)
-    );
+    const updatedTask = normalizeTask(getResponseData(response));
 
     setTasks((current) =>
       current.map((task) =>
-        String(task.id) === String(id)
-          ? updatedTask
-          : task
-      )
+        String(task.id) === String(id) ? updatedTask : task,
+      ),
     );
 
     return updatedTask;
   }, []);
 
-  const updateTaskStatus = useCallback(
-    async (id, status) => {
-      const response =
-        await taskAPI.updateTaskStatus(
-          id,
-          status
-        );
+  const updateTaskStatus = useCallback(async (id, status) => {
+    const response = await taskAPI.updateTaskStatus(id, status);
 
-      const updatedTask = normalizeTask(
-        getResponseData(response)
-      );
+    const updatedTask = normalizeTask(getResponseData(response));
 
-      setTasks((current) =>
-        current.map((task) =>
-          String(task.id) === String(id)
-            ? {
-                ...task,
-                ...updatedTask,
-                status,
-              }
-            : task
-        )
-      );
+    setTasks((current) =>
+      current.map((task) =>
+        String(task.id) === String(id)
+          ? {
+              ...task,
+              ...updatedTask,
+              status,
+            }
+          : task,
+      ),
+    );
 
-      return updatedTask;
-    },
-    []
-  );
+    return updatedTask;
+  }, []);
 
   const deleteTask = useCallback(async (id) => {
     await taskAPI.deleteTask(id);
 
     setTasks((current) =>
-      current.filter(
-        (task) =>
-          String(task.id) !== String(id)
-      )
+      current.filter((task) => String(task.id) !== String(id)),
     );
   }, []);
 
@@ -443,7 +474,7 @@ export const TeamsTasksProvider = ({ children }) => {
       updateTask,
       updateTaskStatus,
       deleteTask,
-    ]
+    ],
   );
 
   return (
@@ -457,9 +488,7 @@ export const useTeamsTasks = () => {
   const context = useContext(TeamsTasksContext);
 
   if (!context) {
-    throw new Error(
-      "useTeamsTasks must be used inside TeamsTasksProvider"
-    );
+    throw new Error("useTeamsTasks must be used inside TeamsTasksProvider");
   }
 
   return context;

@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  CheckCircle2,
-  ListTodo,
-  Plus,
-  Users,
-} from "lucide-react";
+import { CheckCircle2, ListTodo, Plus, Users } from "lucide-react";
 
 import BackButton from "../../components/common/BackButton/BackButton";
 import Button from "../../components/common/Button/Button";
@@ -35,11 +30,7 @@ const getEmployeeName = (employee) =>
   employee?.email ||
   "Employee";
 
-const getEmployeePhoto = (employee) =>
-  employee?.profilePhotoUrl ||
-  employee?.profile_photo_url ||
-  employee?.profilePhoto ||
-  "";
+
 
 const TeamDetails = () => {
   const { id } = useParams();
@@ -96,10 +87,7 @@ const TeamDetails = () => {
 
         if (!mounted) return;
 
-        setError(
-          err?.response?.data?.detail ||
-            "Failed to load team details."
-        );
+        setError(err?.response?.data?.detail || "Failed to load team details.");
       } finally {
         if (mounted) {
           setLoading(false);
@@ -123,11 +111,8 @@ const TeamDetails = () => {
    */
 
   const contextTeam = useMemo(
-    () =>
-      teams.find(
-        (item) => String(item.id) === String(id)
-      ),
-    [teams, id]
+    () => teams.find((item) => String(item.id) === String(id)),
+    [teams, id],
   );
 
   const displayedTeam = team || contextTeam;
@@ -137,14 +122,12 @@ const TeamDetails = () => {
    * CURRENT USER
    * =========================
    *
-  * Backend permissions remain authoritative for task assignment.
+   * Backend permissions remain authoritative for task assignment.
    */
 
   const currentUser = useMemo(() => {
     try {
-      return JSON.parse(
-        localStorage.getItem("user") || "null"
-      );
+      return JSON.parse(localStorage.getItem("user") || "null");
     } catch {
       return null;
     }
@@ -167,8 +150,7 @@ const TeamDetails = () => {
     String(currentEmployeeId) === String(teamLeadId);
 
   const isMember = members.some(
-    (member) =>
-      String(member.id) === String(currentEmployeeId)
+    (member) => String(member.id) === String(currentEmployeeId),
   );
 
   /*
@@ -177,8 +159,12 @@ const TeamDetails = () => {
    * Backend permissions must remain the source of truth.
    */
 
-  const rawRole = String(currentUser?.role || currentUser?.user_type || "").toUpperCase();
-  const isAdmin = currentUser?.is_superuser === true || ["OWNER", "ADMIN", "ADMINISTRATOR"].includes(rawRole);
+  const rawRole = String(
+    currentUser?.role || currentUser?.user_type || "",
+  ).toUpperCase();
+  const isAdmin =
+    currentUser?.is_superuser === true ||
+    ["OWNER", "ADMIN", "ADMINISTRATOR"].includes(rawRole);
   const canAssign = Boolean(isAdmin || isLead);
 
   /*
@@ -187,12 +173,10 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const activeTasks = teamTasks.filter(
-    (task) => task.status !== "Completed"
-  );
+  const activeTasks = teamTasks.filter((task) => task.status !== "Completed");
 
   const completedTasks = teamTasks.filter(
-    (task) => task.status === "Completed"
+    (task) => task.status === "Completed",
   );
 
   /*
@@ -206,35 +190,20 @@ const TeamDetails = () => {
       await createTask({
         ...data,
         teamId: displayedTeam.id,
-        assignedTo: canAssign
-          ? data.assignedTo
-          : currentEmployeeId,
+        assignedTo: canAssign ? data.assignedTo : currentEmployeeId,
       });
 
-      const refreshedTasks =
-        await fetchTeamTasks(displayedTeam.id);
+      const refreshedTasks = await fetchTeamTasks(displayedTeam.id);
 
-      setTeamTasks(
-        Array.isArray(refreshedTasks)
-          ? refreshedTasks
-          : []
-      );
+      setTeamTasks(Array.isArray(refreshedTasks) ? refreshedTasks : []);
 
       setTaskFormOpen(false);
 
-      notify.success(
-        "Task created successfully."
-      );
+      notify.success("Task created successfully.");
     } catch (err) {
-      console.error(
-        "Failed to create task:",
-        err
-      );
+      console.error("Failed to create task:", err);
 
-      notify.error(
-        err?.response?.data?.detail ||
-          "Failed to create task."
-      );
+      notify.error(err?.response?.data?.detail || "Failed to create task.");
     }
   };
 
@@ -244,44 +213,27 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const handleStatusChange = async (
-    task,
-    status
-  ) => {
+  const handleStatusChange = async (task, status) => {
     try {
-      const updatedTask = await updateTaskStatus(
-        task.id,
-        status
-      );
+      const updatedTask = await updateTaskStatus(task.id, status);
 
       setSelectedTask(
         updatedTask || {
           ...task,
           status,
-        }
+        },
       );
 
-      const refreshedTasks =
-        await fetchTeamTasks(displayedTeam.id);
+      const refreshedTasks = await fetchTeamTasks(displayedTeam.id);
 
-      setTeamTasks(
-        Array.isArray(refreshedTasks)
-          ? refreshedTasks
-          : []
-      );
+      setTeamTasks(Array.isArray(refreshedTasks) ? refreshedTasks : []);
 
-      notify.success(
-        "Task status updated successfully."
-      );
+      notify.success("Task status updated successfully.");
     } catch (err) {
-      console.error(
-        "Failed to update task status:",
-        err
-      );
+      console.error("Failed to update task status:", err);
 
       notify.error(
-        err?.response?.data?.detail ||
-          "Failed to update task status."
+        err?.response?.data?.detail || "Failed to update task status.",
       );
     }
   };
@@ -295,10 +247,7 @@ const TeamDetails = () => {
   if (loading) {
     return (
       <main className="team-details-page">
-        <BackButton
-          label="Back to Teams"
-          onClick={() => navigate("/teams")}
-        />
+        <BackButton label="Back to Work Management" onClick={() => navigate("/teams")} />
 
         <div className="team-details-page__loading">
           Loading team details...
@@ -316,50 +265,41 @@ const TeamDetails = () => {
   if (error || !displayedTeam) {
     return (
       <main className="team-details-page">
-        <BackButton
-          label="Back to Teams"
-          onClick={() => navigate("/teams")}
-        />
+        <BackButton label="Back to Teams" onClick={() => navigate("/teams")} />
 
-        <h1>
-          {error || "Team not found"}
-        </h1>
+        <h1>{error || "Team not found"}</h1>
       </main>
     );
   }
 
-  const teamName =
-    displayedTeam.teamName ||
-    displayedTeam.name ||
-    "Team";
+  const teamName = displayedTeam.teamName || displayedTeam.name || "Team";
 
-  const teamDescription =
-    displayedTeam.description ||
-    "No description added.";
+  const teamDescription = displayedTeam.description || "No description added.";
 
-  const teamStatus =
-    displayedTeam.status || "active";
+  const teamStatus = displayedTeam.status || "active";
 
-  const teamLeadName =
-    displayedTeam.teamLeadName ||
-    displayedTeam.team_lead_name ||
-    displayedTeam.teamLead?.name ||
-    "Not assigned";
+  const teamLeadMember = members.find(
+  (member) => member.teamPosition === "Team Lead"
+);
+
+const teamLeadName =
+  displayedTeam?.team_lead_name ||
+  displayedTeam?.teamLeadName ||
+  displayedTeam?.team_lead_details?.full_name ||
+  teamLeadMember?.fullName ||
+  teamLeadMember?.full_name ||
+  getEmployeeName(teamLeadMember) ||
+  "Not assigned";
 
   return (
     <main className="team-details-page">
-      <BackButton
-        label="Back to Teams"
-        onClick={() => navigate("/teams")}
-      />
+      <BackButton label="Back to Teams" onClick={() => navigate("/teams")} />
 
       {/* HEADER */}
 
       <header className="team-details-page__header">
         <div>
-          <span className="team-details-page__eyebrow">
-            TEAM WORKSPACE
-          </span>
+          <span className="team-details-page__eyebrow">TEAM WORKSPACE</span>
 
           <div className="team-details-page__title">
             <h1>{teamName}</h1>
@@ -368,9 +308,7 @@ const TeamDetails = () => {
               className={`team-details-page__status team-details-page__status--${teamStatus}`}
             >
               <span />
-              {teamStatus === "active"
-                ? "Active"
-                : "Inactive"}
+              {teamStatus === "active" ? "Active" : "Inactive"}
             </span>
           </div>
 
@@ -378,24 +316,17 @@ const TeamDetails = () => {
 
           <div className="team-details-page__meta">
             <span>
-              Team Lead:{" "}
-              <strong>{teamLeadName}</strong>
+              Team Lead: <strong>{teamLeadName}</strong>
             </span>
 
             <span>
-              Members:{" "}
-              <strong>{members.length}</strong>
+              Members: <strong>{members.length}</strong>
             </span>
           </div>
         </div>
 
         {(canAssign || isMember) && (
-          <Button
-            variant="primary"
-            onClick={() =>
-              setTaskFormOpen(true)
-            }
-          >
+          <Button variant="primary" onClick={() => setTaskFormOpen(true)}>
             <Plus size={16} />
             Create Task
           </Button>
@@ -404,25 +335,17 @@ const TeamDetails = () => {
 
       {/* TABS */}
 
-      <nav
-        className="team-details-page__tabs"
-        aria-label="Team sections"
-      >
-        {["overview", "members", "tasks"].map(
-          (item) => (
-            <button
-              type="button"
-              key={item}
-              className={
-                tab === item ? "is-active" : ""
-              }
-              onClick={() => setTab(item)}
-            >
-              {item[0].toUpperCase() +
-                item.slice(1)}
-            </button>
-          )
-        )}
+      <nav className="team-details-page__tabs" aria-label="Team sections">
+        {["overview", "members", "tasks"].map((item) => (
+          <button
+            type="button"
+            key={item}
+            className={tab === item ? "is-active" : ""}
+            onClick={() => setTab(item)}
+          >
+            {item[0].toUpperCase() + item.slice(1)}
+          </button>
+        ))}
       </nav>
 
       {/* OVERVIEW */}
@@ -459,10 +382,7 @@ const TeamDetails = () => {
           <div className="team-details-page__panel-heading">
             <h3>Recent Tasks</h3>
 
-            <button
-              type="button"
-              onClick={() => setTab("tasks")}
-            >
+            <button type="button" onClick={() => setTab("tasks")}>
               View all tasks
             </button>
           </div>
@@ -499,57 +419,52 @@ const TeamDetails = () => {
                   <tr>
                     <td colSpan="5">No members found.</td>
                   </tr>
-                ) : members.map((employee) => {
-                  const employeeName =
-                    getEmployeeName(employee);
+                ) : (
+                  members.map((employee) => {
+                    const employeeName = getEmployeeName(employee);
 
-                  const department =
-                    employee.department?.name ||
-                    employee.department_name ||
-                    employee.departmentName ||
-                    "—";
+                    const department =
+                      employee.department?.name ||
+                      employee.department_name ||
+                      employee.departmentName ||
+                      "—";
 
-                  const designation =
-                    employee.designation?.name ||
-                    employee.designation_name ||
-                    employee.designationName ||
-                    "—";
+                    const designation =
+                      employee.designation?.name ||
+                      employee.designation_name ||
+                      employee.designationName ||
+                      "—";
 
-                  const memberTeamLeadId = employee.teamPosition === "Team Lead";
-                  const isActive = employee.is_active ?? employee.isActive ?? employee.employment_status?.toUpperCase() !== "INACTIVE";
-                  const profilePhoto = getEmployeePhoto(employee);
+                    const memberTeamLeadId =
+                      employee.teamPosition === "Team Lead";
+                    const isActive =
+                      employee.is_active ??
+                      employee.isActive ??
+                      employee.employment_status?.toUpperCase() !== "INACTIVE";
+                    
 
-                  return (
-                    <tr key={employee.id}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <div className="team-details-page__member-avatar">
-                            {profilePhoto ? <img src={profilePhoto} alt="" /> : employeeName.charAt(0).toUpperCase()}
-                          </div>
+                    return (
+                      <tr key={employee.id}>
+                        <td>
                           <span>{employeeName}</span>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td>
-                        {department}
-                      </td>
+                        <td>{department}</td>
 
-                      <td>
-                        {designation}
-                      </td>
+                        <td>{designation}</td>
 
-                      <td>
-                        {memberTeamLeadId ||
-                        String(employee.id) ===
-                          String(teamLeadId)
-                          ? "Team Lead"
-                          : "Member"}
-                      </td>
+                        <td>
+                          {memberTeamLeadId ||
+                          String(employee.id) === String(teamLeadId)
+                            ? "Team Lead"
+                            : "Member"}
+                        </td>
 
-                      <td>{isActive ? "Active" : "Inactive"}</td>
-                    </tr>
-                  );
-                })}
+                        <td>{isActive ? "Active" : "Inactive"}</td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -564,19 +479,11 @@ const TeamDetails = () => {
             <div>
               <h2>Tasks</h2>
 
-              <p>
-                Work belonging to{" "}
-                {teamName}.
-              </p>
+              <p>Work belonging to {teamName}.</p>
             </div>
 
             {(canAssign || isMember) && (
-              <Button
-                variant="primary"
-                onClick={() =>
-                  setTaskFormOpen(true)
-                }
-              >
+              <Button variant="primary" onClick={() => setTaskFormOpen(true)}>
                 <Plus size={16} />
                 Create Task
               </Button>
@@ -588,8 +495,12 @@ const TeamDetails = () => {
             onView={(task) => navigate(`/tasks/${task.id}`)}
             onEdit={(task) => setSelectedTask(task)}
             onDelete={() => {}}
-            canEdit={(task) => canAssign || String(task.assignedTo) === String(currentEmployeeId)}
-            canDelete={(task) => canAssign || String(task.assignedTo) === String(currentEmployeeId)}
+            canEdit={(task) =>
+              canAssign || String(task.assignedTo) === String(currentEmployeeId)
+            }
+            canDelete={(task) =>
+              canAssign || String(task.assignedTo) === String(currentEmployeeId)
+            }
           />
         </section>
       )}
@@ -598,9 +509,7 @@ const TeamDetails = () => {
 
       <Drawer
         open={taskFormOpen}
-        onClose={() =>
-          setTaskFormOpen(false)
-        }
+        onClose={() => setTaskFormOpen(false)}
         title="Create Task"
         description={
           canAssign
@@ -615,17 +524,13 @@ const TeamDetails = () => {
           fetchTeamMembers={fetchTeamMembers}
           initialData={{
             teamId: displayedTeam.id,
-            assignedTo: canAssign
-              ? ""
-              : currentEmployeeId,
+            assignedTo: canAssign ? "" : currentEmployeeId,
           }}
           fixedTeamId={displayedTeam.id}
           restrictAssignee={!canAssign}
           currentEmployeeId={currentEmployeeId}
           onSubmit={handleTaskSubmit}
-          onCancel={() =>
-            setTaskFormOpen(false)
-          }
+          onCancel={() => setTaskFormOpen(false)}
         />
       </Drawer>
 
@@ -633,35 +538,19 @@ const TeamDetails = () => {
 
       <Modal
         open={Boolean(selectedTask)}
-        onClose={() =>
-          setSelectedTask(null)
-        }
-        title={
-          selectedTask?.title ||
-          "Task Details"
-        }
+        onClose={() => setSelectedTask(null)}
+        title={selectedTask?.title || "Task Details"}
         size="medium"
       >
         <TaskDetails
           task={selectedTask}
-          onClose={() =>
-            setSelectedTask(null)
-          }
-          onViewTeam={() =>
-            navigate(
-              `/teams/${displayedTeam.id}`
-            )
-          }
+          onClose={() => setSelectedTask(null)}
+          onViewTeam={() => navigate(`/teams/${displayedTeam.id}`)}
           canEdit={
             canAssign ||
-            String(
-              selectedTask?.assignedTo
-            ) ===
-              String(currentEmployeeId)
+            String(selectedTask?.assignedTo) === String(currentEmployeeId)
           }
-          onStatusChange={
-            handleStatusChange
-          }
+          onStatusChange={handleStatusChange}
         />
       </Modal>
     </main>

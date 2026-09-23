@@ -127,7 +127,16 @@ const Leaves = () => {
   const user = useMemo(() => getCurrentUser(), []);
 
   const canManage =
-    canApproveLeaves(user) || isSuperOrAdmin(user);
+  canApproveLeaves(user) || isSuperOrAdmin(user);
+
+console.log("Leave permissions:", {
+  role: user.role,
+  is_superuser: user.is_superuser,
+  permissions: user.permissions,
+  canApproveLeaves: canApproveLeaves(user),
+  isSuperOrAdmin: isSuperOrAdmin(user),
+  canManage,
+});
 
   const canApply =
     canCreateLeaves(user) || isSuperOrAdmin(user);
@@ -145,6 +154,11 @@ const Leaves = () => {
   const [cancelRequest, setCancelRequest] = useState(null);
   const [rejectRequest, setRejectRequest] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+  useEffect(() => {
+  if (!canManage && activeTab === "employees") {
+    setActiveTab("my");
+  }
+}, [canManage, activeTab]);
 
   const fetchMyLeaveData = useCallback(async () => {
     setLoading(true);
@@ -197,59 +211,54 @@ const Leaves = () => {
   }, [fetchMyLeaveData, fetchManagementLeaveData]);
 
   const leaveBalances = useMemo(
-    () =>
-      leaveOptions.map((leave) => ({
-        id: String(
-          leave.id || leave.name || "other"
-        ).toLowerCase(),
-        title: leave.name,
-        available: Number(
-          leave.remaining_balance ??
-            leave.remainingBalance ??
-            0
-        ),
-        total: Number(
-          leave.allocated_days ??
-            leave.allocatedDays ??
-            0
-        ),
-        used: Math.max(
-          Number(
-            leave.allocated_days ??
-              leave.allocatedDays ??
-              0
-          ) -
-            Number(
-              leave.remaining_balance ??
-                leave.remainingBalance ??
-                0
-            ),
+  () =>
+    leaveOptions.map((leave) => ({
+      id: String(
+        leave.id || leave.name || "other"
+      ).toLowerCase(),
+      title: leave.name,
+      available: Number(
+        leave.remaining_balance ??
+          leave.remainingBalance ??
           0
-        ),
-      })),
-    [leaveOptions]
-  );
+      ),
+      total: Number(
+        leave.allocated_days ??
+          leave.allocatedDays ??
+          0
+      ),
+      used: 0,
+    })),
+  [leaveOptions]
+);
+const usedLeave = useMemo(
+  () =>
+    myRequests
+      .filter(
+        (request) =>
+          String(request.status).toUpperCase() === "APPROVED"
+      )
+      .reduce(
+        (sum, request) => sum + Number(request.days || 0),
+        0
+      ),
+  [myRequests]
+);
 
-  const employeeStats = useMemo(
-    () => ({
-      available: leaveBalances.reduce(
-        (sum, leave) => sum + leave.available,
-        0
-      ),
-      allocated: leaveBalances.reduce(
-        (sum, leave) => sum + leave.total,
-        0
-      ),
-      used: leaveBalances.reduce(
-        (sum, leave) => sum + leave.used,
-        0
-      ),
-      pending: myRequests.filter(
-        (request) => request.status === "Pending"
-      ).length,
-    }),
-    [leaveBalances, myRequests]
-  );
+  const employeeStats = {
+  available: leaveBalances.reduce(
+    (sum, leave) => sum + leave.available,
+    0
+  ),
+  allocated: leaveBalances.reduce(
+    (sum, leave) => sum + leave.total,
+    0
+  ),
+  used: usedLeave,
+  pending: myRequests.filter(
+    (request) => request.status === "Pending"
+  ).length,
+};
 
   const managementStats = useMemo(
     () => ({
