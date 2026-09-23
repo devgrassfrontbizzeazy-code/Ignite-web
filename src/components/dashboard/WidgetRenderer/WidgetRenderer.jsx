@@ -1,4 +1,5 @@
 import { dashboardWidgets } from "../widgetRegistry";
+import useDashboardData from "../hooks/useDashboardData";
 
 const getGridColumn = (width) => {
   if (!width) {
@@ -11,6 +12,8 @@ const getGridColumn = (width) => {
 };
 
 const WidgetRenderer = () => {
+  const dashboardData = useDashboardData();
+
   return (
     <>
       {dashboardWidgets.map((widget) => {
@@ -28,8 +31,9 @@ const WidgetRenderer = () => {
             }}
           >
             <WidgetComponent
-              data={widget.data}
+              data={dashboardData}
               config={widget.config}
+              loading={dashboardData.loading}
             />
           </div>
         );

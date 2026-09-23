@@ -6,8 +6,8 @@ const TeamRowActions = ({
   onView,
   onEdit,
   onDelete,
-  canEdit = true,
-  canDelete = true,
+  canEdit = false,
+  canDelete = false,
 }) => {
   const actions = [
     {
@@ -16,13 +16,19 @@ const TeamRowActions = ({
       icon: FiEye,
       onClick: () => onView?.(team),
     },
+
     canEdit && {
       key: "edit",
       label: "Edit",
       icon: FiEdit2,
       onClick: () => onEdit?.(team),
     },
-    canDelete && { key: "divider-1", isDivider: true },
+
+    canDelete && {
+      key: "divider-1",
+      isDivider: true,
+    },
+
     canDelete && {
       key: "delete",
       label: "Delete",
