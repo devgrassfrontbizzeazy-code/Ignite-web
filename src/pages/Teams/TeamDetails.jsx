@@ -133,9 +133,20 @@ const TeamDetails = () => {
     }
   }, []);
 
+  const matchedMember = useMemo(() => {
+    if (!currentUser) return null;
+    return members.find(
+      (m) =>
+        (currentUser.email && m.email && m.email.toLowerCase() === currentUser.email.toLowerCase()) ||
+        String(m.id) === String(currentUser.employee_id) ||
+        String(m.id) === String(currentUser.id)
+    );
+  }, [members, currentUser]);
+
   const currentEmployeeId =
     currentUser?.employee_id ||
     currentUser?.employeeId ||
+    matchedMember?.id ||
     currentUser?.employee?.id ||
     currentUser?.id;
 
@@ -437,11 +448,12 @@ const teamLeadName =
 
                     const memberTeamLeadId =
                       employee.teamPosition === "Team Lead";
-                    const isActive =
-                      employee.is_active ??
-                      employee.isActive ??
-                      employee.employment_status?.toUpperCase() !== "INACTIVE";
-                    
+                    const isCheckedIn =
+                      employee.isCheckedInToday ??
+                      employee.is_checked_in_today ??
+                      employee.isActiveToday ??
+                      employee.is_active_today ??
+                      false;
 
                     return (
                       <tr key={employee.id}>
@@ -460,7 +472,32 @@ const teamLeadName =
                             : "Member"}
                         </td>
 
-                        <td>{isActive ? "Active" : "Inactive"}</td>
+                        <td>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "3px 10px",
+                              borderRadius: "9999px",
+                              fontSize: "12px",
+                              fontWeight: 500,
+                              backgroundColor: isCheckedIn ? "rgba(34, 197, 94, 0.12)" : "rgba(100, 116, 139, 0.12)",
+                              color: isCheckedIn ? "#16a34a" : "#64748b",
+                              border: `1px solid ${isCheckedIn ? "rgba(34, 197, 94, 0.25)" : "rgba(100, 116, 139, 0.2)"}`
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                backgroundColor: isCheckedIn ? "#22c55e" : "#94a3b8"
+                              }}
+                            />
+                            {isCheckedIn ? "Active" : "Inactive"}
+                          </span>
+                        </td>
                       </tr>
                     );
                   })

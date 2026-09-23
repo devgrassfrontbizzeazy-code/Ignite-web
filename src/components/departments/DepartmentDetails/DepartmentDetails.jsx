@@ -1,11 +1,14 @@
 import "./DepartmentDetails.css";
 import { formatDate } from "../../../utils/dateUtils";
 
+import { canUpdateDepartments } from "../../../utils/permissionUtils";
+
 const DepartmentDetails = ({ department, onClose, onEdit }) => {
   if (!department) {
     return null;
   }
 
+  const canEdit = canUpdateDepartments();
   const isActive = department.status === "active";
 
   return (
@@ -88,13 +91,15 @@ const DepartmentDetails = ({ department, onClose, onEdit }) => {
           Close
         </button>
 
-        <button
-          type="button"
-          className="department-details__button department-details__button--primary"
-          onClick={() => onEdit?.(department)}
-        >
-          Edit Department
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            className="department-details__button department-details__button--primary"
+            onClick={() => onEdit?.(department)}
+          >
+            Edit Department
+          </button>
+        )}
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ import {
 } from "../../services/api/departmentAPI";
 
 import roleService from "../../services/roleService";
+import { canCreateDepartments } from "../../utils/permissionUtils";
 import { useNotification } from "../../context/NotificationContext";
 
 import "./Departments.css";
@@ -442,9 +443,11 @@ const Departments = () => {
         title="Departments"
         description="Manage organizational units, structure, and department assignments."
         action={
-          <Button variant="primary" onClick={handleAddDepartment}>
-            + Add Department
-          </Button>
+          canCreateDepartments() ? (
+            <Button variant="primary" onClick={handleAddDepartment}>
+              + Add Department
+            </Button>
+          ) : null
         }
       />
 
