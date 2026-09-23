@@ -177,6 +177,18 @@ const Login = () => {
         }
 
         /*
+         * 403 means the user belongs to an existing company
+         * but lacks company management permissions (e.g. employee / manager).
+         */
+        if (status === 403) {
+          const from = location.state?.from;
+          navigate(from || "/dashboard", {
+            replace: true,
+          });
+          return;
+        }
+
+        /*
          * Do NOT assume that every error means
          * company setup is incomplete.
          *

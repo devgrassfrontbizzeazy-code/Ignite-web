@@ -48,8 +48,8 @@ const CompanySetupGuard = () => {
         const status = err?.response?.status;
 
         if (mounted) {
-          if (isEmployee) {
-            // Employees should never be forced to set up a company
+          if (isEmployee || status === 403) {
+            // Employees or users without company edit permission belong to an existing company
             setCompanyExists(true);
           } else if (status === 404) {
             setCompanyExists(false);
