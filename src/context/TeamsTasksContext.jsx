@@ -319,20 +319,29 @@ export const TeamsTasksProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
+      // 1. Fetch Teams independently
       try {
-        await Promise.all([
-          fetchEmployees(),
-          fetchTeams(),
-          fetchTasks(),
-        ]);
+        await fetchTeams();
       } catch (err) {
-        if (mounted) {
-          setError(err);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        console.warn("fetchTeams failed:", err?.message || err);
+      }
+
+      // 2. Fetch Tasks independently
+      try {
+        await fetchTasks();
+      } catch (err) {
+        console.warn("fetchTasks failed:", err?.message || err);
+      }
+
+      // 3. Fetch Employees independently (non-admin employees may get 403, which is normal)
+      try {
+        await fetchEmployees();
+      } catch (err) {
+        // Expected for regular team members without HR/Admin employee view permissions
+      }
+
+      if (mounted) {
+        setLoading(false);
       }
     };
 
@@ -379,14 +388,14 @@ export const TeamsTasksProvider = ({ children }) => {
     );
 
     return {
-      hasAccess: isAdminOrHr || isMember || isLead,
+      hasAccess: isAdminOrHr || isMember || isLead || teams.length > 0 || tasks.length > 0,
       isAdminOrHr,
       isMember,
       isLead,
       canCreateTask,
       canAssignToOthers,
     };
-  }, [teams]);
+  }, [teams, tasks]);
 
   /*
    * ==========================================

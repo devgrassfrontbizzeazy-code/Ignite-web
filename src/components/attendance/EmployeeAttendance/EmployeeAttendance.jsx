@@ -483,7 +483,6 @@ const EmployeeAttendance = ({ onShowToast }) => {
                       <td>
                         <div className="employee-att-time-cell">
                           <span className="employee-att-time">{r.checkIn}</span>
-                          {r.isLate && <span className="employee-att-late-tag">Late</span>}
                         </div>
                       </td>
 

@@ -133,12 +133,10 @@ const TeamDetails = () => {
   const [error, setError] = useState("");
 
   const [tab, setTab] = useState("overview");
-  const [taskFormOpen, setTaskFormOpen] =
-    useState(false);
+  const [taskFormOpen, setTaskFormOpen] = useState(false);
   const [memberManagerOpen, setMemberManagerOpen] =
     useState(false);
-  const [selectedTask, setSelectedTask] =
-    useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   /*
    * =========================
@@ -154,15 +152,12 @@ const TeamDetails = () => {
       setError("");
 
       try {
-        const [
-          teamData,
-          membersData,
-          tasksData,
-        ] = await Promise.all([
-          fetchTeam(id),
-          fetchTeamMembers(id),
-          fetchTeamTasks(id),
-        ]);
+        const [teamData, membersData, tasksData] =
+          await Promise.all([
+            fetchTeam(id),
+            fetchTeamMembers(id),
+            fetchTeamTasks(id),
+          ]);
 
         if (!mounted) return;
 
@@ -228,8 +223,7 @@ const TeamDetails = () => {
     [teams, id],
   );
 
-  const displayedTeam =
-    team || contextTeam;
+  const displayedTeam = team || contextTeam;
 
   /*
    * =========================
@@ -240,17 +234,39 @@ const TeamDetails = () => {
   const currentUser = useMemo(() => {
     try {
       return JSON.parse(
-        localStorage.getItem("user") ||
-          "null",
+        localStorage.getItem("user") || "null",
       );
     } catch {
       return null;
     }
   }, []);
 
+  /*
+   * Match the logged-in user against the
+   * loaded team members when possible.
+   */
+  const matchedMember = useMemo(() => {
+    if (!currentUser) return null;
+
+    return members.find(
+      (member) =>
+        (currentUser.email &&
+          member.email &&
+          member.email.toLowerCase() ===
+            currentUser.email.toLowerCase()) ||
+        String(member.id) ===
+          String(currentUser.employee_id) ||
+        String(member.id) ===
+          String(currentUser.employeeId) ||
+        String(member.id) ===
+          String(currentUser.id),
+    );
+  }, [members, currentUser]);
+
   const currentEmployeeId =
     currentUser?.employee_id ||
     currentUser?.employeeId ||
+    matchedMember?.id ||
     currentUser?.employee?.id ||
     currentUser?.id;
 
@@ -300,6 +316,9 @@ const TeamDetails = () => {
    * =========================
    * TASK PERMISSIONS
    * =========================
+   *
+   * Backend permissions remain the
+   * source of truth.
    */
 
   const canAssign = Boolean(
@@ -333,9 +352,7 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const handleTaskSubmit = async (
-    data,
-  ) => {
+  const handleTaskSubmit = async (data) => {
     if (!displayedTeam) return;
 
     try {
@@ -905,23 +922,27 @@ const TeamDetails = () => {
         width="520px"
       >
         <TeamMemberManager
-  team={{
-    ...displayedTeam,
-    id: displayedTeam?.id ?? id,
-  }}
-  members={members}
-  employees={employees}
-  onMembersUpdated={async () => {
-    const refreshedMembers =
-      await fetchTeamMembers(id);
+          team={{
+            ...displayedTeam,
+            id:
+              displayedTeam?.id ??
+              id,
+          }}
+          members={members}
+          employees={employees}
+          onMembersUpdated={async () => {
+            const refreshedMembers =
+              await fetchTeamMembers(id);
 
-    setMembers(
-      Array.isArray(refreshedMembers)
-        ? refreshedMembers
-        : [],
-    );
-  }}
-/>
+            setMembers(
+              Array.isArray(
+                refreshedMembers,
+              )
+                ? refreshedMembers
+                : [],
+            );
+          }}
+        />
       </Drawer>
 
       {/* CREATE TASK */}

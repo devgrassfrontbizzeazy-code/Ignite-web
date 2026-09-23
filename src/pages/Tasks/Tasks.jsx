@@ -109,7 +109,12 @@ const Tasks = () => {
       setDrawerOpen(false);
       setSelectedTask(null);
     } catch (error) {
-      notify.error(error?.response?.data?.detail || "Failed to save task.");
+      const errMsg =
+        error?.response?.data?.message ||
+        (error?.response?.data?.errors ? JSON.stringify(error.response.data.errors) : null) ||
+        error?.response?.data?.detail ||
+        "Failed to save task.";
+      notify.error(errMsg);
     }
   };
 
