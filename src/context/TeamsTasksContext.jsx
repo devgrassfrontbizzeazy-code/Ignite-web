@@ -66,7 +66,8 @@ const normalizeEmployee = (employee = {}) => ({
       employee.designation?.name ||
       "",
   },
-  profilePhotoUrl: employee.profile_photo_url || employee.profilePhotoUrl || "",
+  profilePhotoUrl:
+    employee.profile_photo_url || employee.profilePhotoUrl || "",
 });
 
 const normalizeTeam = (team = {}) => ({
@@ -112,7 +113,7 @@ const normalizeTeam = (team = {}) => ({
     team.members_count ??
     team.total_members ??
     (Array.isArray(team.members) ? team.members.length : 0),
-    
+
   teamLeadName:
     team.teamLeadName ||
     team.team_lead_name ||
@@ -121,6 +122,10 @@ const normalizeTeam = (team = {}) => ({
     team.team_lead_details?.full_name ||
     team.team_lead_details?.fullName ||
     "",
+
+  // Backend returns this as `user_context`.
+  // Keep both camelCase and original response available.
+  userContext: team.userContext || team.user_context || null,
 
   status:
     team.status === "Inactive" ||
@@ -139,13 +144,21 @@ const normalizeTeam = (team = {}) => ({
 const normalizeTask = (task = {}) => ({
   ...task,
   id: task.id ?? task.task_id ?? task.taskId ?? null,
+
   teamId:
     task.teamId ??
     task.team_id ??
     (typeof task.team === "object" ? task.team.id : task.team) ??
     null,
+
   teamName: task.teamName || task.team_name || task.team?.name || "",
-  assignedTo: task.assignedTo ?? task.assigned_to ?? task.assignee?.id ?? null,
+
+  assignedTo:
+    task.assignedTo ??
+    task.assigned_to ??
+    task.assignee?.id ??
+    null,
+
   assignedToName:
     task.assignedToName ||
     task.assigned_to_name ||
@@ -154,9 +167,13 @@ const normalizeTask = (task = {}) => ({
     task.assigned_to_details?.full_name ||
     task.assigned_to_details?.fullName ||
     "",
+
   dueDate: task.dueDate || task.due_date || "",
+
   priority: task.priority || "Medium",
+
   status: task.status || "To Do",
+
   isActive: task.isActive ?? task.is_active ?? true,
 });
 
@@ -181,6 +198,7 @@ export const TeamsTasksProvider = ({ children }) => {
     try {
       const response = await getEmployees();
       const payload = response?.data ?? response;
+
       const rawEmployees = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.results)
@@ -189,13 +207,17 @@ export const TeamsTasksProvider = ({ children }) => {
             ? payload.data
             : [];
 
-      setEmployees(rawEmployees.map(normalizeEmployee));
-      return rawEmployees.map(normalizeEmployee);
+      const normalizedEmployees = rawEmployees.map(normalizeEmployee);
+
+      setEmployees(normalizedEmployees);
+
+      return normalizedEmployees;
     } catch (err) {
       console.error("Failed to fetch employees:", err);
       throw err;
     }
   }, []);
+
   /*
    * ==========================================
    * TEAMS
@@ -234,9 +256,10 @@ export const TeamsTasksProvider = ({ children }) => {
 
   const fetchTeamMembers = useCallback(async (id) => {
     const response = await teamAPI.getTeamMembers(id);
+
     const data = getResponseData(response);
-    const normalized = Array.isArray(data) ? data.map(normalizeEmployee) : [];
-    return normalized;
+
+    return Array.isArray(data) ? data.map(normalizeEmployee) : [];
   }, []);
 
   /*
@@ -297,7 +320,11 @@ export const TeamsTasksProvider = ({ children }) => {
       setError(null);
 
       try {
-        await Promise.all([fetchEmployees(), fetchTeams(), fetchTasks()]);
+        await Promise.all([
+          fetchEmployees(),
+          fetchTeams(),
+          fetchTasks(),
+        ]);
       } catch (err) {
         if (mounted) {
           setError(err);
@@ -315,6 +342,51 @@ export const TeamsTasksProvider = ({ children }) => {
       mounted = false;
     };
   }, [fetchEmployees, fetchTeams, fetchTasks]);
+
+  /*
+   * ==========================================
+   * WORK MANAGEMENT ACCESS
+   * ==========================================
+   *
+   * Backend already returns user_context for each
+   * team. We use that context instead of relying
+   * only on the user's generic RBAC permissions.
+   */
+
+  const workManagementAccess = useMemo(() => {
+    const contexts = teams
+      .map((team) => team.userContext || team.user_context)
+      .filter(Boolean);
+
+    const isAdminOrHr = contexts.some(
+      (context) => context.is_admin_or_hr === true,
+    );
+
+    const isMember = contexts.some(
+      (context) => context.is_member === true,
+    );
+
+    const isLead = contexts.some(
+      (context) => context.is_lead === true,
+    );
+
+    const canCreateTask = contexts.some(
+      (context) => context.can_create_task === true,
+    );
+
+    const canAssignToOthers = contexts.some(
+      (context) => context.can_assign_to_others === true,
+    );
+
+    return {
+      hasAccess: isAdminOrHr || isMember || isLead,
+      isAdminOrHr,
+      isMember,
+      isLead,
+      canCreateTask,
+      canAssignToOthers,
+    };
+  }, [teams]);
 
   /*
    * ==========================================
@@ -434,6 +506,8 @@ export const TeamsTasksProvider = ({ children }) => {
       tasksLoading,
       error,
 
+      workManagementAccess,
+
       fetchEmployees,
       fetchTeams,
       fetchTeam,
@@ -460,6 +534,7 @@ export const TeamsTasksProvider = ({ children }) => {
       teamsLoading,
       tasksLoading,
       error,
+      workManagementAccess,
       fetchEmployees,
       fetchTeams,
       fetchTeam,

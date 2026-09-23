@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import "../../styles/global.css";
 import darkLogo from "../../assets/dark_logo-removebg.png";
 import { getCurrentUser } from "../../services/api/authAPI";
+import { useTeamsTasks } from "../../context/TeamsTasksContext";
 
 /* ==========================================================================
    Icons
@@ -66,6 +67,7 @@ const EmployeesIcon = () => (
     <path d="M13 12.2c2.4.2 4 2 4 4.8" />
   </svg>
 );
+
 const TeamsIcon = () => (
   <svg {...iconProps}>
     <circle cx="7" cy="7" r="2.5" />
@@ -73,7 +75,19 @@ const TeamsIcon = () => (
     <path d="M2.5 16.5c0-3 2-5 4.5-5s4.5 2 4.5 5" />
     <path d="M12 13c2.2.2 3.8 1.4 4.2 3.5" />
   </svg>
-);const TasksIcon = () => (
+);
+
+/* Work Management icon */
+const WorkManagementIcon = () => (
+  <svg {...iconProps}>
+    <rect x="2.5" y="5.5" width="15" height="11" rx="2" />
+    <path d="M7 5.5V4.2A1.7 1.7 0 0 1 8.7 2.5h2.6A1.7 1.7 0 0 1 13 4.2v1.3" />
+    <path d="M2.5 9h15" />
+    <path d="M8 11.5h4" />
+  </svg>
+);
+
+const TasksIcon = () => (
   <svg {...iconProps}>
     <rect x="3" y="3" width="14" height="14" rx="2" />
     <path d="M6.5 7.5h7" />
@@ -128,6 +142,7 @@ const ChevronIcon = () => (
     <path d="M10 3.5L5.5 8L10 12.5" />
   </svg>
 );
+
 const ProfileIcon = () => (
   <svg
     width="18"
@@ -211,13 +226,21 @@ const NAV_ITEMS = [
     permission: "view_user",
   },
   {
+    id: "work-management",
     label: "Work Management",
     path: "/work-management",
-    icon: TeamsIcon,
-    permission: "view_team",
+    icon: WorkManagementIcon,
     children: [
-      { label: "Teams", path: "/teams", icon: TeamsIcon },
-      { label: "Tasks", path: "/tasks", icon: TasksIcon },
+      {
+        label: "Teams",
+        path: "/teams",
+        icon: TeamsIcon,
+      },
+      {
+        label: "Tasks",
+        path: "/tasks",
+        icon: TasksIcon,
+      },
     ],
   },
   {
@@ -270,10 +293,12 @@ export default function Sidebar({
   defaultCollapsed = true,
 }) {
   const navigate = useNavigate();
+
+  const { workManagementAccess, loading: teamsLoading } = useTeamsTasks();
+
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  // Read current logged-in user profile & permissions from state & localStorage
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "{}");
@@ -286,15 +311,19 @@ export default function Sidebar({
     const syncUser = async () => {
       try {
         const local = JSON.parse(localStorage.getItem("user") || "{}");
+
         setUser(local);
+
         const res = await getCurrentUser();
+
         if (res?.user) {
           const merged = { ...local, ...res.user };
+
           setUser(merged);
           localStorage.setItem("user", JSON.stringify(merged));
         }
       } catch {
-        // fallback
+        // Fallback to localStorage user.
       }
     };
 
@@ -302,6 +331,7 @@ export default function Sidebar({
 
     window.addEventListener("ignite:user-updated", syncUser);
     window.addEventListener("storage", syncUser);
+
     return () => {
       window.removeEventListener("ignite:user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
@@ -309,7 +339,11 @@ export default function Sidebar({
   }, []);
 
   const displayName =
-    user.name || user.full_name || user.username || userName || "Guest User";
+    user.name ||
+    user.full_name ||
+    user.username ||
+    userName ||
+    "Guest User";
 
   const displayRole = user.role || userRole || "Member";
 
@@ -327,24 +361,42 @@ export default function Sidebar({
     ? user.permissions
     : [];
 
-  // Dynamically filter nav items based on user role and permissions
+  /*
+   * Work Management is controlled by backend team membership context.
+   *
+   * While teams are loading, keep the item hidden temporarily for
+   * regular users to avoid showing it before access is known.
+   * Admin/Owner users still see it immediately.
+   */
+  const hasWorkManagementAccess =
+    isAdminOrOwner ||
+    (!teamsLoading && workManagementAccess?.hasAccess === true);
+
   const filteredNavItems = NAV_ITEMS.filter((item) => {
-    // 1. Admin/Owner or wildcard has full access
+    /*
+     * Work Management uses team membership/context instead of
+     * the generic `view_team` permission.
+     */
+    if (item.id === "work-management") {
+      return hasWorkManagementAccess;
+    }
+
+    // Admin/Owner or wildcard has full access.
     if (isAdminOrOwner || userPermissions.includes("*")) {
       return true;
     }
 
-    // 2. Admin-only modules are strictly hidden from regular members/employees
+    // Admin-only modules are strictly hidden from regular users.
     if (item.adminOnly) {
       return false;
     }
 
-    // 3. In-built employee features
+    // Built-in employee features.
     if (item.isPublic || item.isEmployeeDefault) {
       return true;
     }
 
-    // 4. Explicit permissions granted via Designation / Role / Overrides
+    // Explicit permissions granted via Designation / Role / Overrides.
     if (item.permission) {
       const p = item.permission;
 
@@ -355,18 +407,27 @@ export default function Sidebar({
         userPermissions.includes(`designation.${p}`) ||
         userPermissions.includes(`attendance.${p}`) ||
         userPermissions.includes(`leave.${p}`) ||
-        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view`) ||
-        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_all`) ||
-        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_department`) ||
-        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_team`) ||
-        userPermissions.includes(`${item.label?.toLowerCase() || ""}.view_own`) ||
-        (p === "view_user" && (
-          userPermissions.includes("employees.view") ||
-          userPermissions.includes("employees.view_all") ||
-          userPermissions.includes("employees.view_department") ||
-          userPermissions.includes("employees.view_team") ||
-          userPermissions.includes("employees.view_own")
-        ))
+        userPermissions.includes(
+          `${item.label?.toLowerCase() || ""}.view`,
+        ) ||
+        userPermissions.includes(
+          `${item.label?.toLowerCase() || ""}.view_all`,
+        ) ||
+        userPermissions.includes(
+          `${item.label?.toLowerCase() || ""}.view_department`,
+        ) ||
+        userPermissions.includes(
+          `${item.label?.toLowerCase() || ""}.view_team`,
+        ) ||
+        userPermissions.includes(
+          `${item.label?.toLowerCase() || ""}.view_own`,
+        ) ||
+        (p === "view_user" &&
+          (userPermissions.includes("employees.view") ||
+            userPermissions.includes("employees.view_all") ||
+            userPermissions.includes("employees.view_department") ||
+            userPermissions.includes("employees.view_team") ||
+            userPermissions.includes("employees.view_own")))
       );
     }
 
@@ -398,7 +459,11 @@ export default function Sidebar({
       {/* Header */}
       <div className="sidebar__header">
         <div className="sidebar__brand">
-          <img src={darkLogo} alt="Ignite" className="sidebar__logo" />
+          <img
+            src={darkLogo}
+            alt="Ignite"
+            className="sidebar__logo"
+          />
         </div>
 
         <button
@@ -408,7 +473,9 @@ export default function Sidebar({
             setCollapsed((prev) => !prev);
             setProfileOpen(false);
           }}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            collapsed ? "Expand sidebar" : "Collapse sidebar"
+          }
           aria-expanded={!collapsed}
         >
           <span className="sidebar__toggle-icon">
@@ -419,64 +486,90 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="sidebar__nav">
-        {filteredNavItems.map(({ label, path, icon: Icon, children }) => {
-          const isGroup = Array.isArray(children) && children.length > 0;
+        {filteredNavItems.map(
+          ({ label, path, icon: Icon, children }) => {
+            const isGroup =
+              Array.isArray(children) && children.length > 0;
 
-          if (isGroup) {
-            return (
-              <div key={path} className="sidebar__nav-group">
-                <NavLink
-                  to={path}
-                  className={({ isActive }) =>
-                    `sidebar__nav-item${isActive ? " is-active" : ""}`
-                  }
-                  title={collapsed ? label : undefined}
+            if (isGroup) {
+              return (
+                <div
+                  key={path}
+                  className="sidebar__nav-group"
                 >
-                  <span className="sidebar__nav-icon">
-                    <Icon />
-                  </span>
-                  <span className="sidebar__nav-label">{label}</span>
-                </NavLink>
+                  <NavLink
+                    to={path}
+                    className={({ isActive }) =>
+                      `sidebar__nav-item${
+                        isActive ? " is-active" : ""
+                      }`
+                    }
+                    title={collapsed ? label : undefined}
+                  >
+                    <span className="sidebar__nav-icon">
+                      <Icon />
+                    </span>
 
-                {!collapsed && (
-                  <div className="sidebar__nav-children">
-                    {children.map(({ label: childLabel, path: childPath, icon: ChildIcon }) => (
-                      <NavLink
-                        key={childPath}
-                        to={childPath}
-                        className={({ isActive }) =>
-                          `sidebar__nav-item sidebar__nav-item--child${isActive ? " is-active" : ""}`
-                        }
-                      >
-                        <span className="sidebar__nav-icon">
-                          <ChildIcon />
-                        </span>
-                        <span className="sidebar__nav-label">{childLabel}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    <span className="sidebar__nav-label">
+                      {label}
+                    </span>
+                  </NavLink>
+
+                  {!collapsed && (
+                    <div className="sidebar__nav-children">
+                      {children.map(
+                        ({
+                          label: childLabel,
+                          path: childPath,
+                          icon: ChildIcon,
+                        }) => (
+                          <NavLink
+                            key={childPath}
+                            to={childPath}
+                            className={({ isActive }) =>
+                              `sidebar__nav-item sidebar__nav-item--child${
+                                isActive ? " is-active" : ""
+                              }`
+                            }
+                          >
+                            <span className="sidebar__nav-icon">
+                              <ChildIcon />
+                            </span>
+
+                            <span className="sidebar__nav-label">
+                              {childLabel}
+                            </span>
+                          </NavLink>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <NavLink
+                key={path}
+                to={path}
+                className={({ isActive }) =>
+                  `sidebar__nav-item${
+                    isActive ? " is-active" : ""
+                  }`
+                }
+                title={collapsed ? label : undefined}
+              >
+                <span className="sidebar__nav-icon">
+                  <Icon />
+                </span>
+
+                <span className="sidebar__nav-label">
+                  {label}
+                </span>
+              </NavLink>
             );
-          }
-
-          return (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) =>
-                `sidebar__nav-item${isActive ? " is-active" : ""}`
-              }
-              title={collapsed ? label : undefined}
-            >
-              <span className="sidebar__nav-icon">
-                <Icon />
-              </span>
-
-              <span className="sidebar__nav-label">{label}</span>
-            </NavLink>
-          );
-        })}
+          },
+        )}
       </nav>
 
       {/* Profile Footer */}
@@ -510,17 +603,24 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`sidebar__profile${profileOpen ? " is-open" : ""}`}
-
+            className={`sidebar__profile${
+              profileOpen ? " is-open" : ""
+            }`}
             aria-expanded={profileOpen}
             aria-label="Open profile menu"
           >
-            <span className="sidebar__profile-avatar">{initials || "GU"}</span>
+            <span className="sidebar__profile-avatar">
+              {initials || "GU"}
+            </span>
 
             <span className="sidebar__profile-info">
-              <span className="sidebar__profile-name">{displayName}</span>
+              <span className="sidebar__profile-name">
+                {displayName}
+              </span>
 
-              <span className="sidebar__profile-role">{displayRole}</span>
+              <span className="sidebar__profile-role">
+                {displayRole}
+              </span>
             </span>
 
             <span className="sidebar__profile-more">

@@ -174,27 +174,28 @@ const Tasks = () => {
       </section>
 
       <TaskTable
-        tasks={visibleTasks}
-        onView={(task) => navigate(`/tasks/${task.id}`)}
-        onEdit={(task) => {
-          if (canEdit(task)) {
-            setSelectedTask(task);
-            setDrawerOpen(true);
-          } else {
-            notify.error("You can only edit your own tasks or tasks assigned to your team.");
-          }
-        }}
-        onDelete={(taskId) => {
-          const task = tasks.find((item) => item.id === taskId);
-          if (task && canEdit(task)) {
-            setDeleteTarget(task);
-          } else {
-            notify.error("You can only delete tasks you can manage.");
-          }
-        }}
-        canEdit={canEdit}
-        canDelete={canEdit}
-      />
+  tasks={visibleTasks}
+  onView={(task) => navigate(`/tasks/${task.id}`)}
+  onStatusChange={updateStatus}
+  onEdit={(task) => {
+    if (canEdit(task)) {
+      setSelectedTask(task);
+      setDrawerOpen(true);
+    } else {
+      notify.error("You can only edit your own tasks or tasks assigned to your team.");
+    }
+  }}
+  onDelete={(taskId) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (task && canEdit(task)) {
+      setDeleteTarget(task);
+    } else {
+      notify.error("You can only delete tasks you can manage.");
+    }
+  }}
+  canEdit={canEdit}
+  canDelete={canEdit}
+/>
 
       <Drawer
         open={drawerOpen}
