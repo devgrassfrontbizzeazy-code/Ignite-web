@@ -5,12 +5,12 @@ import TeamRowActions from "../TeamRowActions/TeamRowActions";
 import "./TeamTable.css";
 
 const TeamTable = ({
-  teams,
+  teams = [],
   onView,
   onEdit,
   onDelete,
-  canEdit = Boolean(onEdit),
-  canDelete = Boolean(onDelete),
+  canEdit = () => false,
+  canDelete = () => false,
 }) => {
   return (
     <div className="team-table-card">
@@ -71,8 +71,10 @@ const TeamTable = ({
                         </div>
 
                         <div className="team-table__member-summary">
-                          {team.memberNames?.slice(0, 2).join(", ") ||
-                            "No members"}
+                          {team.memberNames
+                            ?.slice(0, 2)
+                            .join(", ") || "No members"}
+
                           {team.memberNames?.length > 2
                             ? ` +${
                                 team.memberNames.length - 2
@@ -83,17 +85,27 @@ const TeamTable = ({
                     </div>
                   </td>
 
-                  <td>{team.teamLeadName || team.team_lead_name || "—"}</td>
+                  <td>
+                    {team.teamLeadName ||
+                      team.team_lead_name ||
+                      "—"}
+                  </td>
 
                   <td>
                     <span className="team-table__member-count">
-                      {team.memberCount ?? team.memberIds?.length ?? 0}
+                      {team.memberCount ??
+                        team.memberIds?.length ??
+                        0}
                     </span>
                   </td>
 
-                  <td>{team.activeTaskCount ?? 0}</td>
+                  <td>
+                    {team.activeTaskCount ?? 0}
+                  </td>
 
-                  <td>{team.completedTaskCount ?? 0}</td>
+                  <td>
+                    {team.completedTaskCount ?? 0}
+                  </td>
 
                   <td>
                     <span
@@ -111,11 +123,14 @@ const TeamTable = ({
                     {team.createdAt
                       ? new Date(
                           team.createdAt
-                        ).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
+                        ).toLocaleDateString(
+                          "en-IN",
+                          {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )
                       : "—"}
                   </td>
 

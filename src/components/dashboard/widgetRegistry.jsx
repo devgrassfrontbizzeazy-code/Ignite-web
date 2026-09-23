@@ -1,57 +1,21 @@
-import DashboardWidget from "./DashboardWidget/DashboardWidget";
-
-const TestWidget = ({ data }) => {
-  return (
-    <DashboardWidget title={data?.title || "Dashboard Widget"}>
-      <p
-        style={{
-          margin: 0,
-          color: "var(--color-text-secondary, #64748b)",
-          fontSize: "13px",
-        }}
-      >
-        This widget is rendered dynamically.
-      </p>
-    </DashboardWidget>
-  );
-};
-
-const AnotherTestWidget = () => {
-  return (
-    <DashboardWidget title="Another Widget">
-      <p
-        style={{
-          margin: 0,
-          color: "var(--color-text-secondary, #64748b)",
-          fontSize: "13px",
-        }}
-      >
-        Widget system is working.
-      </p>
-    </DashboardWidget>
-  );
-};
+import TodayOverview from "./widgets/TodayOverview/TodayOverview";
+import MyTasks from "./widgets/MyTasks/MyTasks";
 
 export const dashboardWidgets = [
   {
-    key: "test",
+    key: "today-overview",
     enabled: true,
-    component: TestWidget,
-    data: {
-      title: "Dynamic Dashboard",
-    },
+    component: TodayOverview,
     config: {
-      width: 6,
+      width: 8,
     },
   },
-
   {
-    key: "another",
+    key: "my-tasks",
     enabled: true,
-    component: AnotherTestWidget,
-    data: {},
+    component: MyTasks,
     config: {
-      width: 6,
+      width: 12,
     },
   },
 ];

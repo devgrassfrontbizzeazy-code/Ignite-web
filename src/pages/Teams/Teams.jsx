@@ -39,6 +39,90 @@ const Teams = () => {
 
   /*
    * ==========================================
+   * CURRENT USER
+   * ==========================================
+   */
+
+  const currentUser = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
+    }
+  }, []);
+
+  const rawRole = String(
+    currentUser?.role ||
+      currentUser?.user_type ||
+      currentUser?.userType ||
+      ""
+  ).toUpperCase();
+
+  const isAdminOrOwner =
+    currentUser?.is_superuser === true ||
+    ["OWNER", "ADMIN", "ADMINISTRATOR", "HR"].includes(rawRole);
+
+  /*
+   * ==========================================
+   * TEAM PERMISSIONS
+   * ==========================================
+   *
+   * Create Team is an organization-level action.
+   * Only Admin / Owner / HR should see it.
+   *
+   * Existing team permissions come from the
+   * backend user_context.
+   */
+
+  const canCreateTeam = isAdminOrOwner;
+
+  const canEditTeam = (team) => {
+    if (!team) return false;
+
+    if (isAdminOrOwner) {
+      return true;
+    }
+
+    const context =
+      team.userContext ||
+      team.user_context ||
+      null;
+
+    return context?.can_edit_team === true;
+  };
+
+  const canManageMembers = (team) => {
+    if (!team) return false;
+
+    if (isAdminOrOwner) {
+      return true;
+    }
+
+    const context =
+      team.userContext ||
+      team.user_context ||
+      null;
+
+    return context?.can_manage_members === true;
+  };
+
+  const canDeleteTeam = (team) => {
+    if (!team) return false;
+
+    if (isAdminOrOwner) {
+      return true;
+    }
+
+    const context =
+      team.userContext ||
+      team.user_context ||
+      null;
+
+    return context?.can_delete_team === true;
+  };
+
+  /*
+   * ==========================================
    * FILTER TEAMS
    * ==========================================
    */
@@ -85,14 +169,23 @@ const Teams = () => {
   }, [teams, search, status]);
 
   const teamsWithTaskStats = useMemo(
-    () => visibleTeams.map((team) => {
-      const teamTasks = tasks.filter((task) => String(task.teamId) === String(team.id));
-      return {
-        ...team,
-        activeTaskCount: teamTasks.filter((task) => task.status !== "Completed").length,
-        completedTaskCount: teamTasks.filter((task) => task.status === "Completed").length,
-      };
-    }),
+    () =>
+      visibleTeams.map((team) => {
+        const teamTasks = tasks.filter(
+          (task) =>
+            String(task.teamId) === String(team.id)
+        );
+
+        return {
+          ...team,
+          activeTaskCount: teamTasks.filter(
+            (task) => task.status !== "Completed"
+          ).length,
+          completedTaskCount: teamTasks.filter(
+            (task) => task.status === "Completed"
+          ).length,
+        };
+      }),
     [visibleTeams, tasks]
   );
 
@@ -103,6 +196,13 @@ const Teams = () => {
    */
 
   const handleCreate = () => {
+    if (!canCreateTeam) {
+      notify.error(
+        "Only Admin or HR can create a team."
+      );
+      return;
+    }
+
     setSelectedTeam(null);
     setFormOpen(true);
   };
@@ -114,6 +214,13 @@ const Teams = () => {
    */
 
   const handleEdit = (team) => {
+    if (!canEditTeam(team)) {
+      notify.error(
+        "You do not have permission to edit this team."
+      );
+      return;
+    }
+
     setSelectedTeam(team);
     setFormOpen(true);
   };
@@ -137,22 +244,44 @@ const Teams = () => {
       };
 
       if (selectedTeam) {
+        if (!canEditTeam(selectedTeam)) {
+          notify.error(
+            "You do not have permission to edit this team."
+          );
+          return;
+        }
+
         await updateTeam(selectedTeam.id, data);
 
-        notify.success("Team updated successfully.");
+        notify.success(
+          "Team updated successfully."
+        );
       } else {
+        if (!canCreateTeam) {
+          notify.error(
+            "Only Admin or HR can create a team."
+          );
+          return;
+        }
+
         await createTeam(data);
 
-        notify.success("Team created successfully.");
+        notify.success(
+          "Team created successfully."
+        );
       }
 
       setFormOpen(false);
       setSelectedTeam(null);
     } catch (error) {
-      console.error("Failed to save team:", error);
+      console.error(
+        "Failed to save team:",
+        error
+      );
 
       notify.error(
         error?.response?.data?.detail ||
+          error?.response?.data?.message ||
           "Failed to save team. Please try again."
       );
     } finally {
@@ -166,8 +295,27 @@ const Teams = () => {
    * ==========================================
    */
 
+  const handleDeleteRequest = (team) => {
+    if (!canDeleteTeam(team)) {
+      notify.error(
+        "You do not have permission to delete this team."
+      );
+      return;
+    }
+
+    setDeleteTarget(team);
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+
+    if (!canDeleteTeam(deleteTarget)) {
+      notify.error(
+        "You do not have permission to delete this team."
+      );
+      setDeleteTarget(null);
+      return;
+    }
 
     setDeleting(true);
 
@@ -175,15 +323,22 @@ const Teams = () => {
       await deleteTeam(deleteTarget.id);
 
       notify.success(
-        `Team "${deleteTarget.teamName || deleteTarget.name}" deleted successfully.`
+        `Team "${
+          deleteTarget.teamName ||
+          deleteTarget.name
+        }" deleted successfully.`
       );
 
       setDeleteTarget(null);
     } catch (error) {
-      console.error("Failed to delete team:", error);
+      console.error(
+        "Failed to delete team:",
+        error
+      );
 
       notify.error(
         error?.response?.data?.detail ||
+          error?.response?.data?.message ||
           "Failed to delete team. Please try again."
       );
     } finally {
@@ -199,19 +354,27 @@ const Teams = () => {
 
   return (
     <main className="teams-page">
-      <BackButton label="Back to Work Management" onClick={() => navigate("/work-management")} />
+      <BackButton
+        label="Back to Work Management"
+        onClick={() =>
+          navigate("/work-management")
+        }
+      />
+
       <PageHeader
         eyebrow="Organization"
         title="Teams"
         description="Teams bring employees together across departments to collaborate and manage work."
         action={
-          <Button
-            variant="primary"
-            onClick={handleCreate}
-            disabled={teamsLoading}
-          >
-            + Create Team
-          </Button>
+          canCreateTeam ? (
+            <Button
+              variant="primary"
+              onClick={handleCreate}
+              disabled={teamsLoading}
+            >
+              + Create Team
+            </Button>
+          ) : null
         }
       />
 
@@ -264,7 +427,9 @@ const Teams = () => {
             navigate(`/teams/${team.id}`)
           }
           onEdit={handleEdit}
-          onDelete={setDeleteTarget}
+          onDelete={handleDeleteRequest}
+          canEdit={canEditTeam}
+          canDelete={canDeleteTeam}
         />
       )}
 
