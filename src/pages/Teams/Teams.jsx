@@ -14,6 +14,119 @@ import { useNotification } from "../../context/NotificationContext";
 
 import "./Teams.css";
 
+const getTeamLeadId = (team = {}) => {
+  const lead =
+    team.teamLeadId ??
+    team.team_lead_id ??
+    team.teamLead?.id ??
+    team.team_lead?.id ??
+    team.team_lead ??
+    team.teamLead?.employee_id ??
+    team.team_lead_details?.id ??
+    team.team_lead_details?.employee_id ??
+    "";
+
+  if (lead && typeof lead === "object") {
+    return (
+      lead.id ??
+      lead.employee_id ??
+      lead.employeeId ??
+      lead.pk ??
+      ""
+    );
+  }
+
+  return lead;
+};
+
+const getMemberId = (member) => {
+  if (member && typeof member === "object") {
+    return (
+      member.id ??
+      member.employee_id ??
+      member.employeeId ??
+      member.pk ??
+      null
+    );
+  }
+
+  return member ?? null;
+};
+
+const getTeamMemberIds = (team = {}) => {
+  if (Array.isArray(team.memberIds)) {
+    return team.memberIds
+      .map(getMemberId)
+      .filter(
+        (id) => id !== null && id !== undefined,
+      );
+  }
+
+  if (Array.isArray(team.members)) {
+    return team.members
+      .map(getMemberId)
+      .filter(
+        (id) => id !== null && id !== undefined,
+      );
+  }
+
+  if (Array.isArray(team.employeeIds)) {
+    return team.employeeIds.filter(
+      (id) => id !== null && id !== undefined,
+    );
+  }
+
+  if (Array.isArray(team.members_details)) {
+    return team.members_details
+      .map(getMemberId)
+      .filter(
+        (id) => id !== null && id !== undefined,
+      );
+  }
+
+  return [];
+};
+
+const normalizeTeamForForm = (team) => {
+  if (!team) return null;
+
+  return {
+    id: team.id,
+
+    teamName:
+      team.teamName ||
+      team.team_name ||
+      team.name ||
+      "",
+
+    name:
+      team.name ||
+      team.teamName ||
+      team.team_name ||
+      "",
+
+    description: team.description || "",
+
+    teamLeadId: getTeamLeadId(team),
+
+    memberIds: getTeamMemberIds(team),
+
+    members_details:
+      Array.isArray(team.members_details)
+        ? team.members_details
+        : Array.isArray(team.members)
+          ? team.members
+          : [],
+
+    status:
+      team.status === "Inactive" ||
+      team.status === "inactive" ||
+      team.is_active === false
+        ? "inactive"
+        : "active",
+  };
+};
+
 const Teams = () => {
   const navigate = useNavigate();
   const { notify } = useNotification();
@@ -33,9 +146,11 @@ const Teams = () => {
 
   const [formOpen, setFormOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] =
+    useState(null);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting] =
+    useState(false);
 
   /*
    * ==========================================
@@ -45,7 +160,9 @@ const Teams = () => {
 
   const currentUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("user") || "{}");
+      return JSON.parse(
+        localStorage.getItem("user") || "{}",
+      );
     } catch {
       return {};
     }
@@ -55,23 +172,22 @@ const Teams = () => {
     currentUser?.role ||
       currentUser?.user_type ||
       currentUser?.userType ||
-      ""
+      "",
   ).toUpperCase();
 
   const isAdminOrOwner =
     currentUser?.is_superuser === true ||
-    ["OWNER", "ADMIN", "ADMINISTRATOR", "HR"].includes(rawRole);
+    [
+      "OWNER",
+      "ADMIN",
+      "ADMINISTRATOR",
+      "HR",
+    ].includes(rawRole);
 
   /*
    * ==========================================
    * TEAM PERMISSIONS
    * ==========================================
-   *
-   * Create Team is an organization-level action.
-   * Only Admin / Owner / HR should see it.
-   *
-   * Existing team permissions come from the
-   * backend user_context.
    */
 
   const canCreateTeam = isAdminOrOwner;
@@ -88,7 +204,9 @@ const Teams = () => {
       team.user_context ||
       null;
 
-    return context?.can_edit_team === true;
+    return (
+      context?.can_edit_team === true
+    );
   };
 
   const canManageMembers = (team) => {
@@ -103,7 +221,9 @@ const Teams = () => {
       team.user_context ||
       null;
 
-    return context?.can_manage_members === true;
+    return (
+      context?.can_manage_members === true
+    );
   };
 
   const canDeleteTeam = (team) => {
@@ -118,7 +238,9 @@ const Teams = () => {
       team.user_context ||
       null;
 
-    return context?.can_delete_team === true;
+    return (
+      context?.can_delete_team === true
+    );
   };
 
   /*
@@ -128,9 +250,24 @@ const Teams = () => {
    */
 
   const visibleTeams = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query =
+      search.trim().toLowerCase();
 
     return teams.filter((team) => {
+      const context =
+        team.userContext ||
+        team.user_context ||
+        null;
+
+      const canSeeTeam =
+        isAdminOrOwner ||
+        context?.is_member === true ||
+        context?.is_lead === true;
+
+      if (!canSeeTeam) {
+        return false;
+      }
+
       const teamName =
         team.teamName ||
         team.name ||
@@ -154,7 +291,7 @@ const Teams = () => {
         ].some((value) =>
           String(value)
             .toLowerCase()
-            .includes(query)
+            .includes(query),
         );
 
       const teamStatus =
@@ -164,30 +301,46 @@ const Teams = () => {
         status === "all" ||
         teamStatus === status;
 
-      return matchesSearch && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
     });
-  }, [teams, search, status]);
+  }, [
+    teams,
+    search,
+    status,
+    isAdminOrOwner,
+  ]);
 
-  const teamsWithTaskStats = useMemo(
-    () =>
-      visibleTeams.map((team) => {
-        const teamTasks = tasks.filter(
-          (task) =>
-            String(task.teamId) === String(team.id)
-        );
+  const teamsWithTaskStats =
+    useMemo(
+      () =>
+        visibleTeams.map((team) => {
+          const teamTasks = tasks.filter(
+            (task) =>
+              String(task.teamId) ===
+              String(team.id),
+          );
 
-        return {
-          ...team,
-          activeTaskCount: teamTasks.filter(
-            (task) => task.status !== "Completed"
-          ).length,
-          completedTaskCount: teamTasks.filter(
-            (task) => task.status === "Completed"
-          ).length,
-        };
-      }),
-    [visibleTeams, tasks]
-  );
+          return {
+            ...team,
+            activeTaskCount:
+              teamTasks.filter(
+                (task) =>
+                  task.status !==
+                  "Completed",
+              ).length,
+            completedTaskCount:
+              teamTasks.filter(
+                (task) =>
+                  task.status ===
+                  "Completed",
+              ).length,
+          };
+        }),
+      [visibleTeams, tasks],
+    );
 
   /*
    * ==========================================
@@ -198,7 +351,7 @@ const Teams = () => {
   const handleCreate = () => {
     if (!canCreateTeam) {
       notify.error(
-        "Only Admin or HR can create a team."
+        "Only Admin or HR can create a team.",
       );
       return;
     }
@@ -216,12 +369,29 @@ const Teams = () => {
   const handleEdit = (team) => {
     if (!canEditTeam(team)) {
       notify.error(
-        "You do not have permission to edit this team."
+        "You do not have permission to edit this team.",
       );
       return;
     }
 
-    setSelectedTeam(team);
+    /*
+     * IMPORTANT:
+     * TeamTable gives us the team object from
+     * the API/context. TeamForm expects:
+     *
+     * teamName
+     * description
+     * teamLeadId
+     * memberIds
+     * status
+     *
+     * Normalize it before opening the form.
+     */
+
+    const normalizedTeam =
+      normalizeTeamForForm(team);
+
+    setSelectedTeam(normalizedTeam);
     setFormOpen(true);
   };
 
@@ -236,30 +406,46 @@ const Teams = () => {
 
     try {
       const data = {
-        teamName: formData.teamName,
-        description: formData.description,
-        teamLeadId: formData.teamLeadId,
-        memberIds: formData.memberIds,
-        status: formData.status,
+        teamName:
+          formData.teamName?.trim() || "",
+
+        description:
+          formData.description?.trim() || "",
+
+        teamLeadId:
+          formData.teamLeadId || "",
+
+        memberIds:
+          Array.isArray(formData.memberIds)
+            ? formData.memberIds
+            : [],
+
+        status:
+          formData.status || "active",
       };
 
       if (selectedTeam) {
-        if (!canEditTeam(selectedTeam)) {
+        if (
+          !canEditTeam(selectedTeam)
+        ) {
           notify.error(
-            "You do not have permission to edit this team."
+            "You do not have permission to edit this team.",
           );
           return;
         }
 
-        await updateTeam(selectedTeam.id, data);
+        await updateTeam(
+          selectedTeam.id,
+          data,
+        );
 
         notify.success(
-          "Team updated successfully."
+          "Team updated successfully.",
         );
       } else {
         if (!canCreateTeam) {
           notify.error(
-            "Only Admin or HR can create a team."
+            "Only Admin or HR can create a team.",
           );
           return;
         }
@@ -267,7 +453,7 @@ const Teams = () => {
         await createTeam(data);
 
         notify.success(
-          "Team created successfully."
+          "Team created successfully.",
         );
       }
 
@@ -276,13 +462,13 @@ const Teams = () => {
     } catch (error) {
       console.error(
         "Failed to save team:",
-        error
+        error,
       );
 
       notify.error(
         error?.response?.data?.detail ||
           error?.response?.data?.message ||
-          "Failed to save team. Please try again."
+          "Failed to save team. Please try again.",
       );
     } finally {
       setSaving(false);
@@ -298,7 +484,7 @@ const Teams = () => {
   const handleDeleteRequest = (team) => {
     if (!canDeleteTeam(team)) {
       notify.error(
-        "You do not have permission to delete this team."
+        "You do not have permission to delete this team.",
       );
       return;
     }
@@ -309,9 +495,11 @@ const Teams = () => {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
 
-    if (!canDeleteTeam(deleteTarget)) {
+    if (
+      !canDeleteTeam(deleteTarget)
+    ) {
       notify.error(
-        "You do not have permission to delete this team."
+        "You do not have permission to delete this team.",
       );
       setDeleteTarget(null);
       return;
@@ -320,26 +508,28 @@ const Teams = () => {
     setDeleting(true);
 
     try {
-      await deleteTeam(deleteTarget.id);
+      await deleteTeam(
+        deleteTarget.id,
+      );
 
       notify.success(
         `Team "${
           deleteTarget.teamName ||
           deleteTarget.name
-        }" deleted successfully.`
+        }" deleted successfully.`,
       );
 
       setDeleteTarget(null);
     } catch (error) {
       console.error(
         "Failed to delete team:",
-        error
+        error,
       );
 
       notify.error(
         error?.response?.data?.detail ||
           error?.response?.data?.message ||
-          "Failed to delete team. Please try again."
+          "Failed to delete team. Please try again.",
       );
     } finally {
       setDeleting(false);
@@ -382,7 +572,9 @@ const Teams = () => {
         <input
           value={search}
           onChange={(event) =>
-            setSearch(event.target.value)
+            setSearch(
+              event.target.value,
+            )
           }
           placeholder="Search teams or team leads..."
           disabled={teamsLoading}
@@ -391,7 +583,9 @@ const Teams = () => {
         <select
           value={status}
           onChange={(event) =>
-            setStatus(event.target.value)
+            setStatus(
+              event.target.value,
+            )
           }
           disabled={teamsLoading}
         >
@@ -424,10 +618,14 @@ const Teams = () => {
         <TeamTable
           teams={teamsWithTaskStats}
           onView={(team) =>
-            navigate(`/teams/${team.id}`)
+            navigate(
+              `/teams/${team.id}`,
+            )
           }
           onEdit={handleEdit}
-          onDelete={handleDeleteRequest}
+          onDelete={
+            handleDeleteRequest
+          }
           canEdit={canEditTeam}
           canDelete={canDeleteTeam}
         />
@@ -450,6 +648,17 @@ const Teams = () => {
         size="medium"
       >
         <TeamForm
+          /*
+           * Force a fresh TeamForm when switching
+           * between create/edit or different teams.
+           * This is important because TeamForm keeps
+           * its own internal formData state.
+           */
+          key={
+            selectedTeam
+              ? `edit-team-${selectedTeam.id}`
+              : "create-team"
+          }
           initialData={
             selectedTeam || {
               teamName: "",
@@ -484,9 +693,10 @@ const Teams = () => {
           deleteTarget?.teamName ||
           deleteTarget?.name
         }
-        confirmText={
-          deleting ? "Deleting..." : "Delete"
-        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        loading={deleting}
       />
     </main>
   );

@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { CheckCircle2, ListTodo, Plus, Users } from "lucide-react";
+import {
+  CheckCircle2,
+  ListTodo,
+  Plus,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 import BackButton from "../../components/common/BackButton/BackButton";
 import Button from "../../components/common/Button/Button";
@@ -11,13 +17,20 @@ import StatCard from "../../components/common/StatCard/StatCard";
 import TaskDetails from "../../components/tasks/TaskDetails/TaskDetails";
 import TaskForm from "../../components/tasks/TaskForm/TaskForm";
 import TaskTable from "../../components/tasks/TaskTable/TaskTable";
+import TeamMemberManager from "../../components/teams/TeamMemberManager/TeamMemberManager";
 
 import { useTeamsTasks } from "../../context/TeamsTasksContext";
 import { useNotification } from "../../context/NotificationContext";
 
 import "./TeamDetails.css";
 
-const getEmployeeName = (employee) =>
+/*
+ * =========================
+ * HELPERS
+ * =========================
+ */
+
+const getEmployeeName = (employee = {}) =>
   [
     employee?.first_name || employee?.firstName,
     employee?.middle_name || employee?.middleName,
@@ -30,7 +43,72 @@ const getEmployeeName = (employee) =>
   employee?.email ||
   "Employee";
 
+const getEmployeeId = (employee = {}) => {
+  if (!employee) return null;
 
+  if (
+    typeof employee === "number" ||
+    typeof employee === "string"
+  ) {
+    return employee;
+  }
+
+  return (
+    employee?.id ??
+    employee?.employee_id ??
+    employee?.employeeId ??
+    employee?.pk ??
+    null
+  );
+};
+
+const getTeamLeadId = (team = {}) => {
+  if (!team) return "";
+
+  const candidates = [
+    team.teamLeadId,
+    team.team_lead_id,
+    team.teamLead?.id,
+    team.teamLead?.employee_id,
+    team.team_lead?.id,
+    team.team_lead?.employee_id,
+    team.team_lead,
+    team.team_lead_details?.id,
+    team.team_lead_details?.employee_id,
+  ];
+
+  const value = candidates.find(
+    (item) =>
+      item !== null &&
+      item !== undefined &&
+      item !== "",
+  );
+
+  if (typeof value === "object") {
+    return (
+      value?.id ??
+      value?.employee_id ??
+      value?.employeeId ??
+      value?.pk ??
+      ""
+    );
+  }
+
+  return value;
+};
+
+const normalizeTeamStatus = (team = {}) =>
+  team.status === "Inactive" ||
+  team.status === "inactive" ||
+  team.is_active === false
+    ? "inactive"
+    : "active";
+
+/*
+ * =========================
+ * COMPONENT
+ * =========================
+ */
 
 const TeamDetails = () => {
   const { id } = useParams();
@@ -39,6 +117,7 @@ const TeamDetails = () => {
 
   const {
     teams,
+    employees,
     fetchTeam,
     fetchTeamMembers,
     fetchTeamTasks,
@@ -54,8 +133,12 @@ const TeamDetails = () => {
   const [error, setError] = useState("");
 
   const [tab, setTab] = useState("overview");
-  const [taskFormOpen, setTaskFormOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskFormOpen, setTaskFormOpen] =
+    useState(false);
+  const [memberManagerOpen, setMemberManagerOpen] =
+    useState(false);
+  const [selectedTask, setSelectedTask] =
+    useState(null);
 
   /*
    * =========================
@@ -71,7 +154,11 @@ const TeamDetails = () => {
       setError("");
 
       try {
-        const [teamData, membersData, tasksData] = await Promise.all([
+        const [
+          teamData,
+          membersData,
+          tasksData,
+        ] = await Promise.all([
           fetchTeam(id),
           fetchTeamMembers(id),
           fetchTeamTasks(id),
@@ -80,14 +167,30 @@ const TeamDetails = () => {
         if (!mounted) return;
 
         setTeam(teamData);
-        setMembers(Array.isArray(membersData) ? membersData : []);
-        setTeamTasks(Array.isArray(tasksData) ? tasksData : []);
+
+        setMembers(
+          Array.isArray(membersData)
+            ? membersData
+            : [],
+        );
+
+        setTeamTasks(
+          Array.isArray(tasksData)
+            ? tasksData
+            : [],
+        );
       } catch (err) {
-        console.error("Failed to load team details:", err);
+        console.error(
+          "Failed to load team details:",
+          err,
+        );
 
         if (!mounted) return;
 
-        setError(err?.response?.data?.detail || "Failed to load team details.");
+        setError(
+          err?.response?.data?.detail ||
+            "Failed to load team details.",
+        );
       } finally {
         if (mounted) {
           setLoading(false);
@@ -102,7 +205,12 @@ const TeamDetails = () => {
     return () => {
       mounted = false;
     };
-  }, [id, fetchTeam, fetchTeamMembers, fetchTeamTasks]);
+  }, [
+    id,
+    fetchTeam,
+    fetchTeamMembers,
+    fetchTeamTasks,
+  ]);
 
   /*
    * =========================
@@ -111,23 +219,30 @@ const TeamDetails = () => {
    */
 
   const contextTeam = useMemo(
-    () => teams.find((item) => String(item.id) === String(id)),
+    () =>
+      teams.find(
+        (item) =>
+          String(item.id) ===
+          String(id),
+      ),
     [teams, id],
   );
 
-  const displayedTeam = team || contextTeam;
+  const displayedTeam =
+    team || contextTeam;
 
   /*
    * =========================
    * CURRENT USER
    * =========================
-   *
-   * Backend permissions remain authoritative for task assignment.
    */
 
   const currentUser = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("user") || "null");
+      return JSON.parse(
+        localStorage.getItem("user") ||
+          "null",
+      );
     } catch {
       return null;
     }
@@ -139,33 +254,61 @@ const TeamDetails = () => {
     currentUser?.employee?.id ||
     currentUser?.id;
 
-  const teamLeadId =
-    displayedTeam?.teamLeadId ??
-    displayedTeam?.team_lead ??
-    displayedTeam?.teamLead?.id;
+  /*
+   * =========================
+   * TEAM ROLE
+   * =========================
+   */
+
+  const teamLeadId = getTeamLeadId(
+    displayedTeam || {},
+  );
 
   const isLead =
-    currentEmployeeId &&
-    teamLeadId &&
-    String(currentEmployeeId) === String(teamLeadId);
+    Boolean(currentEmployeeId) &&
+    Boolean(teamLeadId) &&
+    String(currentEmployeeId) ===
+      String(teamLeadId);
 
   const isMember = members.some(
-    (member) => String(member.id) === String(currentEmployeeId),
+    (member) =>
+      String(getEmployeeId(member)) ===
+      String(currentEmployeeId),
   );
 
   /*
-   * NOTE:
-   * This is only UI behavior.
-   * Backend permissions must remain the source of truth.
+   * =========================
+   * ADMIN
+   * =========================
    */
 
   const rawRole = String(
-    currentUser?.role || currentUser?.user_type || "",
+    currentUser?.role ||
+      currentUser?.user_type ||
+      "",
   ).toUpperCase();
+
   const isAdmin =
     currentUser?.is_superuser === true ||
-    ["OWNER", "ADMIN", "ADMINISTRATOR"].includes(rawRole);
-  const canAssign = Boolean(isAdmin || isLead);
+    [
+      "OWNER",
+      "ADMIN",
+      "ADMINISTRATOR",
+    ].includes(rawRole);
+
+  /*
+   * =========================
+   * TASK PERMISSIONS
+   * =========================
+   */
+
+  const canAssign = Boolean(
+    isAdmin || isLead,
+  );
+
+  const canEditTeam = Boolean(
+    isAdmin || isLead,
+  );
 
   /*
    * =========================
@@ -173,11 +316,16 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const activeTasks = teamTasks.filter((task) => task.status !== "Completed");
-
-  const completedTasks = teamTasks.filter(
-    (task) => task.status === "Completed",
+  const activeTasks = teamTasks.filter(
+    (task) =>
+      task.status !== "Completed",
   );
+
+  const completedTasks =
+    teamTasks.filter(
+      (task) =>
+        task.status === "Completed",
+    );
 
   /*
    * =========================
@@ -185,25 +333,46 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const handleTaskSubmit = async (data) => {
+  const handleTaskSubmit = async (
+    data,
+  ) => {
+    if (!displayedTeam) return;
+
     try {
       await createTask({
         ...data,
         teamId: displayedTeam.id,
-        assignedTo: canAssign ? data.assignedTo : currentEmployeeId,
+        assignedTo: canAssign
+          ? data.assignedTo
+          : currentEmployeeId,
       });
 
-      const refreshedTasks = await fetchTeamTasks(displayedTeam.id);
+      const refreshedTasks =
+        await fetchTeamTasks(
+          displayedTeam.id,
+        );
 
-      setTeamTasks(Array.isArray(refreshedTasks) ? refreshedTasks : []);
+      setTeamTasks(
+        Array.isArray(refreshedTasks)
+          ? refreshedTasks
+          : [],
+      );
 
       setTaskFormOpen(false);
 
-      notify.success("Task created successfully.");
+      notify.success(
+        "Task created successfully.",
+      );
     } catch (err) {
-      console.error("Failed to create task:", err);
+      console.error(
+        "Failed to create task:",
+        err,
+      );
 
-      notify.error(err?.response?.data?.detail || "Failed to create task.");
+      notify.error(
+        err?.response?.data?.detail ||
+          "Failed to create task.",
+      );
     }
   };
 
@@ -213,9 +382,18 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const handleStatusChange = async (task, status) => {
+  const handleStatusChange = async (
+    task,
+    status,
+  ) => {
+    if (!displayedTeam) return;
+
     try {
-      const updatedTask = await updateTaskStatus(task.id, status);
+      const updatedTask =
+        await updateTaskStatus(
+          task.id,
+          status,
+        );
 
       setSelectedTask(
         updatedTask || {
@@ -224,16 +402,29 @@ const TeamDetails = () => {
         },
       );
 
-      const refreshedTasks = await fetchTeamTasks(displayedTeam.id);
+      const refreshedTasks =
+        await fetchTeamTasks(
+          displayedTeam.id,
+        );
 
-      setTeamTasks(Array.isArray(refreshedTasks) ? refreshedTasks : []);
+      setTeamTasks(
+        Array.isArray(refreshedTasks)
+          ? refreshedTasks
+          : [],
+      );
 
-      notify.success("Task status updated successfully.");
+      notify.success(
+        "Task status updated successfully.",
+      );
     } catch (err) {
-      console.error("Failed to update task status:", err);
+      console.error(
+        "Failed to update task status:",
+        err,
+      );
 
       notify.error(
-        err?.response?.data?.detail || "Failed to update task status.",
+        err?.response?.data?.detail ||
+          "Failed to update task status.",
       );
     }
   };
@@ -247,7 +438,12 @@ const TeamDetails = () => {
   if (loading) {
     return (
       <main className="team-details-page">
-        <BackButton label="Back to Work Management" onClick={() => navigate("/teams")} />
+        <BackButton
+          label="Back to Work Management"
+          onClick={() =>
+            navigate("/teams")
+          }
+        />
 
         <div className="team-details-page__loading">
           Loading team details...
@@ -265,41 +461,93 @@ const TeamDetails = () => {
   if (error || !displayedTeam) {
     return (
       <main className="team-details-page">
-        <BackButton label="Back to Teams" onClick={() => navigate("/teams")} />
+        <BackButton
+          label="Back to Teams"
+          onClick={() =>
+            navigate("/teams")
+          }
+        />
 
-        <h1>{error || "Team not found"}</h1>
+        <h1>
+          {error || "Team not found"}
+        </h1>
       </main>
     );
   }
 
-  const teamName = displayedTeam.teamName || displayedTeam.name || "Team";
+  /*
+   * =========================
+   * TEAM DISPLAY DATA
+   * =========================
+   */
 
-  const teamDescription = displayedTeam.description || "No description added.";
+  const teamName =
+    displayedTeam.teamName ||
+    displayedTeam.team_name ||
+    displayedTeam.name ||
+    "Team";
 
-  const teamStatus = displayedTeam.status || "active";
+  const teamDescription =
+    displayedTeam.description ||
+    "No description added.";
 
-  const teamLeadMember = members.find(
-  (member) => member.teamPosition === "Team Lead"
-);
+  const teamStatus =
+    normalizeTeamStatus(
+      displayedTeam,
+    );
 
-const teamLeadName =
-  displayedTeam?.team_lead_name ||
-  displayedTeam?.teamLeadName ||
-  displayedTeam?.team_lead_details?.full_name ||
-  teamLeadMember?.fullName ||
-  teamLeadMember?.full_name ||
-  getEmployeeName(teamLeadMember) ||
-  "Not assigned";
+  const teamLeadMember =
+    members.find(
+      (member) =>
+        member.teamPosition ===
+        "Team Lead",
+    ) ||
+    members.find(
+      (member) =>
+        String(
+          getEmployeeId(member),
+        ) ===
+        String(teamLeadId),
+    );
+
+  const teamLeadName =
+    displayedTeam?.team_lead_name ||
+    displayedTeam?.teamLeadName ||
+    displayedTeam?.team_lead_details
+      ?.full_name ||
+    displayedTeam?.team_lead_details
+      ?.fullName ||
+    teamLeadMember?.fullName ||
+    teamLeadMember?.full_name ||
+    (teamLeadMember
+      ? getEmployeeName(
+          teamLeadMember,
+        )
+      : "") ||
+    "Not assigned";
+
+  /*
+   * =========================
+   * RENDER
+   * =========================
+   */
 
   return (
     <main className="team-details-page">
-      <BackButton label="Back to Teams" onClick={() => navigate("/teams")} />
+      <BackButton
+        label="Back to Teams"
+        onClick={() =>
+          navigate("/teams")
+        }
+      />
 
       {/* HEADER */}
 
       <header className="team-details-page__header">
         <div>
-          <span className="team-details-page__eyebrow">TEAM WORKSPACE</span>
+          <span className="team-details-page__eyebrow">
+            TEAM WORKSPACE
+          </span>
 
           <div className="team-details-page__title">
             <h1>{teamName}</h1>
@@ -308,7 +556,9 @@ const teamLeadName =
               className={`team-details-page__status team-details-page__status--${teamStatus}`}
             >
               <span />
-              {teamStatus === "active" ? "Active" : "Inactive"}
+              {teamStatus === "active"
+                ? "Active"
+                : "Inactive"}
             </span>
           </div>
 
@@ -316,17 +566,28 @@ const teamLeadName =
 
           <div className="team-details-page__meta">
             <span>
-              Team Lead: <strong>{teamLeadName}</strong>
+              Team Lead:{" "}
+              <strong>
+                {teamLeadName}
+              </strong>
             </span>
 
             <span>
-              Members: <strong>{members.length}</strong>
+              Members:{" "}
+              <strong>
+                {members.length}
+              </strong>
             </span>
           </div>
         </div>
 
         {(canAssign || isMember) && (
-          <Button variant="primary" onClick={() => setTaskFormOpen(true)}>
+          <Button
+            variant="primary"
+            onClick={() =>
+              setTaskFormOpen(true)
+            }
+          >
             <Plus size={16} />
             Create Task
           </Button>
@@ -335,15 +596,29 @@ const teamLeadName =
 
       {/* TABS */}
 
-      <nav className="team-details-page__tabs" aria-label="Team sections">
-        {["overview", "members", "tasks"].map((item) => (
+      <nav
+        className="team-details-page__tabs"
+        aria-label="Team sections"
+      >
+        {[
+          "overview",
+          "members",
+          "tasks",
+        ].map((item) => (
           <button
             type="button"
             key={item}
-            className={tab === item ? "is-active" : ""}
-            onClick={() => setTab(item)}
+            className={
+              tab === item
+                ? "is-active"
+                : ""
+            }
+            onClick={() =>
+              setTab(item)
+            }
           >
-            {item[0].toUpperCase() + item.slice(1)}
+            {item[0].toUpperCase() +
+              item.slice(1)}
           </button>
         ))}
       </nav>
@@ -356,21 +631,33 @@ const teamLeadName =
             <StatCard
               title="Total Members"
               value={members.length}
-              icon={<Users size={18} />}
+              icon={
+                <Users size={18} />
+              }
               variant="blue"
             />
 
             <StatCard
               title="Active Tasks"
-              value={activeTasks.length}
-              icon={<ListTodo size={18} />}
+              value={
+                activeTasks.length
+              }
+              icon={
+                <ListTodo size={18} />
+              }
               variant="teal"
             />
 
             <StatCard
               title="Completed Tasks"
-              value={completedTasks.length}
-              icon={<CheckCircle2 size={18} />}
+              value={
+                completedTasks.length
+              }
+              icon={
+                <CheckCircle2
+                  size={18}
+                />
+              }
               variant="green"
             />
           </div>
@@ -382,14 +669,23 @@ const teamLeadName =
           <div className="team-details-page__panel-heading">
             <h3>Recent Tasks</h3>
 
-            <button type="button" onClick={() => setTab("tasks")}>
+            <button
+              type="button"
+              onClick={() =>
+                setTab("tasks")
+              }
+            >
               View all tasks
             </button>
           </div>
 
           <TaskTable
             tasks={teamTasks.slice(0, 3)}
-            onView={(task) => navigate(`/tasks/${task.id}`)}
+            onView={(task) =>
+              navigate(
+                `/tasks/${task.id}`,
+              )
+            }
             canEdit={() => false}
             canDelete={() => false}
           />
@@ -400,7 +696,30 @@ const teamLeadName =
 
       {tab === "members" && (
         <section className="team-details-page__panel">
-          <h2>Members</h2>
+          <div className="team-details-page__panel-heading">
+            <div>
+              <h2>Members</h2>
+
+              <p>
+                People currently assigned
+                to {teamName}.
+              </p>
+            </div>
+
+            {canEditTeam && (
+              <Button
+                variant="primary"
+                onClick={() =>
+                  setMemberManagerOpen(
+                    true,
+                  )
+                }
+              >
+                <UserPlus size={16} />
+                Manage Members
+              </Button>
+            )}
+          </div>
 
           <div className="team-details-page__table-wrap">
             <table>
@@ -417,53 +736,94 @@ const teamLeadName =
               <tbody>
                 {members.length === 0 ? (
                   <tr>
-                    <td colSpan="5">No members found.</td>
+                    <td colSpan={5}>
+                      No members found.
+                    </td>
                   </tr>
                 ) : (
-                  members.map((employee) => {
-                    const employeeName = getEmployeeName(employee);
+                  members.map(
+                    (employee) => {
+                      const employeeName =
+                        getEmployeeName(
+                          employee,
+                        );
 
-                    const department =
-                      employee.department?.name ||
-                      employee.department_name ||
-                      employee.departmentName ||
-                      "—";
+                      const department =
+                        employee
+                          .department
+                          ?.name ||
+                        employee.department_name ||
+                        employee.departmentName ||
+                        "—";
 
-                    const designation =
-                      employee.designation?.name ||
-                      employee.designation_name ||
-                      employee.designationName ||
-                      "—";
+                      const designation =
+                        employee
+                          .designation
+                          ?.name ||
+                        employee.designation_name ||
+                        employee.designationName ||
+                        "—";
 
-                    const memberTeamLeadId =
-                      employee.teamPosition === "Team Lead";
-                    const isActive =
-                      employee.is_active ??
-                      employee.isActive ??
-                      employee.employment_status?.toUpperCase() !== "INACTIVE";
-                    
+                      const memberTeamLead =
+                        employee.teamPosition ===
+                        "Team Lead";
 
-                    return (
-                      <tr key={employee.id}>
-                        <td>
-                          <span>{employeeName}</span>
-                        </td>
+                      const isActive =
+                        employee.is_active ??
+                        employee.isActive ??
+                        employee
+                          .employment_status
+                          ?.toUpperCase() !==
+                          "INACTIVE";
 
-                        <td>{department}</td>
+                      const isCurrentTeamLead =
+                        String(
+                          getEmployeeId(
+                            employee,
+                          ),
+                        ) ===
+                        String(
+                          teamLeadId,
+                        );
 
-                        <td>{designation}</td>
+                      return (
+                        <tr
+                          key={getEmployeeId(
+                            employee,
+                          )}
+                        >
+                          <td>
+                            <span>
+                              {
+                                employeeName
+                              }
+                            </span>
+                          </td>
 
-                        <td>
-                          {memberTeamLeadId ||
-                          String(employee.id) === String(teamLeadId)
-                            ? "Team Lead"
-                            : "Member"}
-                        </td>
+                          <td>
+                            {department}
+                          </td>
 
-                        <td>{isActive ? "Active" : "Inactive"}</td>
-                      </tr>
-                    );
-                  })
+                          <td>
+                            {designation}
+                          </td>
+
+                          <td>
+                            {memberTeamLead ||
+                            isCurrentTeamLead
+                              ? "Team Lead"
+                              : "Member"}
+                          </td>
+
+                          <td>
+                            {isActive
+                              ? "Active"
+                              : "Inactive"}
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )
                 )}
               </tbody>
             </table>
@@ -479,11 +839,21 @@ const teamLeadName =
             <div>
               <h2>Tasks</h2>
 
-              <p>Work belonging to {teamName}.</p>
+              <p>
+                Work belonging to{" "}
+                {teamName}.
+              </p>
             </div>
 
             {(canAssign || isMember) && (
-              <Button variant="primary" onClick={() => setTaskFormOpen(true)}>
+              <Button
+                variant="primary"
+                onClick={() =>
+                  setTaskFormOpen(
+                    true,
+                  )
+                }
+              >
                 <Plus size={16} />
                 Create Task
               </Button>
@@ -492,24 +862,75 @@ const teamLeadName =
 
           <TaskTable
             tasks={teamTasks}
-            onView={(task) => navigate(`/tasks/${task.id}`)}
-            onEdit={(task) => setSelectedTask(task)}
+            onView={(task) =>
+              navigate(
+                `/tasks/${task.id}`,
+              )
+            }
+            onEdit={(task) =>
+              setSelectedTask(task)
+            }
             onDelete={() => {}}
             canEdit={(task) =>
-              canAssign || String(task.assignedTo) === String(currentEmployeeId)
+              canAssign ||
+              String(
+                task.assignedTo,
+              ) ===
+                String(
+                  currentEmployeeId,
+                )
             }
             canDelete={(task) =>
-              canAssign || String(task.assignedTo) === String(currentEmployeeId)
+              canAssign ||
+              String(
+                task.assignedTo,
+              ) ===
+                String(
+                  currentEmployeeId,
+                )
             }
           />
         </section>
       )}
 
+      {/* MANAGE TEAM MEMBERS */}
+
+      <Drawer
+        open={memberManagerOpen}
+        onClose={() =>
+          setMemberManagerOpen(false)
+        }
+        title="Manage Team Members"
+        description={`Add or remove members from ${teamName}.`}
+        width="520px"
+      >
+        <TeamMemberManager
+  team={{
+    ...displayedTeam,
+    id: displayedTeam?.id ?? id,
+  }}
+  members={members}
+  employees={employees}
+  onMembersUpdated={async () => {
+    const refreshedMembers =
+      await fetchTeamMembers(id);
+
+    setMembers(
+      Array.isArray(refreshedMembers)
+        ? refreshedMembers
+        : [],
+    );
+  }}
+/>
+      </Drawer>
+
       {/* CREATE TASK */}
 
       <Drawer
         open={taskFormOpen}
-        onClose={() => setTaskFormOpen(false)}
+        onClose={() =>
+          setTaskFormOpen(false)
+        }
         title="Create Task"
         description={
           canAssign
@@ -521,36 +942,73 @@ const teamLeadName =
         <TaskForm
           teams={[displayedTeam]}
           employees={members}
-          fetchTeamMembers={fetchTeamMembers}
+          fetchTeamMembers={
+            fetchTeamMembers
+          }
           initialData={{
-            teamId: displayedTeam.id,
-            assignedTo: canAssign ? "" : currentEmployeeId,
+            teamId:
+              displayedTeam.id,
+            assignedTo: canAssign
+              ? ""
+              : currentEmployeeId,
           }}
-          fixedTeamId={displayedTeam.id}
-          restrictAssignee={!canAssign}
-          currentEmployeeId={currentEmployeeId}
-          onSubmit={handleTaskSubmit}
-          onCancel={() => setTaskFormOpen(false)}
+          fixedTeamId={
+            displayedTeam.id
+          }
+          restrictAssignee={
+            !canAssign
+          }
+          currentEmployeeId={
+            currentEmployeeId
+          }
+          onSubmit={
+            handleTaskSubmit
+          }
+          onCancel={() =>
+            setTaskFormOpen(
+              false,
+            )
+          }
         />
       </Drawer>
 
       {/* TASK DETAILS */}
 
       <Modal
-        open={Boolean(selectedTask)}
-        onClose={() => setSelectedTask(null)}
-        title={selectedTask?.title || "Task Details"}
+        open={Boolean(
+          selectedTask,
+        )}
+        onClose={() =>
+          setSelectedTask(null)
+        }
+        title={
+          selectedTask?.title ||
+          "Task Details"
+        }
         size="medium"
       >
         <TaskDetails
           task={selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onViewTeam={() => navigate(`/teams/${displayedTeam.id}`)}
+          onClose={() =>
+            setSelectedTask(null)
+          }
+          onViewTeam={() =>
+            navigate(
+              `/teams/${displayedTeam.id}`,
+            )
+          }
           canEdit={
             canAssign ||
-            String(selectedTask?.assignedTo) === String(currentEmployeeId)
+            String(
+              selectedTask?.assignedTo,
+            ) ===
+              String(
+                currentEmployeeId,
+              )
           }
-          onStatusChange={handleStatusChange}
+          onStatusChange={
+            handleStatusChange
+          }
         />
       </Modal>
     </main>

@@ -1,3 +1,4 @@
+
 .team-details-page {
   display: flex;
   flex-direction: column;
@@ -224,7 +225,12 @@
   gap: 5px;
 }
 
-.team-details-page__panel-heading button {
+/*
+ * Only target the "View all tasks" style text button here.
+ * Do NOT style every button inside the heading because
+ * Add Member is a real action button.
+ */
+.team-details-page__panel-heading > button:not(.button) {
   padding: 6px 0;
   border: 0;
   background: transparent;
@@ -236,7 +242,7 @@
   transition: opacity 0.2s ease;
 }
 
-.team-details-page__panel-heading button:hover {
+.team-details-page__panel-heading > button:not(.button):hover {
   opacity: 0.75;
 }
 
@@ -253,7 +259,7 @@
 
 .team-details-page table {
   width: 100%;
-  min-width: 680px;
+  min-width: 760px;
   border-collapse: collapse;
 }
 
@@ -296,6 +302,68 @@
 .team-details-page td:first-child {
   color: var(--color-text-primary);
   font-weight: 600;
+}
+
+/* =========================
+   MEMBER ACTIONS
+========================= */
+
+.team-details-page__remove-member {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: 8px;
+  background: rgba(220, 53, 69, 0.06);
+  color: var(--color-danger);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.team-details-page__remove-member svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.team-details-page__remove-member:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.11);
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.team-details-page__remove-member:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.team-details-page__remove-member:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.team-details-page__action-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(11, 163, 127, 0.08);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* =========================
@@ -387,4 +455,10 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .team-details-page__remove-member {
+    min-height: 32px;
+    padding: 6px 9px;
+  }
 }
+
