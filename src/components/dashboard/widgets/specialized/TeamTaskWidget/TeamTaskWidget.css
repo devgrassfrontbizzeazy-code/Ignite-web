@@ -1,0 +1,231 @@
+.team-tasks-widget {
+  background: linear-gradient(135deg, #ffffff 0%, #e7f1f0 170%);
+  border-color: #c9dfdc;
+}
+/* Main content */
+
+.team-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Section */
+
+.team-tasks__section {
+  min-width: 0;
+}
+
+.team-tasks__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.team-tasks__section-header > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.team-tasks__section-header strong {
+  color: #0f3d3e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.team-tasks__section-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.team-tasks__section-dot--progress {
+  background: #0ba37f;
+}
+
+.team-tasks__section-dot--todo {
+  background: #f97373;
+}
+
+.team-tasks__count {
+  min-width: 20px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid #cfe2de;
+  background: #f8fcfb;
+  color: #5b6672;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Task list — NO OUTER BORDER */
+
+.team-tasks__list {
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+/* Individual task */
+
+.team-tasks__row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+
+  min-height: 54px;
+  padding: 8px 2px;
+
+  border-bottom: 1px solid #dceae7;
+
+  box-sizing: border-box;
+  transition: background 0.15s ease;
+}
+
+.team-tasks__row:last-child {
+  border-bottom: none;
+}
+
+.team-tasks__row:hover {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+/* Task icon */
+
+.team-tasks__task-icon {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  border: 1px solid #d5e8e3;
+  background: #f8fcfb;
+  color: #0ba37f;
+
+  flex-shrink: 0;
+}
+
+/* Task information */
+
+.team-tasks__task-info {
+  min-width: 0;
+}
+
+.team-tasks__task-info strong {
+  display: block;
+
+  overflow: hidden;
+  margin-bottom: 3px;
+
+  color: #1a1f24;
+
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-tasks__task-info span {
+  display: block;
+
+  overflow: hidden;
+
+  color: #7a8694;
+
+  font-size: 9px;
+  font-weight: 500;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Deadline */
+
+.team-tasks__deadline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #5b6672;
+
+  font-size: 9px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.team-tasks__deadline svg {
+  color: #0ba37f;
+}
+
+/* No tasks */
+
+.team-tasks__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 64px;
+  padding: 10px;
+
+  color: #7a8694;
+
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.team-tasks__empty svg {
+  color: #0ba37f;
+  flex-shrink: 0;
+}
+
+/* Footer */
+
+.team-tasks__footer-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  align-self: flex-start;
+
+  padding: 0;
+
+  border: none;
+  background: transparent;
+
+  color: #0f3d3e;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: color 0.15s ease;
+}
+
+.team-tasks__footer-action:hover {
+  color: #0ba37f;
+}
+
+@media (max-width: 600px) {
+  .team-tasks__row {
+    grid-template-columns: 30px minmax(0, 1fr);
+  }
+
+  .team-tasks__deadline {
+    grid-column: 2;
+  }
+}

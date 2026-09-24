@@ -1,0 +1,109 @@
+.list-widget {
+  height: auto;
+}
+
+.list-widget__list {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--widget-accent) 18%, #e6eaee);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--widget-accent) 4%, #ffffff);
+}
+
+.list-widget__item {
+  min-width: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--widget-accent) 12%, #eef1f3);
+}
+
+.list-widget__item:last-child {
+  border-bottom: none;
+}
+
+.list-widget__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+  padding: 12px;
+  color: #7a8694;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+}
+
+
+
+/* Upcoming Holidays */
+.upcoming-holiday-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  min-height: 58px;
+  box-sizing: border-box;
+}
+
+.upcoming-holiday-item__icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--widget-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--widget-accent) 12%, #ffffff);
+  color: var(--widget-accent);
+}
+
+.upcoming-holiday-item__info {
+  min-width: 0;
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.upcoming-holiday-item__info strong {
+  overflow: hidden;
+  color: var(--widget-accent-dark);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upcoming-holiday-item__info span {
+  color: #8b96a3;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.upcoming-holiday-item__date {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.upcoming-holiday-item__date strong {
+  color: var(--widget-accent-dark);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.upcoming-holiday-item__date span {
+  color: #0891b2;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+}

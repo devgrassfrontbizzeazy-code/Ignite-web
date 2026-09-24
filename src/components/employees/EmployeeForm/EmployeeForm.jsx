@@ -588,6 +588,7 @@ const EmployeeForm = ({
         ? form.emergency_contact_phone.trim()
         : "",
     };
+    
 
     if (photoFile) {
       payload.photo = photoFile;

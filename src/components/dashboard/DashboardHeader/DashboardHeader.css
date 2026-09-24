@@ -1,6 +1,12 @@
 .dashboard-header {
   width: 100%;
   margin-bottom: 24px;
+  padding: 22px 24px;
+  border: 1px solid #d7e8e4;
+  border-radius: 16px;
+  background: linear-gradient(115deg, #0f3d3e 0%, #165b59 68%, #0ba37f 150%);
+  box-shadow: 0 8px 20px rgba(15, 61, 62, 0.12);
+  box-sizing: border-box;
 }
 
 .dashboard-header__content {
@@ -11,7 +17,7 @@
 
 .dashboard-header__title {
   margin: 0;
-  color: var(--color-text-primary, #1a1f24);
+  color: #ffffff;
   font-size: 26px;
   font-weight: 700;
   line-height: 1.3;
@@ -24,7 +30,7 @@
 
 .dashboard-header__subtitle {
   margin: 0;
-  color: var(--color-text-secondary, #64748b);
+  color: #d8efea;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -32,6 +38,7 @@
 @media (max-width: 768px) {
   .dashboard-header {
     margin-bottom: 20px;
+    padding: 18px;
   }
 
   .dashboard-header__title {

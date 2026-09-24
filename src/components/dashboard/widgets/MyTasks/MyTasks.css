@@ -156,8 +156,8 @@
 }
 
 .my-tasks__status--pending {
-  background: #f5f1e5;
-  color: #8b6e19;
+  background: #fff0f1;
+  color: #be123c;
 }
 
 .my-tasks__status--progress {

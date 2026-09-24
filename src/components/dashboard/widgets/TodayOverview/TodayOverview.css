@@ -123,8 +123,8 @@
 }
 
 .today-overview__action--check-out .today-overview__action-icon {
-  background: #f5f1e5;
-  color: #9a7917;
+  background: #fff0f1;
+  color: #e11d48;
 }
 
 .today-overview__action small {
@@ -174,8 +174,8 @@
 }
 
 .today-overview__stat:nth-child(2) .today-overview__stat-icon {
-  background: #f8f3e5;
-  color: #9a7917;
+  background: #eefce0;
+  color: #65a30d;
 }
 
 .today-overview__stat:nth-child(3) .today-overview__stat-icon {

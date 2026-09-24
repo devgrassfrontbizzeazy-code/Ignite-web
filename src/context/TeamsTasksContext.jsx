@@ -66,8 +66,7 @@ const normalizeEmployee = (employee = {}) => ({
       employee.designation?.name ||
       "",
   },
-  profilePhotoUrl:
-    employee.profile_photo_url || employee.profilePhotoUrl || "",
+  profilePhotoUrl: employee.profile_photo_url || employee.profilePhotoUrl || "",
 });
 
 const normalizeTeam = (team = {}) => ({
@@ -153,11 +152,7 @@ const normalizeTask = (task = {}) => ({
 
   teamName: task.teamName || task.team_name || task.team?.name || "",
 
-  assignedTo:
-    task.assignedTo ??
-    task.assigned_to ??
-    task.assignee?.id ??
-    null,
+  assignedTo: task.assignedTo ?? task.assigned_to ?? task.assignee?.id ?? null,
 
   assignedToName:
     task.assignedToName ||
@@ -363,39 +358,39 @@ export const TeamsTasksProvider = ({ children }) => {
    */
 
   const workManagementAccess = useMemo(() => {
-    const contexts = teams
-      .map((team) => team.userContext || team.user_context)
-      .filter(Boolean);
+  const contexts = teams
+    .map((team) => team.userContext || team.user_context)
+    .filter(Boolean);
 
-    const isAdminOrHr = contexts.some(
-      (context) => context.is_admin_or_hr === true,
-    );
+  const isAdminOrHr = contexts.some(
+    (context) => context.is_admin_or_hr === true,
+  );
 
-    const isMember = contexts.some(
-      (context) => context.is_member === true,
-    );
+  const isMember = contexts.some(
+    (context) => context.is_member === true,
+  );
 
-    const isLead = contexts.some(
-      (context) => context.is_lead === true,
-    );
+  const isLead = contexts.some(
+    (context) => context.is_lead === true,
+  );
 
-    const canCreateTask = contexts.some(
-      (context) => context.can_create_task === true,
-    );
+  const canCreateTask = contexts.some(
+    (context) => context.can_create_task === true,
+  );
 
-    const canAssignToOthers = contexts.some(
-      (context) => context.can_assign_to_others === true,
-    );
+  const canAssignToOthers = contexts.some(
+    (context) => context.can_assign_to_others === true,
+  );
 
-    return {
-      hasAccess: isAdminOrHr || isMember || isLead || teams.length > 0 || tasks.length > 0,
-      isAdminOrHr,
-      isMember,
-      isLead,
-      canCreateTask,
-      canAssignToOthers,
-    };
-  }, [teams, tasks]);
+  return {
+    hasAccess: isAdminOrHr || isMember || isLead,
+    isAdminOrHr,
+    isMember,
+    isLead,
+    canCreateTask,
+    canAssignToOthers,
+  };
+}, [teams]);
 
   /*
    * ==========================================

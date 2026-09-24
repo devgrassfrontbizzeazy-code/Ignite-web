@@ -1,0 +1,236 @@
+.attendance-action-widget {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e1e9e7;
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(15, 61, 62, 0.05);
+}
+
+/* Top accent */
+.attendance-action-widget::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: #0ba37f;
+}
+
+/* Header */
+.attendance-action-widget .dashboard-widget__header {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 12px;
+}
+
+.attendance-action-widget .dashboard-widget__title {
+  margin: 0;
+  color: #0f3d3e;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Main content */
+.attendance-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Check-in / checkout */
+.attendance-action__time-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.attendance-action__time-label {
+  color: #3b82f6;
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.attendance-action__time-value {
+  color: #1a1f24;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Working time */
+.attendance-action__progress-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.attendance-action__donut {
+  --attendance-progress: 0%;
+
+  width: 96px;
+  height: 96px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: conic-gradient(
+    #0ba37f var(--attendance-progress),
+    #dcefe9 var(--attendance-progress)
+  );
+
+  box-shadow: 0 4px 12px rgba(11, 163, 127, 0.12);
+}
+
+.attendance-action__donut-inner {
+  width: 72px;
+  height: 72px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.attendance-action__donut-inner svg {
+  width: 14px;
+  height: 14px;
+  margin-bottom: 3px;
+  color: #0ba37f;
+}
+
+.attendance-action__donut-inner strong {
+  margin: 0;
+  color: #0f3d3e;
+  font-family: "Montserrat", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.attendance-action__donut-inner span {
+  margin-top: 2px;
+  color: #8b96a3;
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+/* Main action */
+.attendance-action__button {
+  width: 100%;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #0ba37f;
+  color: #ffffff;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 3px 8px rgba(11, 163, 127, 0.16);
+
+  transition:
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.attendance-action__button:hover:not(:disabled) {
+  background: #098f70;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(11, 163, 127, 0.2);
+}
+
+.attendance-action__button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.attendance-action__button:disabled {
+  cursor: default;
+}
+
+/* Punch Out */
+.attendance-action__button--out {
+  background: #0f3d3e;
+  box-shadow: 0 3px 8px rgba(15, 61, 62, 0.14);
+}
+
+.attendance-action__button--out:hover:not(:disabled) {
+  background: #0c3233;
+  box-shadow: 0 5px 12px rgba(15, 61, 62, 0.18);
+}
+
+/* Completed */
+.attendance-action__button--completed {
+  background: #e4f6f1;
+  color: #0f3d3e;
+  box-shadow: none;
+}
+
+.attendance-action__button--completed:hover {
+  background: #e4f6f1;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Button icon */
+.attendance-action__button svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.attendance-action__button span {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .attendance-action-widget {
+    padding: 14px;
+  }
+
+  .attendance-action {
+    gap: 10px;
+  }
+
+  .attendance-action__donut {
+    width: 88px;
+    height: 88px;
+  }
+
+  .attendance-action__donut-inner {
+    width: 66px;
+    height: 66px;
+  }
+}

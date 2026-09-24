@@ -1,65 +1,159 @@
 .dashboard-widget {
-  width: 100%;
+  --widget-accent: #0ba37f;
+  --widget-accent-dark: #0f3d3e;
+  --widget-tint: #edf7f4;
+  --widget-border: #dcebe7;
+  position: relative;
   min-width: 0;
-  background: #ffffff;
-  border: 1px solid var(--color-border, #e6eaee);
-  border-radius: 14px;
+  height: auto;
+  padding: 16px;
+  border: 1px solid var(--widget-border);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, var(--widget-tint) 170%);
   box-sizing: border-box;
+  box-shadow: 0 5px 16px rgba(15, 61, 62, 0.06);
   overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dashboard-widget::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 16px;
+  left: 16px;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: var(--widget-accent);
+}
+
+.dashboard-widget:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--widget-accent) 35%, #dcebe7);
+  box-shadow: 0 10px 24px rgba(15, 61, 62, 0.1);
+}
+
+/* Keep each dashboard surface visually distinct while using the same brand system. */
+.dashboard-grid__item:nth-child(1) .dashboard-widget {
+  --widget-accent: #0ba37f;
+  --widget-accent-dark: #0f3d3e;
+  --widget-tint: #e8f7f2;
+  --widget-border: #cfe9e1;
+}
+
+.dashboard-grid__item:nth-child(2) .dashboard-widget {
+  --widget-accent: #06b6d4;
+  --widget-accent-dark: #075985;
+  --widget-tint: #e6f8fb;
+  --widget-border: #bfe8ef;
+}
+
+.dashboard-grid__item:nth-child(3) .dashboard-widget {
+  --widget-accent: #3b82f6;
+  --widget-accent-dark: #1e3a8a;
+  --widget-tint: #edf4ff;
+  --widget-border: #c9dcfb;
+}
+
+.dashboard-grid__item:nth-child(4) .dashboard-widget {
+  --widget-accent: #0f3d3e;
+  --widget-accent-dark: #0f3d3e;
+  --widget-tint: #e7f1f0;
+  --widget-border: #c9dfdc;
+}
+
+.dashboard-grid__item:nth-child(5) .dashboard-widget {
+  --widget-accent: #7c3aed;
+  --widget-accent-dark: #4c1d95;
+  --widget-tint: #f2edff;
+  --widget-border: #ddd0fb;
+}
+
+.dashboard-grid__item:nth-child(6) .dashboard-widget {
+  --widget-accent: #0ba37f;
+  --widget-accent-dark: #0f3d3e;
+  --widget-tint: #e8f7f2;
+  --widget-border: #cfe9e1;
+}
+
+.dashboard-grid__item:nth-child(7) .dashboard-widget {
+  --widget-accent: #267f80;
+  --widget-accent-dark: #0f3d3e;
+  --widget-tint: #e9f4f4;
+  --widget-border: #cce2e1;
+}
+
+.dashboard-grid__item:nth-child(8) .dashboard-widget {
+  --widget-accent: #e11d48;
+  --widget-accent-dark: #881337;
+  --widget-tint: #fff0f3;
+  --widget-border: #f6cbd6;
 }
 
 .dashboard-widget__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 18px 20px 14px;
+  gap: 12px;
+  min-height: 24px;
+  margin-bottom: 14px;
 }
 
 .dashboard-widget__title {
   margin: 0;
-  color: var(--color-text-primary, #1a1f24);
-  font-size: 15px;
-  font-weight: 650;
-  line-height: 1.4;
+  color: var(--widget-accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .dashboard-widget__action {
   flex-shrink: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--color-primary, #0ba37f);
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--widget-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--widget-accent) 10%, #ffffff);
+  color: var(--widget-accent-dark);
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .dashboard-widget__action:hover {
-  text-decoration: underline;
+  background: var(--widget-accent-dark);
+  color: #ffffff;
 }
 
 .dashboard-widget__content {
   min-width: 0;
-  padding: 0 20px 20px;
 }
 
 .dashboard-widget__loading {
-  min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-secondary, #64748b);
-  font-size: 13px;
+  gap: 7px;
+  min-height: 80px;
+  color: #7a8694;
+  font-size: 11px;
+  font-weight: 500;
 }
 
-@media (max-width: 768px) {
-  .dashboard-widget__header {
-    padding: 16px 16px 12px;
-  }
+.dashboard-widget__loading-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid #dfe9e6;
+  border-top-color: var(--widget-accent);
+  border-radius: 50%;
+  animation: dashboard-widget-spin 0.7s linear infinite;
+}
 
-  .dashboard-widget__content {
-    padding: 0 16px 16px;
+@keyframes dashboard-widget-spin {
+  to {
+    transform: rotate(360deg);
   }
 }

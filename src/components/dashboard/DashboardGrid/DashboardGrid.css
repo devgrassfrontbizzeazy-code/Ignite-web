@@ -1,31 +1,23 @@
 .dashboard-grid {
-  width: 100%;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 16px;
-  align-items: stretch;
+  gap: 14px;
+  align-items: start;
 }
 
-/*
-  Default widget sizing.
-
-  Individual widgets can override these values later
-  using their own grid-column configuration.
-*/
-
-.dashboard-grid > * {
+.dashboard-grid__item {
   min-width: 0;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1000px) {
   .dashboard-grid {
-    gap: 14px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 650px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
-    gap: 14px;
+    gap: 12px;
   }
 }

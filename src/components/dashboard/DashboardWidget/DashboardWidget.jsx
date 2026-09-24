@@ -27,6 +27,7 @@ const DashboardWidget = ({
       <div className="dashboard-widget__content">
         {loading ? (
           <div className="dashboard-widget__loading">
+            <span className="dashboard-widget__loading-spinner" />
             Loading...
           </div>
         ) : (
