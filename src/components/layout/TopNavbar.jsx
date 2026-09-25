@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import "./TopNavbar.css";
 import { useLocation } from "react-router-dom";
 import { getCompany } from "../../services/api/companyAPI";
+import NotificationBell from "../notification/NotificationBell/NotificationBell";
 
 /* ==========================================================================
    Icons
@@ -46,20 +47,20 @@ export default function TopNavbar({ onMenuClick }) {
      ------------------------------------------------------------------------ */
 
   useEffect(() => {
-  const fetchCompany = async () => {
-    try {
-      const response = await getCompany();
+    const fetchCompany = async () => {
+      try {
+        const response = await getCompany();
 
-      const company = response?.data;
+        const company = response?.data;
 
-      setCompanyName(company?.name || "");
-    } catch (error) {
-      console.error("Failed to fetch company:", error);
-    }
-  };
+        setCompanyName(company?.name || "");
+      } catch (error) {
+        console.error("Failed to fetch company:", error);
+      }
+    };
 
-  fetchCompany();
-}, []);
+    fetchCompany();
+  }, []);
 
   /* ------------------------------------------------------------------------
      Page configuration
@@ -146,18 +147,7 @@ export default function TopNavbar({ onMenuClick }) {
           </div>
         )}
 
-        <button
-          type="button"
-          className="top-navbar__notification"
-          aria-label="Notifications"
-        >
-          <BellIcon />
-
-          <span
-            className="top-navbar__notification-dot"
-            aria-hidden="true"
-          />
-        </button>
+        <NotificationBell />
       </div>
     </header>
   );

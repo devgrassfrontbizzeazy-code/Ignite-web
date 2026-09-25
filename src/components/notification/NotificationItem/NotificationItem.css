@@ -1,0 +1,136 @@
+.notification-item {
+    display: flex;
+    gap: 10px;
+
+    padding: 12px 20px;
+
+    border-bottom: 1px solid #eef1f3;
+
+    transition: background 0.15s ease;
+}
+
+.notification-item:hover {
+    background: #f8fafb;
+}
+
+.notification-item--unread {
+    background: #f4fbf9;
+}
+
+.notification-item--unread:hover {
+    background: #eef8f5;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Unread indicator */
+/* -------------------------------------------------------------------------- */
+
+.notification-item__indicator {
+    width: 8px;
+    flex-shrink: 0;
+
+    padding-top: 6px;
+}
+
+.notification-item__indicator span {
+    display: block;
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #0ba37f;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Content */
+/* -------------------------------------------------------------------------- */
+
+.notification-item__content {
+    min-width: 0;
+    flex: 1;
+}
+
+.notification-item__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.notification-item__top h3 {
+    margin: 0;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    font-weight: 700;
+    color: #1a1f24;
+}
+
+.notification-item__time {
+    flex-shrink: 0;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 10px;
+    color: #8a96a3;
+}
+
+.notification-item__content>p {
+    margin: 5px 0 7px;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #697586;
+}
+
+.notification-item__sender {
+    display: block;
+
+    margin-bottom: 8px;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #7b8794;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Actions */
+/* -------------------------------------------------------------------------- */
+
+.notification-item__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.notification-item__actions button {
+    padding: 0;
+
+    border: none;
+    background: transparent;
+
+    font-family: "Montserrat", sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+
+    color: #0ba37f;
+
+    cursor: pointer;
+}
+
+.notification-item__actions button:hover {
+    color: #0f3d3e;
+}
+
+.notification-item__actions button:last-child {
+    color: #9aa4ae;
+    font-weight: 500;
+}
+
+.notification-item__actions button:last-child:hover {
+    color: #c44747;
+}

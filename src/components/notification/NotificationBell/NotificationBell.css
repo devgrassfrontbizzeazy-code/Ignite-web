@@ -1,0 +1,20 @@
+.notification-bell {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notification-bell .top-navbar__notification {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dropdown positioning */
+.notification-bell .notification-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    z-index: 1000;
+}
