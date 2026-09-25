@@ -1,23 +1,22 @@
-import {
-  Clock3,
-  CircleCheck,
-  LogIn,
-  LogOut,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+
+import { Clock3, CircleCheck, LogIn, LogOut } from "lucide-react";
 
 import DashboardWidget from "../../../DashboardWidget/DashboardWidget";
 import "./AttendanceActionWidget.css";
 
 const formatWorkingTime = (seconds = 0) => {
-  const totalMinutes = Math.max(0, Math.floor(seconds / 60));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
 
   if (hours === 0) {
-    return `${minutes}m`;
+    return `${minutes}m ${remainingSeconds}s`;
   }
 
-  return `${hours}h ${minutes}m`;
+  return `${hours}h ${minutes}m ${remainingSeconds}s`;
 };
 
 const parseTimeToMinutes = (time) => {
@@ -25,9 +24,7 @@ const parseTimeToMinutes = (time) => {
     return null;
   }
 
-  const match = time
-    .trim()
-    .match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  const match = time.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
 
   if (!match) {
     return null;
@@ -72,10 +69,7 @@ const getProgressPercentage = (workingDuration, shiftDuration) => {
     return 0;
   }
 
-  return Math.min(
-    Math.max((workingDuration / shiftDuration) * 100, 0),
-    100,
-  );
+  return Math.min(Math.max((workingDuration / shiftDuration) * 100, 0), 100);
 };
 
 const getAttendanceState = (attendance) => {
@@ -96,20 +90,33 @@ const getAttendanceState = (attendance) => {
 
 const AttendanceActionWidget = ({ data, loading }) => {
   const attendance = data?.attendance;
+  const [liveWorkingDuration, setLiveWorkingDuration] = useState(0);
 
-  const {
-    punchIn,
-    punchOut,
-    attendanceActionLoading,
-  } = data || {};
+  useEffect(() => {
+    const backendDuration = Number(attendance?.workingDuration || 0);
 
-  const workingDuration = Number(
-    attendance?.workingDuration || 0,
-  );
+    setLiveWorkingDuration(backendDuration);
 
-  const shiftDuration = getShiftDurationSeconds(
-    attendance?.shift,
-  );
+    if (!attendance?.checkInAt || attendance?.checkOutAt) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setLiveWorkingDuration((current) => current + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [
+    attendance?.workingDuration,
+    attendance?.checkInAt,
+    attendance?.checkOutAt,
+  ]);
+
+  const { punchIn, punchOut, attendanceActionLoading } = data || {};
+
+ const workingDuration = liveWorkingDuration;
+
+  const shiftDuration = getShiftDurationSeconds(attendance?.shift);
 
   const progressPercentage = getProgressPercentage(
     workingDuration,
@@ -118,14 +125,11 @@ const AttendanceActionWidget = ({ data, loading }) => {
 
   const attendanceState = getAttendanceState(attendance);
 
-  const isNotStarted =
-    attendanceState === "not-started";
+  const isNotStarted = attendanceState === "not-started";
 
-  const isWorking =
-    attendanceState === "working";
+  const isWorking = attendanceState === "working";
 
-  const isCompleted =
-    attendanceState === "completed";
+  const isCompleted = attendanceState === "completed";
 
   const buttonLoading = attendanceActionLoading;
 
@@ -137,11 +141,7 @@ const AttendanceActionWidget = ({ data, loading }) => {
         ? "Attendance Completed"
         : "Punch In";
 
-  const ButtonIcon = isWorking
-    ? LogOut
-    : isCompleted
-      ? CircleCheck
-      : LogIn;
+  const ButtonIcon = isWorking ? LogOut : isCompleted ? CircleCheck : LogIn;
 
   const handleAttendanceAction = async () => {
     if (buttonLoading || isCompleted) {
@@ -167,12 +167,9 @@ const AttendanceActionWidget = ({ data, loading }) => {
       className="attendance-action-widget"
     >
       <div className="attendance-action">
-        
         {/* Check-in Time */}
         <div className="attendance-action__time-block">
-          <div className="attendance-action__time-label">
-            Checked In
-          </div>
+          <div className="attendance-action__time-label">Checked In</div>
           <div className="attendance-action__time-value">
             {attendance?.checkInTimeFormatted || "--:--"}
           </div>
@@ -188,9 +185,7 @@ const AttendanceActionWidget = ({ data, loading }) => {
           >
             <div className="attendance-action__donut-inner">
               <Clock3 size={20} />
-              <strong>
-                {formatWorkingTime(workingDuration)}
-              </strong>
+              <strong>{formatWorkingTime(workingDuration)}</strong>
               <span>Worked</span>
             </div>
           </div>
@@ -200,14 +195,8 @@ const AttendanceActionWidget = ({ data, loading }) => {
         <button
           type="button"
           className={`attendance-action__button ${
-            isWorking
-              ? "attendance-action__button--out"
-              : ""
-          } ${
-            isCompleted
-              ? "attendance-action__button--completed"
-              : ""
-          }`}
+            isWorking ? "attendance-action__button--out" : ""
+          } ${isCompleted ? "attendance-action__button--completed" : ""}`}
           disabled={buttonLoading || isCompleted}
           onClick={handleAttendanceAction}
         >
@@ -218,15 +207,12 @@ const AttendanceActionWidget = ({ data, loading }) => {
         {/* Check-out Time (Only when checked out) */}
         {isCompleted && attendance?.checkOutTimeFormatted && (
           <div className="attendance-action__time-block">
-            <div className="attendance-action__time-label">
-              Checked Out
-            </div>
+            <div className="attendance-action__time-label">Checked Out</div>
             <div className="attendance-action__time-value">
               {attendance.checkOutTimeFormatted}
             </div>
           </div>
         )}
-
       </div>
     </DashboardWidget>
   );

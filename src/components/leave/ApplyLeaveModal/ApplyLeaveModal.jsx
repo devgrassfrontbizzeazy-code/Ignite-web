@@ -1,6 +1,6 @@
-
 import { useState } from "react";
 import { X, CalendarDays } from "lucide-react";
+import DatePicker from "../../common/DatePicker/DatePicker";
 
 import "./ApplyLeaveModal.css";
 
@@ -40,16 +40,13 @@ const ApplyLeaveModal = ({
 
     const difference = end.getTime() - start.getTime();
 
-    return Math.floor(
-      difference / (1000 * 60 * 60 * 24)
-    ) + 1;
+    return Math.floor(difference / (1000 * 60 * 60 * 24)) + 1;
   };
-
+  const today = new Date().toISOString().split("T")[0];
   const days = calculateDays();
 
   const selectedPolicy = options.find(
-    (option) =>
-      String(option.id) === String(formData.leavePolicyId)
+    (option) => String(option.id) === String(formData.leavePolicyId),
   );
 
   const handleSubmit = (event) => {
@@ -107,14 +104,9 @@ const ApplyLeaveModal = ({
           </button>
         </div>
 
-        <form
-          className="apply-leave-modal__form"
-          onSubmit={handleSubmit}
-        >
+        <form className="apply-leave-modal__form" onSubmit={handleSubmit}>
           <div className="apply-leave-field">
-            <label htmlFor="leavePolicyId">
-              Leave Type
-            </label>
+            <label htmlFor="leavePolicyId">Leave Type</label>
 
             <select
               id="leavePolicyId"
@@ -124,9 +116,7 @@ const ApplyLeaveModal = ({
               required
               disabled={submitting}
             >
-              <option value="">
-                Select leave type
-              </option>
+              <option value="">Select leave type</option>
 
               {options.map((option) => (
                 <option
@@ -134,8 +124,7 @@ const ApplyLeaveModal = ({
                   value={option.id}
                   disabled={option.remaining_balance <= 0}
                 >
-                  {option.name}{" "}
-                  ({option.remaining_balance}{" "}
+                  {option.name} ({option.remaining_balance}{" "}
                   {option.remaining_balance === 1 ? "day" : "days"} available)
                 </option>
               ))}
@@ -144,9 +133,7 @@ const ApplyLeaveModal = ({
             {selectedPolicy && (
               <small>
                 {selectedPolicy.remaining_balance}{" "}
-                {selectedPolicy.remaining_balance === 1
-                  ? "day"
-                  : "days"}{" "}
+                {selectedPolicy.remaining_balance === 1 ? "day" : "days"}{" "}
                 remaining
               </small>
             )}
@@ -154,34 +141,35 @@ const ApplyLeaveModal = ({
 
           <div className="apply-leave-date-grid">
             <div className="apply-leave-field">
-              <label htmlFor="fromDate">
-                From Date
-              </label>
+              <label>From Date</label>
 
-              <input
-                id="fromDate"
-                type="date"
-                name="fromDate"
-                value={formData.fromDate}
-                onChange={handleChange}
-                required
+              <DatePicker
+                value={formData.toDate}
+                onChange={(value) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    toDate: value,
+                  }))
+                }
+                minDate={formData.fromDate || today}
+                placeholder="Select end date"
                 disabled={submitting}
               />
             </div>
 
             <div className="apply-leave-field">
-              <label htmlFor="toDate">
-                To Date
-              </label>
+              <label>To Date</label>
 
-              <input
-                id="toDate"
-                type="date"
-                name="toDate"
+              <DatePicker
                 value={formData.toDate}
-                min={formData.fromDate || undefined}
-                onChange={handleChange}
-                required
+                onChange={(value) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    toDate: value,
+                  }))
+                }
+                minDate={formData.fromDate || undefined}
+                placeholder="Select end date"
                 disabled={submitting}
               />
             </div>
@@ -190,16 +178,12 @@ const ApplyLeaveModal = ({
           <div className="apply-leave-duration">
             <span>Duration</span>
             <strong>
-              {days > 0
-                ? `${days} ${days === 1 ? "Day" : "Days"}`
-                : "—"}
+              {days > 0 ? `${days} ${days === 1 ? "Day" : "Days"}` : "—"}
             </strong>
           </div>
 
           <div className="apply-leave-field">
-            <label htmlFor="reason">
-              Reason
-            </label>
+            <label htmlFor="reason">Reason</label>
 
             <textarea
               id="reason"
@@ -238,4 +222,3 @@ const ApplyLeaveModal = ({
 };
 
 export default ApplyLeaveModal;
-

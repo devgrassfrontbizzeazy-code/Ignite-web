@@ -2,10 +2,16 @@ import WidgetRenderer from "../WidgetRenderer/WidgetRenderer";
 
 import "./DashboardGrid.css";
 
-const DashboardGrid = () => {
+const DashboardGrid = ({
+  dashboardData,
+  onApplyLeave,
+}) => {
   return (
     <main className="dashboard-grid">
-      <WidgetRenderer />
+      <WidgetRenderer
+        dashboardData={dashboardData}
+        onApplyLeave={onApplyLeave}
+      />
     </main>
   );
 };

@@ -53,6 +53,7 @@ const useDashboardData = () => {
 
     const [data, setData] = useState({
         attendance: null,
+        attendanceHistory: null,
 
         employees: [],
         departments: [],
@@ -62,6 +63,7 @@ const useDashboardData = () => {
         leaveBalance: [],
         leaves: [],
         holidays: [],
+        teams: [],
         tasks: [],
 
         teamAccess: {
@@ -116,6 +118,28 @@ const useDashboardData = () => {
         return response;
     }, []);
 
+    const refreshLeaveData = useCallback(async () => {
+        const [leaveBalance, leaves] = await Promise.all([
+            leaveApplicationAPI.getApplyOptions(),
+            leaveApplicationAPI.getMyLeaves(),
+        ]);
+
+        setData((current) => ({
+            ...current,
+            leaveBalance: Array.isArray(leaveBalance?.data)
+                ? leaveBalance.data
+                : [],
+            leaves: Array.isArray(leaves?.data)
+                ? leaves.data
+                : [],
+        }));
+
+        return {
+            leaveBalance,
+            leaves,
+        };
+    }, []);
+
     useEffect(() => {
         let isMounted = true;
 
@@ -132,11 +156,13 @@ const useDashboardData = () => {
                  */
                 const [
                     attendance,
+                    attendanceHistory,
                     leaveBalance,
                     leaves,
                     holidays,
                 ] = await Promise.all([
                     attendanceAPI.getTodayAttendance(),
+                    attendanceAPI.getAttendanceHistory("1m"),
                     leaveApplicationAPI.getApplyOptions(),
                     leaveApplicationAPI.getMyLeaves(),
                     holidayAPI.getUpcomingHolidays(),
@@ -263,13 +289,16 @@ const useDashboardData = () => {
                     teams.map((team) => String(team.id))
                 );
 
-                const visibleTeamTasks = teamTasks.filter((task) =>
-                    userTeamIds.has(String(task.teamId))
-                );
+                const visibleTeamTasks = workManagementAccess?.isAdminOrHr
+                    ? teamTasks
+                    : teamTasks.filter((task) =>
+                        userTeamIds.has(String(task.teamId))
+                    );
 
                 setData({
                     attendance:
                         attendance?.data || null,
+                    attendanceHistory: attendanceHistory || null,
 
                     employees,
                     departments,
@@ -286,12 +315,13 @@ const useDashboardData = () => {
                             ? leaves.data
                             : [],
 
-                    tasks: visibleTeamTasks,
-
                     holidays:
                         Array.isArray(holidays?.data)
                             ? holidays.data
                             : [],
+
+                    teams: teams,
+                    tasks: visibleTeamTasks,
 
                     teamAccess: {
                         hasTeam:
@@ -374,6 +404,7 @@ const useDashboardData = () => {
         punchIn,
         punchOut,
         refreshAttendance,
+        refreshLeaveData,
     };
 };
 

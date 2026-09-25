@@ -1,5 +1,4 @@
 import { dashboardWidgets } from "../widgetRegistry";
-import useDashboardData from "../hooks/useDashboardData";
 
 const getGridColumn = (width) => {
   if (!width) {
@@ -14,9 +13,10 @@ const getGridColumn = (width) => {
   return `span ${normalizedWidth}`;
 };
 
-const WidgetRenderer = () => {
-  const dashboardData = useDashboardData();
-
+const WidgetRenderer = ({
+  dashboardData,
+  onApplyLeave,
+}) => {
   return (
     <>
       {dashboardWidgets.map((widget) => {
@@ -31,17 +31,19 @@ const WidgetRenderer = () => {
          * when the current user satisfies that condition.
          */
         if (
-  typeof widget.canShow === "function" &&
-  !widget.canShow(dashboardData)
-) {
-  return null;
-}
+          typeof widget.canShow === "function" &&
+          !widget.canShow(dashboardData)
+        ) {
+          return null;
+        }
 
         const WidgetComponent = widget.component;
 
         const widgetProps =
           typeof widget.getProps === "function"
-            ? widget.getProps(dashboardData)
+            ? widget.getProps(dashboardData, {
+                onApplyLeave,
+              })
             : {};
 
         return (
@@ -55,11 +57,10 @@ const WidgetRenderer = () => {
             }}
           >
             <WidgetComponent
-              {...widgetProps}
-              data={dashboardData}
-              config={widget.config}
-              loading={dashboardData.loading}
-            />
+  {...widgetProps}
+  config={widget.config}
+  loading={dashboardData.loading}
+/>
           </div>
         );
       })}

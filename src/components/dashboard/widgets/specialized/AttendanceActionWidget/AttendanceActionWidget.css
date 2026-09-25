@@ -80,8 +80,8 @@
 .attendance-action__donut {
   --attendance-progress: 0%;
 
-  width: 96px;
-  height: 96px;
+  width: 100px;
+  height: 100px;
 
   display: flex;
   align-items: center;
@@ -98,8 +98,8 @@
 }
 
 .attendance-action__donut-inner {
-  width: 72px;
-  height: 72px;
+  width: 75px;
+  height: 75px;
 
   display: flex;
   flex-direction: column;
@@ -121,8 +121,8 @@
   margin: 0;
   color: #0f3d3e;
   font-family: "Montserrat", sans-serif;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 1.1;
 }
 
@@ -130,10 +130,30 @@
   margin-top: 2px;
   color: #8b96a3;
   font-family: "Montserrat", sans-serif;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 500;
 }
+.attendance-action__donut {
+  --attendance-progress: 0%;
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: conic-gradient(
+    #0ba37f var(--attendance-progress),
+    #dcefe9 var(--attendance-progress)
+  );
+  box-shadow: 0 4px 12px rgba(11, 163, 127, 0.12);
+  transition: none;
+  transform: none;
+}
 
+.attendance-action__donut:hover {
+  transform: none;
+  box-shadow: 0 4px 12px rgba(11, 163, 127, 0.12);
+}
 /* Main action */
 .attendance-action__button {
   width: 100%;

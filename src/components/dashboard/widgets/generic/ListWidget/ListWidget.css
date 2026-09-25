@@ -107,3 +107,198 @@
   font-weight: 700;
   line-height: 1.2;
 }
+
+/* Applied Leave */
+
+.applied-leave-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 58px;
+  padding: 11px 12px;
+  box-sizing: border-box;
+}
+
+.applied-leave-item__info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.applied-leave-item__info strong {
+  overflow: hidden;
+  color: var(--widget-accent-dark);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.applied-leave-item__info span {
+  color: #8b96a3;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.applied-leave-item__meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.applied-leave-item__duration {
+  color: #68727b;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.applied-leave-item__status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.applied-leave-item__status--pending {
+  background: #fff7e6;
+  color: #a66a00;
+}
+
+.applied-leave-item__status--approved {
+  background: #e9f8f3;
+  color: #087f64;
+}
+
+.applied-leave-item__status--rejected {
+  background: #fdeeee;
+  color: #c0392b;
+}
+
+.applied-leave-item__status--cancelled {
+  background: #f1f3f4;
+  color: #68727b;
+}
+
+
+/*Employee*/
+.employee-distribution-item {
+  padding: 9px 10px;
+  margin-bottom: 5px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
+  background: #ffffff;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.employee-distribution-item:last-child {
+  margin-bottom: 0;
+}
+
+.employee-distribution-item__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.employee-distribution-item__name {
+  min-width: 0;
+  overflow: hidden;
+  color: #1a1f24;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-distribution-item__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 7px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ---------------- Department ---------------- */
+
+.employee-distribution-item--department {
+  background: #f7fcfb;
+}
+
+.employee-distribution-item--department:hover {
+  border-color: #b8e4d8;
+  background: #f2faf7;
+}
+
+.employee-distribution-item--department
+  .employee-distribution-item__count {
+  background: #e3f5ef;
+  color: #0f3d3e;
+}
+
+.employee-distribution-item--department
+  .employee-distribution-item__bar {
+  background: #e5f1ee;
+}
+
+.employee-distribution-item--department
+  .employee-distribution-item__bar-fill {
+  background: #0ba37f;
+}
+
+/* ---------------- Designation ---------------- */
+
+.employee-distribution-item--designation {
+  background: #fffdf7;
+}
+
+.employee-distribution-item--designation:hover {
+  border-color: #ead9a7;
+  background: #fffcf2;
+}
+
+.employee-distribution-item--designation
+  .employee-distribution-item__count {
+  background: #f8efd3;
+  color: #8a6b16;
+}
+
+.employee-distribution-item--designation
+  .employee-distribution-item__bar {
+  background: #f3ecd9;
+}
+
+.employee-distribution-item--designation
+  .employee-distribution-item__bar-fill {
+  background: #d4af37;
+}
+
+/* ---------------- Shared bar ---------------- */
+
+.employee-distribution-item__bar {
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.employee-distribution-item__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}

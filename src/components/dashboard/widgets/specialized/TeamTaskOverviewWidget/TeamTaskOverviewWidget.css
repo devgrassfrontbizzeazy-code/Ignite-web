@@ -1,0 +1,164 @@
+.team-task-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ================================
+   Summary
+================================ */
+
+.team-task-overview__summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.team-task-overview__summary-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
+  background: #f8fafb;
+}
+
+.team-task-overview__summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: #e8f7f3;
+  color: #0ba37f;
+}
+
+.team-task-overview__summary-icon--tasks {
+  background: #eef3f5;
+  color: #0f3d3e;
+}
+
+.team-task-overview__summary-card div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-task-overview__summary-card span {
+  color: #8b96a3;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.team-task-overview__summary-card strong {
+  color: #1a1f24;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* ================================
+   Teams
+================================ */
+
+.team-task-overview__teams {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.team-task-overview__team {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.team-task-overview__team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.team-task-overview__team-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #1a1f24;
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-task-overview__team-count {
+  flex-shrink: 0;
+  color: #0f3d3e;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ================================
+   Progress
+================================ */
+
+.team-task-overview__progress {
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6eaee;
+}
+
+.team-task-overview__progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #0ba37f;
+  transition: width 0.25s ease;
+}
+
+.team-task-overview__team-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #8b96a3;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+/* ================================
+   Empty
+================================ */
+
+.team-task-overview__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 90px;
+  color: #8b96a3;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ================================
+   Scrollbar
+================================ */
+
+.team-task-overview__teams::-webkit-scrollbar {
+  width: 4px;
+}
+
+.team-task-overview__teams::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.team-task-overview__teams::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #d7dde2;
+}
