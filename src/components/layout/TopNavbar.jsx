@@ -4,6 +4,7 @@ import "./TopNavbar.css";
 import { useLocation } from "react-router-dom";
 import { getCompany } from "../../services/api/companyAPI";
 import NotificationBell from "../notification/NotificationBell/NotificationBell";
+import { useOrganization } from "../../context/OrganizationContext/OrganizationContext";
 
 /* ==========================================================================
    Icons
@@ -39,28 +40,43 @@ const BellIcon = () => (
 
 export default function TopNavbar({ onMenuClick }) {
   const location = useLocation();
+  const { company, setCompany } = useOrganization();
 
   const [companyName, setCompanyName] = useState("");
 
   /* ------------------------------------------------------------------------
-     Fetch company from backend
+     Fetch company from backend / context
      ------------------------------------------------------------------------ */
 
   useEffect(() => {
+    if (company?.name) {
+      setCompanyName(company.name);
+      return;
+    }
+
+    let mounted = true;
+
     const fetchCompany = async () => {
       try {
         const response = await getCompany();
 
-        const company = response?.data;
+        const companyData = response?.data;
 
-        setCompanyName(company?.name || "");
+        if (mounted && companyData) {
+          setCompany(companyData);
+          setCompanyName(companyData.name || "");
+        }
       } catch (error) {
         console.error("Failed to fetch company:", error);
       }
     };
 
     fetchCompany();
-  }, []);
+
+    return () => {
+      mounted = false;
+    };
+  }, [company, setCompany]);
 
   /* ------------------------------------------------------------------------
      Page configuration

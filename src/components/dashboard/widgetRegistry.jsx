@@ -13,6 +13,7 @@ import {
 import AttendanceActionWidget from "./widgets/specialized/AttendanceActionWidget/AttendanceActionWidget";
 import TeamTaskWidget from "./widgets/specialized/TeamTaskWidget/TeamTaskWidget";
 import TeamTaskOverviewWidget from "./widgets/specialized/TeamTaskOverviewWidget/TeamTaskOverviewWidget";
+import OrganizationSetupProgressWidget from "./widgets/specialized/OrganizationSetupProgressWidget/OrganizationSetupProgressWidget";
 
 import SummaryWidget from "./widgets/generic/SummaryWidget/SummaryWidget";
 import ListWidget from "./widgets/generic/ListWidget/ListWidget";
@@ -23,6 +24,7 @@ import {
   canViewEmployees,
   canViewDepartments,
   canViewDesignations,
+  isSuperOrAdmin,
 } from "../../utils/permissionUtils";
 
 export const dashboardWidgets = [
@@ -173,7 +175,9 @@ export const dashboardWidgets = [
         .filter((item) => item?.status !== "Holiday")
         .map((item) => ({
           date: item?.attendanceDate || "--",
-          hours: Number((Number(item?.workingSeconds || 0) / 3600).toFixed(2)),
+          hours: Number(
+            (Number(item?.workingSeconds || 0) / 3600).toFixed(2),
+          ),
         }));
 
       return {
@@ -210,7 +214,9 @@ export const dashboardWidgets = [
         (item) => item?.label === "Attendance Rate",
       );
 
-      const presentDays = stats.find((item) => item?.label === "Present Days");
+      const presentDays = stats.find(
+        (item) => item?.label === "Present Days",
+      );
 
       const absentDays = stats.find((item) => item?.label === "Absent Days");
 
@@ -239,39 +245,40 @@ export const dashboardWidgets = [
   // ==================================================
   // Work Management / Leave
   // ==================================================
-  {
-  key: "team-tasks",
-  enabled: true,
-  component: TeamTaskWidget,
-
-  canShow: (data) =>
-    data?.teamAccess?.hasTeam === true &&
-    data?.teamAccess?.isAdminOrHr !== true,
-
-  config: {
-    width: 8,
-  },
-
-  getProps: (data) => ({
-    data,
-  }),
-},
 
   {
-  key: "team-task-overview",
-  enabled: true,
-  component: TeamTaskOverviewWidget,
+    key: "team-tasks",
+    enabled: true,
+    component: TeamTaskWidget,
 
-  canShow: (data) => data?.teamAccess?.isAdminOrHr === true,
+    canShow: (data) =>
+      data?.teamAccess?.hasTeam === true &&
+      data?.teamAccess?.isAdminOrHr !== true,
 
-  config: {
-    width: 8,
+    config: {
+      width: 8,
+    },
+
+    getProps: (data) => ({
+      data,
+    }),
   },
 
-  getProps: (data) => ({
-    data,
-  }),
-},
+  {
+    key: "team-task-overview",
+    enabled: true,
+    component: TeamTaskOverviewWidget,
+
+    canShow: (data) => data?.teamAccess?.isAdminOrHr === true,
+
+    config: {
+      width: 8,
+    },
+
+    getProps: (data) => ({
+      data,
+    }),
+  },
 
   {
     key: "applied-leaves",
@@ -301,7 +308,8 @@ export const dashboardWidgets = [
         renderItem: (leave) => {
           const status = String(leave?.status || "PENDING").toLowerCase();
 
-          const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+          const statusLabel =
+            status.charAt(0).toUpperCase() + status.slice(1);
 
           return (
             <div className="applied-leave-item">
@@ -311,7 +319,8 @@ export const dashboardWidgets = [
                 <span>
                   {leave?.from_date === leave?.to_date
                     ? leave?.from_date
-                    : `${leave?.from_date || "--"} - ${leave?.to_date || "--"}`}
+                    : `${leave?.from_date || "--"} - ${leave?.to_date || "--"
+                    }`}
                 </span>
               </div>
 
@@ -385,9 +394,9 @@ export const dashboardWidgets = [
               <span>
                 {holiday?.date
                   ? new Date(holiday.date).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                    })
+                    day: "numeric",
+                    month: "short",
+                  })
                   : "--"}
               </span>
             </div>
@@ -403,14 +412,17 @@ export const dashboardWidgets = [
     component: ChartWidget,
 
     canShow: () =>
-      canViewEmployees() && (canViewDepartments() || canViewDesignations()),
+      canViewEmployees() &&
+      (canViewDepartments() || canViewDesignations()),
 
     config: {
       width: 8,
     },
 
     getProps: (data) => {
-      const employees = Array.isArray(data?.employees) ? data.employees : [];
+      const employees = Array.isArray(data?.employees)
+        ? data.employees
+        : [];
 
       // ----------------------------------------------
       // Collect unique designations
@@ -458,7 +470,6 @@ export const dashboardWidgets = [
         }
 
         const departmentKey = String(department.id);
-
         const designationKey = String(designation.id);
 
         if (!departmentMap[departmentKey]) {
@@ -516,6 +527,24 @@ export const dashboardWidgets = [
   // ==================================================
 
   {
+    key: "organization-setup-progress",
+    enabled: true,
+    component: OrganizationSetupProgressWidget,
+
+    // Organization setup progress is only relevant to
+    // Super Admin / Admin users.
+    canShow: () => isSuperOrAdmin(),
+
+    config: {
+      width: 8,
+    },
+
+    getProps: (data) => ({
+      data,
+    }),
+  },
+
+  {
     key: "employees-summary",
     enabled: true,
     component: SummaryWidget,
@@ -530,7 +559,6 @@ export const dashboardWidgets = [
       const organization = data?.organization?.employees || {};
 
       const total = organization.total ?? 0;
-
       const inactive = organization.inactive ?? 0;
 
       return {
@@ -576,7 +604,6 @@ export const dashboardWidgets = [
       const organization = data?.organization?.departments || {};
 
       const total = organization.total ?? 0;
-
       const inactive = organization.inactive ?? 0;
 
       return {
@@ -622,7 +649,6 @@ export const dashboardWidgets = [
       const organization = data?.organization?.designations || {};
 
       const total = organization.total ?? 0;
-
       const inactive = organization.inactive ?? 0;
 
       return {

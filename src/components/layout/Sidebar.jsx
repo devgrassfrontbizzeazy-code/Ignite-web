@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "../../styles/global.css";
 import darkLogo from "../../assets/dark_logo-removebg.png";
 import { getCurrentUser } from "../../services/api/authAPI";
+import { getEmployees } from "../../services/api/employeeAPI";
 import { useTeamsTasks } from "../../context/TeamsTasksContext";
 
 /* ==========================================================================
@@ -77,7 +78,6 @@ const TeamsIcon = () => (
   </svg>
 );
 
-/* Work Management icon */
 const WorkManagementIcon = () => (
   <svg {...iconProps}>
     <rect x="2.5" y="5.5" width="15" height="11" rx="2" />
@@ -223,7 +223,7 @@ const NAV_ITEMS = [
     label: "Employees",
     path: "/employees",
     icon: EmployeesIcon,
-    permission: "view_user",
+    permission: "employees.view",
   },
   {
     id: "work-management",
@@ -294,10 +294,14 @@ export default function Sidebar({
 }) {
   const navigate = useNavigate();
 
-  const { workManagementAccess, loading: teamsLoading } = useTeamsTasks();
+  const { workManagementAccess, loading: teamsLoading } =
+    useTeamsTasks();
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [employeeName, setEmployeeName] = useState("");
+
+  const profileCloseTimeout = useRef(null);
 
   const [user, setUser] = useState(() => {
     try {
@@ -307,20 +311,78 @@ export default function Sidebar({
     }
   });
 
+  /* ------------------------------------------------------------------------
+     Sync authenticated user + employee name
+     ------------------------------------------------------------------------ */
+
   useEffect(() => {
     const syncUser = async () => {
       try {
-        const local = JSON.parse(localStorage.getItem("user") || "{}");
+        const local = JSON.parse(
+          localStorage.getItem("user") || "{}",
+        );
 
         setUser(local);
 
         const res = await getCurrentUser();
 
         if (res?.user) {
-          const merged = { ...local, ...res.user };
+          const merged = {
+            ...local,
+            ...res.user,
+          };
 
           setUser(merged);
           localStorage.setItem("user", JSON.stringify(merged));
+
+          /*
+           * /auth/me/ currently returns email as full_name.
+           * Get the employee record to display the actual employee name.
+           */
+          if (merged.email) {
+            try {
+              const employeesResponse = await getEmployees();
+
+              const employees =
+                employeesResponse?.data ||
+                employeesResponse?.results ||
+                employeesResponse ||
+                [];
+
+              const employeeList = Array.isArray(employees)
+                ? employees
+                : [];
+
+              const matchedEmployee = employeeList.find(
+                (employee) =>
+                  String(employee?.email || "").toLowerCase() ===
+                  String(merged.email || "").toLowerCase(),
+              );
+
+              if (matchedEmployee) {
+                const name =
+                  matchedEmployee.fullName ||
+                  matchedEmployee.full_name ||
+                  [
+                    matchedEmployee.firstName,
+                    matchedEmployee.middleName,
+                    matchedEmployee.lastName,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim();
+
+                if (name) {
+                  setEmployeeName(name);
+                }
+              }
+            } catch (employeeError) {
+              console.error(
+                "Failed to load employee name:",
+                employeeError,
+              );
+            }
+          }
         }
       } catch {
         // Fallback to localStorage user.
@@ -338,18 +400,62 @@ export default function Sidebar({
     };
   }, []);
 
+  /* ------------------------------------------------------------------------
+     Profile hover handling
+     ------------------------------------------------------------------------ */
+
+  const openProfileMenu = () => {
+    if (profileCloseTimeout.current) {
+      clearTimeout(profileCloseTimeout.current);
+      profileCloseTimeout.current = null;
+    }
+
+    setProfileOpen(true);
+  };
+
+  const closeProfileMenu = () => {
+    if (profileCloseTimeout.current) {
+      clearTimeout(profileCloseTimeout.current);
+    }
+
+    profileCloseTimeout.current = setTimeout(() => {
+      setProfileOpen(false);
+    }, 350);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (profileCloseTimeout.current) {
+        clearTimeout(profileCloseTimeout.current);
+      }
+    };
+  }, []);
+
+  /* ------------------------------------------------------------------------
+     Display information
+     ------------------------------------------------------------------------ */
+
+  const isEmail = (value) =>
+    typeof value === "string" && value.includes("@");
+
+  const authName =
+    (user.name && !isEmail(user.name) && user.name) ||
+    (user.full_name && !isEmail(user.full_name) && user.full_name) ||
+    "";
+
   const displayName =
-    user.name ||
-    user.full_name ||
-    user.username ||
-    userName ||
+    employeeName ||
+    authName ||
+    (userName && !isEmail(userName) ? userName : "") ||
     "Guest User";
 
   const displayRole = user.role || userRole || "Member";
 
   const initials = getInitials(displayName);
 
-  const rawRole = String(user.role || userRole || "").toUpperCase();
+  const rawRole = String(
+    user.role || userRole || "",
+  ).toUpperCase();
 
   const isAdminOrOwner =
     rawRole === "OWNER" ||
@@ -363,40 +469,29 @@ export default function Sidebar({
 
   /*
    * Work Management is controlled by backend team membership context.
-   *
-   * While teams are loading, keep the item hidden temporarily for
-   * regular users to avoid showing it before access is known.
-   * Admin/Owner users still see it immediately.
    */
   const hasWorkManagementAccess =
     isAdminOrOwner ||
-    (!teamsLoading && workManagementAccess?.hasAccess === true);
+    (!teamsLoading &&
+      workManagementAccess?.hasAccess === true);
 
   const filteredNavItems = NAV_ITEMS.filter((item) => {
-    /*
-     * Work Management uses team membership/context instead of
-     * the generic `view_team` permission.
-     */
     if (item.id === "work-management") {
       return hasWorkManagementAccess;
     }
 
-    // Admin/Owner or wildcard has full access.
     if (isAdminOrOwner || userPermissions.includes("*")) {
       return true;
     }
 
-    // Admin-only modules are strictly hidden from regular users.
     if (item.adminOnly) {
       return false;
     }
 
-    // Built-in employee features.
     if (item.isPublic || item.isEmployeeDefault) {
       return true;
     }
 
-    // Explicit permissions granted via Designation / Role / Overrides.
     if (item.permission) {
       const p = item.permission;
 
@@ -419,20 +514,22 @@ export default function Sidebar({
         userPermissions.includes(
           `${item.label?.toLowerCase() || ""}.view_team`,
         ) ||
-        userPermissions.includes(
-          `${item.label?.toLowerCase() || ""}.view_own`,
-        ) ||
         (p === "view_user" &&
           (userPermissions.includes("employees.view") ||
             userPermissions.includes("employees.view_all") ||
-            userPermissions.includes("employees.view_department") ||
-            userPermissions.includes("employees.view_team") ||
-            userPermissions.includes("employees.view_own")))
+            userPermissions.includes(
+              "employees.view_department",
+            ) ||
+            userPermissions.includes("employees.view_team")))
       );
     }
 
     return false;
   });
+
+  /* ------------------------------------------------------------------------
+     Actions
+     ------------------------------------------------------------------------ */
 
   const handleViewProfile = () => {
     setProfileOpen(false);
@@ -450,10 +547,22 @@ export default function Sidebar({
 
     navigate("/login");
   };
+  console.log("SIDEBAR RBAC DEBUG", {
+    role: user.role,
+    is_superuser: user.is_superuser,
+    permissions: userPermissions,
+    isAdminOrOwner,
+    hasWildcard: userPermissions.includes("*"),
+  });
+
+  /* ------------------------------------------------------------------------
+     Render
+     ------------------------------------------------------------------------ */
 
   return (
     <aside
-      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""
+        }`}
       aria-label="Primary navigation"
     >
       {/* Header */}
@@ -484,6 +593,7 @@ export default function Sidebar({
         </button>
       </div>
 
+
       {/* Navigation */}
       <nav className="sidebar__nav">
         {filteredNavItems.map(
@@ -500,8 +610,7 @@ export default function Sidebar({
                   <NavLink
                     to={path}
                     className={({ isActive }) =>
-                      `sidebar__nav-item${
-                        isActive ? " is-active" : ""
+                      `sidebar__nav-item${isActive ? " is-active" : ""
                       }`
                     }
                     title={collapsed ? label : undefined}
@@ -510,7 +619,10 @@ export default function Sidebar({
                       <Icon />
                     </span>
 
-                    <span className="sidebar__nav-label">
+                    <span
+                      className="sidebar__nav-label"
+                      style={{ textTransform: "none" }}
+                    >
                       {label}
                     </span>
                   </NavLink>
@@ -527,8 +639,7 @@ export default function Sidebar({
                             key={childPath}
                             to={childPath}
                             className={({ isActive }) =>
-                              `sidebar__nav-item sidebar__nav-item--child${
-                                isActive ? " is-active" : ""
+                              `sidebar__nav-item sidebar__nav-item--child${isActive ? " is-active" : ""
                               }`
                             }
                           >
@@ -536,7 +647,10 @@ export default function Sidebar({
                               <ChildIcon />
                             </span>
 
-                            <span className="sidebar__nav-label">
+                            <span
+                              className="sidebar__nav-label"
+                              style={{ textTransform: "none" }}
+                            >
                               {childLabel}
                             </span>
                           </NavLink>
@@ -553,8 +667,7 @@ export default function Sidebar({
                 key={path}
                 to={path}
                 className={({ isActive }) =>
-                  `sidebar__nav-item${
-                    isActive ? " is-active" : ""
+                  `sidebar__nav-item${isActive ? " is-active" : ""
                   }`
                 }
                 title={collapsed ? label : undefined}
@@ -563,7 +676,10 @@ export default function Sidebar({
                   <Icon />
                 </span>
 
-                <span className="sidebar__nav-label">
+                <span
+                  className="sidebar__nav-label"
+                  style={{ textTransform: "none" }}
+                >
                   {label}
                 </span>
               </NavLink>
@@ -573,12 +689,12 @@ export default function Sidebar({
       </nav>
 
       {/* Profile Footer */}
-      <div className="sidebar__footer">
-        <div
-          className="sidebar__profile-wrapper"
-          onMouseEnter={() => setProfileOpen(true)}
-          onMouseLeave={() => setProfileOpen(false)}
-        >
+      <div
+        className="sidebar__footer"
+        onMouseEnter={openProfileMenu}
+        onMouseLeave={closeProfileMenu}
+      >
+        <div className="sidebar__profile-wrapper">
           {profileOpen && (
             <div className="sidebar__profile-menu">
               <button
@@ -587,7 +703,9 @@ export default function Sidebar({
                 onClick={handleViewProfile}
               >
                 <ProfileIcon />
-                <span>View Profile</span>
+                <span style={{ textTransform: "none" }}>
+                  View Profile
+                </span>
               </button>
 
               <button
@@ -596,16 +714,17 @@ export default function Sidebar({
                 onClick={handleLogout}
               >
                 <LogoutIcon />
-                <span>Logout</span>
+                <span style={{ textTransform: "none" }}>
+                  Logout
+                </span>
               </button>
             </div>
           )}
 
           <button
             type="button"
-            className={`sidebar__profile${
-              profileOpen ? " is-open" : ""
-            }`}
+            className={`sidebar__profile${profileOpen ? " is-open" : ""
+              }`}
             aria-expanded={profileOpen}
             aria-label="Open profile menu"
           >
@@ -614,11 +733,17 @@ export default function Sidebar({
             </span>
 
             <span className="sidebar__profile-info">
-              <span className="sidebar__profile-name">
+              <span
+                className="sidebar__profile-name"
+                style={{ textTransform: "none" }}
+              >
                 {displayName}
               </span>
 
-              <span className="sidebar__profile-role">
+              <span
+                className="sidebar__profile-role"
+                style={{ textTransform: "none" }}
+              >
                 {displayRole}
               </span>
             </span>

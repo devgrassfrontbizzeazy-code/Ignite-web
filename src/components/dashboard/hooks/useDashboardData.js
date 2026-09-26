@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import attendanceAPI from "../../../services/api/attendanceAPI";
 import leaveApplicationAPI from "../../../services/api/leaveApplicationAPI";
 
 import holidayAPI from "../../../services/api/holidayAPI";
 
-import { getEmployees } from "../../../services/api/employeeAPI";
 import { getDepartments } from "../../../services/api/departmentAPI";
 import { getDesignations } from "../../../services/api/designationAPI";
 import { getRoles } from "../../../services/api/roleAPI";
+import leavePolicyApi from "../../../services/api/leavePolicyAPI";
+import { getWorkSchedule } from "../../../services/api/workScheduleAPI";
 
 import { useTeamsTasks } from "../../../context/TeamsTasksContext";
 
@@ -16,11 +17,10 @@ import {
     canViewEmployees,
     canViewDepartments,
     canViewDesignations,
-    canViewAttendance,
-    canViewLeaves,
-    canViewHolidays,
-    canViewTeams,
 } from "../../../utils/permissionUtils";
+
+import { useOrganization } from "../../../context/OrganizationContext/OrganizationContext";
+import { calculateOrganizationSetupProgress } from "../../../utils/setupProgressUtils";
 
 const getArrayData = (response) => {
     if (Array.isArray(response)) {
@@ -45,33 +45,30 @@ const getInactiveCount = (items) => {
 };
 
 const useDashboardData = () => {
+    const { company } = useOrganization() || {};
+
     const {
         teams,
         tasks: teamTasks,
         workManagementAccess,
+        loading: contextLoading,
+        employees: contextEmployees,
     } = useTeamsTasks();
 
-    const [data, setData] = useState({
+    const [fetchedData, setFetchedData] = useState({
         attendance: null,
         attendanceHistory: null,
 
-        employees: [],
         departments: [],
         designations: [],
         roles: [],
+        workSchedule: null,
+        leavePolicies: [],
+        holidaysList: [],
 
         leaveBalance: [],
         leaves: [],
         holidays: [],
-        teams: [],
-        tasks: [],
-
-        teamAccess: {
-            hasTeam: false,
-            isMember: false,
-            isLead: false,
-            isAdminOrHr: false,
-        },
 
         employeeOverview: {
             total: 0,
@@ -82,10 +79,6 @@ const useDashboardData = () => {
         },
 
         organization: {
-            employees: {
-                total: 0,
-                inactive: 0,
-            },
             departments: {
                 total: 0,
                 inactive: 0,
@@ -106,11 +99,13 @@ const useDashboardData = () => {
         useState(false);
     const [error, setError] = useState(null);
 
+    const hasFetchedRef = useRef(false);
+
     const refreshAttendance = useCallback(async () => {
         const response =
             await attendanceAPI.getTodayAttendance();
 
-        setData((current) => ({
+        setFetchedData((current) => ({
             ...current,
             attendance: response?.data || null,
         }));
@@ -124,7 +119,7 @@ const useDashboardData = () => {
             leaveApplicationAPI.getMyLeaves(),
         ]);
 
-        setData((current) => ({
+        setFetchedData((current) => ({
             ...current,
             leaveBalance: Array.isArray(leaveBalance?.data)
                 ? leaveBalance.data
@@ -141,6 +136,13 @@ const useDashboardData = () => {
     }, []);
 
     useEffect(() => {
+        /*
+         * Wait for TeamsTasksContext to finish its initial load.
+         * Once loaded, run the dashboard initial API batch exactly once.
+         */
+        if (contextLoading || hasFetchedRef.current) return;
+        hasFetchedRef.current = true;
+
         let isMounted = true;
 
         const loadDashboardData = async () => {
@@ -150,9 +152,6 @@ const useDashboardData = () => {
 
                 /*
                  * Core personal dashboard data.
-                 *
-                 * These are independent from organization-level
-                 * permissions.
                  */
                 const [
                     attendance,
@@ -173,72 +172,65 @@ const useDashboardData = () => {
                 /*
                  * Organization-level data is requested only when
                  * the current user has the relevant permission.
-                 *
-                 * Roles are intentionally not permission-gated yet
-                 * because the current permission utility does not
-                 * provide a canViewRoles() helper.
                  */
-                const organizationRequests = {
-                    employees: canViewEmployees()
-                        ? getEmployees()
-                        : Promise.resolve(null),
-
-                    departments: canViewDepartments()
-                        ? getDepartments()
-                        : Promise.resolve(null),
-
-                    designations: canViewDesignations()
-                        ? getDesignations()
-                        : Promise.resolve(null),
-
-                    roles: canViewEmployees()
-                        ? getRoles()
-                        : Promise.resolve(null),
-
-                    attendance: canViewAttendance()
-                        ? Promise.resolve(null)
-                        : Promise.resolve(null),
-
-                    leaves: canViewLeaves()
-                        ? Promise.resolve(null)
-                        : Promise.resolve(null),
-
-                    holidays: canViewHolidays()
-                        ? Promise.resolve(null)
-                        : Promise.resolve(null),
-
-                    teams: canViewTeams()
-                        ? Promise.resolve(null)
-                        : Promise.resolve(null),
-                };
-
                 const [
-                    employeesResponse,
                     departmentsResponse,
                     designationsResponse,
                     rolesResponse,
-                ] = await Promise.all([
-                    organizationRequests.employees,
-                    organizationRequests.departments,
-                    organizationRequests.designations,
-                    organizationRequests.roles,
+                    workScheduleResponse,
+                    leavePoliciesResponse,
+                    holidaysResponse,
+                ] = await Promise.allSettled([
+                    canViewDepartments()
+                        ? getDepartments()
+                        : Promise.resolve(null),
+
+                    canViewDesignations()
+                        ? getDesignations()
+                        : Promise.resolve(null),
+
+                    canViewEmployees()
+                        ? getRoles()
+                        : Promise.resolve(null),
+
+                    getWorkSchedule(),
+
+                    leavePolicyApi.getPolicies(),
+
+                    holidayAPI.getHolidays(),
                 ]);
 
                 if (!isMounted) return;
 
-
-
-                const employees =
-                    getArrayData(employeesResponse);
-
                 const departments =
-                    getArrayData(departmentsResponse);
+                    departmentsResponse.status === "fulfilled"
+                        ? getArrayData(departmentsResponse.value)
+                        : [];
 
                 const designations =
-                    getArrayData(designationsResponse);
+                    designationsResponse.status === "fulfilled"
+                        ? getArrayData(designationsResponse.value)
+                        : [];
 
                 const roles =
-                    getArrayData(rolesResponse);
+                    rolesResponse.status === "fulfilled"
+                        ? getArrayData(rolesResponse.value)
+                        : [];
+
+                const workSchedule =
+                    workScheduleResponse.status === "fulfilled"
+                        ? workScheduleResponse.value?.data || workScheduleResponse.value
+                        : null;
+
+                const leavePolicies =
+                    leavePoliciesResponse.status === "fulfilled"
+                        ? getArrayData(leavePoliciesResponse.value)
+                        : [];
+
+                const holidaysList =
+                    holidaysResponse.status === "fulfilled"
+                        ? getArrayData(holidaysResponse.value)
+                        : [];
 
                 const employeeOverview = {
                     total: 0,
@@ -249,18 +241,9 @@ const useDashboardData = () => {
                 };
 
                 const organization = {
-                    employees: {
-                        total:
-                            employeesResponse?.count ??
-                            employees.length,
-
-                        inactive:
-                            getInactiveCount(employees),
-                    },
-
                     departments: {
                         total:
-                            departmentsResponse?.count ??
+                            departmentsResponse?.value?.count ??
                             departments.length,
 
                         inactive:
@@ -269,7 +252,7 @@ const useDashboardData = () => {
 
                     designations: {
                         total:
-                            designationsResponse?.count ??
+                            designationsResponse?.value?.count ??
                             designations.length,
 
                         inactive:
@@ -278,32 +261,25 @@ const useDashboardData = () => {
 
                     roles: {
                         total:
-                            rolesResponse?.count ??
+                            rolesResponse?.value?.count ??
                             roles.length,
 
                         inactive:
                             getInactiveCount(roles),
                     },
                 };
-                const userTeamIds = new Set(
-                    teams.map((team) => String(team.id))
-                );
 
-                const visibleTeamTasks = workManagementAccess?.isAdminOrHr
-                    ? teamTasks
-                    : teamTasks.filter((task) =>
-                        userTeamIds.has(String(task.teamId))
-                    );
-
-                setData({
+                setFetchedData({
                     attendance:
                         attendance?.data || null,
                     attendanceHistory: attendanceHistory || null,
 
-                    employees,
                     departments,
                     designations,
                     roles,
+                    workSchedule,
+                    leavePolicies,
+                    holidaysList,
 
                     leaveBalance:
                         Array.isArray(leaveBalance?.data)
@@ -319,24 +295,6 @@ const useDashboardData = () => {
                         Array.isArray(holidays?.data)
                             ? holidays.data
                             : [],
-
-                    teams: teams,
-                    tasks: visibleTeamTasks,
-
-                    teamAccess: {
-                        hasTeam:
-                            workManagementAccess?.isMember === true ||
-                            workManagementAccess?.isLead === true,
-
-                        isMember:
-                            workManagementAccess?.isMember === true,
-
-                        isLead:
-                            workManagementAccess?.isLead === true,
-
-                        isAdminOrHr:
-                            workManagementAccess?.isAdminOrHr === true,
-                    },
 
                     employeeOverview,
                     organization,
@@ -362,7 +320,58 @@ const useDashboardData = () => {
         return () => {
             isMounted = false;
         };
-    }, [workManagementAccess, teams, teamTasks]);
+    }, [contextLoading]);
+
+    /*
+     * Context-derived data computation.
+     * Recomputed whenever teams, teamTasks, workManagementAccess, or contextEmployees change,
+     * WITHOUT executing any backend API calls.
+     */
+    const employees = useMemo(
+        () => (canViewEmployees() ? contextEmployees : []),
+        [contextEmployees]
+    );
+
+    const userTeamIds = useMemo(
+        () => new Set(teams.map((team) => String(team.id))),
+        [teams]
+    );
+
+    const visibleTeamTasks = useMemo(
+        () =>
+            workManagementAccess?.isAdminOrHr
+                ? teamTasks
+                : teamTasks.filter((task) =>
+                      userTeamIds.has(String(task.teamId))
+                  ),
+        [workManagementAccess?.isAdminOrHr, teamTasks, userTeamIds]
+    );
+
+    const teamAccess = useMemo(
+        () => ({
+            hasTeam:
+                workManagementAccess?.isMember === true ||
+                workManagementAccess?.isLead === true,
+
+            isMember: workManagementAccess?.isMember === true,
+
+            isLead: workManagementAccess?.isLead === true,
+
+            isAdminOrHr: workManagementAccess?.isAdminOrHr === true,
+        }),
+        [workManagementAccess]
+    );
+
+    const organization = useMemo(
+        () => ({
+            ...fetchedData.organization,
+            employees: {
+                total: employees.length,
+                inactive: getInactiveCount(employees),
+            },
+        }),
+        [fetchedData.organization, employees]
+    );
 
     const punchIn = async () => {
         try {
@@ -396,8 +405,37 @@ const useDashboardData = () => {
         }
     };
 
+    const setupProgress = useMemo(
+        () =>
+            calculateOrganizationSetupProgress({
+                company,
+                departments: fetchedData.departments,
+                designations: fetchedData.designations,
+                roles: fetchedData.roles,
+                workSchedule: fetchedData.workSchedule,
+                leavePolicies: fetchedData.leavePolicies,
+                holidays: fetchedData.holidaysList.length > 0 ? fetchedData.holidaysList : fetchedData.holidays,
+            }),
+        [
+            company,
+            fetchedData.departments,
+            fetchedData.designations,
+            fetchedData.roles,
+            fetchedData.workSchedule,
+            fetchedData.leavePolicies,
+            fetchedData.holidaysList,
+            fetchedData.holidays,
+        ]
+    );
+
     return {
-        ...data,
+        ...fetchedData,
+        employees,
+        teams,
+        tasks: visibleTeamTasks,
+        teamAccess,
+        organization,
+        setupProgress,
         loading,
         error,
         attendanceActionLoading,

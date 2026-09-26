@@ -54,7 +54,6 @@ export const canViewEmployees = (user = null) => {
     "employees.view_all",
     "employees.view_department",
     "employees.view_team",
-    "employees.view_own",
   ], user);
 };
 
@@ -67,6 +66,27 @@ export const canCreateEmployees = (user = null) => {
     "employees.create_department",
     "employees.create_team",
   ], user);
+};
+export const canViewOwnProfile = (user = null) => {
+  return hasAnyPermission(
+    [
+      "employees.view_own",
+      "profile.view_own",
+      "profile.view",
+    ],
+    user,
+  );
+};
+
+export const canUpdateOwnProfile = (user = null) => {
+  return hasAnyPermission(
+    [
+      "employees.update_own",
+      "profile.update_own",
+      "profile.update",
+    ],
+    user,
+  );
 };
 
 export const canUpdateEmployees = (user = null, targetEmployee = null) => {

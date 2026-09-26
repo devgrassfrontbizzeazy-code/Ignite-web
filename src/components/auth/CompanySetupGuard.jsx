@@ -7,9 +7,11 @@ import {
 
 import IgniteLoader from "../common/IgniteLoader/IgniteLoader";
 import { getCompany } from "../../services/api/companyAPI";
+import { useOrganization } from "../../context/OrganizationContext/OrganizationContext";
 
 const CompanySetupGuard = () => {
   const location = useLocation();
+  const { setCompany } = useOrganization();
 
   const [loading, setLoading] = useState(true);
   const [companyExists, setCompanyExists] =
@@ -38,9 +40,12 @@ const CompanySetupGuard = () => {
         role.includes("EMPLOYEE");
 
       try {
-        await getCompany();
+        const response = await getCompany();
 
         if (mounted) {
+          if (response?.data) {
+            setCompany(response.data);
+          }
           setCompanyExists(true);
         }
       } catch (err) {

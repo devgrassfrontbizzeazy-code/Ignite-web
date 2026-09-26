@@ -12,11 +12,16 @@ export const OrganizationProvider = ({
   const [departments, setDepartments] =
     useState([]);
 
+  const [company, setCompany] =
+    useState(null);
+
   return (
     <OrganizationContext.Provider
       value={{
         departments,
         setDepartments,
+        company,
+        setCompany,
       }}
     >
       {children}

@@ -314,26 +314,18 @@ export const TeamsTasksProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // 1. Fetch Teams independently
-      try {
-        await fetchTeams();
-      } catch (err) {
-        console.warn("fetchTeams failed:", err?.message || err);
-      }
-
-      // 2. Fetch Tasks independently
-      try {
-        await fetchTasks();
-      } catch (err) {
-        console.warn("fetchTasks failed:", err?.message || err);
-      }
-
-      // 3. Fetch Employees independently (non-admin employees may get 403, which is normal)
-      try {
-        await fetchEmployees();
-      } catch (err) {
-        // Expected for regular team members without HR/Admin employee view permissions
-      }
+      /*
+       * Fetch teams, tasks, and employees concurrently.
+       * Each function handles its own state updates and error
+       * reporting internally. Promise.allSettled ensures all
+       * three settle independently regardless of individual
+       * failures.
+       */
+      await Promise.allSettled([
+        fetchTeams(),
+        fetchTasks(),
+        fetchEmployees(),
+      ]);
 
       if (mounted) {
         setLoading(false);

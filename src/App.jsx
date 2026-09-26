@@ -68,6 +68,8 @@ import WorkManagement from "./pages/workManagement/WorkManagement";
 
 import { TeamsTasksProvider, useTeamsTasks } from "./context/TeamsTasksContext";
 
+import Profile from "./pages/profile/Profile";
+
 /* =========================================================
    TEMPORARY / DASHBOARD
 ========================================================= */
@@ -304,13 +306,7 @@ export default function App() {
                   <Route element={<CompanySetupGuard />}>
                     <Route
                       element={
-                        <AppLayout
-                          title="Dashboard"
-                          breadcrumbs={["Dashboard"]}
-                          userName="Anu Sharma"
-                          userRole="Administrator"
-                          companyName="Ignite"
-                        />
+                        <AppLayout />
                       }
                     >
                       {/* =================================================
@@ -321,6 +317,7 @@ export default function App() {
                         path="/dashboard"
                         element={<Dashboard />}
                       />
+                      <Route path="/profile" element={<Profile />} />
 
                       <Route
                         path="/attendance"

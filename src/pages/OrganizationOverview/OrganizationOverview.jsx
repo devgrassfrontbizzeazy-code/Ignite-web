@@ -22,6 +22,12 @@ import { getCompany } from "../../services/api/companyAPI";
 import { getDepartments } from "../../services/api/departmentAPI";
 import { getDesignations } from "../../services/api/designationAPI";
 import { getEmployees } from "../../services/api/employeeAPI";
+import { getRoles } from "../../services/api/roleAPI";
+import { getWorkSchedule } from "../../services/api/workScheduleAPI";
+import leavePolicyApi from "../../services/api/leavePolicyAPI";
+import holidayAPI from "../../services/api/holidayAPI";
+import { calculateOrganizationSetupProgress } from "../../utils/setupProgressUtils";
+import roleService from "../../services/roleService";
 
 import "./OrganizationOverview.css";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
@@ -271,10 +277,13 @@ export default function OrganizationOverview() {
   const navigate = useNavigate();
 
   const [company, setCompany] = useState(null);
-
-  const [departmentCount, setDepartmentCount] = useState(0);
-  const [designationCount, setDesignationCount] = useState(0);
-  const [employeeCount, setEmployeeCount] = useState(0);
+  const [departments, setDepartments] = useState([]);
+  const [designations, setDesignations] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [workSchedule, setWorkSchedule] = useState(null);
+  const [leavePolicies, setLeavePolicies] = useState([]);
+  const [holidays, setHolidays] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -295,31 +304,55 @@ export default function OrganizationOverview() {
         departmentResponse,
         designationResponse,
         employeeResponse,
+        roleResponse,
+        workScheduleResponse,
+        leavePolicyResponse,
+        holidayResponse,
       ] = await Promise.allSettled([
         getCompany(),
         getDepartments(),
         getDesignations(),
         getEmployees(),
+        getRoles(),
+        getWorkSchedule(),
+        leavePolicyApi.getPolicies(),
+        holidayAPI.getHolidays(),
       ]);
 
       if (companyResponse.status === "fulfilled") {
-       
-
         setCompany(normalizeCompany(companyResponse.value?.data));
       } else {
         throw new Error("Unable to load company information.");
       }
 
       if (departmentResponse.status === "fulfilled") {
-        setDepartmentCount(extractList(departmentResponse.value).length);
+        setDepartments(extractList(departmentResponse.value));
       }
 
       if (designationResponse.status === "fulfilled") {
-        setDesignationCount(extractList(designationResponse.value).length);
+        setDesignations(extractList(designationResponse.value));
       }
 
       if (employeeResponse.status === "fulfilled") {
-        setEmployeeCount(extractList(employeeResponse.value).length);
+        setEmployees(extractList(employeeResponse.value));
+      }
+
+      if (roleResponse.status === "fulfilled") {
+        setRoles(extractList(roleResponse.value));
+      } else {
+        setRoles(roleService.getRoles());
+      }
+
+      if (workScheduleResponse.status === "fulfilled") {
+        setWorkSchedule(workScheduleResponse.value?.data || workScheduleResponse.value);
+      }
+
+      if (leavePolicyResponse.status === "fulfilled") {
+        setLeavePolicies(extractList(leavePolicyResponse.value));
+      }
+
+      if (holidayResponse.status === "fulfilled") {
+        setHolidays(extractList(holidayResponse.value));
       }
     } catch (err) {
       console.error("Organization overview error:", err);
@@ -339,73 +372,15 @@ export default function OrganizationOverview() {
     loadOverview(true);
   };
 
-  const getSetupItems = () => [
-  {
-    label: "Company details",
-    description: "Basic organization information",
-    complete: !!company?.name,
-    action: "Edit",
-    path: "/company/edit",
-  },
-  {
-    label: "Company address",
-    description: "Registered and business address",
-    complete: !!company?.fullAddress,
-    action: "Edit",
-    path: "/company/address/edit",
-  },
-  {
-    label: "Business settings",
-    description: "Financial year, currency and regional settings",
-    complete: !!company?.currency,
-    action: "Edit",
-    path: "/company/business-settings/edit",
-  },
-  {
-    label: "Departments",
-    description: "Create and manage organization departments",
-    complete: departmentCount > 0,
-    action: "Manage",
-    path: "/departments",
-  },
-  {
-    label: "Designations",
-    description: "Define employee designations and permissions",
-    complete: designationCount > 0,
-    action: "Manage",
-    path: "/designations",
-  },
-  {
-    label: "Employees",
-    description: "Add and manage organization employees",
-    complete: employeeCount > 0,
-    action: "Manage",
-    path: "/employees",
-  },
-  {
-    label: "Leave Policies",
-    description: "Configure leave types, balances and approval rules",
-    complete: !!company?.hasLeavePolicies,
-    action: "Manage",
-    path: "/leave-policies",
-  },
-  {
-    label: "Holidays",
-    description: "Manage company holidays and holiday calendar",
-    complete: !!company?.hasHolidays,
-    action: "Manage",
-    path: "/holidays",
-  },
-];
-
-  const setupItems = getSetupItems();
-
-  const completedSetup = setupItems.filter((item) => item.complete).length;
-
-  const setupProgress =
-    setupItems.length > 0
-      ? Math.round((completedSetup / setupItems.length) * 100)
-      : 0;
+  const setupProgressData = calculateOrganizationSetupProgress({
+    company,
+    departments,
+    designations,
+    roles,
+    workSchedule,
+    leavePolicies,
+    holidays,
+  });
 
   if (loading) {
     return <IgniteLoader text="Loading organization overview..." />;
@@ -668,7 +643,7 @@ export default function OrganizationOverview() {
           <StructureStat
             icon={Layers3}
             label="Departments"
-            value={departmentCount}
+            value={departments.length}
             description="Active organization units"
             onClick={() => navigate("/departments")}
           />
@@ -676,7 +651,7 @@ export default function OrganizationOverview() {
           <StructureStat
             icon={BriefcaseBusiness}
             label="Designations"
-            value={designationCount}
+            value={designations.length}
             description="Defined employee positions"
             onClick={() => navigate("/designations")}
           />
@@ -684,7 +659,7 @@ export default function OrganizationOverview() {
           <StructureStat
             icon={Users}
             label="Employees"
-            value={employeeCount}
+            value={employees.length}
             description="People in the organization"
             onClick={() => navigate("/employees")}
           />
@@ -740,9 +715,11 @@ export default function OrganizationOverview() {
           </div>
 
           <div className="organization-overview__progress-summary">
-            <strong>{setupProgress}%</strong>
+            <strong>{setupProgressData.percentage}%</strong>
 
-            <span>Complete</span>
+            <span>
+              {setupProgressData.completed} of {setupProgressData.total} completed
+            </span>
           </div>
         </div>
 
@@ -750,15 +727,15 @@ export default function OrganizationOverview() {
           <div
             className="organization-overview__progress-fill"
             style={{
-              width: `${setupProgress}%`,
+              width: `${setupProgressData.percentage}%`,
             }}
           />
         </div>
 
         <div className="organization-overview__setup-list">
-          {setupItems.map((item) => (
+          {setupProgressData.items.map((item) => (
             <SetupRow
-              key={item.label}
+              key={item.key || item.label}
               complete={item.complete}
               label={item.label}
               description={item.description}
