@@ -1,0 +1,55 @@
+.fs-employee-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fs-employee-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 20px;
+}
+
+.fs-employee-form__field--full {
+  grid-column: 1 / -1;
+}
+
+.fs-employee-form__input,
+.fs-employee-form__textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 14px;
+  color: #1a1f24;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.fs-employee-form__input:focus,
+.fs-employee-form__textarea:focus {
+  border-color: #0ba37f;
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.12);
+}
+
+.fs-employee-form__textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.fs-employee-form__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #e6eaee;
+  margin-top: 8px;
+}
+
+@media (max-width: 640px) {
+  .fs-employee-form__grid {
+    grid-template-columns: 1fr;
+  }
+}

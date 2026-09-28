@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Circle,
   ArrowRight,
-  ShieldCheck, Clock3,
+  ShieldCheck,
+  Clock3,
 } from "lucide-react";
 
 import { getCompany } from "../../services/api/companyAPI";
@@ -284,6 +285,9 @@ export default function OrganizationOverview() {
   const [workSchedule, setWorkSchedule] = useState(null);
   const [leavePolicies, setLeavePolicies] = useState([]);
   const [holidays, setHolidays] = useState([]);
+  const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
+    return localStorage.getItem("ignite_field_sales_enabled") === "true";
+  });
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -344,7 +348,9 @@ export default function OrganizationOverview() {
       }
 
       if (workScheduleResponse.status === "fulfilled") {
-        setWorkSchedule(workScheduleResponse.value?.data || workScheduleResponse.value);
+        setWorkSchedule(
+          workScheduleResponse.value?.data || workScheduleResponse.value,
+        );
       }
 
       if (leavePolicyResponse.status === "fulfilled") {
@@ -695,7 +701,67 @@ export default function OrganizationOverview() {
         </button>
       </section>
 
-      {/* SETUP STATUS */}
+      {/* FIELD SALES */}
+
+      <section className="organization-overview__field-sales">
+        <div className="organization-overview__field-sales-icon">
+          <BriefcaseBusiness size={21} strokeWidth={1.8} />
+        </div>
+
+        <div className="organization-overview__field-sales-content">
+          <span className="organization-overview__page-eyebrow">
+            FIELD SALES
+          </span>
+
+          <h2>Field Sales</h2>
+
+          <p>
+            {fieldSalesEnabled
+              ? "Field Sales is active for your organization. You can manage Field Sales employees and roles separately."
+              : "Activate Field Sales to manage Field Sales employees and roles alongside your existing HRMS setup."}
+          </p>
+        </div>
+
+        <div className="organization-overview__field-sales-control">
+          <span className={fieldSalesEnabled ? "is-active" : ""}>
+            {fieldSalesEnabled ? "Active" : "Inactive"}
+          </span>
+
+          <button
+            type="button"
+            className={`organization-overview__field-sales-toggle ${
+              fieldSalesEnabled ? "is-on" : ""
+            }`}
+            onClick={() => {
+              setFieldSalesEnabled((prev) => {
+                const next = !prev;
+
+                localStorage.setItem(
+                  "ignite_field_sales_enabled",
+                  String(next),
+                );
+
+                // Let other components know immediately.
+                window.dispatchEvent(
+                  new CustomEvent("ignite:field-sales-updated", {
+                    detail: { enabled: next },
+                  }),
+                );
+
+                return next;
+              });
+            }}
+            aria-pressed={fieldSalesEnabled}
+            aria-label={
+              fieldSalesEnabled
+                ? "Deactivate Field Sales"
+                : "Activate Field Sales"
+            }
+          >
+            <span className="organization-overview__field-sales-toggle-thumb" />
+          </button>
+        </div>
+      </section>
 
       {/* SETUP STATUS */}
 
@@ -718,7 +784,8 @@ export default function OrganizationOverview() {
             <strong>{setupProgressData.percentage}%</strong>
 
             <span>
-              {setupProgressData.completed} of {setupProgressData.total} completed
+              {setupProgressData.completed} of {setupProgressData.total}{" "}
+              completed
             </span>
           </div>
         </div>

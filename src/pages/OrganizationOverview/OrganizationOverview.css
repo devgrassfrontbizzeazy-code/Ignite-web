@@ -671,6 +671,120 @@
   color: #0ba37f;
   transform: translateX(1px);
 }
+
+/* =========================================================
+   FIELD SALES
+========================================================= */
+
+.organization-overview__field-sales {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 38px;
+  padding: 22px 24px;
+  border: 1px solid #dfe6e8;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.organization-overview__field-sales-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #edf5f3;
+  color: #0f3d3e;
+}
+
+.organization-overview__field-sales-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.organization-overview__field-sales-content h2 {
+  margin: 4px 0 5px;
+  color: #1a1f24;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.organization-overview__field-sales-content p {
+  margin: 0;
+  color: #707b82;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.organization-overview__field-sales-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.organization-overview__field-sales-control > span {
+  min-width: 52px;
+  color: #7a858c;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.organization-overview__field-sales-control > span.is-active {
+  color: #0ba37f;
+}
+
+.organization-overview__field-sales-toggle {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  flex: 0 0 48px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #dfe6e8;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.2s ease;
+}
+
+.organization-overview__field-sales-toggle:hover {
+  background: #cfd9dc;
+}
+
+.organization-overview__field-sales-toggle.is-on {
+  background: #0ba37f;
+}
+
+.organization-overview__field-sales-toggle.is-on:hover {
+  background: #098f70;
+}
+
+.organization-overview__field-sales-toggle-thumb {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(15, 61, 62, 0.2);
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+}
+
+.organization-overview__field-sales-toggle.is-on
+  .organization-overview__field-sales-toggle-thumb {
+  transform: translateX(20px);
+}
+
+.organization-overview__field-sales-toggle:focus-visible {
+  outline: 2px solid #0ba37f;
+  outline-offset: 3px;
+}
 /* =========================================================
    SETUP STATUS
 ========================================================= */
@@ -1073,6 +1187,23 @@
 
 .organization-overview__work-schedule-button {
   width: 100%;
+}
+.organization-overview__field-sales {
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 20px;
+}
+
+.organization-overview__field-sales-content {
+  flex: 1 1 calc(100% - 60px);
+}
+
+.organization-overview__field-sales-control {
+  width: 100%;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f1;
 }
 }
 

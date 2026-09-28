@@ -1,4 +1,3 @@
-
 .employees-page {
   display: flex;
   flex-direction: column;
@@ -152,3 +151,45 @@
   }
 }
 
+/* =========================
+   WORKSPACE TOGGLE
+========================= */
+
+.employees-page__workspace-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-surface);
+}
+
+.employees-page__workspace-option {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.employees-page__workspace-option:hover {
+  color: var(--ignite-deep-teal);
+}
+
+.employees-page__workspace-option--active {
+  background: var(--ignite-deep-teal);
+  color: #ffffff;
+}
+
+.employees-page__workspace-option--active:hover {
+  color: #ffffff;
+}

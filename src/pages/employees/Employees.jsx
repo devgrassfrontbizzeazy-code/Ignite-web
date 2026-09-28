@@ -15,6 +15,7 @@ import employeeService from "../../services/employeeService";
 import { canCreateEmployees, getCurrentUser } from "../../utils/permissionUtils";
 import { useNotification } from "../../context/NotificationContext";
 
+
 import "./Employees.css";
 
 const formatEmployeeName = (employee) =>
@@ -40,7 +41,10 @@ const Employees = () => {
   }, []);
 
   const canAddEmployee = canCreateEmployees(currentUser);
-
+  const isOwner =
+    currentUser?.role === "OWNER" ||
+    currentUser?.role_code === "OWNER" ||
+    currentUser?.is_owner === true;
   /*
    * EMPLOYEE DATA
    */
@@ -465,6 +469,26 @@ const Employees = () => {
         </div>
 
         <div className="employees-page__header-actions">
+
+          {isOwner && (
+            <div className="employees-page__workspace-toggle">
+              <button
+                type="button"
+                className="employees-page__workspace-option employees-page__workspace-option--active"
+              >
+                HRMS
+              </button>
+
+              <button
+                type="button"
+                className="employees-page__workspace-option"
+                onClick={() => navigate("/field-sales/employees")}
+              >
+                Field Sales
+              </button>
+            </div>
+          )}
+
           <div className="employees-page__date">
             <FiUsers />
             <span>{formattedDate}</span>
@@ -475,6 +499,7 @@ const Employees = () => {
               + Add Employee
             </Button>
           )}
+
         </div>
       </header>
 

@@ -70,6 +70,9 @@ import { TeamsTasksProvider, useTeamsTasks } from "./context/TeamsTasksContext";
 
 import Profile from "./pages/profile/Profile";
 
+
+import FieldSalesEmployees from "./pages/fieldSales/employees/FieldSalesEmployees";
+
 /* =========================================================
    TEMPORARY / DASHBOARD
 ========================================================= */
@@ -318,6 +321,24 @@ export default function App() {
                         element={<Dashboard />}
                       />
                       <Route path="/profile" element={<Profile />} />
+                      {/* =================================================
+    FIELD SALES
+================================================= */}
+
+                      <Route
+                        path="/field-sales"
+                        element={
+                          <div style={{ padding: "32px" }}>
+                            <h1>Field Sales Dashboard</h1>
+                            <p>Field Sales workspace dashboard.</p>
+                          </div>
+                        }
+                      />
+
+                      <Route
+                        path="/field-sales/employees"
+                        element={<FieldSalesEmployees />}
+                      />
 
                       <Route
                         path="/attendance"

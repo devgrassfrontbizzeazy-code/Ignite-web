@@ -127,6 +127,53 @@ const SettingsIcon = () => (
   </svg>
 );
 
+/* --------------------------------------------------------------------------
+   Field Sales Icons
+   -------------------------------------------------------------------------- */
+
+const BriefcaseBusinessIcon = () => (
+  <svg {...iconProps}>
+    <rect x="2.5" y="5.5" width="15" height="11" rx="2" />
+    <path d="M7 5.5V4.2A1.7 1.7 0 0 1 8.7 2.5h2.6A1.7 1.7 0 0 1 13 4.2v1.3" />
+    <path d="M2.5 9h15" />
+    <path d="M8 11.5h4" />
+  </svg>
+);
+
+const LeadsIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="7" cy="7" r="2.5" />
+    <path d="M2.8 16c0-2.8 1.8-4.7 4.2-4.7s4.2 1.9 4.2 4.7" />
+    <path d="M13 5.5h4" />
+    <path d="M15 3.5v4" />
+  </svg>
+);
+
+const VisitsIcon = () => (
+  <svg {...iconProps}>
+    <path d="M10 17s5-4.2 5-8.2a5 5 0 1 0-10 0C5 12.8 10 17 10 17Z" />
+    <circle cx="10" cy="8.5" r="1.7" />
+  </svg>
+);
+
+const CustomersIcon = () => (
+  <svg {...iconProps}>
+    <circle cx="7" cy="7" r="2.5" />
+    <circle cx="14" cy="8" r="2" />
+    <path d="M2.5 16.5c0-3 2-5 4.5-5s4.5 2 4.5 5" />
+    <path d="M12.5 12.5c2.2.3 3.7 1.7 4 4" />
+  </svg>
+);
+
+const FieldSalesDashboardIcon = () => (
+  <svg {...iconProps}>
+    <rect x="2.5" y="3" width="15" height="14" rx="2" />
+    <path d="M6 13v-3" />
+    <path d="M10 13V7" />
+    <path d="M14 13v-5" />
+  </svg>
+);
+
 const ChevronIcon = () => (
   <svg
     width="16"
@@ -185,7 +232,7 @@ const MoreIcon = () => (
 );
 
 /* ==========================================================================
-   Navigation Items & Permission Definitions
+   HRMS Navigation Items
    ========================================================================== */
 
 const NAV_ITEMS = [
@@ -272,6 +319,37 @@ const NAV_ITEMS = [
   },
 ];
 
+/* ==========================================================================
+   Field Sales Navigation
+   ========================================================================== */
+
+const FIELD_SALES_NAV_ITEMS = [
+  {
+    label: "Dashboard",
+    path: "/field-sales",
+    icon: FieldSalesDashboardIcon,
+  },
+  {
+    label: "Employees",
+    path: "/field-sales/employees",
+    icon: EmployeesIcon,
+  },
+  {
+    label: "Leads",
+    path: "/field-sales/leads",
+    icon: LeadsIcon,
+  },
+  {
+    label: "Visits",
+    path: "/field-sales/visits",
+    icon: VisitsIcon,
+  },
+  {
+    label: "Customers",
+    path: "/field-sales/customers",
+    icon: CustomersIcon,
+  },
+];
 function getInitials(name) {
   if (!name) return "";
 
@@ -300,6 +378,20 @@ export default function Sidebar({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [profileOpen, setProfileOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
+
+  const [activeSystem, setActiveSystem] = useState(() => {
+    return localStorage.getItem("ignite_active_system") || "hrms";
+  });
+
+  const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
+    return (
+      localStorage.getItem("ignite_field_sales_enabled") ===
+      "true"
+    );
+  });
+
+  const [systemSwitcherOpen, setSystemSwitcherOpen] =
+    useState(false);
 
   const profileCloseTimeout = useRef(null);
 
@@ -333,7 +425,10 @@ export default function Sidebar({
           };
 
           setUser(merged);
-          localStorage.setItem("user", JSON.stringify(merged));
+          localStorage.setItem(
+            "user",
+            JSON.stringify(merged),
+          );
 
           /*
            * /auth/me/ currently returns email as full_name.
@@ -391,14 +486,83 @@ export default function Sidebar({
 
     syncUser();
 
-    window.addEventListener("ignite:user-updated", syncUser);
+    window.addEventListener(
+      "ignite:user-updated",
+      syncUser,
+    );
+
     window.addEventListener("storage", syncUser);
 
     return () => {
-      window.removeEventListener("ignite:user-updated", syncUser);
+      window.removeEventListener(
+        "ignite:user-updated",
+        syncUser,
+      );
+
       window.removeEventListener("storage", syncUser);
     };
   }, []);
+
+  /* ------------------------------------------------------------------------
+     Sync Field Sales activation
+     ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    const handleFieldSalesUpdate = (event) => {
+      const enabled =
+        event?.detail?.enabled ??
+        localStorage.getItem("ignite_field_sales_enabled") ===
+        "true";
+
+      setFieldSalesEnabled(enabled);
+
+      if (!enabled) {
+        setActiveSystem("hrms");
+        localStorage.setItem(
+          "ignite_active_system",
+          "hrms",
+        );
+        setSystemSwitcherOpen(false);
+      }
+    };
+
+    window.addEventListener(
+      "ignite:field-sales-updated",
+      handleFieldSalesUpdate,
+    );
+
+    window.addEventListener(
+      "storage",
+      handleFieldSalesUpdate,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "ignite:field-sales-updated",
+        handleFieldSalesUpdate,
+      );
+
+      window.removeEventListener(
+        "storage",
+        handleFieldSalesUpdate,
+      );
+    };
+  }, []);
+
+  /* ------------------------------------------------------------------------
+     Validate persisted workspace
+     ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    if (!fieldSalesEnabled && activeSystem === "field-sales") {
+      setActiveSystem("hrms");
+
+      localStorage.setItem(
+        "ignite_active_system",
+        "hrms",
+      );
+    }
+  }, [fieldSalesEnabled, activeSystem]);
 
   /* ------------------------------------------------------------------------
      Profile hover handling
@@ -440,7 +604,9 @@ export default function Sidebar({
 
   const authName =
     (user.name && !isEmail(user.name) && user.name) ||
-    (user.full_name && !isEmail(user.full_name) && user.full_name) ||
+    (user.full_name &&
+      !isEmail(user.full_name) &&
+      user.full_name) ||
     "";
 
   const displayName =
@@ -449,7 +615,8 @@ export default function Sidebar({
     (userName && !isEmail(userName) ? userName : "") ||
     "Guest User";
 
-  const displayRole = user.role || userRole || "Member";
+  const displayRole =
+    user.role || userRole || "Member";
 
   const initials = getInitials(displayName);
 
@@ -467,20 +634,28 @@ export default function Sidebar({
     ? user.permissions
     : [];
 
-  /*
-   * Work Management is controlled by backend team membership context.
-   */
+  /* ------------------------------------------------------------------------
+     Work Management access
+     ------------------------------------------------------------------------ */
+
   const hasWorkManagementAccess =
     isAdminOrOwner ||
     (!teamsLoading &&
       workManagementAccess?.hasAccess === true);
+
+  /* ------------------------------------------------------------------------
+     Existing HRMS RBAC filtering
+     ------------------------------------------------------------------------ */
 
   const filteredNavItems = NAV_ITEMS.filter((item) => {
     if (item.id === "work-management") {
       return hasWorkManagementAccess;
     }
 
-    if (isAdminOrOwner || userPermissions.includes("*")) {
+    if (
+      isAdminOrOwner ||
+      userPermissions.includes("*")
+    ) {
       return true;
     }
 
@@ -515,12 +690,18 @@ export default function Sidebar({
           `${item.label?.toLowerCase() || ""}.view_team`,
         ) ||
         (p === "view_user" &&
-          (userPermissions.includes("employees.view") ||
-            userPermissions.includes("employees.view_all") ||
+          (userPermissions.includes(
+            "employees.view",
+          ) ||
+            userPermissions.includes(
+              "employees.view_all",
+            ) ||
             userPermissions.includes(
               "employees.view_department",
             ) ||
-            userPermissions.includes("employees.view_team")))
+            userPermissions.includes(
+              "employees.view_team",
+            )))
       );
     }
 
@@ -528,8 +709,33 @@ export default function Sidebar({
   });
 
   /* ------------------------------------------------------------------------
+     Workspace navigation
+     ------------------------------------------------------------------------ */
+
+  const visibleNavItems =
+    activeSystem === "field-sales"
+      ? FIELD_SALES_NAV_ITEMS
+      : filteredNavItems;
+
+  /* ------------------------------------------------------------------------
      Actions
      ------------------------------------------------------------------------ */
+
+  const handleSystemChange = (system) => {
+    setActiveSystem(system);
+    setSystemSwitcherOpen(false);
+
+    localStorage.setItem(
+      "ignite_active_system",
+      system,
+    );
+
+    if (system === "field-sales") {
+      navigate("/field-sales");
+    } else {
+      navigate("/dashboard");
+    }
+  };
 
   const handleViewProfile = () => {
     setProfileOpen(false);
@@ -547,12 +753,15 @@ export default function Sidebar({
 
     navigate("/login");
   };
+
   console.log("SIDEBAR RBAC DEBUG", {
     role: user.role,
     is_superuser: user.is_superuser,
     permissions: userPermissions,
     isAdminOrOwner,
     hasWildcard: userPermissions.includes("*"),
+    activeSystem,
+    fieldSalesEnabled,
   });
 
   /* ------------------------------------------------------------------------
@@ -566,6 +775,7 @@ export default function Sidebar({
       aria-label="Primary navigation"
     >
       {/* Header */}
+
       <div className="sidebar__header">
         <div className="sidebar__brand">
           <img
@@ -581,9 +791,12 @@ export default function Sidebar({
           onClick={() => {
             setCollapsed((prev) => !prev);
             setProfileOpen(false);
+            setSystemSwitcherOpen(false);
           }}
           aria-label={
-            collapsed ? "Expand sidebar" : "Collapse sidebar"
+            collapsed
+              ? "Expand sidebar"
+              : "Collapse sidebar"
           }
           aria-expanded={!collapsed}
         >
@@ -593,13 +806,163 @@ export default function Sidebar({
         </button>
       </div>
 
-
       {/* Navigation */}
+
       <nav className="sidebar__nav">
-        {filteredNavItems.map(
-          ({ label, path, icon: Icon, children }) => {
+        {/* Workspace Switcher — Owner/Admin only */}
+
+        {isAdminOrOwner && (
+          <div className="sidebar__system-switcher">
+            <button
+              type="button"
+              className={`sidebar__system-selector${systemSwitcherOpen
+                ? " is-open"
+                : ""
+                }`}
+              onClick={() =>
+                setSystemSwitcherOpen(
+                  (prev) => !prev,
+                )
+              }
+              aria-expanded={systemSwitcherOpen}
+              aria-label="Switch workspace"
+            >
+              <span className="sidebar__system-selector-main">
+                <span className="sidebar__system-selector-icon">
+                  {activeSystem === "hrms" ? (
+                    <OrganizationIcon />
+                  ) : (
+                    <BriefcaseBusinessIcon />
+                  )}
+                </span>
+
+                <span className="sidebar__system-selector-content">
+                  <span className="sidebar__system-selector-label">
+                    Current Workspace
+                  </span>
+
+                  <span className="sidebar__system-selector-value">
+                    {activeSystem === "hrms"
+                      ? "HRMS"
+                      : "Field Sales"}
+                  </span>
+                </span>
+              </span>
+
+              <span
+                className={`sidebar__system-chevron${systemSwitcherOpen
+                  ? " is-open"
+                  : ""
+                  }`}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 6l4 4 4-4" />
+                </svg>
+              </span>
+            </button>
+
+            {systemSwitcherOpen && (
+              <div className="sidebar__system-menu">
+                {/* HRMS */}
+
+                <button
+                  type="button"
+                  className={`sidebar__system-option${activeSystem === "hrms"
+                    ? " is-selected"
+                    : ""
+                    }`}
+                  onClick={() =>
+                    handleSystemChange("hrms")
+                  }
+                >
+                  <span className="sidebar__system-option-icon">
+                    <OrganizationIcon />
+                  </span>
+
+                  <span className="sidebar__system-option-content">
+                    <span className="sidebar__system-option-title">
+                      HRMS
+                    </span>
+
+                    <span className="sidebar__system-option-description">
+                      Employees, attendance &
+                      organization
+                    </span>
+                  </span>
+
+                  {activeSystem === "hrms" && (
+                    <span className="sidebar__system-option-check">
+                      ✓
+                    </span>
+                  )}
+                </button>
+
+                {/* Field Sales */}
+
+                {fieldSalesEnabled && (
+                  <button
+                    type="button"
+                    className={`sidebar__system-option${activeSystem ===
+                      "field-sales"
+                      ? " is-selected"
+                      : ""
+                      }`}
+                    onClick={() =>
+                      handleSystemChange(
+                        "field-sales",
+                      )
+                    }
+                  >
+                    <span className="sidebar__system-option-icon sidebar__system-option-icon--sales">
+                      <BriefcaseBusinessIcon />
+                    </span>
+
+                    <span className="sidebar__system-option-content">
+                      <span className="sidebar__system-option-title">
+                        Field Sales
+                      </span>
+
+                      <span className="sidebar__system-option-description">
+                        Leads, visits &
+                        customers
+                      </span>
+                    </span>
+
+                    {activeSystem ===
+                      "field-sales" && (
+                        <span className="sidebar__system-option-check">
+                          ✓
+                        </span>
+                      )}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Navigation Items */}
+
+        {visibleNavItems.map(
+          ({
+            label,
+            path,
+            icon: Icon,
+            children,
+          }) => {
             const isGroup =
-              Array.isArray(children) && children.length > 0;
+              Array.isArray(children) &&
+              children.length > 0;
 
             if (isGroup) {
               return (
@@ -608,12 +971,17 @@ export default function Sidebar({
                   className="sidebar__nav-group"
                 >
                   <NavLink
+                    key={path}
                     to={path}
+                    end
                     className={({ isActive }) =>
-                      `sidebar__nav-item${isActive ? " is-active" : ""
-                      }`
+                      `sidebar__nav-item${isActive ? " is-active" : ""}`
                     }
-                    title={collapsed ? label : undefined}
+                    title={
+                      collapsed
+                        ? label
+                        : undefined
+                    }
                   >
                     <span className="sidebar__nav-icon">
                       <Icon />
@@ -621,7 +989,10 @@ export default function Sidebar({
 
                     <span
                       className="sidebar__nav-label"
-                      style={{ textTransform: "none" }}
+                      style={{
+                        textTransform:
+                          "none",
+                      }}
                     >
                       {label}
                     </span>
@@ -631,15 +1002,20 @@ export default function Sidebar({
                     <div className="sidebar__nav-children">
                       {children.map(
                         ({
-                          label: childLabel,
+                          label:
+                          childLabel,
                           path: childPath,
                           icon: ChildIcon,
                         }) => (
                           <NavLink
                             key={childPath}
                             to={childPath}
-                            className={({ isActive }) =>
-                              `sidebar__nav-item sidebar__nav-item--child${isActive ? " is-active" : ""
+                            className={({
+                              isActive,
+                            }) =>
+                              `sidebar__nav-item sidebar__nav-item--child${isActive
+                                ? " is-active"
+                                : ""
                               }`
                             }
                           >
@@ -649,7 +1025,10 @@ export default function Sidebar({
 
                             <span
                               className="sidebar__nav-label"
-                              style={{ textTransform: "none" }}
+                              style={{
+                                textTransform:
+                                  "none",
+                              }}
                             >
                               {childLabel}
                             </span>
@@ -664,13 +1043,16 @@ export default function Sidebar({
 
             return (
               <NavLink
-                key={path}
                 to={path}
+                end
                 className={({ isActive }) =>
-                  `sidebar__nav-item${isActive ? " is-active" : ""
-                  }`
+                  `sidebar__nav-item${isActive ? " is-active" : ""}`
                 }
-                title={collapsed ? label : undefined}
+                title={
+                  collapsed
+                    ? label
+                    : undefined
+                }
               >
                 <span className="sidebar__nav-icon">
                   <Icon />
@@ -678,7 +1060,9 @@ export default function Sidebar({
 
                 <span
                   className="sidebar__nav-label"
-                  style={{ textTransform: "none" }}
+                  style={{
+                    textTransform: "none",
+                  }}
                 >
                   {label}
                 </span>
@@ -689,6 +1073,7 @@ export default function Sidebar({
       </nav>
 
       {/* Profile Footer */}
+
       <div
         className="sidebar__footer"
         onMouseEnter={openProfileMenu}
@@ -703,7 +1088,12 @@ export default function Sidebar({
                 onClick={handleViewProfile}
               >
                 <ProfileIcon />
-                <span style={{ textTransform: "none" }}>
+
+                <span
+                  style={{
+                    textTransform: "none",
+                  }}
+                >
                   View Profile
                 </span>
               </button>
@@ -714,7 +1104,12 @@ export default function Sidebar({
                 onClick={handleLogout}
               >
                 <LogoutIcon />
-                <span style={{ textTransform: "none" }}>
+
+                <span
+                  style={{
+                    textTransform: "none",
+                  }}
+                >
                   Logout
                 </span>
               </button>
@@ -735,14 +1130,18 @@ export default function Sidebar({
             <span className="sidebar__profile-info">
               <span
                 className="sidebar__profile-name"
-                style={{ textTransform: "none" }}
+                style={{
+                  textTransform: "none",
+                }}
               >
                 {displayName}
               </span>
 
               <span
                 className="sidebar__profile-role"
-                style={{ textTransform: "none" }}
+                style={{
+                  textTransform: "none",
+                }}
               >
                 {displayRole}
               </span>
