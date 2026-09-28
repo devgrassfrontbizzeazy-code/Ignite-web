@@ -11,7 +11,7 @@ import api from "./axios";
  * Do not add role-specific logic here.
  */
 
-export const getDashboard = async () => {
-  const response = await api.get("/dashboard/");
+export const getDashboard = async (config = {}) => {
+  const response = await api.get("/dashboard/", config);
   return response.data;
 };

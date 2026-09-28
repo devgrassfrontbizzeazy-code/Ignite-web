@@ -337,7 +337,7 @@ export const TeamsTasksProvider = ({ children }) => {
     return () => {
       mounted = false;
     };
-  }, [fetchEmployees, fetchTeams, fetchTasks]);
+  }, []);
 
   /*
    * ==========================================

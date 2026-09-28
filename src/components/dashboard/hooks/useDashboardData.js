@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import attendanceAPI from "../../../services/api/attendanceAPI";
 import leaveApplicationAPI from "../../../services/api/leaveApplicationAPI";
+import { getDashboard } from "../../../services/api/dashboardAPI";
 
 import holidayAPI from "../../../services/api/holidayAPI";
 
@@ -136,22 +137,66 @@ const useDashboardData = () => {
     }, []);
 
     useEffect(() => {
-        /*
-         * Wait for TeamsTasksContext to finish its initial load.
-         * Once loaded, run the dashboard initial API batch exactly once.
-         */
-        if (contextLoading || hasFetchedRef.current) return;
-        hasFetchedRef.current = true;
-
         let isMounted = true;
+        const controller = new AbortController();
 
         const loadDashboardData = async () => {
             try {
                 setLoading(true);
                 setError(null);
 
+                // Fetch unified dashboard endpoint (single fast roundtrip)
+                try {
+                    const unifiedResponse = await getDashboard({ signal: controller.signal });
+                    const d = unifiedResponse?.data || unifiedResponse;
+
+                    if (d && (d.attendance !== undefined || d.leaveBalance !== undefined || d.holidays !== undefined)) {
+                        setFetchedData({
+                            attendance: d.attendance || null,
+                            attendanceHistory: d.attendanceHistory || null,
+                            departments: getArrayData(d.departments),
+                            designations: getArrayData(d.designations),
+                            roles: getArrayData(d.roles),
+                            workSchedule: d.workSchedule || null,
+                            leavePolicies: getArrayData(d.leavePolicies),
+                            holidaysList: getArrayData(d.holidaysList),
+                            leaveBalance: getArrayData(d.leaveBalance),
+                            leaves: getArrayData(d.leaves),
+                            holidays: getArrayData(d.holidays),
+                            employeeOverview: {
+                                total: 0,
+                                present: 0,
+                                absent: 0,
+                                onLeave: 0,
+                                late: 0,
+                            },
+                            organization: d.organization || {
+                                departments: {
+                                    total: getArrayData(d.departments).length,
+                                    inactive: getInactiveCount(getArrayData(d.departments)),
+                                },
+                                designations: {
+                                    total: getArrayData(d.designations).length,
+                                    inactive: getInactiveCount(getArrayData(d.designations)),
+                                },
+                                roles: {
+                                    total: getArrayData(d.roles).length,
+                                    inactive: getInactiveCount(getArrayData(d.roles)),
+                                },
+                            },
+                        });
+                        setLoading(false);
+                        return;
+                    }
+                } catch (dashboardApiErr) {
+                    if (dashboardApiErr?.name === 'CanceledError' || dashboardApiErr?.code === 'ERR_CANCELED') {
+                        return;
+                    }
+                    console.warn("Unified dashboard API unavailable, falling back to individual calls:", dashboardApiErr);
+                }
+
                 /*
-                 * Core personal dashboard data.
+                 * Fallback: Individual calls if unified endpoint fails
                  */
                 const [
                     attendance,
@@ -169,10 +214,6 @@ const useDashboardData = () => {
 
                 if (!isMounted) return;
 
-                /*
-                 * Organization-level data is requested only when
-                 * the current user has the relevant permission.
-                 */
                 const [
                     departmentsResponse,
                     designationsResponse,
@@ -320,7 +361,7 @@ const useDashboardData = () => {
         return () => {
             isMounted = false;
         };
-    }, [contextLoading]);
+    }, []);
 
     /*
      * Context-derived data computation.
