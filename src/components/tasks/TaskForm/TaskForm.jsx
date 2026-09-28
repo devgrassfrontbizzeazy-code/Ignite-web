@@ -4,6 +4,7 @@ import { Search, UserRound, X } from "lucide-react";
 import FormField from "../../common/FormField/FormField";
 import Select from "../../common/Select/Select";
 import Button from "../../common/Button/Button";
+import DatePicker from "../../common/DatePicker/DatePicker";
 
 import "./TaskForm.css";
 
@@ -34,10 +35,7 @@ const getEmployeeName = (employee) =>
   employee?.email ||
   "Employee";
 
-const getTeamName = (team) =>
-  team?.name ||
-  team?.teamName ||
-  "Unnamed Team";
+const getTeamName = (team) => team?.name || team?.teamName || "Unnamed Team";
 
 const TaskForm = ({
   initialData = {},
@@ -56,7 +54,8 @@ const TaskForm = ({
     title: initialData?.title || "",
     description: initialData?.description || "",
     teamId: initialData?.teamId || fixedTeamId || "",
-    assignedTo: initialData?.assignedTo || (restrictAssignee ? currentEmployeeId : ""),
+    assignedTo:
+      initialData?.assignedTo || (restrictAssignee ? currentEmployeeId : ""),
     priority: initialData?.priority || "Medium",
     dueDate: initialData?.dueDate || "",
     status: initialData?.status || "To Do",
@@ -80,7 +79,8 @@ const TaskForm = ({
       title: initialData?.title || "",
       description: initialData?.description || "",
       teamId: initialData?.teamId || fixedTeamId || "",
-      assignedTo: initialData?.assignedTo || (restrictAssignee ? currentEmployeeId : ""),
+      assignedTo:
+        initialData?.assignedTo || (restrictAssignee ? currentEmployeeId : ""),
       priority: initialData?.priority || "Medium",
       dueDate: initialData?.dueDate || "",
       status: initialData?.status || "To Do",
@@ -94,9 +94,7 @@ const TaskForm = ({
    * Find selected team.
    */
   const selectedTeam = useMemo(() => {
-    return teams.find(
-      (team) => String(team.id) === String(formData.teamId)
-    );
+    return teams.find((team) => String(team.id) === String(formData.teamId));
   }, [teams, formData.teamId]);
 
   useEffect(() => {
@@ -152,14 +150,12 @@ const TaskForm = ({
       memberIds = selectedTeam.employeeIds;
     } else if (Array.isArray(selectedTeam.members)) {
       memberIds = selectedTeam.members.map((member) =>
-        typeof member === "object" ? member.id : member
+        typeof member === "object" ? member.id : member,
       );
     }
 
     return employees.filter((employee) =>
-      memberIds.some(
-        (id) => String(id) === String(employee.id)
-      )
+      memberIds.some((id) => String(id) === String(employee.id)),
     );
   }, [selectedTeam, employees]);
 
@@ -181,8 +177,11 @@ const TaskForm = ({
       .filter((employee) => {
         const name = getEmployeeName(employee).toLowerCase();
         const email = employee?.email?.toLowerCase() || "";
-        const code =
-          (employee?.employee_code || employee?.employeeCode || "").toLowerCase();
+        const code = (
+          employee?.employee_code ||
+          employee?.employeeCode ||
+          ""
+        ).toLowerCase();
 
         return (
           name.includes(searchValue) ||
@@ -195,8 +194,7 @@ const TaskForm = ({
 
   const selectedEmployee = useMemo(() => {
     return availableTeamMembers.find(
-      (employee) =>
-        String(employee.id) === String(formData.assignedTo)
+      (employee) => String(employee.id) === String(formData.assignedTo),
     );
   }, [availableTeamMembers, formData.assignedTo]);
 
@@ -289,21 +287,20 @@ const TaskForm = ({
       title: formData.title.trim(),
       description: formData.description.trim(),
       teamName: selectedTeam ? getTeamName(selectedTeam) : "",
-      assignedToName: selectedEmployee
-        ? getEmployeeName(selectedEmployee)
-        : "",
+      assignedToName: selectedEmployee ? getEmployeeName(selectedEmployee) : "",
     });
   };
 
-  const teamOptions = teams.filter((team) => !fixedTeamId || String(team.id) === String(fixedTeamId)).map((team) => ({
-    value: team.id,
-    label: getTeamName(team),
-  }));
+  const teamOptions = teams
+    .filter((team) => !fixedTeamId || String(team.id) === String(fixedTeamId))
+    .map((team) => ({
+      value: team.id,
+      label: getTeamName(team),
+    }));
 
   return (
     <form className="task-form" onSubmit={handleSubmit}>
       <div className="task-form__fields">
-
         {/* Task Title */}
         <FormField
           label="Task Title"
@@ -316,9 +313,7 @@ const TaskForm = ({
             type="text"
             placeholder="Enter task title"
             value={formData.title}
-            onChange={(event) =>
-              handleChange("title", event.target.value)
-            }
+            onChange={(event) => handleChange("title", event.target.value)}
             disabled={loading}
           />
         </FormField>
@@ -378,21 +373,28 @@ const TaskForm = ({
             <>
               {restrictAssignee ? (
                 <div className="task-form__selected-member">
-                  <div className="task-form__member-avatar">{getEmployeeName(selectedEmployee || {}).charAt(0).toUpperCase()}</div>
-                  <div className="task-form__member-info"><strong>{selectedEmployee ? getEmployeeName(selectedEmployee) : "You"}</strong><span>Assigned to you</span></div>
+                  <div className="task-form__member-avatar">
+                    {getEmployeeName(selectedEmployee || {})
+                      .charAt(0)
+                      .toUpperCase()}
+                  </div>
+                  <div className="task-form__member-info">
+                    <strong>
+                      {selectedEmployee
+                        ? getEmployeeName(selectedEmployee)
+                        : "You"}
+                    </strong>
+                    <span>Assigned to you</span>
+                  </div>
                 </div>
               ) : selectedEmployee ? (
                 <div className="task-form__selected-member">
                   <div className="task-form__member-avatar">
-                    {getEmployeeName(selectedEmployee)
-                      .charAt(0)
-                      .toUpperCase()}
+                    {getEmployeeName(selectedEmployee).charAt(0).toUpperCase()}
                   </div>
 
                   <div className="task-form__member-info">
-                    <strong>
-                      {getEmployeeName(selectedEmployee)}
-                    </strong>
+                    <strong>{getEmployeeName(selectedEmployee)}</strong>
 
                     <span>
                       {selectedEmployee.email ||
@@ -420,9 +422,7 @@ const TaskForm = ({
                       type="text"
                       placeholder="Search team members..."
                       value={memberSearch}
-                      onChange={(event) =>
-                        setMemberSearch(event.target.value)
-                      }
+                      onChange={(event) => setMemberSearch(event.target.value)}
                       disabled={loading}
                     />
                   </div>
@@ -435,9 +435,7 @@ const TaskForm = ({
                     <div className="task-form__member-empty">
                       <UserRound size={18} />
 
-                      <span>
-                        No members found in this team.
-                      </span>
+                      <span>No members found in this team.</span>
                     </div>
                   ) : (
                     <div className="task-form__member-results">
@@ -446,25 +444,19 @@ const TaskForm = ({
                           key={employee.id}
                           type="button"
                           className="task-form__member-option"
-                          onClick={() =>
-                            handleMemberSelect(employee)
-                          }
+                          onClick={() => handleMemberSelect(employee)}
                         >
                           <div className="task-form__member-avatar">
-                            {getEmployeeName(employee)
-                              .charAt(0)
-                              .toUpperCase()}
+                            {getEmployeeName(employee).charAt(0).toUpperCase()}
                           </div>
 
                           <div className="task-form__member-info">
-                            <strong>
-                              {getEmployeeName(employee)}
-                            </strong>
+                            <strong>{getEmployeeName(employee)}</strong>
 
                             <span>
                               {employee.email ||
-                                        employee.employee_code ||
-                                        employee.employeeCode ||
+                                employee.employee_code ||
+                                employee.employeeCode ||
                                 "Team Member"}
                             </span>
                           </div>
@@ -475,9 +467,7 @@ const TaskForm = ({
                         <div className="task-form__member-empty">
                           <Search size={17} />
 
-                          <span>
-                            No team member matches your search.
-                          </span>
+                          <span>No team member matches your search.</span>
                         </div>
                       )}
                     </div>
@@ -498,9 +488,7 @@ const TaskForm = ({
           <Select
             id="task-priority"
             value={formData.priority}
-            onChange={(value) =>
-              handleChange("priority", value)
-            }
+            onChange={(value) => handleChange("priority", value)}
             options={PRIORITY_OPTIONS}
             placeholder="Select priority"
             disabled={loading}
@@ -508,18 +496,11 @@ const TaskForm = ({
         </FormField>
 
         {/* Due Date */}
-        <FormField
-          label="Due Date"
-          htmlFor="task-due-date"
-          hint="Optional"
-        >
-          <input
-            id="task-due-date"
-            type="date"
+        <FormField label="Due Date" hint="Optional">
+          <DatePicker
             value={formData.dueDate}
-            onChange={(event) =>
-              handleChange("dueDate", event.target.value)
-            }
+            onChange={(value) => handleChange("dueDate", value)}
+            placeholder="Select due date"
             disabled={loading}
           />
         </FormField>
@@ -534,9 +515,7 @@ const TaskForm = ({
           <Select
             id="task-status"
             value={formData.status}
-            onChange={(value) =>
-              handleChange("status", value)
-            }
+            onChange={(value) => handleChange("status", value)}
             options={STATUS_OPTIONS}
             placeholder="Select status"
             disabled={loading}
@@ -554,11 +533,7 @@ const TaskForm = ({
           Cancel
         </Button>
 
-        <Button
-          type="submit"
-          variant="primary"
-          loading={loading}
-        >
+        <Button type="submit" variant="primary" loading={loading}>
           {initialData?.id ? "Save Changes" : "Create Task"}
         </Button>
       </div>

@@ -11,6 +11,42 @@
     justify-content: center;
 }
 
+/* Unread notification count */
+.notification-bell .top-navbar__notification-dot {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+
+    background: var(--ignite-emerald, #0ba37f);
+    color: #ffffff;
+
+    border: 2px solid var(--color-bg-surface, #ffffff);
+
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+
+    white-space: nowrap;
+
+    box-sizing: border-box;
+}
+
+/* Slightly larger badge when count has multiple digits */
+.notification-bell .top-navbar__notification-dot {
+    letter-spacing: -0.1px;
+}
+
 /* Dropdown positioning */
 .notification-bell .notification-dropdown {
     position: absolute;
