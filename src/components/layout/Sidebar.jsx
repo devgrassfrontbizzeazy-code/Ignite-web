@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import "../../styles/global.css";
+import "./Sidebar.css";
 import darkLogo from "../../assets/dark_logo-removebg.png";
 import { getCurrentUser } from "../../services/api/authAPI";
 import { getEmployees } from "../../services/api/employeeAPI";
@@ -20,6 +21,21 @@ const iconProps = {
   strokeLinecap: "round",
   strokeLinejoin: "round",
 };
+const WorkspaceChevronIcon = () => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M4 6L8 10L12 6" />
+  </svg>
+);
 
 const DashboardIcon = () => (
   <svg {...iconProps}>
@@ -394,15 +410,15 @@ function getInitials(name) {
 export default function Sidebar({
   userName = "Guest User",
   userRole = "Member",
-  defaultCollapsed = true,
+  defaultCollapsed = false,
 }) {
   const navigate = useNavigate();
 
-  const { workManagementAccess, loading: teamsLoading } =
-    useTeamsTasks();
+  const { workManagementAccess, loading: teamsLoading } = useTeamsTasks();
 
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
 
   const [activeSystem, setActiveSystem] = useState(() => {
@@ -410,14 +426,8 @@ export default function Sidebar({
   });
 
   const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
-    return (
-      localStorage.getItem("ignite_field_sales_enabled") ===
-      "true"
-    );
+    return localStorage.getItem("ignite_field_sales_enabled") === "true";
   });
-
-  const [systemSwitcherOpen, setSystemSwitcherOpen] =
-    useState(false);
 
   const profileCloseTimeout = useRef(null);
 
@@ -430,101 +440,84 @@ export default function Sidebar({
   });
 
   /* ------------------------------------------------------------------------
-     Sync authenticated user + employee name
+     Sync authenticated user
      ------------------------------------------------------------------------ */
 
   useEffect(() => {
     const syncUser = async () => {
       try {
-        const local = JSON.parse(
-          localStorage.getItem("user") || "{}",
-        );
+        const local = JSON.parse(localStorage.getItem("user") || "{}");
 
         setUser(local);
 
         const res = await getCurrentUser();
 
-        if (res?.user) {
-          const merged = {
-            ...local,
-            ...res.user,
-          };
+        if (!res?.user) return;
 
-          setUser(merged);
-          localStorage.setItem(
-            "user",
-            JSON.stringify(merged),
-          );
+        const merged = {
+          ...local,
+          ...res.user,
+        };
 
-          /*
-           * /auth/me/ currently returns email as full_name.
-           * Get the employee record to display the actual employee name.
-           */
-          if (merged.email) {
-            try {
-              const employeesResponse = await getEmployees();
+        setUser(merged);
+        localStorage.setItem("user", JSON.stringify(merged));
 
-              const employees =
-                employeesResponse?.data ||
-                employeesResponse?.results ||
-                employeesResponse ||
-                [];
+        if (merged.email) {
+          try {
+            const employeesResponse = await getEmployees();
 
-              const employeeList = Array.isArray(employees)
-                ? employees
-                : [];
+            const employees =
+              employeesResponse?.data ||
+              employeesResponse?.results ||
+              employeesResponse ||
+              [];
 
-              const matchedEmployee = employeeList.find(
-                (employee) =>
-                  String(employee?.email || "").toLowerCase() ===
-                  String(merged.email || "").toLowerCase(),
-              );
+            const employeeList = Array.isArray(employees)
+              ? employees
+              : [];
 
-              if (matchedEmployee) {
-                const name =
-                  matchedEmployee.fullName ||
-                  matchedEmployee.full_name ||
-                  [
-                    matchedEmployee.firstName,
-                    matchedEmployee.middleName,
-                    matchedEmployee.lastName,
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .trim();
+            const matchedEmployee = employeeList.find(
+              (employee) =>
+                String(employee?.email || "").toLowerCase() ===
+                String(merged.email || "").toLowerCase(),
+            );
 
-                if (name) {
-                  setEmployeeName(name);
-                }
+            if (matchedEmployee) {
+              const name =
+                matchedEmployee.fullName ||
+                matchedEmployee.full_name ||
+                [
+                  matchedEmployee.firstName,
+                  matchedEmployee.middleName,
+                  matchedEmployee.lastName,
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim();
+
+              if (name) {
+                setEmployeeName(name);
               }
-            } catch (employeeError) {
-              console.error(
-                "Failed to load employee name:",
-                employeeError,
-              );
             }
+          } catch (employeeError) {
+            console.error(
+              "Failed to load employee name:",
+              employeeError,
+            );
           }
         }
       } catch {
-        // Fallback to localStorage user.
+        // Keep localStorage user as fallback.
       }
     };
 
     syncUser();
 
-    window.addEventListener(
-      "ignite:user-updated",
-      syncUser,
-    );
-
+    window.addEventListener("ignite:user-updated", syncUser);
     window.addEventListener("storage", syncUser);
 
     return () => {
-      window.removeEventListener(
-        "ignite:user-updated",
-        syncUser,
-      );
-
+      window.removeEventListener("ignite:user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
     };
   }, []);
@@ -537,18 +530,14 @@ export default function Sidebar({
     const handleFieldSalesUpdate = (event) => {
       const enabled =
         event?.detail?.enabled ??
-        localStorage.getItem("ignite_field_sales_enabled") ===
-        "true";
+        localStorage.getItem("ignite_field_sales_enabled") === "true";
 
       setFieldSalesEnabled(enabled);
 
       if (!enabled) {
         setActiveSystem("hrms");
-        localStorage.setItem(
-          "ignite_active_system",
-          "hrms",
-        );
-        setSystemSwitcherOpen(false);
+        setWorkspaceOpen(false);
+        localStorage.setItem("ignite_active_system", "hrms");
       }
     };
 
@@ -557,10 +546,7 @@ export default function Sidebar({
       handleFieldSalesUpdate,
     );
 
-    window.addEventListener(
-      "storage",
-      handleFieldSalesUpdate,
-    );
+    window.addEventListener("storage", handleFieldSalesUpdate);
 
     return () => {
       window.removeEventListener(
@@ -568,10 +554,7 @@ export default function Sidebar({
         handleFieldSalesUpdate,
       );
 
-      window.removeEventListener(
-        "storage",
-        handleFieldSalesUpdate,
-      );
+      window.removeEventListener("storage", handleFieldSalesUpdate);
     };
   }, []);
 
@@ -582,16 +565,12 @@ export default function Sidebar({
   useEffect(() => {
     if (!fieldSalesEnabled && activeSystem === "field-sales") {
       setActiveSystem("hrms");
-
-      localStorage.setItem(
-        "ignite_active_system",
-        "hrms",
-      );
+      localStorage.setItem("ignite_active_system", "hrms");
     }
   }, [fieldSalesEnabled, activeSystem]);
 
   /* ------------------------------------------------------------------------
-     Profile hover handling
+     Profile menu
      ------------------------------------------------------------------------ */
 
   const openProfileMenu = () => {
@@ -630,9 +609,7 @@ export default function Sidebar({
 
   const authName =
     (user.name && !isEmail(user.name) && user.name) ||
-    (user.full_name &&
-      !isEmail(user.full_name) &&
-      user.full_name) ||
+    (user.full_name && !isEmail(user.full_name) && user.full_name) ||
     "";
 
   const displayName =
@@ -641,14 +618,11 @@ export default function Sidebar({
     (userName && !isEmail(userName) ? userName : "") ||
     "Guest User";
 
-  const displayRole =
-    user.role || userRole || "Member";
+  const displayRole = user.role || userRole || "Member";
 
   const initials = getInitials(displayName);
 
-  const rawRole = String(
-    user.role || userRole || "",
-  ).toUpperCase();
+  const rawRole = String(user.role || userRole || "").toUpperCase();
 
   const isAdminOrOwner =
     rawRole === "OWNER" ||
@@ -690,11 +664,10 @@ export default function Sidebar({
 
   const hasWorkManagementAccess =
     isAdminOrOwner ||
-    (!teamsLoading &&
-      workManagementAccess?.hasAccess === true);
+    (!teamsLoading && workManagementAccess?.hasAccess === true);
 
   /* ------------------------------------------------------------------------
-     Existing HRMS RBAC filtering
+     HRMS RBAC
      ------------------------------------------------------------------------ */
 
   const filteredNavItems = NAV_ITEMS.filter((item) => {
@@ -702,10 +675,7 @@ export default function Sidebar({
       return hasWorkManagementAccess;
     }
 
-    if (
-      isAdminOrOwner ||
-      userPermissions.includes("*")
-    ) {
+    if (isAdminOrOwner || userPermissions.includes("*")) {
       return true;
     }
 
@@ -740,18 +710,10 @@ export default function Sidebar({
           `${item.label?.toLowerCase() || ""}.view_team`,
         ) ||
         (p === "view_user" &&
-          (userPermissions.includes(
-            "employees.view",
-          ) ||
-            userPermissions.includes(
-              "employees.view_all",
-            ) ||
-            userPermissions.includes(
-              "employees.view_department",
-            ) ||
-            userPermissions.includes(
-              "employees.view_team",
-            )))
+          (userPermissions.includes("employees.view") ||
+            userPermissions.includes("employees.view_all") ||
+            userPermissions.includes("employees.view_department") ||
+            userPermissions.includes("employees.view_team")))
       );
     }
 
@@ -790,24 +752,49 @@ export default function Sidebar({
     : filteredNavItems;
 
   /* ------------------------------------------------------------------------
-     Actions
+     Workspace
      ------------------------------------------------------------------------ */
 
+  const currentWorkspace =
+    activeSystem === "field-sales"
+      ? {
+          name: "Field Sales",
+          icon: BriefcaseBusinessIcon,
+        }
+      : {
+          name: "HRMS",
+          icon: OrganizationIcon,
+        };
+
+  const CurrentWorkspaceIcon = currentWorkspace.icon;
+
   const handleSystemChange = (system) => {
-    setActiveSystem(system);
-    setSystemSwitcherOpen(false);
-
-    localStorage.setItem(
-      "ignite_active_system",
-      system,
-    );
-
-    if (system === "field-sales") {
-      navigate("/field-sales");
-    } else {
-      navigate("/dashboard");
+    if (system === "field-sales" && !fieldSalesEnabled) {
+      return;
     }
+
+    setActiveSystem(system);
+    setWorkspaceOpen(false);
+
+    localStorage.setItem("ignite_active_system", system);
+
+    navigate(
+      system === "field-sales"
+        ? "/field-sales"
+        : "/dashboard",
+    );
   };
+
+  const handleWorkspaceToggle = () => {
+    if (!fieldSalesEnabled) return;
+
+    setWorkspaceOpen((prev) => !prev);
+    setProfileOpen(false);
+  };
+
+  /* ------------------------------------------------------------------------
+     Profile actions
+     ------------------------------------------------------------------------ */
 
   const handleViewProfile = () => {
     setProfileOpen(false);
@@ -826,15 +813,13 @@ export default function Sidebar({
     navigate("/login");
   };
 
-
   /* ------------------------------------------------------------------------
      Render
      ------------------------------------------------------------------------ */
 
   return (
     <aside
-      className={`sidebar${collapsed ? " sidebar--collapsed" : ""
-        }`}
+      className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}
       aria-label="Primary navigation"
     >
       {/* Header */}
@@ -854,7 +839,7 @@ export default function Sidebar({
           onClick={() => {
             setCollapsed((prev) => !prev);
             setProfileOpen(false);
-            setSystemSwitcherOpen(false);
+            setWorkspaceOpen(false);
           }}
           aria-label={
             collapsed
@@ -872,157 +857,90 @@ export default function Sidebar({
       {/* Navigation */}
 
       <nav className="sidebar__nav">
-        {/* Workspace Switcher — Owner/Admin only */}
+
+        {/* Workspace Switcher */}
 
         {isAdminOrOwner && (
-          <div className="sidebar__system-switcher">
-            <button
-              type="button"
-              className={`sidebar__system-selector${systemSwitcherOpen
-                ? " is-open"
-                : ""
-                }`}
-              onClick={() =>
-                setSystemSwitcherOpen(
-                  (prev) => !prev,
-                )
-              }
-              aria-expanded={systemSwitcherOpen}
-              aria-label="Switch workspace"
-            >
-              <span className="sidebar__system-selector-main">
-                <span className="sidebar__system-selector-icon">
-                  {activeSystem === "hrms" ? (
-                    <OrganizationIcon />
-                  ) : (
-                    <BriefcaseBusinessIcon />
-                  )}
-                </span>
+          <div className="sidebar__workspace-switcher">
+            <div className="sidebar__workspace-dropdown">
 
-                <span className="sidebar__system-selector-content">
-                  <span className="sidebar__system-selector-label">
-                    Current Workspace
-                  </span>
+              {/* Current workspace */}
 
-                  <span className="sidebar__system-selector-value">
-                    {activeSystem === "hrms"
-                      ? "HRMS"
-                      : "Field Sales"}
-                  </span>
-                </span>
-              </span>
-
-              <span
-                className={`sidebar__system-chevron${systemSwitcherOpen
-                  ? " is-open"
-                  : ""
-                  }`}
+              <button
+                type="button"
+                className="sidebar__workspace-current"
+                onClick={handleWorkspaceToggle}
+                aria-expanded={workspaceOpen}
+                title={currentWorkspace.name}
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M4 6l4 4 4-4" />
-                </svg>
-              </span>
-            </button>
+                <span className="sidebar__workspace-current-icon">
+                  <CurrentWorkspaceIcon />
+                </span>
 
-            {systemSwitcherOpen && (
-              <div className="sidebar__system-menu">
-                {/* HRMS */}
+                <span className="sidebar__workspace-current-name">
+                  {currentWorkspace.name}
+                </span>
 
-                <button
-                  type="button"
-                  className={`sidebar__system-option${activeSystem === "hrms"
-                    ? " is-selected"
-                    : ""
+                {fieldSalesEnabled && (
+                  <span
+                    className={`sidebar__workspace-chevron ${
+                      workspaceOpen ? "is-open" : ""
                     }`}
-                  onClick={() =>
-                    handleSystemChange("hrms")
-                  }
-                >
-                  <span className="sidebar__system-option-icon">
-                    <OrganizationIcon />
-                  </span>
-
-                  <span className="sidebar__system-option-content">
-                    <span className="sidebar__system-option-title">
-                      HRMS
-                    </span>
-
-                    <span className="sidebar__system-option-description">
-                      Employees, attendance &
-                      organization
-                    </span>
-                  </span>
-
-                  {activeSystem === "hrms" && (
-                    <span className="sidebar__system-option-check">
-                      ✓
-                    </span>
-                  )}
-                </button>
-
-                {/* Field Sales */}
-
-                {effectiveFieldSalesEnabled && (
-                  <button
-                    type="button"
-                    className={`sidebar__system-option${activeSystem ===
-                      "field-sales"
-                      ? " is-selected"
-                      : ""
-                      }`}
-                    onClick={() =>
-                      handleSystemChange(
-                        "field-sales",
-                      )
-                    }
                   >
-                    <span className="sidebar__system-option-icon sidebar__system-option-icon--sales">
-                      <BriefcaseBusinessIcon />
-                    </span>
+                    <WorkspaceChevronIcon />
+                  </span>
+                )}
+              </button>
 
-                    <span className="sidebar__system-option-content">
-                      <span className="sidebar__system-option-title">
+              {/* Other workspace */}
+
+              {workspaceOpen && fieldSalesEnabled && (
+                <div className="sidebar__workspace-options">
+
+                  {activeSystem === "hrms" ? (
+                    <button
+                      type="button"
+                      className="sidebar__workspace-option"
+                      onClick={() =>
+                        handleSystemChange("field-sales")
+                      }
+                    >
+                      <span className="sidebar__workspace-icon">
+                        <BriefcaseBusinessIcon />
+                      </span>
+
+                      <span className="sidebar__workspace-name">
                         Field Sales
                       </span>
-
-                      <span className="sidebar__system-option-description">
-                        Leads, visits &
-                        customers
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="sidebar__workspace-option"
+                      onClick={() =>
+                        handleSystemChange("hrms")
+                      }
+                    >
+                      <span className="sidebar__workspace-icon">
+                        <OrganizationIcon />
                       </span>
-                    </span>
 
-                    {activeSystem ===
-                      "field-sales" && (
-                        <span className="sidebar__system-option-check">
-                          ✓
-                        </span>
-                      )}
-                  </button>
-                )}
-              </div>
-            )}
+                      <span className="sidebar__workspace-name">
+                        HRMS
+                      </span>
+                    </button>
+                  )}
+
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Navigation Items */}
 
         {visibleNavItems.map(
-          ({
-            label,
-            path,
-            icon: Icon,
-            children,
-          }) => {
+          ({ label, path, icon: Icon, children }) => {
             const isGroup =
               Array.isArray(children) &&
               children.length > 0;
@@ -1034,29 +952,20 @@ export default function Sidebar({
                   className="sidebar__nav-group"
                 >
                   <NavLink
-                    key={path}
                     to={path}
                     end
                     className={({ isActive }) =>
-                      `sidebar__nav-item${isActive ? " is-active" : ""}`
+                      `sidebar__nav-item${
+                        isActive ? " is-active" : ""
+                      }`
                     }
-                    title={
-                      collapsed
-                        ? label
-                        : undefined
-                    }
+                    title={collapsed ? label : undefined}
                   >
                     <span className="sidebar__nav-icon">
                       <Icon />
                     </span>
 
-                    <span
-                      className="sidebar__nav-label"
-                      style={{
-                        textTransform:
-                          "none",
-                      }}
-                    >
+                    <span className="sidebar__nav-label">
                       {label}
                     </span>
                   </NavLink>
@@ -1065,20 +974,18 @@ export default function Sidebar({
                     <div className="sidebar__nav-children">
                       {children.map(
                         ({
-                          label:
-                          childLabel,
+                          label: childLabel,
                           path: childPath,
                           icon: ChildIcon,
                         }) => (
                           <NavLink
                             key={childPath}
                             to={childPath}
-                            className={({
-                              isActive,
-                            }) =>
-                              `sidebar__nav-item sidebar__nav-item--child${isActive
-                                ? " is-active"
-                                : ""
+                            className={({ isActive }) =>
+                              `sidebar__nav-item sidebar__nav-item--child${
+                                isActive
+                                  ? " is-active"
+                                  : ""
                               }`
                             }
                           >
@@ -1086,13 +993,7 @@ export default function Sidebar({
                               <ChildIcon />
                             </span>
 
-                            <span
-                              className="sidebar__nav-label"
-                              style={{
-                                textTransform:
-                                  "none",
-                              }}
-                            >
+                            <span className="sidebar__nav-label">
                               {childLabel}
                             </span>
                           </NavLink>
@@ -1106,27 +1007,21 @@ export default function Sidebar({
 
             return (
               <NavLink
+                key={path}
                 to={path}
                 end
                 className={({ isActive }) =>
-                  `sidebar__nav-item${isActive ? " is-active" : ""}`
+                  `sidebar__nav-item${
+                    isActive ? " is-active" : ""
+                  }`
                 }
-                title={
-                  collapsed
-                    ? label
-                    : undefined
-                }
+                title={collapsed ? label : undefined}
               >
                 <span className="sidebar__nav-icon">
                   <Icon />
                 </span>
 
-                <span
-                  className="sidebar__nav-label"
-                  style={{
-                    textTransform: "none",
-                  }}
-                >
+                <span className="sidebar__nav-label">
                   {label}
                 </span>
               </NavLink>
@@ -1143,6 +1038,7 @@ export default function Sidebar({
         onMouseLeave={closeProfileMenu}
       >
         <div className="sidebar__profile-wrapper">
+
           {profileOpen && (
             <div className="sidebar__profile-menu">
               <button
@@ -1151,14 +1047,7 @@ export default function Sidebar({
                 onClick={handleViewProfile}
               >
                 <ProfileIcon />
-
-                <span
-                  style={{
-                    textTransform: "none",
-                  }}
-                >
-                  View Profile
-                </span>
+                <span>View Profile</span>
               </button>
 
               <button
@@ -1167,22 +1056,16 @@ export default function Sidebar({
                 onClick={handleLogout}
               >
                 <LogoutIcon />
-
-                <span
-                  style={{
-                    textTransform: "none",
-                  }}
-                >
-                  Logout
-                </span>
+                <span>Logout</span>
               </button>
             </div>
           )}
 
           <button
             type="button"
-            className={`sidebar__profile${profileOpen ? " is-open" : ""
-              }`}
+            className={`sidebar__profile${
+              profileOpen ? " is-open" : ""
+            }`}
             aria-expanded={profileOpen}
             aria-label="Open profile menu"
           >
@@ -1191,21 +1074,11 @@ export default function Sidebar({
             </span>
 
             <span className="sidebar__profile-info">
-              <span
-                className="sidebar__profile-name"
-                style={{
-                  textTransform: "none",
-                }}
-              >
+              <span className="sidebar__profile-name">
                 {displayName}
               </span>
 
-              <span
-                className="sidebar__profile-role"
-                style={{
-                  textTransform: "none",
-                }}
-              >
+              <span className="sidebar__profile-role">
                 {displayRole}
               </span>
             </span>

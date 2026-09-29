@@ -9,6 +9,8 @@ import {
   verifySignupOtp,
   completeSignup,
 } from "../../../services/api/authAPI";
+
+import BackButton from "../../../components/common/BackButton/BackButton";
 /*
  * Public Create Account page.
  *
@@ -103,57 +105,53 @@ const CreateAccount = () => {
   /* Mock backend calls — replace bodies with real API calls later.     */
   /* ------------------------------------------------------------------ */
 
-  
-
   /* ------------------------------------------------------------------ */
   /* Email step                                                         */
   /* ------------------------------------------------------------------ */
 
- const handleEmailSubmit = async (e) => {
-  e.preventDefault();
-  setEmailError("");
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault();
+    setEmailError("");
 
-  const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim();
 
-  if (!trimmedEmail) {
-    setEmailError("Please enter your email address.");
-    return;
-  }
-
-  if (!isValidEmail(trimmedEmail)) {
-    setEmailError("Please enter a valid email address.");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await sendSignupOtp(trimmedEmail);
-
-    
-
-    if (response.status === "success") {
-      setEmail(trimmedEmail);
-      setOtpDigits(Array(OTP_LENGTH).fill(""));
-      setOtpError("");
-      setStep("otp");
-      startResendCooldown();
-    } else {
-      setEmailError(
-        response.message || "We couldn't send a verification code."
-      );
+    if (!trimmedEmail) {
+      setEmailError("Please enter your email address.");
+      return;
     }
-  } catch (err) {
-    console.error("Send OTP error:", err);
 
-    setEmailError(
-      err.response?.data?.message ||
-        "We couldn't send a verification code. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!isValidEmail(trimmedEmail)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await sendSignupOtp(trimmedEmail);
+
+      if (response.status === "success") {
+        setEmail(trimmedEmail);
+        setOtpDigits(Array(OTP_LENGTH).fill(""));
+        setOtpError("");
+        setStep("otp");
+        startResendCooldown();
+      } else {
+        setEmailError(
+          response.message || "We couldn't send a verification code.",
+        );
+      }
+    } catch (err) {
+      console.error("Send OTP error:", err);
+
+      setEmailError(
+        err.response?.data?.message ||
+          "We couldn't send a verification code. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* ------------------------------------------------------------------ */
   /* OTP step                                                           */
@@ -214,73 +212,65 @@ const CreateAccount = () => {
   };
 
   const handleOtpSubmit = async (e) => {
-  e.preventDefault();
-  setOtpError("");
+    e.preventDefault();
+    setOtpError("");
 
-  const code = otpDigits.join("");
+    const code = otpDigits.join("");
 
-  if (code.length !== OTP_LENGTH) {
-    setOtpError("Please enter the full 6-digit code.");
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await verifySignupOtp(email, code);
-
-   
-
-    if (response.status === "success") {
-      setVerificationToken(response.verification_token);
-      setStep("password");
-    } else {
-      setOtpError(
-        response.message || "Invalid verification code."
-      );
+    if (code.length !== OTP_LENGTH) {
+      setOtpError("Please enter the full 6-digit code.");
+      return;
     }
-  } catch (err) {
-    console.error("Verify OTP error:", err);
 
-    setOtpError(
-      err.response?.data?.message ||
-        "Invalid verification code. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+    setLoading(true);
+
+    try {
+      const response = await verifySignupOtp(email, code);
+
+      if (response.status === "success") {
+        setVerificationToken(response.verification_token);
+        setStep("password");
+      } else {
+        setOtpError(response.message || "Invalid verification code.");
+      }
+    } catch (err) {
+      console.error("Verify OTP error:", err);
+
+      setOtpError(
+        err.response?.data?.message ||
+          "Invalid verification code. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleResendCode = async () => {
-  if (resendCooldown > 0 || loading) return;
+    if (resendCooldown > 0 || loading) return;
 
-  setOtpError("");
-  setLoading(true);
+    setOtpError("");
+    setLoading(true);
 
-  try {
-    const response = await sendSignupOtp(email);
+    try {
+      const response = await sendSignupOtp(email);
 
-    
+      if (response.status === "success") {
+        setOtpDigits(Array(OTP_LENGTH).fill(""));
+        otpInputRefs.current[0]?.focus();
+        startResendCooldown();
+      } else {
+        setOtpError(response.message || "We couldn't resend the code.");
+      }
+    } catch (err) {
+      console.error("Resend OTP error:", err);
 
-    if (response.status === "success") {
-      setOtpDigits(Array(OTP_LENGTH).fill(""));
-      otpInputRefs.current[0]?.focus();
-      startResendCooldown();
-    } else {
       setOtpError(
-        response.message || "We couldn't resend the code."
+        err.response?.data?.message ||
+          "We couldn't resend the code. Please try again.",
       );
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Resend OTP error:", err);
-
-    setOtpError(
-      err.response?.data?.message ||
-        "We couldn't resend the code. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   /* ------------------------------------------------------------------ */
   /* Password step                                                      */
@@ -305,61 +295,57 @@ const CreateAccount = () => {
   };
 
   const handlePasswordSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
+    e.preventDefault();
+    setError("");
 
-  const errors = validatePasswordStep();
-  setFieldErrors(errors);
+    const errors = validatePasswordStep();
+    setFieldErrors(errors);
 
-  if (Object.keys(errors).length > 0) {
-    return;
-  }
-
-  if (!verificationToken) {
-    setError(
-      "Your verification session has expired. Please verify your email again."
-    );
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    const response = await completeSignup(
-      email,
-      verificationToken,
-      password,
-      confirmPassword
-    );
-
-    
-
-    if (response.status === "success") {
-      setStep("success");
-    } else {
-      setError(
-        response.message || "We couldn't create your account."
-      );
+    if (Object.keys(errors).length > 0) {
+      return;
     }
-  } catch (err) {
-    console.error("Complete signup error:", err);
 
-    setError(
-      err.response?.data?.message ||
-        "We couldn't create your account. Please try again."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+    if (!verificationToken) {
+      setError(
+        "Your verification session has expired. Please verify your email again.",
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await completeSignup(
+        email,
+        verificationToken,
+        password,
+        confirmPassword,
+      );
+
+      if (response.status === "success") {
+        setStep("success");
+      } else {
+        setError(response.message || "We couldn't create your account.");
+      }
+    } catch (err) {
+      console.error("Complete signup error:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "We couldn't create your account. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const togglePasswordVisibility = () => setShowPassword((prev) => !prev);
   const toggleConfirmPasswordVisibility = () =>
     setShowConfirmPassword((prev) => !prev);
 
   const handleGoToLogin = () => {
-  navigate("/login", { replace: true });
-};
+    navigate("/login", { replace: true });
+  };
   /* ------------------------------------------------------------------ */
   /* Render                                                             */
   /* ------------------------------------------------------------------ */
@@ -367,10 +353,9 @@ const CreateAccount = () => {
   return (
     <div className="login-container">
       {/* Back to Home */}
-      <Link to="/" className="back-home-link">
-        <span className="back-arrow">←</span>
-        Back
-      </Link>
+      <div className="login-back-button">
+        <BackButton label="Back" onClick={() => navigate("/")} />
+      </div>
 
       {/* Background Elements */}
       <div className="login-background-elements">
