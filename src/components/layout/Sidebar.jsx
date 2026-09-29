@@ -754,15 +754,6 @@ export default function Sidebar({
     navigate("/login");
   };
 
-  console.log("SIDEBAR RBAC DEBUG", {
-    role: user.role,
-    is_superuser: user.is_superuser,
-    permissions: userPermissions,
-    isAdminOrOwner,
-    hasWildcard: userPermissions.includes("*"),
-    activeSystem,
-    fieldSalesEnabled,
-  });
 
   /* ------------------------------------------------------------------------
      Render

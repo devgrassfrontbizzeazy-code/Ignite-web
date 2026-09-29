@@ -1,0 +1,268 @@
+/* ==========================================================================
+   VISIT CHECKOUT
+   ========================================================================== */
+
+.visit-checkout {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 17px;
+}
+
+/* --------------------------------------------------------------------------
+   Lead
+   -------------------------------------------------------------------------- */
+
+.visit-checkout__lead {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 13px;
+    background: var(--color-bg-surface);
+}
+
+.visit-checkout__icon {
+    width: 43px;
+    height: 43px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: var(--color-secondary-soft);
+    color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visit-checkout__lead > div:last-child {
+    min-width: 0;
+}
+
+.visit-checkout__lead > div:last-child > span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--color-secondary);
+    font-size: 8px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+}
+
+.visit-checkout__lead h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visit-checkout__lead p {
+    margin: 3px 0 0;
+    color: var(--color-text-muted);
+    font-size: 9px;
+}
+
+/* --------------------------------------------------------------------------
+   Fields
+   -------------------------------------------------------------------------- */
+
+.visit-checkout__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.visit-checkout__field > label {
+    color: var(--color-text-primary);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* --------------------------------------------------------------------------
+   Outcome
+   -------------------------------------------------------------------------- */
+
+.visit-checkout__outcomes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.visit-checkout__outcome {
+    min-height: 42px;
+    padding: 0 10px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-bg-surface);
+
+    color: var(--color-text-secondary);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: var(--font-weight-semibold);
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.18s ease,
+        background-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease;
+}
+
+.visit-checkout__outcome:hover {
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
+}
+
+.visit-checkout__outcome.active {
+    border-color: var(--color-secondary);
+    background: var(--color-secondary-soft);
+    color: var(--color-secondary);
+    box-shadow: 0 0 0 2px rgba(11, 163, 127, 0.06);
+}
+
+.visit-checkout__outcome span {
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.55;
+}
+
+.visit-checkout__outcome.active span {
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Description
+   -------------------------------------------------------------------------- */
+
+.visit-checkout__field textarea {
+    width: 100%;
+    min-height: 115px;
+    resize: vertical;
+
+    padding: 11px 12px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    outline: none;
+
+    background: var(--color-bg-surface);
+    color: var(--color-text-primary);
+
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 1.55;
+
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.visit-checkout__field textarea::placeholder {
+    color: var(--color-text-muted);
+}
+
+.visit-checkout__field textarea:focus {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+/* --------------------------------------------------------------------------
+   Photo
+   -------------------------------------------------------------------------- */
+
+.visit-checkout__photo {
+    min-height: 145px;
+    padding: 22px 16px;
+
+    border: 1px dashed var(--color-border-strong);
+    border-radius: 12px;
+
+    background: var(--color-bg-subtle);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    text-align: center;
+    cursor: pointer;
+
+    transition:
+        border-color 0.18s ease,
+        background-color 0.18s ease;
+}
+
+.visit-checkout__photo:hover {
+    border-color: var(--color-secondary);
+    background: var(--color-secondary-soft);
+}
+
+.visit-checkout__photo input {
+    display: none;
+}
+
+.visit-checkout__photo > svg {
+    color: var(--color-secondary);
+    margin-bottom: 2px;
+}
+
+.visit-checkout__photo strong {
+    max-width: 90%;
+    overflow: hidden;
+    color: var(--color-text-primary);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.visit-checkout__photo span {
+    color: var(--color-text-muted);
+    font-size: 8px;
+    line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Actions
+   -------------------------------------------------------------------------- */
+
+.visit-checkout__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    padding-top: 3px;
+}
+
+.visit-checkout__actions > * {
+    min-width: 105px;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 500px) {
+    .visit-checkout__outcomes {
+        grid-template-columns: 1fr;
+    }
+
+    .visit-checkout__actions {
+        flex-direction: column-reverse;
+    }
+
+    .visit-checkout__actions > * {
+        width: 100%;
+    }
+}

@@ -1,0 +1,214 @@
+/* ==========================================================================
+   VISIT CHECK-IN
+   ========================================================================== */
+
+.visit-checkin {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Lead Header
+   -------------------------------------------------------------------------- */
+
+.visit-checkin__lead {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 13px;
+    background: var(--color-bg-surface);
+}
+
+.visit-checkin__lead-icon {
+    width: 43px;
+    height: 43px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: var(--color-secondary-soft);
+    color: var(--color-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visit-checkin__lead > div:last-child {
+    min-width: 0;
+}
+
+.visit-checkin__lead > div:last-child > span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--color-secondary);
+    font-size: 8px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.08em;
+}
+
+.visit-checkin__lead h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visit-checkin__lead p {
+    margin: 3px 0 0;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Location Card
+   -------------------------------------------------------------------------- */
+
+.visit-checkin__location-card {
+    padding: 15px;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(15, 61, 62, 0.035),
+            rgba(11, 163, 127, 0.02)
+        );
+}
+
+.visit-checkin__location-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.visit-checkin__location-header > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.visit-checkin__label {
+    color: var(--color-text-muted);
+    font-size: 8px;
+    font-weight: var(--font-weight-medium);
+}
+
+.visit-checkin__location-header strong {
+    color: var(--color-text-primary);
+    font-size: 13px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visit-checkin__location-header > svg {
+    color: var(--color-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Metrics
+   -------------------------------------------------------------------------- */
+
+.visit-checkin__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 13px;
+}
+
+.visit-checkin__metrics > div {
+    padding: 9px;
+    border-radius: 9px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+}
+
+.visit-checkin__metrics small {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--color-text-muted);
+    font-size: 8px;
+}
+
+.visit-checkin__metrics strong {
+    color: var(--color-text-primary);
+    font-size: 11px;
+    font-weight: var(--font-weight-bold);
+}
+
+/* --------------------------------------------------------------------------
+   Radius State
+   -------------------------------------------------------------------------- */
+
+.visit-checkin__radius {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px;
+    border-radius: 12px;
+}
+
+.visit-checkin__radius--valid {
+    border: 1px solid rgba(11, 163, 127, 0.25);
+    background: rgba(11, 163, 127, 0.07);
+    color: #047857;
+}
+
+.visit-checkin__radius--invalid {
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    background: rgba(212, 175, 55, 0.07);
+    color: #8a6a00;
+}
+
+.visit-checkin__radius-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visit-checkin__radius--valid .visit-checkin__radius-icon {
+    background: rgba(11, 163, 127, 0.12);
+    color: #047857;
+}
+
+.visit-checkin__radius--invalid .visit-checkin__radius-icon {
+    background: rgba(212, 175, 55, 0.13);
+    color: #8a6a00;
+}
+
+.visit-checkin__radius > div:last-child {
+    min-width: 0;
+}
+
+.visit-checkin__radius strong {
+    display: block;
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visit-checkin__radius p {
+    margin: 3px 0 0;
+    color: var(--color-text-muted);
+    font-size: 9px;
+    line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 450px) {
+    .visit-checkin__metrics {
+        grid-template-columns: 1fr;
+    }
+}

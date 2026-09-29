@@ -1,0 +1,190 @@
+/* ==========================================================================
+   VISIT FILTERS
+   ========================================================================== */
+
+.visits__controls {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+.visits__filters {
+    min-width: 0;
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(240px, 1.7fr) 155px 170px 170px;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Search */
+
+.visits__search {
+    min-width: 0;
+}
+
+/* Date */
+
+.visits__filter-date {
+    min-width: 0;
+}
+
+.visits__date-control {
+    height: 44px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 11px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-bg-surface);
+    color: var(--color-text-secondary);
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.visits__date-control:focus-within {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.visits__date-control svg {
+    flex-shrink: 0;
+    color: var(--color-secondary);
+}
+
+.visits__date-control input {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+}
+
+/* Select */
+
+.visits__filter-select {
+    min-width: 0;
+}
+
+/* --------------------------------------------------------------------------
+   View Toggle
+   -------------------------------------------------------------------------- */
+
+.visits__view-toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 3px;
+    gap: 3px;
+    border: 1px solid var(--color-border);
+    border-radius: 11px;
+    background: var(--color-bg-subtle);
+}
+
+.visits__view-button {
+    height: 36px;
+    min-width: 74px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-text-muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition:
+        background-color 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.visits__view-button:hover {
+    color: var(--color-text-primary);
+}
+
+.visits__view-button.active {
+    background: var(--color-bg-surface);
+    color: var(--color-secondary);
+    box-shadow: 0 2px 7px rgba(15, 61, 62, 0.1);
+}
+
+.visits__view-button.active svg {
+    color: var(--color-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 1150px) {
+    .visits__controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .visits__filters {
+        grid-template-columns: minmax(220px, 1.5fr) 150px 1fr 1fr;
+    }
+
+    .visits__view-toggle {
+        align-self: flex-end;
+    }
+}
+
+@media (max-width: 850px) {
+    .visits__filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .visits__search {
+        grid-column: span 2;
+    }
+
+    .visits__view-toggle {
+        width: 100%;
+    }
+
+    .visits__view-button {
+        flex: 1;
+    }
+}
+
+@media (max-width: 520px) {
+    .visits__controls {
+        padding: 12px;
+    }
+
+    .visits__filters {
+        grid-template-columns: 1fr;
+    }
+
+    .visits__search {
+        grid-column: auto;
+    }
+
+    .visits__view-toggle {
+        width: 100%;
+    }
+}

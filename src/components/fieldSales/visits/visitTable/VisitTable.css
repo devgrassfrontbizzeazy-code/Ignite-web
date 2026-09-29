@@ -1,0 +1,375 @@
+/* ==========================================================================
+   VISIT TABLE
+   ========================================================================== */
+
+.visits-table-card {
+    width: 100%;
+    overflow: hidden;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+.visits-table-card__header {
+    min-height: 72px;
+    padding: 15px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.visits-table-card__header h3 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: var(--font-weight-bold);
+}
+
+.visits-table-card__header p {
+    margin: 4px 0 0;
+    color: var(--color-text-muted);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.visits-table-card__count {
+    flex-shrink: 0;
+    min-height: 26px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--color-secondary-soft);
+    color: var(--color-secondary);
+    font-size: 10px;
+    font-weight: var(--font-weight-bold);
+}
+
+/* --------------------------------------------------------------------------
+   Table Wrapper
+   -------------------------------------------------------------------------- */
+
+.visits-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.visits-table {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: collapse;
+}
+
+/* --------------------------------------------------------------------------
+   Table Header
+   -------------------------------------------------------------------------- */
+
+.visits-table thead th {
+    height: 42px;
+    padding: 0 16px;
+    background: var(--color-bg-subtle);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    text-align: left;
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.visits-table__action-header {
+    text-align: right !important;
+}
+
+/* --------------------------------------------------------------------------
+   Table Body
+   -------------------------------------------------------------------------- */
+
+.visits-table tbody td {
+    height: 72px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    font-size: 11px;
+    vertical-align: middle;
+}
+
+.visits-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.visits-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.visits-table tbody tr:hover {
+    background: rgba(15, 61, 62, 0.025);
+}
+
+/* --------------------------------------------------------------------------
+   Lead
+   -------------------------------------------------------------------------- */
+
+.visits-table__lead {
+    min-width: 155px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.visits-table__lead strong {
+    color: var(--color-text-primary);
+    font-size: 11px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visits-table__lead span {
+    color: var(--color-text-muted);
+    font-size: 9px;
+}
+
+/* --------------------------------------------------------------------------
+   Employee
+   -------------------------------------------------------------------------- */
+
+.visits-table__employee {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 125px;
+}
+
+.visits-table__avatar {
+    width: 29px;
+    height: 29px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--color-secondary-soft);
+    color: var(--color-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visits-table__employee > span:last-child {
+    color: var(--color-text-primary);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+}
+
+/* --------------------------------------------------------------------------
+   Scheduled
+   -------------------------------------------------------------------------- */
+
+.visits-table__scheduled {
+    min-width: 105px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.visits-table__scheduled strong {
+    color: var(--color-text-primary);
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.visits-table__scheduled span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text-muted);
+    font-size: 9px;
+}
+
+.visits-table__scheduled svg {
+    color: var(--color-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Location
+   -------------------------------------------------------------------------- */
+
+.visits-table__location {
+    max-width: 190px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.45;
+}
+
+.visits-table__location svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--color-secondary);
+}
+
+.visits-table__location span {
+    color: var(--color-text-secondary);
+    font-size: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Visit Status
+   -------------------------------------------------------------------------- */
+
+.visit-status {
+    min-height: 26px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visit-status__dot {
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+
+/* Not Started */
+
+.visit-status--not_started {
+    background: #eef1f4;
+    color: #52606d;
+}
+
+.visit-status--not_started .visit-status__dot {
+    background: #87919b;
+}
+
+/* Checked In */
+
+.visit-status--checked_in {
+    background: #fff8e6;
+    color: #8a6a00;
+}
+
+.visit-status--checked_in .visit-status__dot {
+    background: #d4af37;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.13);
+}
+
+/* Checked Out */
+
+.visit-status--checked_out {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.visit-status--checked_out .visit-status__dot {
+    background: #0ba37f;
+}
+
+/* --------------------------------------------------------------------------
+   Outcome
+   -------------------------------------------------------------------------- */
+
+.visit-outcome {
+    min-height: 26px;
+    padding: 0 9px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+}
+
+.visit-outcome--follow_up {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.visit-outcome--deal_won {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.visit-outcome--lost {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.visits-table__muted {
+    color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Action
+   -------------------------------------------------------------------------- */
+
+.visits-table__action-cell {
+    text-align: right;
+}
+
+.visits-table__view {
+    min-height: 31px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-surface);
+    color: var(--color-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition:
+        color 0.18s ease,
+        border-color 0.18s ease,
+        background-color 0.18s ease,
+        transform 0.18s ease;
+}
+
+.visits-table__view:hover {
+    border-color: var(--color-secondary);
+    background: var(--color-secondary-soft);
+    color: var(--color-secondary);
+    transform: translateX(1px);
+}
+
+/* --------------------------------------------------------------------------
+   Empty
+   -------------------------------------------------------------------------- */
+
+.visits-table__empty {
+    height: 230px !important;
+    padding: 30px !important;
+    color: var(--color-text-muted) !important;
+    text-align: center;
+    font-size: 11px !important;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 700px) {
+    .visits-table-card__header {
+        padding: 14px;
+    }
+
+    .visits-table-card__header p {
+        display: none;
+    }
+}

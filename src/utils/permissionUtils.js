@@ -384,3 +384,39 @@ export const canUpdateOrganization = (user = null) => {
     "organization_setup.update",
   ], user);
 };
+
+// ==========================================
+// 9. FIELD TRACKING
+// ==========================================
+
+/** Can the user see their own location / visits on the map? */
+export const canViewOwnTracking = (user = null) => {
+  return hasAnyPermission([
+    "tracking.view_own",
+    "visits.view_own",
+    "field_tracking.view_own",
+  ], user);
+};
+
+/** Can the user see team member locations / visits? */
+export const canViewTeamTracking = (user = null) => {
+  return hasAnyPermission([
+    "tracking.view_team",
+    "visits.view_team",
+    "field_tracking.view_team",
+  ], user);
+};
+
+/** Can the user see all employee locations / visits? */
+export const canViewAllTracking = (user = null) => {
+  return hasAnyPermission([
+    "tracking.view_all",
+    "visits.view_all",
+    "field_tracking.view_all",
+  ], user);
+};
+
+/** Can the user see any team/all employee markers on the map? */
+export const canViewTeamOnMap = (user = null) => {
+  return canViewTeamTracking(user) || canViewAllTracking(user);
+};

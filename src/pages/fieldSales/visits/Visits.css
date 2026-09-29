@@ -1,0 +1,189 @@
+/* ==========================================================================
+   FIELD SALES — VISITS PAGE
+   ========================================================================== */
+
+.visits-page {
+    width: 100%;
+    min-height: 100%;
+    padding: 24px 28px 32px;
+    background: var(--color-bg-page);
+}
+
+/* ==========================================================================
+   PAGE HEADER
+   ========================================================================== */
+
+.visits-page > .page-header {
+    margin-bottom: 14px;
+}
+
+.visits__button-content {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+/* ==========================================================================
+   DATE SUMMARY
+   ========================================================================== */
+
+.visits__date-summary {
+    width: fit-content;
+    min-height: 34px;
+    margin-bottom: 18px;
+    padding: 0 11px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+
+    background: var(--color-bg-surface);
+    color: var(--color-text-muted);
+
+    font-size: 9px;
+    font-weight: var(--font-weight-medium);
+}
+
+.visits__date-summary svg {
+    flex-shrink: 0;
+    color: var(--color-secondary);
+}
+
+.visits__date-summary strong {
+    margin-left: 2px;
+    color: var(--color-text-primary);
+    font-size: 9px;
+    font-weight: var(--font-weight-bold);
+}
+
+/* ==========================================================================
+   WORKSPACE
+   ========================================================================== */
+
+.visits__workspace {
+    width: 100%;
+    margin-top: 18px;
+    padding: 14px !important;
+
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    overflow: hidden;
+}
+
+/*
+ * The shared Card component may already provide a border/background/shadow.
+ * Keep those intact and only control the Visits workspace spacing here.
+ */
+
+.visits__workspace > .visits__controls {
+    flex-shrink: 0;
+}
+
+.visits__workspace > .visits-map,
+.visits__workspace > .visits-table-card {
+    width: 100%;
+}
+
+/* ==========================================================================
+   MODAL ACTIONS
+   ========================================================================== */
+
+.visits-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+}
+
+.visits-modal-actions > * {
+    min-width: 100px;
+}
+
+/* ==========================================================================
+   EMPTY / LOADING SAFETY
+   ========================================================================== */
+
+.visits-page button {
+    font-family: inherit;
+}
+
+/* ==========================================================================
+   LARGE SCREENS
+   ========================================================================== */
+
+@media (min-width: 1440px) {
+    .visits-page {
+        padding-left: 32px;
+        padding-right: 32px;
+    }
+
+    .visits__workspace {
+        padding: 16px !important;
+    }
+}
+
+/* ==========================================================================
+   TABLET
+   ========================================================================== */
+
+@media (max-width: 900px) {
+    .visits-page {
+        padding: 20px 20px 28px;
+    }
+
+    .visits__workspace {
+        padding: 12px !important;
+    }
+}
+
+/* ==========================================================================
+   MOBILE
+   ========================================================================== */
+
+@media (max-width: 600px) {
+    .visits-page {
+        padding: 16px 14px 24px;
+    }
+
+    .visits__date-summary {
+        margin-bottom: 14px;
+    }
+
+    .visits__workspace {
+        margin-top: 14px;
+        padding: 10px !important;
+        gap: 10px;
+        border-radius: 13px;
+    }
+
+    .visits-modal-actions {
+        width: 100%;
+        flex-direction: column-reverse;
+    }
+
+    .visits-modal-actions > * {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   SMALL MOBILE
+   ========================================================================== */
+
+@media (max-width: 400px) {
+    .visits-page {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .visits__date-summary {
+        width: 100%;
+        justify-content: center;
+    }
+}

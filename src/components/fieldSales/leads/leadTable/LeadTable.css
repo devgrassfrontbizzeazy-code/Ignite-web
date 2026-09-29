@@ -1,0 +1,414 @@
+/* =========================
+   LEAD TABLE CARD
+========================= */
+
+.lead-table-card {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  max-width: 100%;
+
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.lead-table-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px 18px;
+
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 14px 14px 0 0;
+
+  background: #fcfefe;
+}
+
+.lead-table-card__header h3 {
+  margin: 0 0 4px;
+
+  color: var(--color-text-primary);
+
+  font-size: 17px;
+  font-weight: var(--font-weight-bold);
+
+  line-height: 1.3;
+}
+
+.lead-table-card__header p {
+  margin: 0;
+
+  color: var(--color-text-muted);
+
+  font-size: 11px;
+}
+
+/* =========================
+   TABLE WRAPPER
+========================= */
+
+.lead-table-wrapper {
+  position: relative;
+
+  width: 100%;
+  max-width: 100%;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  box-sizing: border-box;
+
+  border-radius: 0 0 14px 14px;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.lead-table {
+  position: relative;
+
+  width: 100%;
+  min-width: 1050px;
+
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* =========================
+   TABLE HEADER
+========================= */
+
+.lead-table th {
+  padding: 11px 14px;
+
+  border-bottom: 1px solid var(--color-border);
+
+  background: var(--ignite-teal-050);
+
+  color: var(--color-text-secondary);
+
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+
+  letter-spacing: 0.01em;
+
+  text-align: left;
+
+  white-space: nowrap;
+}
+
+/* =========================
+   TABLE BODY
+========================= */
+
+.lead-table td {
+  position: relative;
+
+  padding: 12px 14px;
+
+  border-bottom: 1px solid #edf1f3;
+
+  color: var(--color-text-secondary);
+
+  font-size: 12px;
+
+  vertical-align: middle;
+
+  white-space: nowrap;
+}
+
+.lead-table tbody tr {
+  position: relative;
+
+  transition: background 0.15s ease;
+}
+
+.lead-table tbody tr:hover {
+  background: #f8fcfb;
+}
+
+.lead-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* =========================
+   LEAD
+========================= */
+
+.lead-table__lead {
+  display: flex;
+  align-items: center;
+
+  min-width: 190px;
+}
+
+.lead-table__lead-info {
+  min-width: 0;
+}
+
+.lead-table__name {
+  margin-bottom: 3px;
+
+  color: var(--color-text-primary);
+
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+
+  line-height: 1.3;
+}
+
+.lead-table__email {
+  max-width: 190px;
+
+  overflow: hidden;
+
+  color: var(--color-text-muted);
+
+  font-size: 10px;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+/* =========================
+   COMPANY
+========================= */
+
+.lead-table__company {
+  color: var(--color-text-primary);
+
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* =========================
+   PHONE
+========================= */
+
+.lead-table__phone {
+  color: var(--color-text-secondary);
+
+  font-size: 11px;
+}
+
+/* =========================
+   ASSIGNED TO
+========================= */
+
+.lead-table__assigned {
+  color: var(--ignite-deep-teal);
+
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.lead-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 4px 8px;
+
+  border-radius: var(--radius-pill);
+
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+}
+
+.lead-status::before {
+  content: "";
+
+  width: 5px;
+  height: 5px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+}
+
+.lead-status--new {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+.lead-status--new::before {
+  background: var(--ignite-deep-teal);
+}
+
+.lead-status--follow-up {
+  background: #fff4df;
+  color: #a15c00;
+}
+
+.lead-status--follow-up::before {
+  background: #d99424;
+}
+
+.lead-status--won {
+  background: var(--ignite-emerald-100);
+  color: var(--ignite-emerald);
+}
+
+.lead-status--won::before {
+  background: var(--ignite-emerald);
+}
+
+.lead-status--lost {
+  background: #fff0ef;
+  color: #c7362f;
+}
+
+.lead-status--lost::before {
+  background: #d64545;
+}
+
+/* =========================
+   VISIT STATUS
+========================= */
+
+.lead-visit-status {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 4px 8px;
+
+  border-radius: var(--radius-pill);
+
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+}
+
+.lead-visit-status--not-started {
+  background: #eef1f4;
+  color: #52606d;
+}
+
+.lead-visit-status--checked-in {
+  background: #fff4df;
+  color: #a15c00;
+}
+
+.lead-visit-status--checked-out {
+  background: var(--ignite-emerald-100);
+  color: var(--ignite-emerald);
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+.lead-table__actions-header {
+  width: 70px;
+  min-width: 70px;
+
+  text-align: center !important;
+}
+
+.lead-table__actions-cell {
+  position: relative;
+
+  width: 70px;
+  min-width: 70px;
+
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+
+  text-align: center;
+
+  overflow: visible !important;
+
+  z-index: 10;
+}
+
+.lead-table tbody tr:hover
+  .lead-table__actions-cell {
+  z-index: 20;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
+.lead-table-empty {
+  padding: 55px 20px;
+
+  text-align: center;
+}
+
+.lead-table-empty__icon {
+  display: flex;
+
+  width: 52px;
+  height: 52px;
+
+  align-items: center;
+  justify-content: center;
+
+  margin: 0 auto 12px;
+
+  border-radius: 14px;
+
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+
+  font-size: 24px;
+}
+
+.lead-table-empty h4 {
+  margin: 0 0 5px;
+
+  color: var(--color-text-primary);
+
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+}
+
+.lead-table-empty p {
+  max-width: 380px;
+
+  margin: 0 auto;
+
+  color: var(--color-text-muted);
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 700px) {
+  .lead-table-card__header {
+    padding: 15px;
+  }
+
+  .lead-table th {
+    padding: 10px 12px;
+  }
+
+  .lead-table td {
+    padding: 11px 12px;
+  }
+}

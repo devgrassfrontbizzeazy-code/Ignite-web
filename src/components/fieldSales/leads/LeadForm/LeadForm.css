@@ -1,0 +1,524 @@
+/* ==========================================================================
+   LEAD FORM PAGE
+   ========================================================================== */
+
+.lead-form-page {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 28px 40px;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   PAGE TOP / BACK BUTTON
+   ========================================================================== */
+
+.lead-form-page__top {
+  margin-bottom: 18px;
+}
+
+/* ==========================================================================
+   PAGE HEADING
+   ========================================================================== */
+
+.lead-form-page__heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.lead-form-page__icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #e7f6f2;
+  color: #0ba37f;
+  border: 1px solid #d4eee7;
+
+  box-shadow: 0 4px 12px rgba(15, 61, 62, 0.06);
+}
+
+.lead-form-page__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.lead-form-page__heading h1 {
+  margin: 0 0 4px;
+
+  color: #1a1f24;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.lead-form-page__heading p {
+  margin: 0;
+
+  color: #7a858e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   ERROR ALERT
+   ========================================================================== */
+
+.lead-form-page__alert {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-bottom: 16px;
+  padding: 11px 13px;
+
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  background: #fff7f7;
+  color: #b42318;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.lead-form-page__alert svg {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+}
+
+/* ==========================================================================
+   FORM
+   ========================================================================== */
+
+.lead-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  width: 100%;
+}
+
+/* ==========================================================================
+   SECTION CARD
+   ========================================================================== */
+
+.lead-form__section {
+  position: relative;
+
+  padding: 20px;
+
+  border: 1px solid var(--color-border, #e6eaee);
+  border-radius: 14px;
+
+  background: var(--color-surface, #ffffff);
+
+  box-shadow: var(
+    --shadow-sm,
+    0 2px 8px rgba(15, 61, 62, 0.04)
+  );
+
+  overflow: visible;
+}
+
+/* Same top accent treatment as EmployeeForm */
+
+.lead-form__section::before {
+  content: "";
+
+  position: absolute;
+  top: -1px;
+  left: 16px;
+  right: 16px;
+
+  height: 2px;
+
+  border-radius: 0 0 4px 4px;
+
+  background: linear-gradient(
+    90deg,
+    #0ba37f,
+    #0f3d3e
+  );
+}
+
+/* Purple section */
+
+.lead-form__section--purple::before {
+  background: linear-gradient(
+    90deg,
+    #7c3aed,
+    #a855f7
+  );
+}
+
+/* Amber section */
+
+.lead-form__section--amber::before {
+  background: linear-gradient(
+    90deg,
+    #d4af37,
+    #f59e0b
+  );
+}
+
+/* ==========================================================================
+   SECTION HEADING
+   ========================================================================== */
+
+.lead-form__section-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+
+  border-bottom: 1px solid var(--color-border, #e6eaee);
+}
+
+.lead-form__section-heading h2 {
+  margin: 0 0 3px;
+
+  color: #1a1f24;
+
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.lead-form__section-heading p {
+  margin: 0;
+
+  color: #7a858e;
+
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   SECTION ICON
+   ========================================================================== */
+
+.lead-form__section-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+}
+
+.lead-form__section-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Teal */
+
+.lead-form__section-icon--teal {
+  background: #e7f6f2;
+  color: #0ba37f;
+  border: 1px solid #d4eee7;
+}
+
+/* Purple */
+
+.lead-form__section-icon--purple {
+  background: #f3eefe;
+  color: #7c3aed;
+  border: 1px solid #e7ddff;
+}
+
+/* Amber */
+
+.lead-form__section-icon--amber {
+  background: #fff8e6;
+  color: #b88900;
+  border: 1px solid #f6e7b2;
+}
+
+/* ==========================================================================
+   GRID
+   ========================================================================== */
+
+.lead-form__grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1fr);
+
+  gap: 15px;
+}
+
+/* ==========================================================================
+   FIELD
+   ========================================================================== */
+
+.lead-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  min-width: 0;
+}
+
+.lead-form__field--full {
+  grid-column: 1 / -1;
+}
+
+.lead-form__field label {
+  display: block;
+
+  color: #52606d;
+
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.lead-form__field label span {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+/* ==========================================================================
+   INPUT / SELECT / TEXTAREA
+   ========================================================================== */
+
+.lead-form__field input,
+.lead-form__field select,
+.lead-form__field textarea {
+  width: 100%;
+  box-sizing: border-box;
+
+  border: 1px solid #dfe4e8;
+  border-radius: 8px;
+
+  background: #ffffff;
+  color: #1a1f24;
+
+  font-family: inherit;
+  font-size: 11px;
+
+  outline: none;
+
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
+}
+
+.lead-form__field input,
+.lead-form__field select {
+  min-height: 38px;
+  padding: 9px 11px;
+}
+
+.lead-form__field textarea {
+  min-height: 80px;
+  padding: 9px 11px;
+
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.lead-form__field input::placeholder,
+.lead-form__field textarea::placeholder {
+  color: #a0a9b1;
+}
+
+/* Select */
+
+.lead-form__field select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+/* Focus */
+
+.lead-form__field input:focus,
+.lead-form__field select:focus,
+.lead-form__field textarea:focus {
+  border-color: #0ba37f;
+
+  box-shadow:
+    0 0 0 3px rgba(11, 163, 127, 0.1);
+}
+
+/* ==========================================================================
+   INPUT WITH ICON
+   ========================================================================== */
+
+.lead-form__input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.lead-form__input-wrap > svg {
+  position: absolute;
+
+  top: 50%;
+  left: 11px;
+
+  width: 14px;
+  height: 14px;
+
+  transform: translateY(-50%);
+
+  color: #8a959e;
+
+  pointer-events: none;
+}
+
+.lead-form__input-wrap input,
+.lead-form__input-wrap select {
+  padding-left: 32px;
+}
+
+/* Textarea icon */
+
+.lead-form__input-wrap--textarea > svg {
+  top: 12px;
+  transform: none;
+}
+
+.lead-form__input-wrap--textarea textarea {
+  padding-left: 32px;
+}
+
+/* ==========================================================================
+   FIELD ERROR
+   ========================================================================== */
+
+.lead-form__field--error input,
+.lead-form__field--error select,
+.lead-form__field--error textarea {
+  border-color: #ef4444;
+}
+
+.lead-form__field--error input:focus,
+.lead-form__field--error select:focus,
+.lead-form__field--error textarea:focus {
+  border-color: #ef4444;
+
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.lead-form__field small {
+  color: #dc2626;
+
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   FORM FOOTER
+   ========================================================================== */
+
+.lead-form__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  gap: 9px;
+
+  padding-top: 4px;
+}
+
+.lead-form__footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.lead-form__footer svg {
+  width: 14px;
+  height: 14px;
+  
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .lead-form-page {
+    padding: 22px 20px 36px;
+  }
+}
+
+@media (max-width: 650px) {
+  .lead-form-page {
+    padding: 20px 16px 32px;
+  }
+
+  .lead-form-page__heading {
+    gap: 11px;
+    margin-bottom: 20px;
+  }
+
+  .lead-form-page__icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+  }
+
+  .lead-form-page__heading h1 {
+    font-size: 21px;
+  }
+
+  .lead-form__section {
+    padding: 16px;
+  }
+
+  .lead-form__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .lead-form__field--full {
+    grid-column: auto;
+  }
+
+  .lead-form__section-heading {
+    margin-bottom: 17px;
+  }
+}
+
+@media (max-width: 450px) {
+  .lead-form-page {
+    padding: 16px 12px 28px;
+  }
+
+  .lead-form__section {
+    padding: 14px;
+  }
+
+  .lead-form__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .lead-form__footer button {
+    width: 100%;
+  }
+}

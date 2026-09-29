@@ -1,5 +1,11 @@
 // Codex local edit test
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 
 import { OrganizationProvider } from "./context/OrganizationContext/OrganizationContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -70,8 +76,10 @@ import { TeamsTasksProvider, useTeamsTasks } from "./context/TeamsTasksContext";
 
 import Profile from "./pages/profile/Profile";
 
-
 import FieldSalesEmployees from "./pages/fieldSales/employees/FieldSalesEmployees";
+import Leads from "./pages/fieldSales/leads/Leads";
+import LeadForm from "./components/fieldSales/leads/LeadForm/LeadForm";
+import Visits from "./pages/fieldSales/visits/Visits";
 
 /* =========================================================
    TEMPORARY / DASHBOARD
@@ -91,9 +99,7 @@ function Settings() {
         Settings
       </h1>
 
-      <p style={{ color: "#64748b" }}>
-        Organization and platform settings.
-      </p>
+      <p style={{ color: "#64748b" }}>Organization and platform settings.</p>
     </div>
   );
 }
@@ -143,8 +149,7 @@ function WorkManagementGuard() {
     );
   }
 
-  const hasAccess =
-    isAdminOrOwner || workManagementAccess?.hasAccess === true;
+  const hasAccess = isAdminOrOwner || workManagementAccess?.hasAccess === true;
 
   if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
@@ -184,17 +189,11 @@ export default function App() {
                   element={<ForgotPasswordPage />}
                 />
 
-                <Route
-                  path="/reset-password"
-                  element={<ResetPasswordPage />}
-                />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 <Route path="/signup" element={<SignupPage />} />
 
-                <Route
-                  path="/accept-invite"
-                  element={<AcceptInvitePage />}
-                />
+                <Route path="/accept-invite" element={<AcceptInvitePage />} />
 
                 {/* =====================================================
                     INITIAL COMPANY SETUP
@@ -206,20 +205,14 @@ export default function App() {
                     element={<CompanyDetails />}
                   />
 
-                  <Route
-                    path="/company-setup/address"
-                    element={<Address />}
-                  />
+                  <Route path="/company-setup/address" element={<Address />} />
 
                   <Route
                     path="/company-setup/business-settings"
                     element={<BusinessSettings />}
                   />
 
-                  <Route
-                    path="/company-setup/review"
-                    element={<Review />}
-                  />
+                  <Route path="/company-setup/review" element={<Review />} />
 
                   <Route
                     path="/company-setup/account-created"
@@ -307,23 +300,13 @@ export default function App() {
 
                 <Route element={<ProtectedRoute />}>
                   <Route element={<CompanySetupGuard />}>
-                    <Route
-                      element={
-                        <AppLayout />
-                      }
-                    >
+                    <Route element={<AppLayout />}>
                       {/* =================================================
                           EMPLOYEE ACCESSIBLE ROUTES
                       ================================================= */}
 
-                      <Route
-                        path="/dashboard"
-                        element={<Dashboard />}
-                      />
+                      <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/profile" element={<Profile />} />
-                      {/* =================================================
-    FIELD SALES
-================================================= */}
 
                       <Route
                         path="/field-sales"
@@ -335,25 +318,29 @@ export default function App() {
                         }
                       />
 
+                      <Route path="/field-sales/leads" element={<Leads />} />
+
+                      <Route
+                        path="/field-sales/leads/add"
+                        element={<LeadForm />}
+                      />
+
+                      <Route
+                        path="/field-sales/leads/:id/edit"
+                        element={<LeadForm />}
+                      />
+
                       <Route
                         path="/field-sales/employees"
                         element={<FieldSalesEmployees />}
                       />
+                      <Route path="/field-sales/visits" element={<Visits />} />
 
-                      <Route
-                        path="/attendance"
-                        element={<Attendance />}
-                      />
+                      <Route path="/attendance" element={<Attendance />} />
 
-                      <Route
-                        path="/leaves"
-                        element={<Leaves />}
-                      />
+                      <Route path="/leaves" element={<Leaves />} />
 
-                      <Route
-                        path="/holidays"
-                        element={<Holidays />}
-                      />
+                      <Route path="/holidays" element={<Holidays />} />
 
                       {/* =================================================
                           WORK MANAGEMENT
@@ -379,20 +366,11 @@ export default function App() {
                           element={<WorkManagement />}
                         />
 
-                        <Route
-                          path="/teams"
-                          element={<Teams />}
-                        />
+                        <Route path="/teams" element={<Teams />} />
 
-                        <Route
-                          path="/teams/:id"
-                          element={<TeamDetails />}
-                        />
+                        <Route path="/teams/:id" element={<TeamDetails />} />
 
-                        <Route
-                          path="/tasks"
-                          element={<Tasks />}
-                        />
+                        <Route path="/tasks" element={<Tasks />} />
 
                         <Route
                           path="/tasks/:id"
@@ -440,10 +418,7 @@ export default function App() {
                           element={<LeavePolicies />}
                         />
 
-                        <Route
-                          path="/settings"
-                          element={<Settings />}
-                        />
+                        <Route path="/settings" element={<Settings />} />
                       </Route>
 
                       {/* =================================================
@@ -485,10 +460,7 @@ export default function App() {
                           <PermissionGuard requiredPermission="view_user" />
                         }
                       >
-                        <Route
-                          path="/employees"
-                          element={<Employees />}
-                        />
+                        <Route path="/employees" element={<Employees />} />
 
                         <Route
                           path="/employees/add"
