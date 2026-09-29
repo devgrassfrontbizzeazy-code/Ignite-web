@@ -43,6 +43,32 @@ export const hasAnyPermission = (allowedKeys = [], user = null) => {
   return allowedKeys.some((k) => perms.includes(k));
 };
 
+export const isFieldSalesManager = (user = null) => {
+  const targetUser = user || getCurrentUser();
+  if (isSuperOrAdmin(targetUser)) return true;
+  const rawRole = String(targetUser.role || targetUser.designation || "").toUpperCase();
+  const perms = getUserPermissions(targetUser);
+  return (
+    targetUser.is_manager === true ||
+    rawRole === "MANAGER" ||
+    rawRole === "FIELD SALES MANAGER" ||
+    perms.includes("field_sales.manage") ||
+    perms.includes("field_sales.employees_manage")
+  );
+};
+
+export const isSalesPerson = (user = null) => {
+  const targetUser = user || getCurrentUser();
+  if (isFieldSalesManager(targetUser)) return false;
+  const rawRole = String(targetUser.role || targetUser.designation || "").toUpperCase();
+  return (
+    rawRole === "SALES PERSON" ||
+    rawRole === "MEMBER" ||
+    targetUser.department === "Field Sales" ||
+    targetUser.is_field_sales === true
+  );
+};
+
 // ==========================================
 // 1. EMPLOYEES
 // ==========================================

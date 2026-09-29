@@ -128,7 +128,7 @@ const DatePicker = ({
             const rect =
                 triggerRef.current.getBoundingClientRect();
 
-            const popupWidth = 270;
+            const popupWidth = 280;
             const popupHeight = 340;
             const gap = 6;
 
@@ -198,6 +198,28 @@ const DatePicker = ({
     const selectedDate = value
         ? parseDate(value)
         : null;
+
+    const handleMonthChange = (e) => {
+        const newMonth = parseInt(e.target.value, 10);
+        setViewDate(
+            new Date(
+                viewDate.getFullYear(),
+                newMonth,
+                1
+            )
+        );
+    };
+
+    const handleYearChange = (e) => {
+        const newYear = parseInt(e.target.value, 10);
+        setViewDate(
+            new Date(
+                newYear,
+                viewDate.getMonth(),
+                1
+            )
+        );
+    };
 
     const handlePreviousMonth = () => {
         setViewDate(
@@ -331,17 +353,35 @@ const DatePicker = ({
                             </button>
 
                             <div className="date-picker__month-year">
-                                <span>
-                                    {
-                                        MONTHS[
-                                        viewDate.getMonth()
-                                        ]
-                                    }
-                                </span>
+                                <select
+                                    className="date-picker__select date-picker__select--month"
+                                    value={viewDate.getMonth()}
+                                    onChange={handleMonthChange}
+                                    aria-label="Select month"
+                                >
+                                    {MONTHS.map((monthName, idx) => (
+                                        <option key={monthName} value={idx}>
+                                            {monthName}
+                                        </option>
+                                    ))}
+                                </select>
 
-                                <strong>
-                                    {viewDate.getFullYear()}
-                                </strong>
+                                <select
+                                    className="date-picker__select date-picker__select--year"
+                                    value={viewDate.getFullYear()}
+                                    onChange={handleYearChange}
+                                    aria-label="Select year"
+                                >
+                                    {Array.from({ length: 120 }, (_, i) => {
+                                        const currentYear = new Date().getFullYear();
+                                        const year = currentYear + 10 - i;
+                                        return (
+                                            <option key={year} value={year}>
+                                                {year}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
                             </div>
 
                             <button

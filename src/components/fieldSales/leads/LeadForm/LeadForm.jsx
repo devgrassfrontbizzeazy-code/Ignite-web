@@ -13,6 +13,8 @@ import {
 
 import Button from "../../../common/Button/Button";
 import BackButton from "../../../common/BackButton/BackButton";
+import { getFieldSalesEmployees, createFieldSalesLead } from "../../../../services/api/fieldSalesAPI";
+import { useNotification } from "../../../../context/NotificationContext";
 
 import "./LeadForm.css";
 
@@ -31,18 +33,25 @@ const defaultFormData = {
 
 const LeadForm = ({
   initialData = null,
-  employees = [],
-  submitting = false,
-  error = "",
+  employees: propEmployees,
+  submitting: propSubmitting = false,
+  error: propError = "",
   onSubmit,
 }) => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { showNotification } = useNotification();
 
   const isEditMode = Boolean(id);
 
   const [formData, setFormData] = useState(defaultFormData);
   const [errors, setErrors] = useState({});
+  const [employeesList, setEmployeesList] = useState(() =>
+    Array.isArray(propEmployees) ? propEmployees : []
+  );
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   useEffect(() => {
     if (initialData) {
@@ -52,6 +61,37 @@ const LeadForm = ({
       });
     }
   }, [initialData]);
+
+  useEffect(() => {
+    if (Array.isArray(propEmployees) && propEmployees.length > 0) {
+      setEmployeesList(propEmployees);
+      return;
+    }
+
+    let isMounted = true;
+    const loadEmployees = async () => {
+      try {
+        setLoadingEmployees(true);
+        // Only fetch and show employees with role Sales Person
+        const res = await getFieldSalesEmployees({ role: "Sales Person" });
+        if (res?.data && Array.isArray(res.data) && isMounted) {
+          setEmployeesList(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load field sales employees for assignment:", err);
+      } finally {
+        if (isMounted) {
+          setLoadingEmployees(false);
+        }
+      }
+    };
+
+    loadEmployees();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -123,14 +163,56 @@ const LeadForm = ({
       return;
     }
 
-    console.log(isEditMode ? "Update Lead:" : "Create Lead:", formData);
+    try {
+      setIsSubmitting(true);
+      setApiError("");
+      const payload = {
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        company_name: formData.company_name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
+        latitude: parseFloat(formData.latitude),
+        longitude: parseFloat(formData.longitude),
+        assigned_to: parseInt(formData.assigned_to, 10),
+        description: formData.description.trim(),
+      };
 
-    navigate("/field-sales/leads");
+      await createFieldSalesLead(payload);
+      showNotification({
+        type: "success",
+        message: `Lead for ${formData.first_name} ${formData.last_name} created successfully!`,
+      });
+      navigate("/field-sales/leads");
+    } catch (err) {
+      console.error("Failed to create lead:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        (typeof err.response?.data === "object"
+          ? JSON.stringify(err.response.data)
+          : "Failed to create lead. Please check the fields and try again.");
+      setApiError(errMsg);
+      showNotification({
+        type: "error",
+        message: errMsg,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
     navigate("/field-sales/leads");
   };
+
+  const submitting = propSubmitting || isSubmitting;
+  const error = propError || apiError;
+  // Filter employees so only Sales Person role employees are selectable
+  const employees = employeesList.filter((emp) => {
+    const role = (emp.role || "").toLowerCase().replace(/\s+/g, "");
+    return !emp.role || role === "salesperson" || role === "sales_person";
+  });
 
   const getFieldClass = (fieldName) => {
     return errors[fieldName]
@@ -394,7 +476,7 @@ const LeadForm = ({
           <div className="lead-form__grid">
             <div className={getFieldClass("assigned_to")}>
               <label htmlFor="assigned_to">
-                Assigned To <span>*</span>
+                Assigned To (Sales Person) <span>*</span>
               </label>
 
               <div className="lead-form__input-wrap">
@@ -406,7 +488,7 @@ const LeadForm = ({
                   value={formData.assigned_to}
                   onChange={handleChange}
                 >
-                  <option value="">Select employee</option>
+                  <option value="">Select sales person</option>
 
                   {employees.map((employee) => {
                     const employeeId = employee.id ?? employee.user_id;
@@ -414,13 +496,12 @@ const LeadForm = ({
                     const employeeName =
                       employee.full_name ||
                       employee.name ||
-                      `${employee.first_name || ""} ${
-                        employee.last_name || ""
-                      }`.trim();
+                      `${employee.first_name || ""} ${employee.last_name || ""
+                        }`.trim();
 
                     return (
                       <option key={employeeId} value={employeeId}>
-                        {employeeName || "Employee"}
+                        {employeeName || "Sales Person"}
                       </option>
                     );
                   })}

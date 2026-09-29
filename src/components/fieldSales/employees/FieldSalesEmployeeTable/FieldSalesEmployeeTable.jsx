@@ -27,6 +27,7 @@ export default function FieldSalesEmployeeTable({
   onEdit,
   onToggleStatus,
   onDelete,
+  onResendInvite,
 }) {
   if (loading) {
     return (
@@ -54,6 +55,7 @@ export default function FieldSalesEmployeeTable({
             <th>Email</th>
             <th>Phone</th>
             <th>Role</th>
+            <th>Joining Date</th>
             <th>Reporting Manager</th>
             <th>Status</th>
             <th className="fs-employee-table__actions-header">Actions</th>
@@ -64,12 +66,28 @@ export default function FieldSalesEmployeeTable({
             const name = formatEmployeeName(emp);
             const roleName = emp.field_sales_role || emp.role || emp.designation_name || "Sales Person";
             const managerName = emp.reporting_manager_name || (typeof emp.reporting_manager === "object" ? emp.reporting_manager?.full_name || emp.reporting_manager?.name : null) || emp.reporting_manager || "—";
+            const isPendingInvite = emp.invitation_status === "PENDING";
             const isActive = emp.employment_status === "Active" || emp.is_active === true;
-            const statusLabel = isActive ? "Active" : "Inactive";
+            const statusLabel = isPendingInvite ? "Pending" : isActive ? "Active" : "Inactive";
+            const statusClass = isPendingInvite
+              ? "fs-employee-table__status-badge--pending"
+              : isActive
+              ? "fs-employee-table__status-badge--active"
+              : "fs-employee-table__status-badge--inactive";
+            const joiningDate = emp.date_of_joining || emp.dateOfJoining || "—";
 
             const rowActions = [
               ...(onView ? [{ key: "view", label: "View Details", onClick: () => onView(emp) }] : []),
               ...(onEdit ? [{ key: "edit", label: "Edit Employee", onClick: () => onEdit(emp) }] : []),
+              ...(isPendingInvite && onResendInvite
+                ? [
+                    {
+                      key: "resend",
+                      label: "Resend Invitation",
+                      onClick: () => onResendInvite(emp),
+                    },
+                  ]
+                : []),
               ...(onToggleStatus
                 ? [
                     {
@@ -122,15 +140,10 @@ export default function FieldSalesEmployeeTable({
                     {roleName}
                   </span>
                 </td>
+                <td>{joiningDate}</td>
                 <td>{managerName}</td>
                 <td>
-                  <span
-                    className={`fs-employee-table__status-badge ${
-                      isActive
-                        ? "fs-employee-table__status-badge--active"
-                        : "fs-employee-table__status-badge--inactive"
-                    }`}
-                  >
+                  <span className={`fs-employee-table__status-badge ${statusClass}`}>
                     {statusLabel}
                   </span>
                 </td>

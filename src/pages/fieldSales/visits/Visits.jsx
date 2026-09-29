@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { Plus, AlertTriangle, RefreshCw } from "lucide-react";
 
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import Button from "../../../components/common/Button/Button";
@@ -14,230 +14,18 @@ import VisitMap from "../../../components/fieldSales/visits/visitMap/VisitMap";
 import VisitDetails from "../../../components/fieldSales/visits/visitDetails/VisitDetails";
 import VisitCheckIn from "../../../components/fieldSales/visits/visitCheckIn/VisitCheckIn";
 import VisitCheckOut from "../../../components/fieldSales/visits/visitCheckOut/VisitCheckOut";
+import LocationPermissionModal from "../../../components/fieldSales/common/LocationPermissionModal/LocationPermissionModal";
+import { getCurrentUser, isFieldSalesManager, isSalesPerson } from "../../../utils/permissionUtils";
+import {
+  getFieldSalesVisits,
+  getFieldSalesEmployees,
+  pingFieldSalesLocation,
+  toggleFieldSalesLocation,
+  getTeamLiveLocations,
+  getEmployeeTimelineHistory,
+} from "../../../services/api/fieldSalesAPI";
 
 import "./Visits.css";
-
-/* -------------------------------------------------------------------------- */
-/* Mock data - temporary until API integration                               */
-/* -------------------------------------------------------------------------- */
-
-const INITIAL_VISITS = [
-  {
-    id: "visit-1",
-    leadId: "lead-1",
-    leadName: "Rahul Sharma",
-    companyName: "ABC Enterprises",
-    employeeId: "emp-1",
-    employeeName: "Rahul Sharma",
-    scheduledDate: "2026-09-28",
-    scheduledTime: "11:30 AM",
-    location: "Sector 18, Gurugram",
-    visitStatus: "CHECKED_IN",
-    outcome: null,
-
-    leadLatitude: 28.4597,
-    leadLongitude: 77.0264,
-
-    currentLatitude: 28.4591,
-    currentLongitude: 77.0268,
-
-    distance: 82,
-    gpsAccuracy: 8,
-
-    checkInTime: "11:34 AM",
-    checkOutTime: null,
-
-    outcomeDescription: "",
-    meetingPhoto: null,
-  },
-
-  {
-    id: "visit-2",
-    leadId: "lead-2",
-    leadName: "Priya Verma",
-    companyName: "Verma Industries",
-    employeeId: "emp-2",
-    employeeName: "Priya Verma",
-    scheduledDate: "2026-09-28",
-    scheduledTime: "12:30 PM",
-    location: "Golf Course Road, Gurugram",
-    visitStatus: "CHECKED_OUT",
-    outcome: "FOLLOW_UP",
-
-    leadLatitude: 28.4421,
-    leadLongitude: 77.1001,
-
-    currentLatitude: 28.4424,
-    currentLongitude: 77.1004,
-
-    distance: 42,
-    gpsAccuracy: 7,
-
-    checkInTime: "12:27 PM",
-    checkOutTime: "1:04 PM",
-
-    outcomeDescription: "Client requested another discussion with the procurement team.",
-    meetingPhoto: null,
-  },
-
-  {
-    id: "visit-3",
-    leadId: "lead-3",
-    leadName: "Vikram Mehta",
-    companyName: "Mehta Technologies",
-    employeeId: "emp-3",
-    employeeName: "Amit Kumar",
-    scheduledDate: "2026-09-28",
-    scheduledTime: "2:00 PM",
-    location: "MG Road, Gurugram",
-    visitStatus: "NOT_STARTED",
-    outcome: null,
-
-    leadLatitude: 28.4791,
-    leadLongitude: 77.0956,
-
-    currentLatitude: 28.4775,
-    currentLongitude: 77.0952,
-
-    distance: 214,
-    gpsAccuracy: 12,
-
-    checkInTime: null,
-    checkOutTime: null,
-
-    outcomeDescription: "",
-    meetingPhoto: null,
-  },
-
-  {
-    id: "visit-4",
-    leadId: "lead-4",
-    leadName: "Neha Kapoor",
-    companyName: "Kapoor Retail",
-    employeeId: "emp-1",
-    employeeName: "Rahul Sharma",
-    scheduledDate: "2026-09-28",
-    scheduledTime: "4:30 PM",
-    location: "DLF Phase 3, Gurugram",
-    visitStatus: "NOT_STARTED",
-    outcome: null,
-
-    leadLatitude: 28.4952,
-    leadLongitude: 77.0894,
-
-    currentLatitude: 28.5001,
-    currentLongitude: 77.0901,
-
-    distance: 510,
-    gpsAccuracy: 10,
-
-    checkInTime: null,
-    checkOutTime: null,
-
-    outcomeDescription: "",
-    meetingPhoto: null,
-  },
-];
-
-const EMPLOYEES = [
-  {
-    id: "emp-1",
-    name: "Rahul Sharma",
-  },
-  {
-    id: "emp-2",
-    name: "Priya Verma",
-  },
-  {
-    id: "emp-3",
-    name: "Amit Kumar",
-  },
-];
-
-const MAP_LEADS = [
-  {
-    id: "lead-1",
-    name: "Rahul Sharma",
-    companyName: "ABC Enterprises",
-    address: "Sector 18, Gurugram",
-    latitude: 28.4597,
-    longitude: 77.0264,
-    assignedEmployeeId: "emp-1",
-    assignedEmployeeName: "Rahul Sharma",
-    scheduledDate: "2026-09-28",
-    scheduledVisitTime: "11:30 AM",
-    visitStatus: "CHECKED_IN",
-  },
-  {
-    id: "lead-2",
-    name: "Priya Verma",
-    companyName: "Verma Industries",
-    address: "Golf Course Road, Gurugram",
-    latitude: 28.4421,
-    longitude: 77.1001,
-    assignedEmployeeId: "emp-2",
-    assignedEmployeeName: "Priya Verma",
-    scheduledDate: "2026-09-28",
-    scheduledVisitTime: "12:30 PM",
-    visitStatus: "CHECKED_OUT",
-  },
-  {
-    id: "lead-3",
-    name: "Vikram Mehta",
-    companyName: "Mehta Technologies",
-    address: "MG Road, Gurugram",
-    latitude: 28.4791,
-    longitude: 77.0956,
-    assignedEmployeeId: "emp-3",
-    assignedEmployeeName: "Amit Kumar",
-    scheduledDate: "2026-09-28",
-    scheduledVisitTime: "2:00 PM",
-    visitStatus: "NOT_STARTED",
-  },
-  {
-    id: "lead-4",
-    name: "Neha Kapoor",
-    companyName: "Kapoor Retail",
-    address: "DLF Phase 3, Gurugram",
-    latitude: 28.4952,
-    longitude: 77.0894,
-    assignedEmployeeId: "emp-1",
-    assignedEmployeeName: "Rahul Sharma",
-    scheduledDate: "2026-09-28",
-    scheduledVisitTime: "4:30 PM",
-    visitStatus: "NOT_STARTED",
-  },
-];
-
-const MAP_EMPLOYEES = [
-  {
-    id: "emp-1",
-    name: "Rahul Sharma",
-    latitude: 28.4591,
-    longitude: 77.0268,
-    status: "ACTIVE",
-    lastUpdated: "18 sec ago",
-    accuracy: 8,
-  },
-  {
-    id: "emp-2",
-    name: "Priya Verma",
-    latitude: 28.4424,
-    longitude: 77.1004,
-    status: "ACTIVE",
-    lastUpdated: "22 sec ago",
-    accuracy: 7,
-  },
-  {
-    id: "emp-3",
-    name: "Amit Kumar",
-    latitude: 28.4775,
-    longitude: 77.0952,
-    status: "IDLE",
-    lastUpdated: "1 min ago",
-    accuracy: 12,
-  },
-];
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -250,6 +38,7 @@ const formatTime = (date = new Date()) =>
   });
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
   const earthRadius = 6371000;
 
   const toRadians = (value) => (value * Math.PI) / 180;
@@ -283,14 +72,22 @@ const getToday = () => {
 /* -------------------------------------------------------------------------- */
 
 const Visits = () => {
-  const [visits, setVisits] = useState(INITIAL_VISITS);
+  const user = useMemo(() => getCurrentUser(), []);
+  const isManager = isFieldSalesManager(user);
+  const isSales = isSalesPerson(user);
+
+  const [visits, setVisits] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [liveLocations, setLiveLocations] = useState([]);
+  const [timelinePoints, setTimelinePoints] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
-  const [date, setDate] = useState("2026-09-28");
+  const [date, setDate] = useState("");
   const [employee, setEmployee] = useState("");
   const [status, setStatus] = useState("");
 
-  const [viewMode, setViewMode] = useState("map");
+  const [viewMode, setViewMode] = useState(isManager ? "map" : "list");
 
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [selectedEntity, setSelectedEntity] = useState(null);
@@ -304,13 +101,85 @@ const Visits = () => {
     longitude: 77.0266,
     accuracy: 8,
   });
-  const [gpsStatus, setGpsStatus] = useState("success");
+  const [gpsStatus, setGpsStatus] = useState("loading");
+  const lastPingTimeRef = useRef(0);
+
+  // Load visits and employees
+  useEffect(() => {
+    let isMounted = true;
+    const loadLiveVisits = async () => {
+      try {
+        setLoading(true);
+        const [visitsRes, empsRes] = await Promise.allSettled([
+          getFieldSalesVisits(),
+          isManager ? getFieldSalesEmployees({ role: "SALES_PERSON" }) : Promise.resolve(null),
+        ]);
+
+        if (isMounted && visitsRes.status === "fulfilled") {
+          const data = visitsRes.value?.data || visitsRes.value?.results || visitsRes.value || [];
+          if (Array.isArray(data)) {
+            const mapped = data.map((v) => ({
+              id: String(v.id),
+              leadId: v.lead ? String(v.lead) : String(v.customer || v.id),
+              leadName: v.lead_name || v.customer_name || "Lead Client",
+              companyName: v.company_name || v.customer_company || "Client Company",
+              employeeId: String(v.assigned_to || v.employee_id || ""),
+              employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
+              employeeRole: v.assigned_to_role || "Sales Person",
+              scheduledDate: v.visit_date || getToday(),
+              scheduledTime: v.visit_time || "11:00 AM",
+              location: v.location || v.lead_address || "Client Location",
+              visitStatus: v.status || "NOT_STARTED",
+              outcome: v.outcome || null,
+              leadLatitude: Number(v.latitude || v.lead_latitude || 28.4597),
+              leadLongitude: Number(v.longitude || v.lead_longitude || 77.0264),
+              currentLatitude: currentUserLocation?.latitude || 28.4595,
+              currentLongitude: currentUserLocation?.longitude || 77.0266,
+              distance: calculateDistance(
+                currentUserLocation?.latitude || 28.4595,
+                currentUserLocation?.longitude || 77.0266,
+                Number(v.latitude || 28.4597),
+                Number(v.longitude || 77.0264)
+              ),
+              gpsAccuracy: currentUserLocation?.accuracy || 8,
+              checkInTime: v.check_in_time || null,
+              checkOutTime: v.check_out_time || null,
+              outcomeDescription: v.notes || v.outcome_description || "",
+              meetingPhoto: null,
+            }));
+            setVisits(mapped);
+          }
+        }
+
+        if (isMounted && empsRes.status === "fulfilled" && empsRes.value) {
+          const empData = empsRes.value?.data || empsRes.value?.results || empsRes.value || [];
+          if (Array.isArray(empData)) {
+            setEmployees(
+              empData.map((e) => ({
+                id: String(e.id),
+                name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
+                role: e.role || "Sales Person",
+                email: e.email,
+                phone: e.phone_number || e.phone,
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load backend visits:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    loadLiveVisits();
+    return () => { isMounted = false; };
+  }, [isManager]);
 
   /* ---------------------------------------------------------------------- */
-  /* Browser GPS                                                             */
+  /* Browser GPS & Location Watcher                                          */
   /* ---------------------------------------------------------------------- */
 
-  const requestLocation = () => {
+  const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setGpsStatus("unavailable");
       return;
@@ -319,17 +188,26 @@ const Visits = () => {
     setGpsStatus("loading");
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCurrentUserLocation({
+        const coords = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: Math.round(position.coords.accuracy),
-        });
+        };
+        setCurrentUserLocation(coords);
         setGpsStatus("success");
+
+        // Ping backend immediately on manual location request if sales person
+        if (isSales) {
+          pingFieldSalesLocation(coords).catch(() => {});
+        }
       },
       (error) => {
         console.warn("Unable to access device location:", error);
         if (error.code === error.PERMISSION_DENIED) {
           setGpsStatus("denied");
+          if (isSales) {
+            toggleFieldSalesLocation(false).catch(() => {});
+          }
         } else {
           setGpsStatus("unavailable");
         }
@@ -340,7 +218,7 @@ const Visits = () => {
         timeout: 15000,
       }
     );
-  };
+  }, [isSales]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -350,17 +228,21 @@ const Visits = () => {
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setCurrentUserLocation({
+        const coords = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: Math.round(position.coords.accuracy),
-        });
+        };
+        setCurrentUserLocation(coords);
         setGpsStatus("success");
       },
       (error) => {
-        console.warn("Unable to access device location:", error);
+        console.warn("Watch position error:", error);
         if (error.code === error.PERMISSION_DENIED) {
           setGpsStatus("denied");
+          if (isSales) {
+            toggleFieldSalesLocation(false).catch(() => {});
+          }
         } else {
           setGpsStatus("unavailable");
         }
@@ -375,7 +257,91 @@ const Visits = () => {
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, []);
+  }, [isSales]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Sales Person Live GPS Heartbeat Ping (Every 12 seconds)                */
+  /* Overwrites 1 single row per employee in backend + logs 1hr trail       */
+  /* ---------------------------------------------------------------------- */
+  useEffect(() => {
+    if (!isSales || gpsStatus !== "success" || !currentUserLocation) return;
+
+    const doPing = async () => {
+      try {
+        await pingFieldSalesLocation({
+          latitude: currentUserLocation.latitude,
+          longitude: currentUserLocation.longitude,
+          accuracy: currentUserLocation.accuracy,
+        });
+      } catch (err) {
+        console.warn("Location ping error:", err);
+      }
+    };
+
+    // Immediate ping
+    doPing();
+
+    // 12-second interval
+    const interval = setInterval(doPing, 12000);
+
+    return () => clearInterval(interval);
+  }, [isSales, gpsStatus, currentUserLocation?.latitude, currentUserLocation?.longitude]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Manager Live Team Locations Polling (Every 12 seconds)                  */
+  /* Fetches real-time lat/lng & active tracking status of all sales team   */
+  /* ---------------------------------------------------------------------- */
+  useEffect(() => {
+    if (!isManager) return;
+
+    let isMounted = true;
+    const fetchTeamLive = async () => {
+      try {
+        const res = await getTeamLiveLocations();
+        const data = res?.data || res?.results || res || [];
+        if (isMounted && Array.isArray(data)) {
+          setLiveLocations(data);
+        }
+      } catch (err) {
+        console.warn("Team live location fetch error:", err);
+      }
+    };
+
+    fetchTeamLive();
+    const interval = setInterval(fetchTeamLive, 12000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isManager]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Fetch Employee Timeline Journey Trail when Sales Person selected       */
+  /* ---------------------------------------------------------------------- */
+  useEffect(() => {
+    if (!selectedEntity || selectedEntity.type !== "employee") {
+      setTimelinePoints([]);
+      return;
+    }
+
+    let isMounted = true;
+    const loadTimeline = async () => {
+      try {
+        const res = await getEmployeeTimelineHistory(selectedEntity.id);
+        const points = res?.timeline || res?.data || res || [];
+        if (isMounted && Array.isArray(points)) {
+          setTimelinePoints(points);
+        }
+      } catch (err) {
+        console.warn("Timeline history fetch error:", err);
+        if (isMounted) setTimelinePoints([]);
+      }
+    };
+
+    loadTimeline();
+    return () => { isMounted = false; };
+  }, [selectedEntity?.id, selectedEntity?.type]);
 
   /* ---------------------------------------------------------------------- */
   /* Keep visit distance synced with current GPS                             */
@@ -474,21 +440,117 @@ const Visits = () => {
     };
   }, [filteredVisits]);
 
-  const filteredMapLeads = useMemo(
-    () =>
-      MAP_LEADS.filter((lead) =>
-        filteredVisits.some((visit) => visit.leadId === lead.id)
-      ),
-    [filteredVisits]
-  );
+  const filteredMapLeads = useMemo(() => {
+    return filteredVisits
+      .filter((v) => v.leadLatitude != null && v.leadLongitude != null)
+      .map((v) => ({
+        id: v.leadId || v.id,
+        name: v.leadName,
+        companyName: v.companyName,
+        address: v.location,
+        latitude: v.leadLatitude,
+        longitude: v.leadLongitude,
+        assignedEmployeeId: v.employeeId,
+        assignedEmployeeName: v.employeeName,
+        scheduledDate: v.scheduledDate,
+        scheduledVisitTime: v.scheduledTime,
+        visitStatus: v.visitStatus,
+      }));
+  }, [filteredVisits]);
 
-  const filteredMapEmployees = useMemo(
-    () =>
-      MAP_EMPLOYEES.filter((employee) =>
-        filteredVisits.some((visit) => visit.employeeId === employee.id)
-      ),
-    [filteredVisits]
-  );
+  const filteredMapEmployees = useMemo(() => {
+    const map = new Map();
+
+    // 1. First populate from employees list / visits
+    employees.forEach((emp) => {
+      map.set(String(emp.id), {
+        id: String(emp.id),
+        name: emp.name,
+        role: emp.role || "Sales Person",
+        phone: emp.phone,
+        latitude: null,
+        longitude: null,
+        isActiveTracking: false,
+        lastUpdated: "Not connected",
+        accuracy: 10,
+        status: "SCHEDULED",
+        currentVisit: null,
+      });
+    });
+
+    // 2. Overlay visits data
+    filteredVisits.forEach((v) => {
+      if (v.employeeRole === "Manager") return;
+      const empId = String(v.employeeId);
+      if (!empId) return;
+
+      const existing = map.get(empId) || {
+        id: empId,
+        name: v.employeeName,
+        role: v.employeeRole || "Sales Person",
+        phone: "",
+        latitude: null,
+        longitude: null,
+        isActiveTracking: false,
+        lastUpdated: "Today",
+        accuracy: 8,
+        status: "SCHEDULED",
+        currentVisit: null,
+      };
+
+      if (v.visitStatus === "CHECKED_IN") {
+        existing.status = "IN_PROGRESS";
+        existing.currentVisit = v;
+      }
+
+      // If no GPS yet, default to lead coordinate
+      if (existing.latitude == null && v.leadLatitude != null) {
+        existing.latitude = v.leadLatitude;
+        existing.longitude = v.leadLongitude;
+      }
+
+      map.set(empId, existing);
+    });
+
+    // 3. Overlay real-time GPS from liveLocations (from team-live API)
+    liveLocations.forEach((loc) => {
+      const empId = String(loc.id || loc.employee_id || loc.employee);
+      const existing = map.get(empId);
+      if (existing) {
+        if (loc.latitude != null) existing.latitude = Number(loc.latitude);
+        if (loc.longitude != null) existing.longitude = Number(loc.longitude);
+        if (loc.accuracy != null) existing.accuracy = Number(loc.accuracy || 8);
+        existing.isActiveTracking = Boolean(loc.is_active_tracking);
+        existing.batteryLevel = loc.battery_level;
+        existing.updatedAt = loc.last_ping_at || loc.updated_at;
+        existing.lastUpdated = loc.is_active_tracking ? "Live Now" : "Location Inactive";
+      } else if (loc.name || loc.employee_name) {
+        map.set(empId, {
+          id: empId,
+          name: loc.name || loc.employee_name,
+          role: "Sales Person",
+          latitude: loc.latitude != null ? Number(loc.latitude) : null,
+          longitude: loc.longitude != null ? Number(loc.longitude) : null,
+          accuracy: Number(loc.accuracy || 8),
+          isActiveTracking: Boolean(loc.is_active_tracking),
+          batteryLevel: loc.battery_level,
+          lastUpdated: loc.is_active_tracking ? "Live Now" : "Location Inactive",
+          status: "SCHEDULED",
+          currentVisit: null,
+        });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [filteredVisits, employees, liveLocations]);
+
+  // Check for inactive employees to alert Manager
+  const inactiveEmployees = useMemo(() => {
+    if (!isManager) return [];
+    return filteredMapEmployees.filter(
+      (emp) => emp.latitude != null && emp.isActiveTracking === false
+    );
+  }, [isManager, filteredMapEmployees]);
 
   /* ---------------------------------------------------------------------- */
   /* Select visit                                                             */
@@ -625,17 +687,48 @@ const Visits = () => {
   return (
     <div className="visits-page">
       <PageHeader
-        title="Visits"
-        description="Track field visits, check-ins and customer outcomes."
+        title={isManager ? "Visits" : "My Visits"}
+        description={
+          isManager
+            ? "Track field visits, real-time GPS locations and customer outcomes."
+            : "View and complete your daily scheduled visits assigned by your manager."
+        }
         actions={
-          <Button>
-            <span className="visits__button-content">
-              <Plus size={16} />
-              Schedule Visit
-            </span>
-          </Button>
+          isManager ? (
+            <Button>
+              <span className="visits__button-content">
+                <Plus size={16} />
+                Schedule Visit
+              </span>
+            </Button>
+          ) : null
         }
       />
+
+      {/* Mandatory location permission modal for Sales Person */}
+      {isSales && (gpsStatus === "denied" || gpsStatus === "unavailable") && (
+        <LocationPermissionModal
+          open={true}
+          isDenied={gpsStatus === "denied"}
+          onRequestPermission={requestLocation}
+        />
+      )}
+
+      {/* Manager Inactive Alert Banner */}
+      {isManager && inactiveEmployees.length > 0 && (
+        <div className="visits__inactive-alert-banner">
+          <div className="visits__inactive-alert-left">
+            <AlertTriangle size={18} className="visits__inactive-alert-icon" />
+            <div>
+              <strong>GPS Tracking Inactive Alert</strong>
+              <p>
+                {inactiveEmployees.map((e) => e.name).join(", ")}{" "}
+                {inactiveEmployees.length === 1 ? "has" : "have"} disabled location or stopped sending GPS heartbeats (&gt; 2 mins).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <VisitStats stats={stats} />
 
@@ -651,7 +744,13 @@ const Visits = () => {
           onStatusChange={setStatus}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          employees={EMPLOYEES}
+          employees={employees}
+          showEmployeeFilter={isManager}
+          searchPlaceholder={
+            isManager
+              ? "Search lead, company or employee..."
+              : "Search client, company or address..."
+          }
         />
 
         {viewMode === "map" ? (
@@ -665,11 +764,14 @@ const Visits = () => {
             onSelectVisit={openVisit}
             gpsStatus={gpsStatus}
             onLocateRequest={requestLocation}
+            showTeamActivity={isManager}
+            timelinePoints={timelinePoints}
           />
         ) : (
           <VisitTable
             visits={filteredVisits}
             onViewVisit={openVisit}
+            showEmployee={isManager}
           />
         )}
       </Card>

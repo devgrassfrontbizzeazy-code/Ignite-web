@@ -5,8 +5,10 @@ import {
   Marker,
   Popup,
   Circle,
+  Polyline,
   useMap,
 } from "react-leaflet";
+
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -20,7 +22,10 @@ import {
   X,
   AlertCircle,
   CheckCircle2,
+  Footprints,
+  AlertTriangle,
 } from "lucide-react";
+
 
 import "./VisitMap.css";
 
@@ -113,6 +118,7 @@ const NAV_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" 
 const LEAD_COLOR = "#0F3D3E";
 // Emerald #0BA37F    —  for employees
 const EMPLOYEE_COLOR = "#0BA37F";
+const EMPLOYEE_INACTIVE_COLOR = "#94a3b8";
 // Gold  #D4AF37      —  for selected
 const SELECTED_COLOR = "#D4AF37";
 // Blue                —  for current user
@@ -121,8 +127,24 @@ const USER_COLOR = "#2563eb";
 const leadIcon = createSvgIcon(LEAD_SVG, LEAD_COLOR);
 const leadIconSelected = createSvgIcon(LEAD_SVG, LEAD_COLOR, SELECTED_COLOR, 42);
 const employeeIcon = createSvgIcon(EMPLOYEE_SVG, EMPLOYEE_COLOR);
+const employeeIconInactive = createSvgIcon(EMPLOYEE_SVG, EMPLOYEE_INACTIVE_COLOR, "#ef4444", 36);
 const employeeIconSelected = createSvgIcon(EMPLOYEE_SVG, EMPLOYEE_COLOR, SELECTED_COLOR, 42);
 const userIcon = createSvgIcon(NAV_SVG, USER_COLOR, "#fff", 32);
+
+// Timeline checkpoint numbered icon factory
+const createTimelinePinIcon = (stepNumber, timeStr) => {
+  return L.divIcon({
+    className: "visits-map__timeline-pin-icon",
+    html: `
+      <div class="visits-map__timeline-pin" title="Stop ${stepNumber} at ${timeStr}">
+        <span class="visits-map__timeline-pin-num">${stepNumber}</span>
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    popupAnchor: [0, -16],
+  });
+};
 
 /* -------------------------------------------------------------------------- */
 /* Map Auto-Fit Component                                                      */
@@ -318,16 +340,20 @@ const LeadPopupContent = ({
 
 const EmployeePopupContent = ({
   employee,
-  currentVisit,
-  visitCount,
+  visits = [],
   onClose,
+  onViewVisit,
 }) => {
+  const empVisits = visits.filter((v) => String(v.employeeId) === String(employee.id));
+  const checkedInVisit = empVisits.find((v) => v.visitStatus === "CHECKED_IN");
+  const isInactive = employee.isActiveTracking === false;
+
   return (
     <div className="visits-map__popup-inner">
       <div className="visits-map__popup-header">
         <div>
           <span className="visits-map__popup-badge visits-map__popup-badge--employee">
-            Member
+            Sales Person
           </span>
           <h4>{employee.name}</h4>
         </div>
@@ -343,9 +369,16 @@ const EmployeePopupContent = ({
 
       <div className="visits-map__popup-content">
         <div className="visits-map__info-row">
-          <span className="visits-map__status-pill">
-            {employee.status || "ACTIVE"}
-          </span>
+          {isInactive ? (
+            <span className="visits-map__status-pill visits-map__status-pill--inactive">
+              <AlertTriangle size={11} style={{ marginRight: 4 }} />
+              LOCATION INACTIVE / TURNED OFF
+            </span>
+          ) : (
+            <span className={`visits-map__status-pill ${checkedInVisit ? "visits-map__status-pill--active" : ""}`}>
+              {checkedInVisit ? "ON FIELD (CHECKED IN)" : "LIVE TRACKING ACTIVE"}
+            </span>
+          )}
         </div>
 
         <div className="visits-map__info-row">
@@ -358,32 +391,26 @@ const EmployeePopupContent = ({
         </div>
 
         <div className="visits-map__info-row">
-          <Navigation size={14} />
-          <span>
-            {employee.accuracy != null
-              ? `GPS accuracy ±${employee.accuracy}m`
-              : "GPS accuracy —"}
-          </span>
-        </div>
-
-        <div className="visits-map__info-row">
-          <Clock3 size={14} />
-          <span>{employee.lastUpdated || "—"}</span>
-        </div>
-
-        <div className="visits-map__info-row">
-          <Building2 size={14} />
-          <span>
-            {currentVisit
-              ? currentVisit.companyName || currentVisit.leadName
-              : "No current assignment"}
-          </span>
-        </div>
-
-        <div className="visits-map__info-row">
           <UserRound size={14} />
-          <span>Today's visits: {visitCount || "—"}</span>
+          <span>Today's Assigned Visits: <strong>{empVisits.length}</strong></span>
         </div>
+
+        {empVisits.length > 0 && (
+          <div className="visits-map__emp-visits-list">
+            <span className="visits-map__emp-visits-title">Visits Today:</span>
+            {empVisits.map((v) => (
+              <div key={v.id} className="visits-map__emp-visit-item" onClick={() => onViewVisit?.(v)}>
+                <div className="visits-map__emp-visit-left">
+                  <strong>{v.leadName}</strong>
+                  <small>{v.companyName}</small>
+                </div>
+                <span className={`visits-map__visit-badge visits-map__visit-badge--${v.visitStatus.toLowerCase()}`}>
+                  {v.visitStatus === "CHECKED_IN" ? "In Progress" : v.visitStatus === "CHECKED_OUT" ? "Completed" : "Scheduled"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -447,6 +474,8 @@ const VisitMap = ({
   onSelectVisit,
   gpsStatus = "success",
   onLocateRequest,
+  showTeamActivity = true,
+  timelinePoints = [],
 }) => {
   const mapRef = useRef(null);
 
@@ -456,28 +485,22 @@ const VisitMap = ({
 
   const selectedLead =
     selectedEntity?.type === "lead"
-      ? leads.find((l) => l.id === selectedEntity.id) || null
+      ? leads.find((l) => String(l.id) === String(selectedEntity.id)) || null
       : null;
 
   const selectedEmployee =
     selectedEntity?.type === "employee"
-      ? employees.find((e) => e.id === selectedEntity.id) || null
+      ? employees.find((e) => String(e.id) === String(selectedEntity.id)) || null
       : null;
 
-  const selectedLeadVisit = selectedLead
-    ? visits.find((v) => v.leadId === selectedLead.id) || null
-    : null;
-
-  const employeeVisits = selectedEmployee
-    ? visits.filter((v) => v.employeeId === selectedEmployee.id)
-    : [];
-
-  const selectedEmployeeVisit =
-    employeeVisits.length > 0 ? employeeVisits[0] : null;
-
   /* ------------------------------------------------------------------------ */
-  /* Map bounds                                                                */
+  /* Map bounds & Path Coordinates                                            */
   /* ------------------------------------------------------------------------ */
+
+  const polylinePositions = useMemo(() => {
+    if (!timelinePoints || timelinePoints.length === 0) return [];
+    return timelinePoints.map((pt) => [Number(pt.latitude), Number(pt.longitude)]);
+  }, [timelinePoints]);
 
   const allPoints = useMemo(() => {
     const pts = [];
@@ -501,8 +524,14 @@ const VisitMap = ({
       });
     }
 
+    timelinePoints.forEach((tp) => {
+      if (tp.latitude != null && tp.longitude != null) {
+        pts.push({ lat: Number(tp.latitude), lng: Number(tp.longitude) });
+      }
+    });
+
     return pts;
-  }, [leads, employees, currentUserLocation]);
+  }, [leads, employees, currentUserLocation, timelinePoints]);
 
   const defaultCenter = useMemo(() => {
     if (currentUserLocation?.latitude != null && currentUserLocation?.longitude != null) {
@@ -564,6 +593,38 @@ const VisitMap = ({
           onLocateRequest={onLocateRequest}
         />
 
+        {/* Daily Journey Trail (Polyline for Selected Employee) */}
+        {polylinePositions.length > 1 && (
+          <Polyline
+            positions={polylinePositions}
+            pathOptions={{
+              color: "#0BA37F",
+              weight: 4,
+              opacity: 0.85,
+              dashArray: "8 6",
+            }}
+          />
+        )}
+
+        {/* Timeline Checkpoint Pins (Hourly Stops 1, 2, 3...) */}
+        {timelinePoints.map((tp, idx) => (
+          <Marker
+            key={`timeline-${tp.id || idx}`}
+            position={[Number(tp.latitude), Number(tp.longitude)]}
+            icon={createTimelinePinIcon(idx + 1, tp.time || tp.logged_at)}
+            zIndexOffset={350}
+          >
+            <Popup className="visits-map__leaflet-popup" closeButton={false}>
+              <div className="visits-map__timeline-popup">
+                <span className="visits-map__timeline-badge">Stop #{idx + 1}</span>
+                <strong>{tp.event_type === "HOURLY_CHECKPOINT" ? `Hour ${idx + 1} Checkpoint` : tp.event_type}</strong>
+                <small><Clock3 size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />{tp.time || tp.logged_at}</small>
+                {tp.notes && <p className="visits-map__timeline-notes">{tp.notes}</p>}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
+
         {/* Current user marker */}
         {currentUserLocation?.latitude != null &&
           currentUserLocation?.longitude != null && (
@@ -590,7 +651,7 @@ const VisitMap = ({
         {leads.map((lead) => {
           if (lead.latitude == null || lead.longitude == null) return null;
           const isSelected =
-            selectedEntity?.type === "lead" && selectedEntity.id === lead.id;
+            selectedEntity?.type === "lead" && String(selectedEntity.id) === String(lead.id);
 
           return (
             <Marker
@@ -611,7 +672,7 @@ const VisitMap = ({
                 <LeadPopupContent
                   lead={lead}
                   visit={
-                    visits.find((v) => v.leadId === lead.id) || null
+                    visits.find((v) => String(v.leadId) === String(lead.id)) || null
                   }
                   currentUserLocation={currentUserLocation}
                   onClose={handleClosePopup}
@@ -638,41 +699,46 @@ const VisitMap = ({
         )}
 
         {/* Employee markers */}
-        {employees.map((emp) => {
-          if (emp.latitude == null || emp.longitude == null) return null;
-          const isSelected =
-            selectedEntity?.type === "employee" && selectedEntity.id === emp.id;
+        {showTeamActivity &&
+          employees.map((emp) => {
+            if (emp.latitude == null || emp.longitude == null) return null;
+            const isSelected =
+              selectedEntity?.type === "employee" && String(selectedEntity.id) === String(emp.id);
+            const isInactive = emp.isActiveTracking === false;
 
-          return (
-            <Marker
-              key={emp.id}
-              position={[emp.latitude, emp.longitude]}
-              icon={isSelected ? employeeIconSelected : employeeIcon}
-              zIndexOffset={isSelected ? 600 : 200}
-              eventHandlers={{
-                click: () =>
-                  onSelectEntity?.({ type: "employee", id: emp.id }),
-              }}
-            >
-              <Popup
-                className="visits-map__leaflet-popup"
-                closeButton={false}
-                maxWidth={280}
+            return (
+              <Marker
+                key={emp.id}
+                position={[emp.latitude, emp.longitude]}
+                icon={
+                  isSelected
+                    ? employeeIconSelected
+                    : isInactive
+                    ? employeeIconInactive
+                    : employeeIcon
+                }
+                zIndexOffset={isSelected ? 600 : 200}
+                eventHandlers={{
+                  click: () =>
+                    onSelectEntity?.({ type: "employee", id: emp.id }),
+                }}
               >
-                <EmployeePopupContent
-                  employee={emp}
-                  currentVisit={
-                    visits.find((v) => v.employeeId === emp.id) || null
-                  }
-                  visitCount={
-                    visits.filter((v) => v.employeeId === emp.id).length
-                  }
-                  onClose={handleClosePopup}
-                />
-              </Popup>
-            </Marker>
-          );
-        })}
+                <Popup
+                  className="visits-map__leaflet-popup"
+                  closeButton={false}
+                  maxWidth={280}
+                >
+                  <EmployeePopupContent
+                    employee={emp}
+                    visits={visits}
+                    onClose={handleClosePopup}
+                    onViewVisit={onSelectVisit}
+                  />
+                </Popup>
+              </Marker>
+            );
+          })}
+
       </MapContainer>
 
       {/* Legend */}
@@ -682,58 +748,95 @@ const VisitMap = ({
             className="visits-map__legend-swatch visits-map__legend-swatch--lead"
             aria-hidden="true"
           />
-          Leads
+          {showTeamActivity ? "Leads" : "Assigned Visits"}
         </div>
 
-        <div className="visits-map__legend-item">
-          <span
-            className="visits-map__legend-swatch visits-map__legend-swatch--employee"
-            aria-hidden="true"
-          />
-          Field Members
-        </div>
+        {showTeamActivity && (
+          <div className="visits-map__legend-item">
+            <span
+              className="visits-map__legend-swatch visits-map__legend-swatch--employee"
+              aria-hidden="true"
+            />
+            Sales Team (Live)
+          </div>
+        )}
+
+        {timelinePoints.length > 0 && (
+          <div className="visits-map__legend-item">
+            <span
+              className="visits-map__legend-swatch visits-map__legend-swatch--timeline"
+              aria-hidden="true"
+            />
+            Hourly Trail
+          </div>
+        )}
       </div>
 
       {/* Activity panel */}
-      <div className="visits-map__activity">
-        <div className="visits-map__activity-header">
-          <div>
-            <span className="visits-map__activity-eyebrow">FIELD ACTIVITY</span>
-            <strong>Today's team</strong>
+      {showTeamActivity && (
+        <div className="visits-map__activity">
+          <div className="visits-map__activity-header">
+            <div>
+              <span className="visits-map__activity-eyebrow">FIELD ACTIVITY</span>
+              <strong>Today's sales team</strong>
+            </div>
+            <UserRound size={17} />
           </div>
-          <UserRound size={17} />
+
+          {employees.length > 0 ? (
+            employees.map((emp) => {
+              const empVisits = visits.filter((v) => String(v.employeeId) === String(emp.id));
+              const checkedInVisit = empVisits.find((v) => v.visitStatus === "CHECKED_IN");
+              const latestVisit = checkedInVisit || empVisits[0] || null;
+              const isLive = Boolean(emp.isActiveTracking);
+              const statusClass = !isLive
+                ? "inactive"
+                : checkedInVisit
+                ? "checked_in"
+                : empVisits.some((v) => v.visitStatus === "CHECKED_OUT")
+                ? "checked_out"
+                : "not_started";
+
+              return (
+                <button
+                  key={emp.id}
+                  type="button"
+                  className={`visits-map__activity-row ${String(selectedEntity?.id) === String(emp.id) && selectedEntity?.type === "employee" ? "visits-map__activity-row--selected" : ""}`}
+                  onClick={() => {
+                    onSelectEntity?.({ type: "employee", id: emp.id });
+                  }}
+                >
+                  <span className={`visits-map__activity-avatar ${!isLive ? "visits-map__activity-avatar--inactive" : ""}`}>
+                    {emp.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")}
+                  </span>
+
+                  <span className="visits-map__activity-info">
+                    <strong>{emp.name}</strong>
+                    <small>
+                      {!isLive
+                        ? "⚠ Location Inactive"
+                        : latestVisit
+                        ? `${latestVisit.companyName} (${empVisits.length} visits)`
+                        : "Online — 0 visits"}
+                    </small>
+                  </span>
+
+                  <span
+                    className={`visits-map__activity-status visits-map__activity-status--${statusClass}`}
+                    title={!isLive ? "GPS Inactive" : checkedInVisit ? "Checked In" : "Live"}
+                  />
+                </button>
+              );
+            })
+          ) : (
+            <div className="visits-map__activity-empty">No active sales members</div>
+          )}
         </div>
-
-        {visits.length > 0 ? (
-          visits.slice(0, 3).map((visit) => (
-            <button
-              key={visit.id}
-              type="button"
-              className="visits-map__activity-row"
-              onClick={() => onSelectVisit?.(visit)}
-            >
-              <span className="visits-map__activity-avatar">
-                {visit.employeeName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .slice(0, 2)
-                  .join("")}
-              </span>
-
-              <span className="visits-map__activity-info">
-                <strong>{visit.employeeName}</strong>
-                <small>{visit.companyName}</small>
-              </span>
-
-              <span
-                className={`visits-map__activity-status visits-map__activity-status--${visit.visitStatus.toLowerCase()}`}
-              />
-            </button>
-          ))
-        ) : (
-          <div className="visits-map__activity-empty">No recent activity</div>
-        )}
-      </div>
+      )}
 
       {/* GPS accuracy/status */}
       <GpsStatusBanner

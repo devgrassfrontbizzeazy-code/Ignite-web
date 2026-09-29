@@ -328,26 +328,52 @@ const FIELD_SALES_NAV_ITEMS = [
     label: "Dashboard",
     path: "/field-sales",
     icon: FieldSalesDashboardIcon,
+    isPublic: true,
   },
   {
     label: "Employees",
     path: "/field-sales/employees",
     icon: EmployeesIcon,
+    managerOnly: true,
   },
   {
     label: "Leads",
     path: "/field-sales/leads",
     icon: LeadsIcon,
+    managerOnly: true,
   },
   {
     label: "Visits",
     path: "/field-sales/visits",
     icon: VisitsIcon,
+    isPublic: true,
   },
   {
     label: "Customers",
     path: "/field-sales/customers",
     icon: CustomersIcon,
+    isPublic: true,
+  },
+  {
+    label: "Attendance",
+    path: "/attendance",
+    icon: AttendanceIcon,
+    isEmployeeDefault: true,
+    isPublic: true,
+  },
+  {
+    label: "Leaves",
+    path: "/leaves",
+    icon: LeavesIcon,
+    isEmployeeDefault: true,
+    isPublic: true,
+  },
+  {
+    label: "Holidays",
+    path: "/holidays",
+    icon: HolidaysIcon,
+    isEmployeeDefault: true,
+    isPublic: true,
   },
 ];
 function getInitials(name) {
@@ -634,6 +660,30 @@ export default function Sidebar({
     ? user.permissions
     : [];
 
+  const isFieldSalesUser =
+    user?.is_field_sales === true ||
+    user?.department === "Field Sales" ||
+    user?.designation === "Manager" ||
+    user?.designation === "Sales Person" ||
+    user?.role === "Manager" ||
+    user?.role === "Sales Person" ||
+    rawRole === "MANAGER" ||
+    rawRole === "SALES PERSON" ||
+    rawRole === "FIELD SALES MANAGER" ||
+    userPermissions.some((p) => String(p).startsWith("field_sales."));
+
+  const isManager =
+    isAdminOrOwner ||
+    user?.is_manager === true ||
+    user?.designation === "Manager" ||
+    user?.role === "Manager" ||
+    rawRole === "MANAGER" ||
+    rawRole === "FIELD SALES MANAGER" ||
+    userPermissions.includes("field_sales.employees_manage") ||
+    userPermissions.includes("field_sales.manage");
+
+  const effectiveFieldSalesEnabled = fieldSalesEnabled || isFieldSalesUser;
+
   /* ------------------------------------------------------------------------
      Work Management access
      ------------------------------------------------------------------------ */
@@ -712,10 +762,32 @@ export default function Sidebar({
      Workspace navigation
      ------------------------------------------------------------------------ */
 
-  const visibleNavItems =
-    activeSystem === "field-sales"
-      ? FIELD_SALES_NAV_ITEMS
-      : filteredNavItems;
+  const filteredFieldSalesNavItems = FIELD_SALES_NAV_ITEMS.filter((item) => {
+    if (
+      isAdminOrOwner ||
+      userPermissions.includes("*") ||
+      userPermissions.includes("field_sales.manage")
+    ) {
+      return true;
+    }
+
+    if (item.managerOnly) {
+      return (
+        isManager ||
+        userPermissions.includes("field_sales.employees_manage")
+      );
+    }
+
+    return true;
+  });
+
+  const isFieldSalesMode =
+    (!isAdminOrOwner && isFieldSalesUser) ||
+    activeSystem === "field-sales";
+
+  const visibleNavItems = isFieldSalesMode
+    ? filteredFieldSalesNavItems
+    : filteredNavItems;
 
   /* ------------------------------------------------------------------------
      Actions
@@ -900,7 +972,7 @@ export default function Sidebar({
 
                 {/* Field Sales */}
 
-                {fieldSalesEnabled && (
+                {effectiveFieldSalesEnabled && (
                   <button
                     type="button"
                     className={`sidebar__system-option${activeSystem ===

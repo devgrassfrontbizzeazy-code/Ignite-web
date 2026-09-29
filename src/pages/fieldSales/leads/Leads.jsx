@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiEdit2, FiEye, FiMapPin, FiPlus, FiTrash2, FiUsers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -7,58 +7,52 @@ import RowActions from "../../../components/common/RowActions/RowActions";
 import SearchInput from "../../../components/common/SearchInput/SearchInput";
 import Select from "../../../components/common/Select/Select";
 import LeadStats from "../../../components/fieldSales/leads/leadStats/LeadStats";
+import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
+import { getFieldSalesLeads, getFieldSalesEmployees } from "../../../services/api/fieldSalesAPI";
+import { useNotification } from "../../../context/NotificationContext";
 
 import "./Leads.css";
 
 const Leads = () => {
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [assignedTo, setAssignedTo] = useState("all");
 
-  /*
-   * TEMPORARY DATA
-   *
-   * This will be replaced with leadAPI once
-   * backend endpoints are available.
-   */
-  const [leads] = useState([
-    {
-      id: 1,
-      first_name: "Rahul",
-      last_name: "Sharma",
-      email: "rahul@example.com",
-      phone: "+91 9876543210",
-      company_name: "ABC Enterprises",
-      address: "Sector 18, Gurugram",
+  const [leads, setLeads] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-      // Lead outcome
-      status: "NEW",
+  const fetchLeadsAndEmployees = async () => {
+    try {
+      setLoading(true);
+      const [leadsRes, empsRes] = await Promise.allSettled([
+        getFieldSalesLeads(),
+        getFieldSalesEmployees(),
+      ]);
 
-      // Visit status
-      visit_status: "NOT_STARTED",
+      if (leadsRes.status === "fulfilled" && leadsRes.value?.data) {
+        setLeads(leadsRes.value.data);
+      }
+      if (empsRes.status === "fulfilled" && empsRes.value?.data) {
+        setEmployees(empsRes.value.data);
+      }
+    } catch (err) {
+      console.error("Failed to load leads or employees:", err);
+      showNotification({
+        type: "error",
+        message: "Failed to load leads directory.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      assigned_to: "Amit Kumar",
-    },
-    {
-      id: 2,
-      first_name: "Priya",
-      last_name: "Verma",
-      email: "priya@example.com",
-      phone: "+91 9876543211",
-      company_name: "Verma Industries",
-      address: "DLF Phase 2, Gurugram",
-
-      // Lead outcome
-      status: "FOLLOW_UP",
-
-      // Visit status
-      visit_status: "CHECKED_OUT",
-
-      assigned_to: "Neha Singh",
-    },
-  ]);
+  useEffect(() => {
+    fetchLeadsAndEmployees();
+  }, []);
 
   /* =========================
      FILTER OPTIONS
@@ -74,12 +68,20 @@ const Leads = () => {
       label: "New",
     },
     {
-      value: "FOLLOW_UP",
-      label: "Follow-up",
+      value: "CONTACTED",
+      label: "Contacted",
     },
     {
-      value: "DEAL_WON",
-      label: "Deal Won",
+      value: "QUALIFIED",
+      label: "Qualified",
+    },
+    {
+      value: "PROPOSAL",
+      label: "Proposal",
+    },
+    {
+      value: "WON",
+      label: "Won",
     },
     {
       value: "LOST",
@@ -87,20 +89,26 @@ const Leads = () => {
     },
   ];
 
-  const assignedOptions = [
-    {
-      value: "all",
-      label: "All Employees",
-    },
-    {
-      value: "Amit Kumar",
-      label: "Amit Kumar",
-    },
-    {
-      value: "Neha Singh",
-      label: "Neha Singh",
-    },
-  ];
+  const assignedOptions = useMemo(() => {
+    const list = [
+      {
+        value: "all",
+        label: "All Employees",
+      },
+    ];
+
+    employees.forEach((emp) => {
+      const name = emp.full_name || `${emp.first_name || ""} ${emp.last_name || ""}`.trim();
+      if (name) {
+        list.push({
+          value: String(emp.id),
+          label: name,
+        });
+      }
+    });
+
+    return list;
+  }, [employees]);
 
   /* =========================
      FILTERED LEADS
@@ -110,8 +118,7 @@ const Leads = () => {
     const searchValue = search.toLowerCase().trim();
 
     return leads.filter((lead) => {
-      const name =
-        `${lead.first_name} ${lead.last_name}`.toLowerCase();
+      const name = `${lead.first_name || ""} ${lead.last_name || ""} ${lead.contact_name || ""} ${lead.title || ""}`.toLowerCase();
 
       const matchesSearch =
         !searchValue ||
@@ -122,11 +129,12 @@ const Leads = () => {
 
       const matchesStatus =
         status === "all" ||
-        lead.status === status;
+        lead.status?.toUpperCase() === status.toUpperCase();
 
       const matchesAssigned =
         assignedTo === "all" ||
-        lead.assigned_to === assignedTo;
+        String(lead.assigned_to) === String(assignedTo) ||
+        String(lead.assigned_to_name) === String(assignedTo);
 
       return (
         matchesSearch &&
@@ -146,24 +154,26 @@ const Leads = () => {
   ========================= */
 
   const stats = useMemo(() => {
+    const total = leads.length;
+    const newCount = leads.filter(
+      (lead) => lead.status?.toUpperCase() === "NEW"
+    ).length;
+    const contactedCount = leads.filter(
+      (lead) => ["CONTACTED", "FOLLOW_UP", "QUALIFIED", "PROPOSAL"].includes(lead.status?.toUpperCase())
+    ).length;
+    const wonCount = leads.filter(
+      (lead) => ["WON", "DEAL_WON"].includes(lead.status?.toUpperCase())
+    ).length;
+    const lostCount = leads.filter(
+      (lead) => lead.status?.toUpperCase() === "LOST"
+    ).length;
+
     return {
-      total: leads.length,
-
-      new: leads.filter(
-        (lead) => lead.status === "NEW"
-      ).length,
-
-      followUp: leads.filter(
-        (lead) => lead.status === "FOLLOW_UP"
-      ).length,
-
-      won: leads.filter(
-        (lead) => lead.status === "DEAL_WON"
-      ).length,
-
-      lost: leads.filter(
-        (lead) => lead.status === "LOST"
-      ).length,
+      total,
+      new: newCount,
+      followUp: contactedCount,
+      won: wonCount,
+      lost: lostCount,
     };
   }, [leads]);
 
@@ -172,21 +182,24 @@ const Leads = () => {
   ========================= */
 
   const formatStatus = (value) => {
-    switch (value) {
+    switch (value?.toUpperCase()) {
       case "NEW":
         return "New";
-
+      case "CONTACTED":
+        return "Contacted";
+      case "QUALIFIED":
+        return "Qualified";
+      case "PROPOSAL":
+        return "Proposal";
       case "FOLLOW_UP":
         return "Follow-up";
-
+      case "WON":
       case "DEAL_WON":
-        return "Deal Won";
-
+        return "Won";
       case "LOST":
         return "Lost";
-
       default:
-        return value || "—";
+        return value || "New";
     }
   };
 
@@ -195,18 +208,18 @@ const Leads = () => {
   ========================= */
 
   const formatVisitStatus = (value) => {
-    switch (value) {
+    switch (value?.toUpperCase()) {
       case "NOT_STARTED":
-        return "Not Started";
-
+      case "SCHEDULED":
+        return "Scheduled";
       case "CHECKED_IN":
-        return "Checked In";
-
+      case "IN_PROGRESS":
+        return "In Progress";
       case "CHECKED_OUT":
-        return "Checked Out";
-
+      case "COMPLETED":
+        return "Completed";
       default:
-        return "Not Started";
+        return "Scheduled";
     }
   };
 
@@ -215,14 +228,15 @@ const Leads = () => {
   ========================= */
 
   const getVisitStatusClass = (value) => {
-    switch (value) {
+    switch (value?.toUpperCase()) {
       case "CHECKED_IN":
+      case "IN_PROGRESS":
         return "checked-in";
-
       case "CHECKED_OUT":
+      case "COMPLETED":
         return "checked-out";
-
       case "NOT_STARTED":
+      case "SCHEDULED":
       default:
         return "not-started";
     }
@@ -234,29 +248,17 @@ const Leads = () => {
 
   const getLeadActions = (lead) => [
     {
-      key: "view",
-      label: "View",
-      icon: FiEye,
-      onClick: () =>
-        navigate(`/field-sales/leads/${lead.id}`),
-    },
-    {
       key: "edit",
       label: "Edit",
       icon: FiEdit2,
       onClick: () =>
         navigate(`/field-sales/leads/${lead.id}/edit`),
     },
-    {
-      key: "delete",
-      label: "Delete",
-      icon: FiTrash2,
-      isDanger: true,
-      onClick: () => {
-        console.log("Delete lead:", lead.id);
-      },
-    },
   ];
+
+  if (loading) {
+    return <IgniteLoader message="Loading leads..." />;
+  }
 
   return (
     <main className="field-sales-leads-page">
@@ -392,104 +394,115 @@ const Leads = () => {
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => (
-                  <tr key={lead.id}>
+                filteredLeads.map((lead) => {
+                  const leadDisplayName =
+                    `${lead.first_name || ""} ${lead.last_name || ""}`.trim() ||
+                    lead.contact_name ||
+                    lead.title ||
+                    "Lead";
 
-                    {/* LEAD */}
+                  const assignedName =
+                    lead.assigned_to_name ||
+                    (typeof lead.assigned_to === "object" ? lead.assigned_to?.full_name : lead.assigned_to) ||
+                    "Unassigned";
 
-                    <td>
-                      <div className="field-sales-leads-table__lead">
+                  return (
+                    <tr key={lead.id}>
 
-                        <div className="field-sales-leads-table__avatar">
-                          <FiUsers />
+                      {/* LEAD */}
+
+                      <td>
+                        <div className="field-sales-leads-table__lead">
+
+                          <div className="field-sales-leads-table__avatar">
+                            <FiUsers />
+                          </div>
+
+                          <div className="field-sales-leads-table__lead-info">
+                            <strong>
+                              {leadDisplayName}
+                            </strong>
+
+                            <span>
+                              {lead.email || "No email"}
+                            </span>
+                          </div>
+
                         </div>
+                      </td>
 
-                        <div className="field-sales-leads-table__lead-info">
+                      {/* COMPANY */}
+
+                      <td>
+                        <div className="field-sales-leads-table__company">
+
                           <strong>
-                            {lead.first_name}{" "}
-                            {lead.last_name}
+                            {lead.company_name || "—"}
                           </strong>
 
                           <span>
-                            {lead.email}
+                            {lead.address || "—"}
+                          </span>
+
+                        </div>
+                      </td>
+
+                      {/* CONTACT */}
+
+                      <td>
+                        <div className="field-sales-leads-table__contact">
+                          <span>
+                            {lead.phone || "—"}
                           </span>
                         </div>
+                      </td>
 
-                      </div>
-                    </td>
+                      {/* ASSIGNED TO */}
 
-                    {/* COMPANY */}
-
-                    <td>
-                      <div className="field-sales-leads-table__company">
-
-                        <strong>
-                          {lead.company_name}
-                        </strong>
-
-                        <span>
-                          {lead.address}
+                      <td>
+                        <span className="field-sales-leads-table__assigned">
+                          {assignedName}
                         </span>
+                      </td>
 
-                      </div>
-                    </td>
+                      {/* LEAD OUTCOME */}
 
-                    {/* CONTACT */}
-
-                    <td>
-                      <div className="field-sales-leads-table__contact">
-                        <span>
-                          {lead.phone}
+                      <td>
+                        <span
+                          className={`field-sales-leads-status field-sales-leads-status--${(lead.status || "new").toLowerCase()}`}
+                        >
+                          {formatStatus(
+                            lead.status
+                          )}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* ASSIGNED TO */}
+                      {/* VISIT STATUS */}
 
-                    <td>
-                      <span className="field-sales-leads-table__assigned">
-                        {lead.assigned_to ||
-                          "Unassigned"}
-                      </span>
-                    </td>
+                      <td>
+                        <span
+                          className={`field-sales-leads-visit-status field-sales-leads-visit-status--${getVisitStatusClass(
+                            lead.visit_status
+                          )}`}
+                        >
+                          {formatVisitStatus(
+                            lead.visit_status
+                          )}
+                        </span>
+                      </td>
 
-                    {/* LEAD OUTCOME */}
+                      {/* ACTION */}
 
-                    <td>
-                      <span
-                        className={`field-sales-leads-status field-sales-leads-status--${lead.status.toLowerCase()}`}
-                      >
-                        {formatStatus(
-                          lead.status
-                        )}
-                      </span>
-                    </td>
+                      <td className="field-sales-leads-table__actions-cell">
+                        <RowActions
+                          items={getLeadActions(lead)}
+                          title={`Actions for ${leadDisplayName}`}
+                        />
+                      </td>
 
-                    {/* VISIT STATUS */}
-
-                    <td>
-                      <span
-                        className={`field-sales-leads-visit-status field-sales-leads-visit-status--${getVisitStatusClass(
-                          lead.visit_status
-                        )}`}
-                      >
-                        {formatVisitStatus(
-                          lead.visit_status
-                        )}
-                      </span>
-                    </td>
-
-                    {/* ACTION */}
-
-                    <td className="field-sales-leads-table__actions-cell">
-                      <RowActions
-                        items={getLeadActions(lead)}
-                        title={`Actions for ${lead.first_name} ${lead.last_name}`}
-                      />
-                    </td>
-
-                  </tr>
-                ))
+                    </tr>
+                  );
+                })
               )}
             </tbody>
 

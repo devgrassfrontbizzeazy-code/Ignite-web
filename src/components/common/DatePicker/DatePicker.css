@@ -50,7 +50,7 @@
 
 .date-picker__popup {
   position: fixed;
-  width: 270px;
+  width: 280px;
   padding: 12px;
   box-sizing: border-box;
   border: 1px solid var(--color-border);
@@ -70,15 +70,45 @@
 .date-picker__month-year {
     display: flex;
     align-items: center;
-    gap: 4px;
-
-    font-size: 11px;
-    color: var(--color-text-primary);
+    gap: 6px;
+    flex: 1;
+    justify-content: center;
 }
 
-.date-picker__month-year strong {
-    font-weight: 700;
+.date-picker__select {
+    appearance: auto;
+    -webkit-appearance: auto;
+    border: 1px solid var(--color-border, #e2e8f0);
+    border-radius: 6px;
+    background: var(--color-bg-surface, #ffffff);
+    color: var(--color-text-primary, #0f172a);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 6px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.15s ease;
 }
+
+.date-picker__select:hover {
+    border-color: var(--color-primary, #0ba37f);
+    background: var(--color-bg-muted, #f8fafc);
+}
+
+.date-picker__select:focus {
+    border-color: var(--color-primary, #0ba37f);
+    box-shadow: 0 0 0 2px rgba(11, 163, 127, 0.15);
+}
+
+.date-picker__select--month {
+    max-width: 105px;
+}
+
+.date-picker__select--year {
+    max-width: 75px;
+}
+
 
 .date-picker__nav-button {
     width: 28px;

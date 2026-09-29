@@ -32,6 +32,20 @@ const STATUS_OPTIONS = [
 ];
 
 const EmployeeAttendance = ({ onShowToast }) => {
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
+    }
+  })();
+  const rawRole = String(currentUser.role || "").toUpperCase();
+  const isAdminOrOwner =
+    rawRole === "OWNER" ||
+    rawRole === "ADMIN" ||
+    rawRole === "ADMINISTRATOR" ||
+    currentUser.is_superuser === true;
+
   // Filters
   const todayStr = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
@@ -437,6 +451,17 @@ const EmployeeAttendance = ({ onShowToast }) => {
                 {records.map((r) => {
                   const hasAttendance = r.hasAttendance;
                   const isPending = r.status === "PENDING_APPROVAL";
+                  const isSelf =
+                    (currentUser.employee_id &&
+                      currentUser.employee_id === r.employeeId) ||
+                    (currentUser.employeeId &&
+                      currentUser.employeeId === r.employeeId) ||
+                    (currentUser.email &&
+                      currentUser.email.toLowerCase() ===
+                        (r.employeeEmail || "").toLowerCase());
+                  const canApproveThisRow =
+                    canApproveAttendance() &&
+                    (isAdminOrOwner || !isSelf);
 
                   return (
                     <tr key={`${r.employeeId}-${r.attendanceDate}`}>
@@ -460,7 +485,14 @@ const EmployeeAttendance = ({ onShowToast }) => {
                             )}
                           </div>
                           <div className="employee-att-user-meta">
-                            <span className="employee-att-name">{r.employeeName}</span>
+                            <span className="employee-att-name">
+                              {r.employeeName}
+                              {isSelf && (
+                                <span style={{ marginLeft: "6px", fontSize: "11px", opacity: 0.75, fontWeight: "normal" }}>
+                                  (You)
+                                </span>
+                              )}
+                            </span>
                             <span className="employee-att-code">{r.employeeCode}</span>
                           </div>
                         </div>
@@ -531,7 +563,7 @@ const EmployeeAttendance = ({ onShowToast }) => {
                             </button>
                           )}
 
-                          {isPending && canApproveAttendance() && (
+                          {isPending && canApproveThisRow && (
                             <>
                               <button
                                 type="button"

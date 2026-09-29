@@ -22,6 +22,7 @@ const initialFormState = {
   middle_name: "",
   last_name: "",
   date_of_birth: "",
+  date_of_joining: new Date().toISOString().split("T")[0],
   gender: "",
   email: "",
   phone: "",
@@ -49,6 +50,7 @@ export default function FieldSalesEmployeeForm({
         middle_name: initialData.middle_name || initialData.middleName || "",
         last_name: initialData.last_name || initialData.lastName || "",
         date_of_birth: initialData.date_of_birth || initialData.dateOfBirth || "",
+        date_of_joining: initialData.date_of_joining || initialData.dateOfJoining || new Date().toISOString().split("T")[0],
         gender: initialData.gender || "",
         email: initialData.email || "",
         phone: initialData.phone || "",
@@ -141,10 +143,9 @@ export default function FieldSalesEmployeeForm({
         : null,
       role: form.role,
       field_sales_role: form.role,
-      employee_code:
-        initialData?.employee_code || `FS-${Math.floor(1000 + Math.random() * 9000)}`,
+      ...(initialData?.employee_code ? { employee_code: initialData.employee_code } : {}),
       date_of_joining:
-        initialData?.date_of_joining || new Date().toISOString().split("T")[0],
+        form.date_of_joining || initialData?.date_of_joining || new Date().toISOString().split("T")[0],
       employment_type: initialData?.employment_type || "Full Time",
       employment_status: initialData?.employment_status || "Active",
     };
@@ -246,7 +247,16 @@ export default function FieldSalesEmployeeForm({
           />
         </FormField>
 
-        {/* 8. Address */}
+        {/* 8. Date of Joining */}
+        <FormField label="Date of Joining" error={errors.date_of_joining}>
+          <DatePicker
+            value={form.date_of_joining}
+            onChange={(val) => handleSelectChange("date_of_joining", val)}
+            placeholder="Select date of joining"
+          />
+        </FormField>
+
+        {/* 9. Address */}
         <FormField label="Address" error={errors.address} className="fs-employee-form__field--full">
           <textarea
             name="address"
@@ -258,7 +268,7 @@ export default function FieldSalesEmployeeForm({
           />
         </FormField>
 
-        {/* 9. Reporting Manager */}
+        {/* 10. Reporting Manager */}
         <FormField label="Reporting Manager" error={errors.reporting_manager_id}>
           <Select
             value={String(form.reporting_manager_id)}
@@ -268,7 +278,7 @@ export default function FieldSalesEmployeeForm({
           />
         </FormField>
 
-        {/* 10. Role */}
+        {/* 11. Role */}
         <FormField label="Role" required error={errors.role}>
           <Select
             value={form.role}

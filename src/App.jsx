@@ -9,6 +9,7 @@ import {
 
 import { OrganizationProvider } from "./context/OrganizationContext/OrganizationContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { isFieldSalesManager } from "./utils/permissionUtils";
 
 /* Website */
 import HomePage from "./pages/landingPage/HomePage";
@@ -158,6 +159,14 @@ function WorkManagementGuard() {
   return <Outlet />;
 }
 
+function FieldSalesManagerGuard() {
+  const isManager = isFieldSalesManager();
+  if (!isManager) {
+    return <Navigate to="/field-sales/visits" replace />;
+  }
+  return <Outlet />;
+}
+
 /* =========================================================
    APP
 ========================================================= */
@@ -194,6 +203,7 @@ export default function App() {
                 <Route path="/signup" element={<SignupPage />} />
 
                 <Route path="/accept-invite" element={<AcceptInvitePage />} />
+                <Route path="/accept-invitation" element={<AcceptInvitePage />} />
 
                 {/* =====================================================
                     INITIAL COMPANY SETUP
@@ -318,22 +328,21 @@ export default function App() {
                         }
                       />
 
-                      <Route path="/field-sales/leads" element={<Leads />} />
-
-                      <Route
-                        path="/field-sales/leads/add"
-                        element={<LeadForm />}
-                      />
-
-                      <Route
-                        path="/field-sales/leads/:id/edit"
-                        element={<LeadForm />}
-                      />
-
-                      <Route
-                        path="/field-sales/employees"
-                        element={<FieldSalesEmployees />}
-                      />
+                      <Route element={<FieldSalesManagerGuard />}>
+                        <Route path="/field-sales/leads" element={<Leads />} />
+                        <Route
+                          path="/field-sales/leads/add"
+                          element={<LeadForm />}
+                        />
+                        <Route
+                          path="/field-sales/leads/:id/edit"
+                          element={<LeadForm />}
+                        />
+                        <Route
+                          path="/field-sales/employees"
+                          element={<FieldSalesEmployees />}
+                        />
+                      </Route>
                       <Route path="/field-sales/visits" element={<Visits />} />
 
                       <Route path="/attendance" element={<Attendance />} />

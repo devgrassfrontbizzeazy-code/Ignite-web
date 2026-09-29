@@ -124,10 +124,8 @@
 
   background: var(--color-surface, #ffffff);
 
-  box-shadow: var(
-    --shadow-sm,
-    0 2px 8px rgba(15, 61, 62, 0.04)
-  );
+  box-shadow: var(--shadow-sm,
+      0 2px 8px rgba(15, 61, 62, 0.04));
 
   overflow: visible;
 }
@@ -146,31 +144,25 @@
 
   border-radius: 0 0 4px 4px;
 
-  background: linear-gradient(
-    90deg,
-    #0ba37f,
-    #0f3d3e
-  );
+  background: linear-gradient(90deg,
+      #0ba37f,
+      #0f3d3e);
 }
 
 /* Purple section */
 
 .lead-form__section--purple::before {
-  background: linear-gradient(
-    90deg,
-    #7c3aed,
-    #a855f7
-  );
+  background: linear-gradient(90deg,
+      #7c3aed,
+      #a855f7);
 }
 
 /* Amber section */
 
 .lead-form__section--amber::before {
-  background: linear-gradient(
-    90deg,
-    #d4af37,
-    #f59e0b
-  );
+  background: linear-gradient(90deg,
+      #d4af37,
+      #f59e0b);
 }
 
 /* ==========================================================================
@@ -260,8 +252,7 @@
   display: grid;
 
   grid-template-columns:
-    minmax(0, 1fr)
-    minmax(0, 1fr);
+    minmax(0, 1fr) minmax(0, 1fr);
 
   gap: 15px;
 }
@@ -370,7 +361,7 @@
   width: 100%;
 }
 
-.lead-form__input-wrap > svg {
+.lead-form__input-wrap>svg {
   position: absolute;
 
   top: 50%;
@@ -393,7 +384,7 @@
 
 /* Textarea icon */
 
-.lead-form__input-wrap--textarea > svg {
+.lead-form__input-wrap--textarea>svg {
   top: 12px;
   transform: none;
 }
@@ -453,7 +444,7 @@
 .lead-form__footer svg {
   width: 14px;
   height: 14px;
-  
+
 }
 
 /* ==========================================================================

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { FiPlus, FiUsers } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 import Button from "../../../components/common/Button/Button";
 import EmployeeStats from "../../../components/employees/EmployeeStats/EmployeeStats";
@@ -9,89 +10,22 @@ import SearchInput from "../../../components/common/SearchInput/SearchInput";
 
 import FieldSalesEmployeeForm from "../../../components/fieldSales/employees/FieldSalesEmployeeForm/FieldSalesEmployeeForm";
 import FieldSalesEmployeeTable from "../../../components/fieldSales/employees/FieldSalesEmployeeTable/FieldSalesEmployeeTable";
-import { useNavigate } from "react-router-dom";
-import { getCurrentUser } from "../../../utils/permissionUtils";
+import { getCurrentUser, canCreateEmployees, canUpdateEmployees, canDeleteEmployees, isSuperOrAdmin } from "../../../utils/permissionUtils";
+import { useNotification } from "../../../context/NotificationContext";
+import {
+    getFieldSalesEmployees,
+    getFieldSalesManagers,
+    createFieldSalesEmployee,
+    updateFieldSalesEmployee,
+    deleteFieldSalesEmployee,
+    resendFieldSalesInvite,
+} from "../../../services/api/fieldSalesAPI";
 
 import "./FieldSalesEmployees.css";
 
 /*
- * MOCK FIELD SALES EMPLOYEES
- *
- * Frontend-only for now.
- * Replace with Field Sales API later.
- */
-const INITIAL_EMPLOYEES = [
-    {
-        id: 1,
-        employee_code: "FS-1001",
-        first_name: "Rahul",
-        middle_name: "",
-        last_name: "Sharma",
-        email: "rahul.sharma@company.com",
-        phone: "9876543210",
-        date_of_birth: "1995-04-12",
-        gender: "Male",
-        address: "Delhi, India",
-
-        role: "Manager",
-        field_sales_role: "Manager",
-
-        reporting_manager_id: null,
-        reporting_manager: null,
-
-        employment_status: "Active",
-        is_active: true,
-    },
-
-    {
-        id: 2,
-        employee_code: "FS-1002",
-        first_name: "Amit",
-        middle_name: "",
-        last_name: "Kumar",
-        email: "amit.kumar@company.com",
-        phone: "9876543211",
-        date_of_birth: "1998-08-20",
-        gender: "Male",
-        address: "Gurugram, Haryana",
-
-        role: "Executive",
-        field_sales_role: "Executive",
-
-        reporting_manager_id: 1,
-        reporting_manager: "Rahul Sharma",
-
-        employment_status: "Active",
-        is_active: true,
-    },
-
-    {
-        id: 3,
-        employee_code: "FS-1003",
-        first_name: "Priya",
-        middle_name: "",
-        last_name: "Verma",
-        email: "priya.verma@company.com",
-        phone: "9876543212",
-        date_of_birth: "1997-02-15",
-        gender: "Female",
-        address: "Noida, Uttar Pradesh",
-
-        role: "Executive",
-        field_sales_role: "Executive",
-
-        reporting_manager_id: 1,
-        reporting_manager: "Rahul Sharma",
-
-        employment_status: "Active",
-        is_active: true,
-    },
-];
-
-/*
  * HELPERS
  */
-
 const getEmployeeName = (employee) =>
     [
         employee?.first_name,
@@ -104,16 +38,21 @@ const getEmployeeName = (employee) =>
 /*
  * PAGE
  */
-
 export default function FieldSalesEmployees() {
-    /*
-     * EMPLOYEE DATA
-     */
-    const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
     const navigate = useNavigate();
+    const { notify } = useNotification();
 
     /*
-     * SEARCH
+     * EMPLOYEE DATA & API STATE
+     */
+    const [employees, setEmployees] = useState([]);
+    const [managers, setManagers] = useState([]);
+    const [stats, setStats] = useState({ total: 0, active: 0, pending: 0, inactive: 0 });
+    const [loading, setLoading] = useState(true);
+    const [serverErrors, setServerErrors] = useState({});
+
+    /*
+     * SEARCH & FILTER
      */
     const [search, setSearch] = useState("");
 
@@ -130,94 +69,76 @@ export default function FieldSalesEmployees() {
     const [deleteEmployee, setDeleteEmployee] = useState(null);
 
     /*
-     * LOADING
-     *
-     * Backend is not connected yet.
+     * LOAD DATA FROM BACKEND
      */
-    const loading = false;
+    const loadEmployees = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await getFieldSalesEmployees();
+            if (res?.data) {
+                setEmployees(res.data);
+            } else if (Array.isArray(res)) {
+                setEmployees(res);
+            }
 
-    /*
-     * FIELD SALES MANAGERS
-     *
-     * Used by Reporting Manager dropdown.
-     */
-    const managers = useMemo(
-        () =>
-            employees
-                .filter(
-                    (employee) =>
-                        employee.field_sales_role === "Manager" ||
-                        employee.role === "Manager"
-                )
-                .map((employee) => ({
-                    id: employee.id,
-                    full_name: getEmployeeName(employee),
-                })),
-        [employees]
-    );
+            if (res?.stats) {
+                setStats(res.stats);
+            }
+        } catch (err) {
+            console.error("Failed to load field sales employees:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    const loadManagers = useCallback(async () => {
+        try {
+            const res = await getFieldSalesManagers();
+            if (res?.data) {
+                setManagers(res.data);
+            }
+        } catch (err) {
+            console.error("Failed to load managers:", err);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadEmployees();
+        loadManagers();
+    }, [loadEmployees, loadManagers]);
 
     const currentUser = getCurrentUser();
-
     const isOwner =
         currentUser?.role === "OWNER" ||
         currentUser?.role_code === "OWNER" ||
         currentUser?.is_owner === true;
+
+    // Check if user has permission to add employees (Managers without create_employee permission cannot add)
+    const canAdd = isSuperOrAdmin(currentUser) || canCreateEmployees(currentUser);
+    const canEdit = isSuperOrAdmin(currentUser) || canUpdateEmployees(currentUser);
+    const canDelete = isSuperOrAdmin(currentUser) || canDeleteEmployees(currentUser);
 
     /*
      * FILTER EMPLOYEES
      */
     const filteredEmployees = useMemo(() => {
         const query = search.trim().toLowerCase();
-
-        if (!query) {
-            return employees;
-        }
+        if (!query) return employees;
 
         return employees.filter((employee) => {
             const name = getEmployeeName(employee).toLowerCase();
-
             return (
                 name.includes(query) ||
                 employee.email?.toLowerCase().includes(query) ||
                 employee.phone?.includes(query) ||
                 employee.employee_code?.toLowerCase().includes(query) ||
-                employee.field_sales_role?.toLowerCase().includes(query)
+                employee.role?.toLowerCase().includes(query)
             );
         });
     }, [employees, search]);
 
     /*
-     * STATS
-     */
-    const stats = useMemo(() => {
-        const total = employees.length;
-
-        const active = employees.filter(
-            (employee) =>
-                employee.is_active === true ||
-                employee.employment_status === "Active"
-        ).length;
-
-        const pending = 0;
-
-        const inactive = employees.filter(
-            (employee) =>
-                employee.is_active === false ||
-                employee.employment_status !== "Active"
-        ).length;
-
-        return {
-            total,
-            active,
-            pending,
-            inactive,
-        };
-    }, [employees]);
-
-    /*
-     * CURRENT DATE
-     *
-     * Same presentation as HRMS Employees page.
+     * CURRENT DATE DISPLAY
      */
     const formattedDate = new Intl.DateTimeFormat("en-IN", {
         weekday: "long",
@@ -227,102 +148,49 @@ export default function FieldSalesEmployees() {
     }).format(new Date());
 
     /*
-     * ADD EMPLOYEE
+     * ADD / EDIT HANDLERS
      */
     const handleAddEmployee = () => {
         setEditingEmployee(null);
+        setServerErrors({});
         setFormOpen(true);
     };
 
-    /*
-     * EDIT EMPLOYEE
-     */
     const handleEditEmployee = (employee) => {
         setEditingEmployee(employee);
+        setServerErrors({});
         setFormOpen(true);
     };
 
-    /*
-     * VIEW EMPLOYEE
-     *
-     * Details screen can be added later.
-     */
     const handleViewEmployee = (employee) => {
         console.log("View Field Sales Employee:", employee);
     };
 
     /*
-     * CREATE / UPDATE EMPLOYEE
+     * CREATE / UPDATE SUBMIT
      */
     const handleSubmit = async (payload) => {
         setSubmitting(true);
+        setServerErrors({});
 
         try {
-            /*
-             * EDIT
-             */
             if (editingEmployee) {
-                setEmployees((prev) =>
-                    prev.map((employee) =>
-                        employee.id === editingEmployee.id
-                            ? {
-                                ...employee,
-                                ...payload,
-
-                                role: payload.role,
-                                field_sales_role: payload.role,
-
-                                reporting_manager:
-                                    payload.reporting_manager
-                                        ? managers.find(
-                                            (manager) =>
-                                                manager.id === payload.reporting_manager
-                                        )?.full_name || null
-                                        : null,
-
-                                reporting_manager_id:
-                                    payload.reporting_manager || null,
-
-                                is_active: employee.is_active,
-                                employment_status: employee.employment_status,
-                            }
-                            : employee
-                    )
-                );
+                await updateFieldSalesEmployee(editingEmployee.id, payload);
+                notify.success(`Employee ${payload.first_name || ""} updated successfully.`);
+            } else {
+                await createFieldSalesEmployee(payload);
+                notify.success(`Employee created & invitation sent to ${payload.email}`);
             }
-
-            /*
-             * CREATE
-             */
-            else {
-                const newEmployee = {
-                    id: Date.now(),
-
-                    ...payload,
-
-                    role: payload.role,
-                    field_sales_role: payload.role,
-
-                    reporting_manager:
-                        payload.reporting_manager
-                            ? managers.find(
-                                (manager) =>
-                                    manager.id === payload.reporting_manager
-                            )?.full_name || null
-                            : null,
-
-                    reporting_manager_id:
-                        payload.reporting_manager || null,
-
-                    is_active: true,
-                    employment_status: "Active",
-                };
-
-                setEmployees((prev) => [...prev, newEmployee]);
-            }
-
+            await loadEmployees();
+            await loadManagers();
             setFormOpen(false);
             setEditingEmployee(null);
+        } catch (err) {
+            console.error("Error saving employee:", err);
+            if (err?.response?.data) {
+                setServerErrors(err.response.data);
+            }
+            notify.error("Failed to save employee. Please check the form errors.");
         } finally {
             setSubmitting(false);
         }
@@ -331,62 +199,68 @@ export default function FieldSalesEmployees() {
     /*
      * TOGGLE STATUS
      */
-    const handleToggleStatus = (employee) => {
-        setEmployees((prev) =>
-            prev.map((item) =>
-                item.id === employee.id
-                    ? {
-                        ...item,
+    const handleToggleStatus = async (employee) => {
+        try {
+            const newActive = !employee.is_active;
+            await updateFieldSalesEmployee(employee.id, {
+                is_active: newActive,
+                employment_status: newActive ? "Active" : "Inactive",
+            });
+            await loadEmployees();
+        } catch (err) {
+            console.error("Error toggling employee status:", err);
+        }
+    };
 
-                        is_active: !item.is_active,
-
-                        employment_status: item.is_active
-                            ? "Inactive"
-                            : "Active",
-                    }
-                    : item
-            )
-        );
+    /*
+     * RESEND INVITATION
+     */
+    const handleResendInvite = async (employee) => {
+        try {
+            await resendFieldSalesInvite(employee.id);
+            notify.success(`Invitation resent successfully to ${employee.email}`);
+        } catch (err) {
+            console.error("Failed to resend invite:", err);
+            notify.error("Failed to resend invitation. Please try again.");
+        }
     };
 
     /*
      * DELETE EMPLOYEE
      */
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!deleteEmployee) return;
 
-        setEmployees((prev) =>
-            prev.filter(
-                (employee) => employee.id !== deleteEmployee.id
-            )
-        );
-
-        setDeleteEmployee(null);
+        try {
+            await deleteFieldSalesEmployee(deleteEmployee.id);
+            notify.success(`Employee ${getEmployeeName(deleteEmployee)} deleted successfully.`);
+            await loadEmployees();
+            await loadManagers();
+        } catch (err) {
+            console.error("Error deleting employee:", err);
+            notify.error("Failed to delete employee. Please try again.");
+        } finally {
+            setDeleteEmployee(null);
+        }
     };
 
     return (
         <main className="employees-page fs-employees-page">
-
             {/* ================= HEADER ================= */}
-
             <header className="employees-page__header">
                 <div>
                     <span className="employees-page__eyebrow">
                         FIELD SALES
                     </span>
-
                     <h1>Employees</h1>
-
                     <p>
                         Manage employees working in the Field Sales workspace.
                     </p>
                 </div>
 
                 <div className="employees-page__header-actions">
-
                     {isOwner && (
                         <div className="employees-page__workspace-toggle">
-
                             <button
                                 type="button"
                                 className="employees-page__workspace-option"
@@ -394,14 +268,12 @@ export default function FieldSalesEmployees() {
                             >
                                 HRMS
                             </button>
-
                             <button
                                 type="button"
                                 className="employees-page__workspace-option employees-page__workspace-option--active"
                             >
                                 Field Sales
                             </button>
-
                         </div>
                     )}
 
@@ -410,23 +282,22 @@ export default function FieldSalesEmployees() {
                         <span>{formattedDate}</span>
                     </div>
 
-                    <Button
-                        variant="primary"
-                        icon={<FiPlus size={16} />}
-                        onClick={handleAddEmployee}
-                    >
-                        + Add Employee
-                    </Button>
-
+                    {canAdd && (
+                        <Button
+                            variant="primary"
+                            icon={<FiPlus size={16} />}
+                            onClick={handleAddEmployee}
+                        >
+                            + Add Employee
+                        </Button>
+                    )}
                 </div>
             </header>
 
             {/* ================= STATS ================= */}
-
             <EmployeeStats stats={stats} />
 
             {/* ================= SEARCH ================= */}
-
             <section className="fs-employees-page__filters">
                 <div className="fs-employees-page__search">
                     <SearchInput
@@ -438,28 +309,26 @@ export default function FieldSalesEmployees() {
             </section>
 
             {/* ================= TABLE ================= */}
-
             <section className="employees-page__content">
-
                 <FieldSalesEmployeeTable
                     employees={filteredEmployees}
                     loading={loading}
                     onView={handleViewEmployee}
-                    onEdit={handleEditEmployee}
-                    onToggleStatus={handleToggleStatus}
-                    onDelete={setDeleteEmployee}
+                    onEdit={canEdit ? handleEditEmployee : undefined}
+                    onToggleStatus={canEdit ? handleToggleStatus : undefined}
+                    onDelete={canDelete ? setDeleteEmployee : undefined}
+                    onResendInvite={canAdd ? handleResendInvite : undefined}
                 />
-
             </section>
 
             {/* ================= ADD / EDIT MODAL ================= */}
-
             <Modal
                 open={formOpen}
                 onClose={() => {
                     if (!submitting) {
                         setFormOpen(false);
                         setEditingEmployee(null);
+                        setServerErrors({});
                     }
                 }}
                 title={
@@ -477,13 +346,14 @@ export default function FieldSalesEmployees() {
                     onCancel={() => {
                         setFormOpen(false);
                         setEditingEmployee(null);
+                        setServerErrors({});
                     }}
                     submitting={submitting}
+                    serverErrors={serverErrors}
                 />
             </Modal>
 
             {/* ================= DELETE MODAL ================= */}
-
             <ConfirmModal
                 open={Boolean(deleteEmployee)}
                 onClose={() => setDeleteEmployee(null)}
@@ -504,7 +374,6 @@ export default function FieldSalesEmployees() {
                 confirmText="Delete"
                 variant="danger"
             />
-
         </main>
     );
 }

@@ -20,6 +20,8 @@ const VisitFilters = ({
   viewMode,
   onViewModeChange,
   employees = [],
+  showEmployeeFilter = true,
+  searchPlaceholder = "Search lead, company or employee...",
 }) => {
   const employeeOptions = [
     { value: "", label: "All Employees" },
@@ -45,7 +47,7 @@ const VisitFilters = ({
             onChange={(event) =>
               onSearchChange(event.target.value)
             }
-            placeholder="Search lead, company or employee..."
+            placeholder={searchPlaceholder}
           />
         </div>
 
@@ -62,14 +64,16 @@ const VisitFilters = ({
           </div>
         </div>
 
-        <div className="visits__filter-select">
-          <Select
-            value={employee}
-            onChange={onEmployeeChange}
-            options={employeeOptions}
-            placeholder="All Employees"
-          />
-        </div>
+        {showEmployeeFilter && (
+          <div className="visits__filter-select">
+            <Select
+              value={employee}
+              onChange={onEmployeeChange}
+              options={employeeOptions}
+              placeholder="All Employees"
+            />
+          </div>
+        )}
 
         <div className="visits__filter-select">
           <Select

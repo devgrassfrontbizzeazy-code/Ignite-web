@@ -490,12 +490,199 @@
   background: #0ba37f;
 }
 
+.visits-map__activity-row--selected {
+  background: rgba(11, 163, 127, 0.08);
+  border-radius: 8px;
+  padding: 8px 6px;
+}
+
+.visits-map__status-pill--active {
+  background: rgba(11, 163, 127, 0.18);
+  color: var(--color-primary);
+  border: 1px solid rgba(11, 163, 127, 0.3);
+}
+
+.visits-map__status-pill--inactive {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-weight: 700;
+}
+
+.visits-map__activity-avatar--inactive {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+}
+
+.visits-map__activity-status--inactive {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.visits-map__legend-swatch--timeline {
+  background: #0ba37f;
+  border: 2px dashed #fff;
+}
+
+/* --------------------------------------------------------------------------
+   Timeline Checkpoint Pin (1, 2, 3, 4 hr stops)
+   -------------------------------------------------------------------------- */
+
+.visits-map__timeline-pin-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.visits-map__timeline-pin {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0f3d3e;
+  border: 2px solid #0ba37f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 3px 8px rgba(15, 61, 62, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.visits-map__timeline-pin:hover {
+  transform: scale(1.25);
+  background: #0ba37f;
+  border-color: #ffffff;
+}
+
+.visits-map__timeline-popup {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+.visits-map__timeline-badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(11, 163, 127, 0.12);
+  color: #0ba37f;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.visits-map__timeline-popup strong {
+  font-size: 12px;
+  color: var(--color-text-primary);
+}
+
+.visits-map__timeline-popup small {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.visits-map__timeline-notes {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  border-top: 1px dashed var(--color-border);
+  padding-top: 4px;
+}
+
+.visits-map__emp-visits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.visits-map__emp-visits-title {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.visits-map__emp-visit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.visits-map__emp-visit-item:hover {
+  border-color: var(--color-primary);
+  background: rgba(11, 163, 127, 0.04);
+}
+
+.visits-map__emp-visit-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.visits-map__emp-visit-left strong {
+  font-size: 11px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visits-map__emp-visit-left small {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visits-map__visit-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.visits-map__visit-badge--checked_in {
+  background: rgba(212, 175, 55, 0.15);
+  color: #b45309;
+}
+
+.visits-map__visit-badge--checked_out {
+  background: rgba(11, 163, 127, 0.12);
+  color: var(--color-primary);
+}
+
+.visits-map__visit-badge--not_started {
+  background: rgba(135, 145, 155, 0.12);
+  color: #64748b;
+}
+
 .visits-map__activity-empty {
   padding: 12px 0 4px;
   font-size: 11px;
   color: var(--color-text-muted);
   text-align: center;
 }
+
 
 /* --------------------------------------------------------------------------
    GPS Information

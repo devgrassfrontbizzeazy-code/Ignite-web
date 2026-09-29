@@ -21,6 +21,7 @@ const OUTCOME_LABELS = {
 const VisitTable = ({
   visits,
   onViewVisit,
+  showEmployee = true,
 }) => {
   return (
     <div className="visits-table-card">
@@ -41,8 +42,8 @@ const VisitTable = ({
         <table className="visits-table">
           <thead>
             <tr>
-              <th>Lead</th>
-              <th>Employee</th>
+              <th>Lead / Client</th>
+              {showEmployee && <th>Employee</th>}
               <th>Scheduled</th>
               <th>Location</th>
               <th>Visit Status</th>
@@ -57,7 +58,7 @@ const VisitTable = ({
             {visits.length === 0 ? (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan={showEmployee ? "7" : "6"}
                   className="visits-table__empty"
                 >
                   No visits found for the selected filters.
@@ -73,19 +74,21 @@ const VisitTable = ({
                     </div>
                   </td>
 
-                  <td>
-                    <div className="visits-table__employee">
-                      <span className="visits-table__avatar">
-                        {visit.employeeName
-                          .split(" ")
-                          .map((name) => name[0])
-                          .slice(0, 2)
-                          .join("")}
-                      </span>
+                  {showEmployee && (
+                    <td>
+                      <div className="visits-table__employee">
+                        <span className="visits-table__avatar">
+                          {visit.employeeName
+                            .split(" ")
+                            .map((name) => name[0])
+                            .slice(0, 2)
+                            .join("")}
+                        </span>
 
-                      <span>{visit.employeeName}</span>
-                    </div>
-                  </td>
+                        <span>{visit.employeeName}</span>
+                      </div>
+                    </td>
+                  )}
 
                   <td>
                     <div className="visits-table__scheduled">
