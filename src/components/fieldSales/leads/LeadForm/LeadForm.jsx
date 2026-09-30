@@ -9,6 +9,8 @@ import {
   FiSave,
   FiUser,
   FiUsers,
+  FiCalendar,
+  FiClock,
 } from "react-icons/fi";
 
 import Button from "../../../common/Button/Button";
@@ -17,6 +19,11 @@ import { getFieldSalesEmployees, createFieldSalesLead } from "../../../../servic
 import { useNotification } from "../../../../context/NotificationContext";
 
 import "./LeadForm.css";
+
+const getToday = () => {
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+};
 
 const defaultFormData = {
   first_name: "",
@@ -28,8 +35,14 @@ const defaultFormData = {
   latitude: "",
   longitude: "",
   assigned_to: "",
+  priority: "High",
+  visit_date: getToday(),
+  visit_time: "11:00",
+  visit_purpose: "Product Demo",
+  instructions: "Client ko HRMS demo dena hai aur pricing discuss karni hai.",
   description: "",
 };
+
 
 const LeadForm = ({
   initialData = null,
@@ -176,8 +189,15 @@ const LeadForm = ({
         latitude: parseFloat(formData.latitude),
         longitude: parseFloat(formData.longitude),
         assigned_to: parseInt(formData.assigned_to, 10),
-        description: formData.description.trim(),
+        priority: formData.priority || "High",
+        visit_date: formData.visit_date || getToday(),
+        visit_time: formData.visit_time || "11:00",
+        visit_purpose: formData.visit_purpose || "Product Demo",
+        visit_instructions: formData.instructions || "",
+        notes: formData.instructions || "",
+        description: formData.description.trim() || formData.instructions || "",
       };
+
 
       await createFieldSalesLead(payload);
       showNotification({
@@ -459,17 +479,17 @@ const LeadForm = ({
         </section>
 
         {/* ================================================================
-            SECTION 3 — ASSIGNMENT & DETAILS
+            SECTION 3 — ASSIGNMENT & VISIT SCHEDULE
         ================================================================= */}
         <section className="lead-form__section lead-form__section--amber">
           <div className="lead-form__section-heading">
             <div className="lead-form__section-icon lead-form__section-icon--amber">
-              <FiUsers />
+              <FiCalendar />
             </div>
 
             <div>
-              <h2>Assignment & Details</h2>
-              <p>Assign the lead and add any useful information.</p>
+              <h2>Assignment & Visit Schedule</h2>
+              <p>Assign sales person and set visit date, time, and instructions.</p>
             </div>
           </div>
 
@@ -511,20 +531,94 @@ const LeadForm = ({
               {errors.assigned_to && <small>{errors.assigned_to}</small>}
             </div>
 
+            <div className={getFieldClass("priority")}>
+              <label htmlFor="priority">
+                Priority
+              </label>
+
+              <div className="lead-form__input-wrap">
+                <FiBriefcase />
+                <select
+                  id="priority"
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                >
+                  <option value="High">🔴 High Priority</option>
+                  <option value="Medium">🟡 Medium Priority</option>
+                  <option value="Low">🟢 Low Priority</option>
+                </select>
+              </div>
+            </div>
+
+            <div className={getFieldClass("visit_date")}>
+              <label htmlFor="visit_date">
+                Visit Date <span>*</span>
+              </label>
+
+              <div className="lead-form__input-wrap">
+                <FiCalendar />
+                <input
+                  id="visit_date"
+                  name="visit_date"
+                  type="date"
+                  value={formData.visit_date}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className={getFieldClass("visit_time")}>
+              <label htmlFor="visit_time">
+                Visit Time <span>*</span>
+              </label>
+
+              <div className="lead-form__input-wrap">
+                <FiClock />
+                <input
+                  id="visit_time"
+                  name="visit_time"
+                  type="time"
+                  value={formData.visit_time}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className={`${getFieldClass("visit_purpose")} lead-form__field--full`}>
+              <label htmlFor="visit_purpose">
+                Purpose / Agenda
+              </label>
+
+              <div className="lead-form__input-wrap">
+                <FiBriefcase />
+                <input
+                  id="visit_purpose"
+                  name="visit_purpose"
+                  type="text"
+                  value={formData.visit_purpose}
+                  onChange={handleChange}
+                  placeholder="e.g. Product Demo, Pricing Negotiation, Follow-up"
+                />
+              </div>
+            </div>
+
             <div
               className={`${getFieldClass(
-                "description",
+                "instructions",
               )} lead-form__field--full`}
             >
-              <label htmlFor="description">Description</label>
+              <label htmlFor="instructions">Manager Instructions for Sales Person</label>
 
               <textarea
-                id="description"
-                name="description"
-                value={formData.description}
+                id="instructions"
+                name="instructions"
+                value={formData.instructions}
                 onChange={handleChange}
-                placeholder="Add notes or additional information about this lead..."
-                rows={4}
+                placeholder="e.g. Client ko HRMS demo dena hai aur pricing discuss karni hai."
+                rows={3}
               />
             </div>
           </div>

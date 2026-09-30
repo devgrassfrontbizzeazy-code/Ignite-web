@@ -3,13 +3,16 @@ import { FiEdit2, FiEye, FiMapPin, FiPlus, FiTrash2, FiUsers } from "react-icons
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../../components/common/Button/Button";
+import Drawer from "../../../components/common/Drawer/Drawer";
 import RowActions from "../../../components/common/RowActions/RowActions";
 import SearchInput from "../../../components/common/SearchInput/SearchInput";
 import Select from "../../../components/common/Select/Select";
 import LeadStats from "../../../components/fieldSales/leads/leadStats/LeadStats";
+import LeadTimelineDrawer from "../../../components/fieldSales/leads/LeadTimelineDrawer/LeadTimelineDrawer";
 import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import { getFieldSalesLeads, getFieldSalesEmployees } from "../../../services/api/fieldSalesAPI";
 import { useNotification } from "../../../context/NotificationContext";
+
 
 import "./Leads.css";
 
@@ -242,11 +245,20 @@ const Leads = () => {
     }
   };
 
-  /* =========================
-     ROW ACTIONS
-  ========================= */
+  const [selectedLeadForTimeline, setSelectedLeadForTimeline] = useState(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+
 
   const getLeadActions = (lead) => [
+    {
+      key: "timeline",
+      label: "360° History & Visits",
+      icon: FiEye,
+      onClick: () => {
+        setSelectedLeadForTimeline(lead);
+        setTimelineOpen(true);
+      },
+    },
     {
       key: "edit",
       label: "Edit",
@@ -255,6 +267,7 @@ const Leads = () => {
         navigate(`/field-sales/leads/${lead.id}/edit`),
     },
   ];
+
 
   if (loading) {
     return <IgniteLoader message="Loading leads..." />;
@@ -505,13 +518,26 @@ const Leads = () => {
                 })
               )}
             </tbody>
-
           </table>
         </div>
       </section>
 
+      {/* 360° LEAD TIMELINE DRAWER */}
+      <Drawer
+        open={timelineOpen}
+
+        onClose={() => setTimelineOpen(false)}
+        title={selectedLeadForTimeline?.company_name || selectedLeadForTimeline?.title || "Lead History"}
+      >
+        {selectedLeadForTimeline && (
+          <LeadTimelineDrawer
+            leadId={selectedLeadForTimeline.id}
+            onClose={() => setTimelineOpen(false)}
+          />
+        )}
+      </Drawer>
     </main>
   );
 };
 
-export default Leads;
+export default Leads;

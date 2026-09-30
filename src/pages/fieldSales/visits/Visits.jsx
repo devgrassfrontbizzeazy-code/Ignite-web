@@ -19,11 +19,14 @@ import { getCurrentUser, isFieldSalesManager, isSalesPerson } from "../../../uti
 import {
   getFieldSalesVisits,
   getFieldSalesEmployees,
+  checkInFieldSalesVisit,
+  submitFieldSalesVisitReport,
   pingFieldSalesLocation,
   toggleFieldSalesLocation,
   getTeamLiveLocations,
   getEmployeeTimelineHistory,
 } from "../../../services/api/fieldSalesAPI";
+
 
 import "./Visits.css";
 
@@ -67,6 +70,15 @@ const getToday = () => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeVisitStatus = (statusStr) => {
+  if (!statusStr) return "NOT_STARTED";
+  const s = String(statusStr).toUpperCase().replace(/\s+/g, "_");
+  if (s === "SCHEDULED" || s === "NOT_STARTED") return "NOT_STARTED";
+  if (s === "IN_PROGRESS" || s === "CHECKED_IN") return "CHECKED_IN";
+  if (s === "COMPLETED" || s === "CHECKED_OUT") return "CHECKED_OUT";
+  return s;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -104,76 +116,94 @@ const Visits = () => {
   const [gpsStatus, setGpsStatus] = useState("loading");
   const lastPingTimeRef = useRef(0);
 
-  // Load visits and employees
-  useEffect(() => {
-    let isMounted = true;
-    const loadLiveVisits = async () => {
-      try {
-        setLoading(true);
-        const [visitsRes, empsRes] = await Promise.allSettled([
-          getFieldSalesVisits(),
-          isManager ? getFieldSalesEmployees({ role: "SALES_PERSON" }) : Promise.resolve(null),
-        ]);
+  // Load visits and employees with real-time periodic background sync
+  const loadLiveVisits = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const [visitsRes, empsRes] = await Promise.allSettled([
+        getFieldSalesVisits(),
+        isManager ? getFieldSalesEmployees({ role: "SALES_PERSON" }) : Promise.resolve(null),
+      ]);
 
-        if (isMounted && visitsRes.status === "fulfilled") {
-          const data = visitsRes.value?.data || visitsRes.value?.results || visitsRes.value || [];
-          if (Array.isArray(data)) {
-            const mapped = data.map((v) => ({
-              id: String(v.id),
-              leadId: v.lead ? String(v.lead) : String(v.customer || v.id),
-              leadName: v.lead_name || v.customer_name || "Lead Client",
-              companyName: v.company_name || v.customer_company || "Client Company",
-              employeeId: String(v.assigned_to || v.employee_id || ""),
-              employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
-              employeeRole: v.assigned_to_role || "Sales Person",
-              scheduledDate: v.visit_date || getToday(),
-              scheduledTime: v.visit_time || "11:00 AM",
-              location: v.location || v.lead_address || "Client Location",
-              visitStatus: v.status || "NOT_STARTED",
-              outcome: v.outcome || null,
-              leadLatitude: Number(v.latitude || v.lead_latitude || 28.4597),
-              leadLongitude: Number(v.longitude || v.lead_longitude || 77.0264),
-              currentLatitude: currentUserLocation?.latitude || 28.4595,
-              currentLongitude: currentUserLocation?.longitude || 77.0266,
-              distance: calculateDistance(
-                currentUserLocation?.latitude || 28.4595,
-                currentUserLocation?.longitude || 77.0266,
-                Number(v.latitude || 28.4597),
-                Number(v.longitude || 77.0264)
-              ),
-              gpsAccuracy: currentUserLocation?.accuracy || 8,
-              checkInTime: v.check_in_time || null,
-              checkOutTime: v.check_out_time || null,
-              outcomeDescription: v.notes || v.outcome_description || "",
-              meetingPhoto: null,
-            }));
-            setVisits(mapped);
-          }
+      if (visitsRes.status === "fulfilled") {
+        const data = visitsRes.value?.data || visitsRes.value?.results || visitsRes.value || [];
+        if (Array.isArray(data)) {
+          const mapped = data.map((v) => ({
+            id: String(v.id),
+            leadId: v.lead ? String(v.lead) : String(v.customer || v.id),
+            leadName: v.lead_name || v.customer_name || "Lead Client",
+            companyName: v.company_name || v.customer_company || "Client Company",
+            employeeId: String(v.assigned_to || v.employee_id || ""),
+            employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
+            employeeRole: v.assigned_to_role || "Sales Person",
+            scheduledDate: v.visit_date || getToday(),
+            scheduledTime: v.visit_time || "11:00 AM",
+            location: v.location || v.lead_address || "Client Location",
+            purpose: v.purpose || v.visit_purpose || "Product Demo & Pricing",
+            visitStatus: normalizeVisitStatus(v.status),
+            rawStatus: v.status,
+            priority: v.priority || "High",
+            instructions: v.instructions || "",
+            contactPhone: v.contact_phone || "",
+            outcome: v.outcome || null,
+            leadLatitude: Number(v.latitude || v.lead_latitude || 28.4597),
+            leadLongitude: Number(v.longitude || v.lead_longitude || 77.0264),
+            currentLatitude: currentUserLocation?.latitude || 28.4595,
+            currentLongitude: currentUserLocation?.longitude || 77.0266,
+            distance: calculateDistance(
+              currentUserLocation?.latitude || 28.4595,
+              currentUserLocation?.longitude || 77.0266,
+              Number(v.latitude || 28.4597),
+              Number(v.longitude || 77.0264)
+            ),
+            gpsAccuracy: currentUserLocation?.accuracy || 8,
+            checkInTime: v.check_in_time || null,
+            checkOutTime: v.check_out_time || null,
+            isLocationOverridden: Boolean(v.is_location_overridden),
+            overrideReason: v.check_in_override_reason || "",
+            overrideNotes: v.check_in_override_notes || "",
+            checkInLatitude: v.check_in_latitude ? Number(v.check_in_latitude) : null,
+            checkInLongitude: v.check_in_longitude ? Number(v.check_in_longitude) : null,
+            checkInDistanceMeters: v.check_in_distance_meters != null ? Number(v.check_in_distance_meters) : null,
+            clientResponse: v.client_response || "",
+            feedback: v.feedback || "",
+            meetingNotes: v.meeting_notes || "",
+            outcomeDescription: v.notes || v.outcome_description || "",
+            photos: v.photos || [],
+            meetingPhoto: null,
+          }));
+          setVisits(mapped);
         }
-
-        if (isMounted && empsRes.status === "fulfilled" && empsRes.value) {
-          const empData = empsRes.value?.data || empsRes.value?.results || empsRes.value || [];
-          if (Array.isArray(empData)) {
-            setEmployees(
-              empData.map((e) => ({
-                id: String(e.id),
-                name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
-                role: e.role || "Sales Person",
-                email: e.email,
-                phone: e.phone_number || e.phone,
-              }))
-            );
-          }
-        }
-      } catch (err) {
-        console.warn("Could not load backend visits:", err);
-      } finally {
-        if (isMounted) setLoading(false);
       }
-    };
-    loadLiveVisits();
-    return () => { isMounted = false; };
-  }, [isManager]);
+
+      if (empsRes.status === "fulfilled" && empsRes.value) {
+        const empData = empsRes.value?.data || empsRes.value?.results || empsRes.value || [];
+        if (Array.isArray(empData)) {
+          setEmployees(
+            empData.map((e) => ({
+              id: String(e.id),
+              name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
+              role: e.role || "Sales Person",
+              email: e.email,
+              phone: e.phone_number || e.phone,
+            }))
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load backend visits:", err);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [isManager, currentUserLocation?.latitude, currentUserLocation?.longitude, currentUserLocation?.accuracy]);
+
+  useEffect(() => {
+    loadLiveVisits(false);
+    const interval = setInterval(() => {
+      loadLiveVisits(true);
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [loadLiveVisits]);
 
   /* ---------------------------------------------------------------------- */
   /* Browser GPS & Location Watcher                                          */
@@ -571,52 +601,95 @@ const Visits = () => {
     setCheckInOpen(true);
   };
 
-  const handleCheckIn = () => {
+  const [checkInLoading, setCheckInLoading] = useState(false);
+
+  const handleCheckIn = async (overrideData = {}) => {
     if (!selectedVisit) {
       return;
     }
 
-    if (selectedVisit.distance > 100) {
+    const now = new Date();
+    const liveDist = calculateDistance(
+      currentUserLocation.latitude,
+      currentUserLocation.longitude,
+      selectedVisit.leadLatitude,
+      selectedVisit.leadLongitude
+    ) || selectedVisit.distance || 0;
+
+    setCheckInLoading(true);
+    let checkInSuccess = false;
+    let checkInRes = null;
+    try {
+      checkInRes = await checkInFieldSalesVisit(selectedVisit.id, {
+        latitude: currentUserLocation.latitude,
+        longitude: currentUserLocation.longitude,
+        accuracy: currentUserLocation.accuracy,
+        distance_meters: liveDist,
+        is_location_overridden: Boolean(overrideData?.is_location_overridden),
+        override_reason: overrideData?.override_reason || "",
+        override_notes: overrideData?.override_notes || "",
+      });
+      checkInSuccess = true;
+    } catch (err) {
+      console.error("Backend check-in error:", err);
+      const errMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        (typeof err?.response?.data === "string" ? err.response.data : "") ||
+        "Check-in failed. Please check your network and try again.";
+      alert(errMsg);
+      setCheckInLoading(false);
       return;
+    } finally {
+      setCheckInLoading(false);
     }
 
-    const now = new Date();
+    if (checkInSuccess) {
+      setVisits((currentVisits) =>
+        currentVisits.map((visit) =>
+          visit.id === selectedVisit.id
+            ? {
+                ...visit,
+                visitStatus: "CHECKED_IN",
+                checkInTime: formatTime(now),
+                currentLatitude: currentUserLocation.latitude,
+                currentLongitude: currentUserLocation.longitude,
+                gpsAccuracy: currentUserLocation.accuracy,
+                distance: liveDist,
+                checkInLatitude: currentUserLocation.latitude,
+                checkInLongitude: currentUserLocation.longitude,
+                checkInDistanceMeters: liveDist,
+                isLocationOverridden: Boolean(overrideData?.is_location_overridden),
+                overrideReason: overrideData?.override_reason || "",
+                overrideNotes: overrideData?.override_notes || "",
+              }
+            : visit
+        )
+      );
 
-    setVisits((currentVisits) =>
-      currentVisits.map((visit) =>
-        visit.id === selectedVisit.id
-          ? {
-              ...visit,
-              visitStatus: "CHECKED_IN",
-              checkInTime: formatTime(now),
-              currentLatitude: currentUserLocation.latitude,
-              currentLongitude: currentUserLocation.longitude,
-              gpsAccuracy: currentUserLocation.accuracy,
-              distance: calculateDistance(
-                currentUserLocation.latitude,
-                currentUserLocation.longitude,
-                visit.leadLatitude,
-                visit.leadLongitude
-              ),
-            }
-          : visit
-      )
-    );
+      setSelectedVisit((current) => ({
+        ...current,
+        visitStatus: "CHECKED_IN",
+        checkInTime: formatTime(now),
+        currentLatitude: currentUserLocation.latitude,
+        currentLongitude: currentUserLocation.longitude,
+        gpsAccuracy: currentUserLocation.accuracy,
+        distance: liveDist,
+        checkInLatitude: currentUserLocation.latitude,
+        checkInLongitude: currentUserLocation.longitude,
+        checkInDistanceMeters: liveDist,
+        isLocationOverridden: Boolean(overrideData?.is_location_overridden),
+        overrideReason: overrideData?.override_reason || "",
+        overrideNotes: overrideData?.override_notes || "",
+      }));
 
-    setSelectedVisit((current) => ({
-      ...current,
-      visitStatus: "CHECKED_IN",
-      checkInTime: formatTime(now),
-      currentLatitude: currentUserLocation.latitude,
-      currentLongitude: currentUserLocation.longitude,
-      gpsAccuracy: currentUserLocation.accuracy,
-    }));
-
-    setCheckInOpen(false);
+      setCheckInOpen(false);
+      loadLiveVisits(true);
+    }
   };
 
   /* ---------------------------------------------------------------------- */
-  /* Check-out                                                               */
+  /* Check-out / Submit Visit Report                                         */
   /* ---------------------------------------------------------------------- */
 
   const openCheckOut = (visit) => {
@@ -625,16 +698,17 @@ const Visits = () => {
     setCheckOutOpen(true);
   };
 
-  const handleCheckout = ({
-    outcome,
-    outcomeDescription,
-    photo,
-  }) => {
+  const handleCheckout = async (reportData) => {
     if (!selectedVisit) {
       return;
     }
 
     const now = new Date();
+    try {
+      await submitFieldSalesVisitReport(selectedVisit.id, reportData);
+    } catch (err) {
+      console.warn("Backend report submission error:", err);
+    }
 
     setVisits((currentVisits) =>
       currentVisits.map((visit) =>
@@ -642,9 +716,10 @@ const Visits = () => {
           ? {
               ...visit,
               visitStatus: "CHECKED_OUT",
-              outcome,
-              outcomeDescription,
-              meetingPhoto: photo,
+              clientResponse: reportData.client_response,
+              feedback: reportData.feedback,
+              photos: reportData.photos || [],
+              outcome: reportData.client_response,
               checkOutTime: formatTime(now),
             }
           : visit
@@ -654,14 +729,16 @@ const Visits = () => {
     setSelectedVisit((current) => ({
       ...current,
       visitStatus: "CHECKED_OUT",
-      outcome,
-      outcomeDescription,
-      meetingPhoto: photo,
+      clientResponse: reportData.client_response,
+      feedback: reportData.feedback,
+      photos: reportData.photos || [],
+      outcome: reportData.client_response,
       checkOutTime: formatTime(now),
     }));
 
     setCheckOutOpen(false);
   };
+
 
   /* ---------------------------------------------------------------------- */
   /* Refresh selected visit from live state                                  */
@@ -787,23 +864,29 @@ const Visits = () => {
       >
         {activeVisit && (
           <>
-            <VisitDetails visit={activeVisit} />
+            <VisitDetails
+              visit={activeVisit}
+              isSales={isSales}
+              onStartVisit={(v) => {
+                if (v.visitStatus === "CHECKED_IN" || v.visitStatus === "IN_PROGRESS") {
+                  openCheckOut(v);
+                } else {
+                  openCheckIn(v);
+                }
+              }}
+            />
 
             <div className="visits-modal-actions">
               {activeVisit.visitStatus === "NOT_STARTED" && (
-                <Button
-                  disabled={activeVisit.distance > 100}
-                  onClick={() => openCheckIn(activeVisit)}
-                >
-                  {activeVisit.distance > 100
-                    ? `Move within 100m`
-                    : "Start Visit"}
+                <Button onClick={() => openCheckIn(activeVisit)}>
+                  Start Visit
                 </Button>
               )}
 
-              {activeVisit.visitStatus === "CHECKED_IN" && (
+              {(activeVisit.visitStatus === "CHECKED_IN" ||
+                activeVisit.visitStatus === "IN_PROGRESS") && (
                 <Button onClick={() => openCheckOut(activeVisit)}>
-                  Check Out
+                  Check Out / Submit Report
                 </Button>
               )}
             </div>
@@ -825,6 +908,8 @@ const Visits = () => {
             <VisitCheckIn
               visit={activeVisit}
               currentUserLocation={currentUserLocation}
+              onCheckIn={handleCheckIn}
+              loading={checkInLoading}
             />
 
             <div className="visits-modal-actions">
@@ -833,13 +918,6 @@ const Visits = () => {
                 onClick={() => setCheckInOpen(false)}
               >
                 Cancel
-              </Button>
-
-              <Button
-                disabled={activeVisit.distance > 100}
-                onClick={handleCheckIn}
-              >
-                Check In
               </Button>
             </div>
           </>

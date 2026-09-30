@@ -1,0 +1,442 @@
+/* ==========================================================================
+   SALES PERSON MOBILE-FIRST WORKSPACE & DASHBOARD STYLES
+   ========================================================================== */
+
+.sales-dashboard-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px;
+  color: #0f172a;
+}
+
+/* 1. HERO GREETING CARD */
+.sales-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #0f3d3e 0%, #0b5e58 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(15, 61, 62, 0.25);
+}
+
+.sales-hero-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sales-hero-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.sales-hero-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #99f6e4;
+  margin-bottom: 2px;
+}
+
+.sales-hero-card h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.sales-hero-card p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #ccfbf1;
+}
+
+.sales-duty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sales-duty-btn.active {
+  background: #10b981;
+  border-color: #34d399;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+.sales-duty-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  animation: pulse-dot 1.8s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.05); }
+}
+
+/* 2. STATS TILES */
+.sales-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.sales-stat-tile {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.sales-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sales-stat-icon--blue { background: #eff6ff; color: #2563eb; }
+.sales-stat-icon--amber { background: #fffbeb; color: #d97706; }
+.sales-stat-icon--emerald { background: #ecfdf5; color: #059669; }
+.sales-stat-icon--purple { background: #f5f3ff; color: #7c3aed; }
+
+.sales-stat-tile small {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.sales-stat-tile strong {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+/* 3. WORKSPACE TWO-COLUMN */
+.sales-workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.sales-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sales-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sales-section-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #1e293b;
+}
+
+.sales-section-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.sales-section-badge--amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.sales-empty-card {
+  padding: 32px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.sales-empty-card h4 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.sales-empty-card p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  max-width: 280px;
+}
+
+/* 4. VISIT CARDS */
+.sales-card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sales-visit-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.sales-visit-card.completed {
+  opacity: 0.85;
+  background: #f8fafc;
+}
+
+.sales-visit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sales-priority-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.sales-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.sales-status-badge--in_progress { background: #fff8e6; color: #8a6a00; }
+.sales-status-badge--completed { background: #ecfdf5; color: #047857; }
+
+.sales-visit-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.sales-visit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.sales-visit-info > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.sales-instructions-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #1e3a8a;
+  line-height: 1.4;
+}
+
+.sales-visit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sales-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sales-btn-secondary:hover {
+  background: #f1f5f9;
+}
+
+/* 5. FOLLOW-UP CARDS */
+.sales-followup-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sales-followup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sales-followup-type-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.sales-followup-due {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d97706;
+}
+
+.sales-followup-reason {
+  margin: 0;
+  font-size: 12px;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.sales-followup-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.sales-attempt-tag {
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.sales-followup-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.sales-btn-call {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sales-btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #25d36615;
+  color: #15803d;
+  border: 1px solid #86efac;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sales-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sales-btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .sales-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}

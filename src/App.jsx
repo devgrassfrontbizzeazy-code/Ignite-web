@@ -81,6 +81,8 @@ import FieldSalesEmployees from "./pages/fieldSales/employees/FieldSalesEmployee
 import Leads from "./pages/fieldSales/leads/Leads";
 import LeadForm from "./components/fieldSales/leads/LeadForm/LeadForm";
 import Visits from "./pages/fieldSales/visits/Visits";
+import SalesDashboard from "./pages/fieldSales/SalesDashboard";
+
 
 /* =========================================================
    TEMPORARY / DASHBOARD
@@ -320,13 +322,13 @@ export default function App() {
 
                       <Route
                         path="/field-sales"
-                        element={
-                          <div style={{ padding: "32px" }}>
-                            <h1>Field Sales Dashboard</h1>
-                            <p>Field Sales workspace dashboard.</p>
-                          </div>
-                        }
+                        element={<SalesDashboard />}
                       />
+                      <Route
+                        path="/field-sales/dashboard"
+                        element={<SalesDashboard />}
+                      />
+
 
                       <Route element={<FieldSalesManagerGuard />}>
                         <Route path="/field-sales/leads" element={<Leads />} />

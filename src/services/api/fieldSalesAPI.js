@@ -72,8 +72,18 @@ export const createFieldSalesLead = async (data) => {
   return response.data;
 };
 
+export const getFieldSalesLead = async (id) => {
+  const response = await api.get(`/field-sales/leads/${id}/`);
+  return response.data;
+};
+
+export const getLeadTimelineHistory = async (leadId) => {
+  const response = await api.get(`/field-sales/leads/${leadId}/timeline/`);
+  return response.data;
+};
+
 // -------------------------------------------------------------
-// Visits
+// Visits & Check-In / Report Submission
 // -------------------------------------------------------------
 
 export const getFieldSalesVisits = async (params = {}) => {
@@ -88,6 +98,49 @@ export const getTodayFieldSalesVisits = async () => {
 
 export const createFieldSalesVisit = async (data) => {
   const response = await api.post("/field-sales/visits/", data);
+  return response.data;
+};
+
+export const checkInFieldSalesVisit = async (visitId, data) => {
+  const response = await api.post(`/field-sales/visits/${visitId}/check-in/`, data);
+  return response.data;
+};
+
+export const submitFieldSalesVisitReport = async (visitId, data) => {
+  const response = await api.post(`/field-sales/visits/${visitId}/submit-report/`, data);
+  return response.data;
+};
+
+export const completeFieldSalesVisit = async (visitId, data) => {
+  const response = await api.post(`/field-sales/visits/${visitId}/complete/`, data);
+  return response.data;
+};
+
+// -------------------------------------------------------------
+// Follow-ups Lifecycle Pipeline
+// -------------------------------------------------------------
+
+export const getFieldSalesFollowUps = async (params = {}) => {
+  const response = await api.get("/field-sales/follow-ups/", { params });
+  return response.data;
+};
+
+export const createFieldSalesFollowUp = async (data) => {
+  const response = await api.post("/field-sales/follow-ups/", data);
+  return response.data;
+};
+
+export const logFollowUpOutcome = async (followUpId, data) => {
+  const response = await api.post(`/field-sales/follow-ups/${followUpId}/log-outcome/`, data);
+  return response.data;
+};
+
+// -------------------------------------------------------------
+// Sales Person & Manager Dashboard Summary
+// -------------------------------------------------------------
+
+export const getSalesDashboardSummary = async () => {
+  const response = await api.get("/field-sales/dashboard/sales-summary/");
   return response.data;
 };
 
@@ -117,4 +170,5 @@ export const getEmployeeTimelineHistory = async (employeeId, date = "") => {
   const response = await api.get(`/field-sales/location/history/${employeeId}/`, { params });
   return response.data;
 };
+
 

@@ -109,12 +109,12 @@ const VisitTable = ({
 
                   <td>
                     <span
-                      className={`visit-status visit-status--${visit.visitStatus.toLowerCase()}`}
+                      className={`visit-status visit-status--${(visit.visitStatus || "NOT_STARTED").toLowerCase()}`}
                     >
                       <span className="visit-status__dot" />
-                      {VISIT_STATUS_LABELS[
-                        visit.visitStatus
-                      ]}
+                      {VISIT_STATUS_LABELS[visit.visitStatus] ||
+                        visit.rawStatus ||
+                        (visit.visitStatus === "NOT_STARTED" ? "Scheduled" : visit.visitStatus)}
                     </span>
                   </td>
 
