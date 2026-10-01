@@ -1,4 +1,3 @@
-
 import SearchInput from "../../common/SearchInput/SearchInput";
 import Select from "../../common/Select/Select";
 
@@ -29,7 +28,7 @@ const DepartmentFilters = ({
       <div className="department-filters__search">
         <SearchInput
           value={search}
-          onChange={onSearch}
+          onChange={(event) => onSearch(event.target.value)}
           placeholder="Search by code or department name..."
         />
       </div>
@@ -41,15 +40,10 @@ const DepartmentFilters = ({
           options={statusOptions}
         />
 
-        <Select
-          value={sortBy}
-          onChange={onSortChange}
-          options={sortOptions}
-        />
+        <Select value={sortBy} onChange={onSortChange} options={sortOptions} />
       </div>
     </div>
   );
 };
 
 export default DepartmentFilters;
-

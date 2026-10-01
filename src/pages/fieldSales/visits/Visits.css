@@ -13,7 +13,7 @@
    PAGE HEADER
    ========================================================================== */
 
-.visits-page > .page-header {
+.visits-page>.page-header {
     margin-bottom: 14px;
 }
 
@@ -70,13 +70,29 @@
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.1); }
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(1.1);
+    }
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ==========================================================================
@@ -122,13 +138,20 @@
 .visits__workspace {
     width: 100%;
     margin-top: 18px;
-    padding: 14px !important;
 
     display: flex;
     flex-direction: column;
-    gap: 14px;
 
     overflow: hidden;
+
+    padding: 0 !important;
+
+    border-radius: 16px;
+}
+
+.visits__workspace>* {
+    width: 100%;
+    min-width: 0;
 }
 
 /*
@@ -136,12 +159,12 @@
  * Keep those intact and only control the Visits workspace spacing here.
  */
 
-.visits__workspace > .visits__controls {
+.visits__workspace>.visits__controls {
     flex-shrink: 0;
 }
 
-.visits__workspace > .visits-map,
-.visits__workspace > .visits-table-card {
+.visits__workspace>.visits-map,
+.visits__workspace>.visits-table-card {
     width: 100%;
 }
 
@@ -156,7 +179,7 @@
     gap: 9px;
 }
 
-.visits-modal-actions > * {
+.visits-modal-actions>* {
     min-width: 100px;
 }
 
@@ -222,7 +245,7 @@
         flex-direction: column-reverse;
     }
 
-    .visits-modal-actions > * {
+    .visits-modal-actions>* {
         width: 100%;
     }
 }

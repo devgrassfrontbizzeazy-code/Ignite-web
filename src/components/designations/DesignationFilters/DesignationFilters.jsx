@@ -1,4 +1,3 @@
-
 import SearchInput from "../../common/SearchInput/SearchInput";
 import Select from "../../common/Select/Select";
 
@@ -21,10 +20,7 @@ const DesignationFilters = ({
       value: "all",
     },
     ...departments.map((item) => ({
-      label:
-        item.departmentName ||
-        item.name ||
-        "Unnamed Department",
+      label: item.departmentName || item.name || "Unnamed Department",
       value: item.id,
     })),
   ];
@@ -64,7 +60,7 @@ const DesignationFilters = ({
       <div className="designation-filters__search">
         <SearchInput
           value={search}
-          onChange={onSearch}
+          onChange={(event) => onSearch(event.target.value)}
           placeholder="Search by code or designation name..."
         />
       </div>
@@ -82,15 +78,10 @@ const DesignationFilters = ({
           options={statusOptions}
         />
 
-        <Select
-          value={sortBy}
-          onChange={onSortChange}
-          options={sortOptions}
-        />
+        <Select value={sortBy} onChange={onSortChange} options={sortOptions} />
       </div>
     </div>
   );
 };
 
 export default DesignationFilters;
-

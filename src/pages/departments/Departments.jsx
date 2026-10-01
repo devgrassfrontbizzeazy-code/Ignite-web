@@ -80,9 +80,7 @@ const normalizeDepartment = (department) => {
     description: department.description ?? "",
     status: normalizedStatus,
     createdAt:
-      department.createdAt ??
-      department.created_at ??
-      new Date().toISOString(),
+      department.createdAt ?? department.created_at ?? new Date().toISOString(),
 
     headOfDepartment:
       department.headOfDepartment ??
@@ -202,7 +200,9 @@ const Departments = () => {
         action: "load",
       });
 
-      notify.error(generalError || "Failed to load departments. Please try again.");
+      notify.error(
+        generalError || "Failed to load departments. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -317,7 +317,9 @@ const Departments = () => {
       }
 
       setDeleteModal({ open: false, department: null, loading: false });
-      notify.success(`Department "${department.departmentName}" deleted successfully.`);
+      notify.success(
+        `Department "${department.departmentName}" deleted successfully.`,
+      );
     } catch (error) {
       console.error("Failed to delete department:", error);
 
@@ -327,7 +329,9 @@ const Departments = () => {
       });
 
       setDeleteModal((prev) => ({ ...prev, loading: false }));
-      notify.error(generalError || "Failed to delete department. Please try again.");
+      notify.error(
+        generalError || "Failed to delete department. Please try again.",
+      );
     }
   };
 
@@ -374,7 +378,9 @@ const Departments = () => {
         action: "toggle",
       });
 
-      notify.error(generalError || "Failed to update department status. Please try again.");
+      notify.error(
+        generalError || "Failed to update department status. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -385,7 +391,8 @@ const Departments = () => {
       setLoading(true);
       setFormFieldErrors({});
 
-      const isActive = String(formData.status || "active").toLowerCase() === "active";
+      const isActive =
+        String(formData.status || "active").toLowerCase() === "active";
 
       const payload = {
         department_code: formData.departmentCode?.trim() || "",
@@ -456,11 +463,11 @@ const Departments = () => {
       <section className="departments-page__content">
         <DepartmentFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearch={setSearch}
           status={status}
           onStatusChange={setStatus}
           sortBy={sortBy}
-          onSortByChange={setSortBy}
+          onSortChange={setSortBy}
         />
 
         {loading ? (
@@ -508,7 +515,9 @@ const Departments = () => {
             onClose={handleCloseDetails}
             onEdit={() => handleEditDepartment(selectedDepartment)}
             onDelete={() => handleDeleteClick(selectedDepartment)}
-            onToggleStatus={() => handleToggleDepartmentStatus(selectedDepartment)}
+            onToggleStatus={() =>
+              handleToggleDepartmentStatus(selectedDepartment)
+            }
           />
         </Modal>
       )}
@@ -516,7 +525,9 @@ const Departments = () => {
       {deleteModal.open && (
         <ConfirmModal
           open={deleteModal.open}
-          onClose={() => setDeleteModal({ open: false, department: null, loading: false })}
+          onClose={() =>
+            setDeleteModal({ open: false, department: null, loading: false })
+          }
           onConfirm={handleConfirmDelete}
           title="Delete Department?"
           itemName={deleteModal.department?.departmentName}

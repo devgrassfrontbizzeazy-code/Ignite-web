@@ -1,69 +1,84 @@
 /* ==========================================================================
-   VISIT CHECKOUT
+   VISIT CHECKOUT — IGNITE
+   Clean field-sales report / outcome form
    ========================================================================== */
 
 .visit-checkout {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 17px;
+    gap: 20px;
+    font-family: var(--font-family-base, "Montserrat", sans-serif);
+    color: var(--color-text-primary, #1A1F24);
 }
 
-/* --------------------------------------------------------------------------
-   Lead
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   CLIENT HEADER
+   ========================================================================== */
 
 .visit-checkout__lead {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px;
-    border: 1px solid var(--color-border);
-    border-radius: 13px;
-    background: var(--color-bg-surface);
+    gap: 14px;
+    padding: 16px 18px;
+    background: #ffffff;
+    border: 1px solid #E6EAEE;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.visit-checkout__lead::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: #0BA37F;
 }
 
 .visit-checkout__icon {
-    width: 43px;
-    height: 43px;
-    flex-shrink: 0;
-    border-radius: 11px;
-    background: var(--color-secondary-soft);
-    color: var(--color-secondary);
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 10px;
+    background: rgba(15, 61, 62, 0.08);
+    color: #0F3D3E;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.visit-checkout__lead > div:last-child {
+.visit-checkout__lead>div:last-child {
     min-width: 0;
 }
 
-.visit-checkout__lead > div:last-child > span {
+.visit-checkout__lead>div:last-child>span {
     display: block;
-    margin-bottom: 3px;
-    color: var(--color-secondary);
-    font-size: 8px;
-    font-weight: var(--font-weight-bold);
+    margin-bottom: 4px;
+    color: #0BA37F;
+    font-size: 10px;
+    font-weight: 700;
     letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .visit-checkout__lead h3 {
     margin: 0;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: var(--font-weight-bold);
+    color: #1A1F24;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.35;
 }
 
 .visit-checkout__lead p {
     margin: 3px 0 0;
-    color: var(--color-text-muted);
-    font-size: 9px;
+    color: #64748B;
+    font-size: 12px;
 }
 
-/* --------------------------------------------------------------------------
-   Fields
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   FIELD
+   ========================================================================== */
 
 .visit-checkout__field {
     display: flex;
@@ -71,198 +86,500 @@
     gap: 8px;
 }
 
-.visit-checkout__field > label {
-    color: var(--color-text-primary);
-    font-size: 10px;
-    font-weight: var(--font-weight-semibold);
-}
-
-/* --------------------------------------------------------------------------
-   Outcome
-   -------------------------------------------------------------------------- */
-
-.visit-checkout__outcomes {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-}
-
-.visit-checkout__outcome {
-    min-height: 42px;
-    padding: 0 10px;
-
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
-    background: var(--color-bg-surface);
-
-    color: var(--color-text-secondary);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-
-    font-family: inherit;
-    font-size: 9px;
-    font-weight: var(--font-weight-semibold);
-
-    cursor: pointer;
-
-    transition:
-        border-color 0.18s ease,
-        background-color 0.18s ease,
-        color 0.18s ease,
-        transform 0.18s ease;
-}
-
-.visit-checkout__outcome:hover {
-    border-color: var(--color-secondary);
-    color: var(--color-secondary);
-}
-
-.visit-checkout__outcome.active {
-    border-color: var(--color-secondary);
-    background: var(--color-secondary-soft);
-    color: var(--color-secondary);
-    box-shadow: 0 0 0 2px rgba(11, 163, 127, 0.06);
-}
-
-.visit-checkout__outcome span {
-    width: 7px;
-    height: 7px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    background: currentColor;
-    opacity: 0.55;
-}
-
-.visit-checkout__outcome.active span {
-    opacity: 1;
-}
-
-/* --------------------------------------------------------------------------
-   Description
-   -------------------------------------------------------------------------- */
-
-.visit-checkout__field textarea {
-    width: 100%;
-    min-height: 115px;
-    resize: vertical;
-
-    padding: 11px 12px;
-
-    border: 1px solid var(--color-border);
-    border-radius: 10px;
-    outline: none;
-
-    background: var(--color-bg-surface);
-    color: var(--color-text-primary);
-
-    font-family: inherit;
-    font-size: 10px;
-    line-height: 1.55;
-
-    transition:
-        border-color 0.18s ease,
-        box-shadow 0.18s ease;
-}
-
-.visit-checkout__field textarea::placeholder {
-    color: var(--color-text-muted);
-}
-
-.visit-checkout__field textarea:focus {
-    border-color: var(--color-secondary);
-    box-shadow: 0 0 0 3px var(--color-focus-ring);
-}
-
-/* --------------------------------------------------------------------------
-   Photo
-   -------------------------------------------------------------------------- */
-
-.visit-checkout__photo {
-    min-height: 145px;
-    padding: 22px 16px;
-
-    border: 1px dashed var(--color-border-strong);
-    border-radius: 12px;
-
-    background: var(--color-bg-subtle);
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-
-    text-align: center;
-    cursor: pointer;
-
-    transition:
-        border-color 0.18s ease,
-        background-color 0.18s ease;
-}
-
-.visit-checkout__photo:hover {
-    border-color: var(--color-secondary);
-    background: var(--color-secondary-soft);
-}
-
-.visit-checkout__photo input {
-    display: none;
-}
-
-.visit-checkout__photo > svg {
-    color: var(--color-secondary);
-    margin-bottom: 2px;
-}
-
-.visit-checkout__photo strong {
-    max-width: 90%;
-    overflow: hidden;
-    color: var(--color-text-primary);
-    font-size: 10px;
-    font-weight: var(--font-weight-semibold);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.visit-checkout__photo span {
-    color: var(--color-text-muted);
-    font-size: 8px;
+.visit-checkout__label {
+    color: #1A1F24;
+    font-size: 12px;
+    font-weight: 700;
     line-height: 1.4;
 }
 
-/* --------------------------------------------------------------------------
-   Actions
-   -------------------------------------------------------------------------- */
+.visit-checkout__required {
+    color: #DC2626;
+    margin-left: 2px;
+}
+
+/* ==========================================================================
+   CLIENT RESPONSE
+   ========================================================================== */
+/* ==========================================================================
+   CLIENT RESPONSE
+   ========================================================================== */
+
+.visit-checkout__responses-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.visit-checkout__response-btn {
+    position: relative;
+
+    min-height: 52px;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 9px 11px;
+
+    border: 1px solid #E6EAEE;
+    border-radius: 10px;
+
+    background: #FFFFFF;
+    color: #475569;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+    text-align: left;
+
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
+}
+
+.visit-checkout__response-btn:hover {
+    border-color: #CBD5E1;
+    background: #F8FAFB;
+    transform: translateY(-1px);
+}
+
+/* Icon container */
+
+.visit-checkout__response-icon {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: color-mix(in srgb,
+            var(--response-color) 10%,
+            white);
+
+    color: var(--response-color);
+}
+
+/* Text */
+
+.visit-checkout__response-content {
+    min-width: 0;
+    flex: 1;
+}
+
+.visit-checkout__response-label {
+    display: block;
+
+    color: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* Selected */
+
+.visit-checkout__response-btn--selected {
+    border-color: var(--response-color);
+    background: var(--response-bg);
+
+    box-shadow:
+        0 0 0 1px color-mix(in srgb,
+            var(--response-color) 18%,
+            transparent);
+}
+
+.visit-checkout__response-btn--selected .visit-checkout__response-label {
+    color: var(--response-color);
+    font-weight: 700;
+}
+
+.visit-checkout__response-btn--selected .visit-checkout__response-icon {
+    background: var(--response-color);
+    color: #FFFFFF;
+}
+
+/* Selected check */
+
+.visit-checkout__response-check {
+    flex-shrink: 0;
+    color: var(--response-color);
+}
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+@media (max-width: 600px) {
+    .visit-checkout__responses-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   FEEDBACK
+   ========================================================================== */
+
+.visit-checkout__textarea {
+    width: 100%;
+    min-height: 96px;
+
+    padding: 11px 12px;
+
+    border: 1px solid #CBD5E1;
+    border-radius: 9px;
+
+    background: #FFFFFF;
+    color: #1A1F24;
+
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.55;
+
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.visit-checkout__textarea::placeholder {
+    color: #94A3B8;
+}
+
+.visit-checkout__textarea:hover {
+    border-color: #94A3B8;
+}
+
+.visit-checkout__textarea:focus {
+    border-color: #0F3D3E;
+    box-shadow: 0 0 0 3px rgba(15, 61, 62, 0.08);
+}
+
+/* ==========================================================================
+   PHOTO PROOF
+   ========================================================================== */
+
+.visit-checkout__photo-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.visit-checkout__photo-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 10px 14px;
+
+    border: 1px dashed #94A3B8;
+    border-radius: 9px;
+
+    background: #F8FAFB;
+    color: #1A1F24;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.visit-checkout__photo-upload-label:hover {
+    border-color: #0F3D3E;
+    background: #F4F8F8;
+}
+
+.visit-checkout__photo-upload-label--error {
+    border-color: #DC2626;
+    background: #FEF2F2;
+    color: #B91C1C;
+}
+
+.visit-checkout__photo-status {
+    color: #64748B;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.visit-checkout__photo-status--attached {
+    color: #0BA37F;
+    font-weight: 700;
+}
+
+.visit-checkout__photo-error {
+    margin-top: 2px;
+    color: #DC2626;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.visit-checkout__photos-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.visit-checkout__photo-thumb {
+    position: relative;
+    width: 72px;
+    height: 72px;
+
+    overflow: hidden;
+
+    border: 1px solid #E6EAEE;
+    border-radius: 9px;
+
+    background: #F8FAFB;
+}
+
+.visit-checkout__photo-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.visit-checkout__photo-remove-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+
+    width: 20px;
+    height: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 0;
+    border-radius: 50%;
+
+    background: rgba(26, 31, 36, 0.78);
+    color: #FFFFFF;
+
+    font-size: 11px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+}
+
+.visit-checkout__photo-remove-btn:hover {
+    background: #1A1F24;
+}
+
+/* ==========================================================================
+   CONDITIONAL SUB-FORMS
+   ========================================================================== */
+
+.visit-checkout__subform {
+    position: relative;
+
+    padding: 16px;
+
+    background: #F8FAFB;
+    border: 1px solid #E6EAEE;
+    border-radius: 11px;
+}
+
+.visit-checkout__subform::before {
+    content: "";
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 0;
+
+    width: 3px;
+
+    background: #0BA37F;
+    border-radius: 0 3px 3px 0;
+}
+
+.visit-checkout__subform--converted {
+    background: rgba(11, 163, 127, 0.055);
+    border-color: rgba(11, 163, 127, 0.22);
+}
+
+.visit-checkout__subform--converted::before {
+    background: #0BA37F;
+}
+
+.visit-checkout__subform-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 14px;
+    padding-left: 4px;
+
+    color: #0F3D3E;
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.visit-checkout__subform-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.visit-checkout__subform-field {
+    margin-top: 12px;
+}
+
+.visit-checkout__subform-label {
+    display: block;
+    margin-bottom: 6px;
+
+    color: #475569;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.visit-checkout__subform-input,
+.visit-checkout__subform-select {
+    width: 100%;
+    min-height: 38px;
+
+    padding: 8px 10px;
+
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+
+    background: #FFFFFF;
+    color: #1A1F24;
+
+    font-family: inherit;
+    font-size: 11px;
+
+    outline: none;
+    box-sizing: border-box;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.visit-checkout__subform-input::placeholder {
+    color: #94A3B8;
+}
+
+.visit-checkout__subform-input:focus,
+.visit-checkout__subform-select:focus {
+    border-color: #0F3D3E;
+    box-shadow: 0 0 0 3px rgba(15, 61, 62, 0.07);
+}
+
+/* ==========================================================================
+   FOLLOW-UP / DEMO MODES
+   ========================================================================== */
+
+.visit-checkout__modes-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.visit-checkout__mode-btn {
+    min-height: 32px;
+
+    padding: 6px 11px;
+
+    border: 1px solid #CBD5E1;
+    border-radius: 7px;
+
+    background: #FFFFFF;
+    color: #475569;
+
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.visit-checkout__mode-btn:hover {
+    border-color: #0F3D3E;
+    color: #0F3D3E;
+}
+
+.visit-checkout__mode-btn--active {
+    border-color: #0BA37F;
+    background: #0BA37F;
+    color: #FFFFFF;
+}
+
+/* ==========================================================================
+   ACTIONS
+   ========================================================================== */
 
 .visit-checkout__actions {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 9px;
-    padding-top: 3px;
+    gap: 10px;
+
+    padding-top: 4px;
+    border-top: 1px solid #E6EAEE;
 }
 
-.visit-checkout__actions > * {
-    min-width: 105px;
+.visit-checkout__actions button {
+    min-width: 120px;
 }
 
-/* --------------------------------------------------------------------------
-   Responsive
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
 
-@media (max-width: 500px) {
-    .visit-checkout__outcomes {
+@media (max-width: 600px) {
+    .visit-checkout {
+        gap: 16px;
+    }
+
+    .visit-checkout__responses-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .visit-checkout__subform-grid {
         grid-template-columns: 1fr;
     }
 
     .visit-checkout__actions {
         flex-direction: column-reverse;
+        align-items: stretch;
     }
 
-    .visit-checkout__actions > * {
+    .visit-checkout__actions>* {
+        width: 100%;
+    }
+
+    .visit-checkout__actions button {
         width: 100%;
     }
 }

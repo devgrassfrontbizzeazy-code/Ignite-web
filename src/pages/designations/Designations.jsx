@@ -131,10 +131,7 @@ const normalizeDesignation = (designation, departmentMap = {}) => {
     departmentId: deptId,
     departmentName: finalDeptName,
 
-    defaultRoleId:
-      responseDefaultRoleId ??
-      defaultRole?.id ??
-      null,
+    defaultRoleId: responseDefaultRoleId ?? defaultRole?.id ?? null,
 
     defaultRoleName:
       designation.defaultRoleName ??
@@ -439,7 +436,8 @@ const Designations = () => {
       setLoading(true);
       setFormFieldErrors({});
 
-      const isActive = String(formData.status || "active").toLowerCase() === "active";
+      const isActive =
+        String(formData.status || "active").toLowerCase() === "active";
 
       const payload = {
         designation_code: formData.designationCode?.trim() || "",
@@ -510,13 +508,13 @@ const Designations = () => {
       <section className="designations-page__content">
         <DesignationFilters
           search={search}
-          onSearchChange={setSearch}
+          onSearch={setSearch}
           department={department}
           onDepartmentChange={setDepartment}
           status={status}
           onStatusChange={setStatus}
           sortBy={sortBy}
-          onSortByChange={setSortBy}
+          onSortChange={setSortBy}
           departments={departments}
         />
 

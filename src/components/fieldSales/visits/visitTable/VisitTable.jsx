@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   Clock3,
   MapPin,
 } from "lucide-react";
@@ -12,42 +11,67 @@ const VISIT_STATUS_LABELS = {
   CHECKED_OUT: "Completed",
 };
 
-const OUTCOME_LABELS = {
-  FOLLOW_UP: "Follow-up",
-  DEAL_WON: "Deal Won",
-  LOST: "Lost",
+const getInitials = (name = "") =>
+  name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+const getVisitStatus = (visit) => {
+  const status = visit.visitStatus || "NOT_STARTED";
+
+  return {
+    key: status.toLowerCase(),
+    label:
+      VISIT_STATUS_LABELS[status] ||
+      visit.rawStatus ||
+      status,
+  };
 };
 
 const VisitTable = ({
-  visits,
+  visits = [],
   onViewVisit,
   showEmployee = true,
 }) => {
   return (
     <div className="visits-table-card">
+
+      {/* Header */}
       <div className="visits-table-card__header">
-        <div>
-          <h3>Visit Activity</h3>
+        <div className="visits-table-card__heading">
+          <div className="visits-table-card__title-row">
+            <h3>Visit Activity</h3>
+
+            <span className="visits-table-card__count">
+              {visits.length}
+            </span>
+          </div>
+
           <p>
-            Track scheduled and completed field visits.
+            Track scheduled, active and completed field visits.
           </p>
         </div>
-
-        <span className="visits-table-card__count">
-          {visits.length} visits
-        </span>
       </div>
 
+      {/* Table */}
       <div className="visits-table-wrapper">
         <table className="visits-table">
           <thead>
             <tr>
               <th>Lead / Client</th>
+
               {showEmployee && <th>Employee</th>}
+
               <th>Scheduled</th>
+
               <th>Location</th>
+
               <th>Visit Status</th>
-              <th>Outcome</th>
+
               <th className="visits-table__action-header">
                 Action
               </th>
@@ -58,94 +82,114 @@ const VisitTable = ({
             {visits.length === 0 ? (
               <tr>
                 <td
-                  colSpan={showEmployee ? "7" : "6"}
+                  colSpan={showEmployee ? 6 : 5}
                   className="visits-table__empty"
                 >
-                  No visits found for the selected filters.
+                  <div className="visits-table__empty-content">
+                    <div className="visits-table__empty-icon">
+                      <MapPin size={18} />
+                    </div>
+
+                    <strong>No visits found</strong>
+
+                    <span>
+                      Try adjusting the selected filters.
+                    </span>
+                  </div>
                 </td>
               </tr>
             ) : (
-              visits.map((visit) => (
-                <tr key={visit.id}>
-                  <td>
-                    <div className="visits-table__lead">
-                      <strong>{visit.leadName}</strong>
-                      <span>{visit.companyName}</span>
-                    </div>
-                  </td>
+              visits.map((visit) => {
+                const status = getVisitStatus(visit);
 
-                  {showEmployee && (
+                return (
+                  <tr key={visit.id}>
+
+                    {/* Lead / Client */}
                     <td>
-                      <div className="visits-table__employee">
-                        <span className="visits-table__avatar">
-                          {visit.employeeName
-                            .split(" ")
-                            .map((name) => name[0])
-                            .slice(0, 2)
-                            .join("")}
-                        </span>
+                      <div className="visits-table__lead">
+                        <strong title={visit.leadName}>
+                          {visit.leadName}
+                        </strong>
 
-                        <span>{visit.employeeName}</span>
+                        <span title={visit.companyName}>
+                          {visit.companyName || "—"}
+                        </span>
                       </div>
                     </td>
-                  )}
 
-                  <td>
-                    <div className="visits-table__scheduled">
-                      <strong>{visit.scheduledTime}</strong>
-                      <span>
-                        <Clock3 size={13} />
-                        {visit.scheduledDate}
-                      </span>
-                    </div>
-                  </td>
+                    {/* Employee */}
+                    {showEmployee && (
+                      <td>
+                        <div className="visits-table__employee">
+                          <span className="visits-table__avatar">
+                            {getInitials(visit.employeeName)}
+                          </span>
 
-                  <td>
-                    <div className="visits-table__location">
-                      <MapPin size={14} />
-                      <span>{visit.location}</span>
-                    </div>
-                  </td>
-
-                  <td>
-                    <span
-                      className={`visit-status visit-status--${(visit.visitStatus || "NOT_STARTED").toLowerCase()}`}
-                    >
-                      <span className="visit-status__dot" />
-                      {VISIT_STATUS_LABELS[visit.visitStatus] ||
-                        visit.rawStatus ||
-                        (visit.visitStatus === "NOT_STARTED" ? "Scheduled" : visit.visitStatus)}
-                    </span>
-                  </td>
-
-                  <td>
-                    {visit.outcome ? (
-                      <span
-                        className={`visit-outcome visit-outcome--${visit.outcome.toLowerCase()}`}
-                      >
-                        {OUTCOME_LABELS[visit.outcome]}
-                      </span>
-                    ) : (
-                      <span className="visits-table__muted">
-                        —
-                      </span>
+                          <span
+                            className="visits-table__employee-name"
+                            title={visit.employeeName}
+                          >
+                            {visit.employeeName}
+                          </span>
+                        </div>
+                      </td>
                     )}
-                  </td>
 
-                  <td className="visits-table__action-cell">
-                    <button
-                      type="button"
-                      className="visits-table__view"
-                      onClick={() =>
-                        onViewVisit(visit)
-                      }
-                    >
-                      View
-                      <ArrowRight size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))
+                    {/* Scheduled */}
+                    <td>
+                      <div className="visits-table__scheduled">
+                        <strong>
+                          {visit.scheduledTime}
+                        </strong>
+
+                        <span>
+                          <Clock3 size={13} />
+                          {visit.scheduledDate}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Location */}
+                    <td>
+                      <div
+                        className="visits-table__location"
+                        title={visit.location}
+                      >
+                        <MapPin size={14} />
+
+                        <span>
+                          {visit.location}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Visit Status */}
+                    <td>
+                      <span
+                        className={`visit-status visit-status--${status.key}`}
+                      >
+                        <span className="visit-status__dot" />
+
+                        {status.label}
+                      </span>
+                    </td>
+
+                    {/* Action */}
+                    <td className="visits-table__action-cell">
+                      <button
+                        type="button"
+                        className="visits-table__view"
+                        onClick={() => onViewVisit(visit)}
+                        aria-label={`View visit for ${visit.leadName}`}
+                      >
+                        View
+                      </button>
+                    </td>
+
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

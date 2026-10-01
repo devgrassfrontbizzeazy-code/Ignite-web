@@ -52,8 +52,8 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(toRadians(lat2)) *
+    Math.sin(dLon / 2) ** 2;
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
@@ -228,7 +228,7 @@ const Visits = () => {
 
         // Ping backend immediately on manual location request if sales person
         if (isSales) {
-          pingFieldSalesLocation(coords).catch(() => {});
+          pingFieldSalesLocation(coords).catch(() => { });
         }
       },
       (error) => {
@@ -236,7 +236,7 @@ const Visits = () => {
         if (error.code === error.PERMISSION_DENIED) {
           setGpsStatus("denied");
           if (isSales) {
-            toggleFieldSalesLocation(false).catch(() => {});
+            toggleFieldSalesLocation(false).catch(() => { });
           }
         } else {
           setGpsStatus("unavailable");
@@ -271,7 +271,7 @@ const Visits = () => {
         if (error.code === error.PERMISSION_DENIED) {
           setGpsStatus("denied");
           if (isSales) {
-            toggleFieldSalesLocation(false).catch(() => {});
+            toggleFieldSalesLocation(false).catch(() => { });
           }
         } else {
           setGpsStatus("unavailable");
@@ -420,9 +420,17 @@ const Visits = () => {
     return visits.filter((visit) => {
       const matchesSearch =
         !normalizedSearch ||
-        visit.leadName.toLowerCase().includes(normalizedSearch) ||
-        visit.companyName.toLowerCase().includes(normalizedSearch) ||
-        visit.employeeName.toLowerCase().includes(normalizedSearch);
+        [
+          visit.leadName,
+          visit.companyName,
+          visit.employeeName,
+          visit.location,
+          visit.contactPhone,
+        ]
+          .filter(Boolean)
+          .some((value) =>
+            String(value).toLowerCase().includes(normalizedSearch)
+          );
 
       const matchesDate =
         !date || visit.scheduledDate === date;
@@ -649,20 +657,20 @@ const Visits = () => {
         currentVisits.map((visit) =>
           visit.id === selectedVisit.id
             ? {
-                ...visit,
-                visitStatus: "CHECKED_IN",
-                checkInTime: formatTime(now),
-                currentLatitude: currentUserLocation.latitude,
-                currentLongitude: currentUserLocation.longitude,
-                gpsAccuracy: currentUserLocation.accuracy,
-                distance: liveDist,
-                checkInLatitude: currentUserLocation.latitude,
-                checkInLongitude: currentUserLocation.longitude,
-                checkInDistanceMeters: liveDist,
-                isLocationOverridden: Boolean(overrideData?.is_location_overridden),
-                overrideReason: overrideData?.override_reason || "",
-                overrideNotes: overrideData?.override_notes || "",
-              }
+              ...visit,
+              visitStatus: "CHECKED_IN",
+              checkInTime: formatTime(now),
+              currentLatitude: currentUserLocation.latitude,
+              currentLongitude: currentUserLocation.longitude,
+              gpsAccuracy: currentUserLocation.accuracy,
+              distance: liveDist,
+              checkInLatitude: currentUserLocation.latitude,
+              checkInLongitude: currentUserLocation.longitude,
+              checkInDistanceMeters: liveDist,
+              isLocationOverridden: Boolean(overrideData?.is_location_overridden),
+              overrideReason: overrideData?.override_reason || "",
+              overrideNotes: overrideData?.override_notes || "",
+            }
             : visit
         )
       );
@@ -714,14 +722,14 @@ const Visits = () => {
       currentVisits.map((visit) =>
         visit.id === selectedVisit.id
           ? {
-              ...visit,
-              visitStatus: "CHECKED_OUT",
-              clientResponse: reportData.client_response,
-              feedback: reportData.feedback,
-              photos: reportData.photos || [],
-              outcome: reportData.client_response,
-              checkOutTime: formatTime(now),
-            }
+            ...visit,
+            visitStatus: "CHECKED_OUT",
+            clientResponse: reportData.client_response,
+            feedback: reportData.feedback,
+            photos: reportData.photos || [],
+            outcome: reportData.client_response,
+            checkOutTime: formatTime(now),
+          }
           : visit
       )
     );
@@ -885,10 +893,10 @@ const Visits = () => {
 
               {(activeVisit.visitStatus === "CHECKED_IN" ||
                 activeVisit.visitStatus === "IN_PROGRESS") && (
-                <Button onClick={() => openCheckOut(activeVisit)}>
-                  Check Out / Submit Report
-                </Button>
-              )}
+                  <Button onClick={() => openCheckOut(activeVisit)}>
+                    Check Out / Submit Report
+                  </Button>
+                )}
             </div>
           </>
         )}

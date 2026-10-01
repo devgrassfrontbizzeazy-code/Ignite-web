@@ -1,356 +1,483 @@
-/* =========================
-   LEAD TABLE CARD
-========================= */
+/* =========================================================
+   LEAD TABLE
+   Ignite Field Sales
+========================================================= */
 
 .lead-table-card {
   position: relative;
-  z-index: 1;
-
   width: 100%;
   max-width: 100%;
-
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
-
-  background: var(--color-bg-surface);
-  box-shadow: var(--shadow-sm);
-
   overflow: hidden;
-
   box-sizing: border-box;
+
+  border: 1px solid rgba(15, 61, 62, 0.10);
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 2px 8px rgba(15, 61, 62, 0.04),
+    0 1px 2px rgba(15, 61, 62, 0.03);
 }
 
-/* =========================
-   HEADER
-========================= */
-
-.lead-table-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 16px 18px;
-
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 14px 14px 0 0;
-
-  background: #fcfefe;
-}
-
-.lead-table-card__header h3 {
-  margin: 0 0 4px;
-
-  color: var(--color-text-primary);
-
-  font-size: 17px;
-  font-weight: var(--font-weight-bold);
-
-  line-height: 1.3;
-}
-
-.lead-table-card__header p {
-  margin: 0;
-
-  color: var(--color-text-muted);
-
-  font-size: 11px;
-}
-
-/* =========================
+/* =========================================================
    TABLE WRAPPER
-========================= */
+========================================================= */
 
 .lead-table-wrapper {
-  position: relative;
-
   width: 100%;
   max-width: 100%;
 
   overflow-x: auto;
   overflow-y: hidden;
 
-  box-sizing: border-box;
-
-  border-radius: 0 0 14px 14px;
-
   -webkit-overflow-scrolling: touch;
 }
 
-/* =========================
+/* =========================================================
    TABLE
-========================= */
+========================================================= */
 
 .lead-table {
-  position: relative;
-
   width: 100%;
   min-width: 1050px;
 
-  border-collapse: collapse;
+  border-collapse: separate;
   border-spacing: 0;
+
+  table-layout: auto;
 }
 
-/* =========================
+/* =========================================================
    TABLE HEADER
-========================= */
+========================================================= */
+
+.lead-table thead {
+  background: #f6f9f9;
+}
 
 .lead-table th {
-  padding: 11px 14px;
+  height: 42px;
+  padding: 0 16px;
 
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(15, 61, 62, 0.10);
 
-  background: var(--ignite-teal-050);
-
-  color: var(--color-text-secondary);
+  color: #607174;
 
   font-size: 10px;
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
 
-  letter-spacing: 0.01em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 
   text-align: left;
-
   white-space: nowrap;
 }
 
-/* =========================
+.lead-table th:first-child {
+  padding-left: 18px;
+}
+
+.lead-table th:last-child {
+  padding-right: 18px;
+}
+
+/* =========================================================
    TABLE BODY
-========================= */
+========================================================= */
 
 .lead-table td {
   position: relative;
 
-  padding: 12px 14px;
+  height: 66px;
+  padding: 10px 16px;
 
-  border-bottom: 1px solid #edf1f3;
+  border-bottom: 1px solid #edf1f2;
 
-  color: var(--color-text-secondary);
+  color: #536467;
 
   font-size: 12px;
-
   vertical-align: middle;
 
   white-space: nowrap;
 }
 
-.lead-table tbody tr {
-  position: relative;
+.lead-table td:first-child {
+  padding-left: 18px;
+}
 
-  transition: background 0.15s ease;
+.lead-table td:last-child {
+  padding-right: 18px;
+}
+
+.lead-table tbody tr {
+  background: #ffffff;
+
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .lead-table tbody tr:hover {
-  background: #f8fcfb;
+  background: #f9fcfb;
+}
+
+.lead-table tbody tr:hover td:first-child {
+  box-shadow: inset 3px 0 0 var(--ignite-emerald);
 }
 
 .lead-table tbody tr:last-child td {
   border-bottom: none;
 }
 
-/* =========================
-   LEAD
-========================= */
+/* =========================================================
+   LEAD CELL
+========================================================= */
 
 .lead-table__lead {
   display: flex;
   align-items: center;
+  gap: 11px;
 
-  min-width: 190px;
+  min-width: 210px;
 }
+
+/* =========================================================
+   AVATAR
+========================================================= */
+
+.lead-table__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+
+  flex: 0 0 38px;
+
+  border: 1px solid rgba(11, 163, 127, 0.18);
+  border-radius: 11px;
+
+  background:
+    linear-gradient(145deg,
+      rgba(15, 61, 62, 0.10),
+      rgba(11, 163, 127, 0.10));
+
+  color: var(--ignite-deep-teal);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  letter-spacing: 0.02em;
+}
+
+.lead-table tbody tr:hover .lead-table__avatar {
+  background: var(--ignite-deep-teal);
+  border-color: var(--ignite-deep-teal);
+  color: #ffffff;
+}
+
+/* =========================================================
+   LEAD INFO
+========================================================= */
 
 .lead-table__lead-info {
   min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.lead-table__name {
-  margin-bottom: 3px;
+.lead-table__lead-info strong {
+  display: block;
 
-  color: var(--color-text-primary);
-
-  font-size: 12px;
-  font-weight: var(--font-weight-semibold);
-
-  line-height: 1.3;
-}
-
-.lead-table__email {
   max-width: 190px;
 
   overflow: hidden;
 
-  color: var(--color-text-muted);
+  color: #1a1f24;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lead-table__lead-info span {
+  display: block;
+
+  max-width: 190px;
+
+  overflow: hidden;
+
+  color: #8a9799;
 
   font-size: 10px;
 
+  line-height: 1.3;
+
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   COMPANY
+========================================================= */
+
+.lead-table__company {
+  display: inline-block;
+
+  max-width: 170px;
+
+  overflow: hidden;
+
+  color: #263437;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   PHONE
+========================================================= */
+
+.lead-table__phone {
+  color: #526164;
+
+  font-size: 11px;
+  font-weight: 500;
+
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   ASSIGNED TO
+========================================================= */
+
+.lead-table td:nth-child(4) {
+  color: var(--ignite-deep-teal);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   LOCATION
+========================================================= */
+
+.lead-table__location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  max-width: 210px;
+
+  color: #657477;
+
+  font-size: 11px;
+}
+
+.lead-table__location svg {
+  flex: 0 0 auto;
+
+  color: var(--ignite-emerald);
+}
+
+.lead-table__location span {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.lead-table__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 5px 9px;
+
+  border: 1px solid transparent;
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  line-height: 1;
 
   white-space: nowrap;
 }
 
-/* =========================
-   COMPANY
-========================= */
-
-.lead-table__company {
-  color: var(--color-text-primary);
-
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-}
-
-/* =========================
-   PHONE
-========================= */
-
-.lead-table__phone {
-  color: var(--color-text-secondary);
-
-  font-size: 11px;
-}
-
-/* =========================
-   ASSIGNED TO
-========================= */
-
-.lead-table__assigned {
-  color: var(--ignite-deep-teal);
-
-  font-size: 11px;
-  font-weight: var(--font-weight-semibold);
-}
-
-/* =========================
-   STATUS
-========================= */
-
-.lead-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-
-  padding: 4px 8px;
-
-  border-radius: var(--radius-pill);
-
-  font-size: 10px;
-  font-weight: var(--font-weight-bold);
-}
-
-.lead-status::before {
+.lead-table__status::before {
   content: "";
 
   width: 5px;
   height: 5px;
 
-  flex-shrink: 0;
+  flex: 0 0 5px;
 
   border-radius: 50%;
 }
 
-.lead-status--new {
-  background: var(--ignite-teal-050);
+/* NEW */
+
+.lead-table__status--new {
+  border-color: rgba(15, 61, 62, 0.12);
+
+  background: rgba(15, 61, 62, 0.06);
+
   color: var(--ignite-deep-teal);
 }
 
-.lead-status--new::before {
+.lead-table__status--new::before {
   background: var(--ignite-deep-teal);
 }
 
-.lead-status--follow-up {
-  background: #fff4df;
-  color: #a15c00;
+/* FOLLOW UP */
+
+.lead-table__status--follow_up {
+  border-color: rgba(212, 175, 55, 0.25);
+
+  background: rgba(212, 175, 55, 0.10);
+
+  color: #8a6800;
 }
 
-.lead-status--follow-up::before {
-  background: #d99424;
+.lead-table__status--follow_up::before {
+  background: var(--ignite-gold);
 }
 
-.lead-status--won {
-  background: var(--ignite-emerald-100);
-  color: var(--ignite-emerald);
+/* DEAL WON */
+
+.lead-table__status--deal_won {
+  border-color: rgba(11, 163, 127, 0.20);
+
+  background: rgba(11, 163, 127, 0.09);
+
+  color: #08775e;
 }
 
-.lead-status--won::before {
+.lead-table__status--deal_won::before {
   background: var(--ignite-emerald);
 }
 
-.lead-status--lost {
-  background: #fff0ef;
-  color: #c7362f;
+/* LOST */
+
+.lead-table__status--lost {
+  border-color: rgba(198, 54, 47, 0.16);
+
+  background: rgba(198, 54, 47, 0.07);
+
+  color: #b2332d;
 }
 
-.lead-status--lost::before {
-  background: #d64545;
+.lead-table__status--lost::before {
+  background: #c7362f;
 }
 
-/* =========================
-   VISIT STATUS
-========================= */
-
-.lead-visit-status {
-  display: inline-flex;
-  align-items: center;
-
-  padding: 4px 8px;
-
-  border-radius: var(--radius-pill);
-
-  font-size: 10px;
-  font-weight: var(--font-weight-bold);
-}
-
-.lead-visit-status--not-started {
-  background: #eef1f4;
-  color: #52606d;
-}
-
-.lead-visit-status--checked-in {
-  background: #fff4df;
-  color: #a15c00;
-}
-
-.lead-visit-status--checked-out {
-  background: var(--ignite-emerald-100);
-  color: var(--ignite-emerald);
-}
-
-/* =========================
+/* =========================================================
    ACTIONS
-========================= */
+========================================================= */
 
 .lead-table__actions-header {
-  width: 70px;
-  min-width: 70px;
+  width: 82px;
+  min-width: 82px;
 
-  text-align: center !important;
+  text-align: right !important;
 }
 
-.lead-table__actions-cell {
-  position: relative;
-
-  width: 70px;
-  min-width: 70px;
-
-  padding-left: 8px !important;
-  padding-right: 8px !important;
-
-  text-align: center;
-
-  overflow: visible !important;
-
-  z-index: 10;
+.lead-table__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
 }
 
-.lead-table tbody tr:hover
-  .lead-table__actions-cell {
-  z-index: 20;
+/* =========================================================
+   ACTION BUTTON
+========================================================= */
+
+.lead-table__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 30px;
+  height: 30px;
+
+  padding: 0;
+
+  border: 1px solid #e1e8e8;
+  border-radius: 8px;
+
+  background: #ffffff;
+
+  color: #687779;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
 }
 
-/* =========================
+.lead-table__action:hover {
+  border-color: rgba(11, 163, 127, 0.30);
+
+  background: rgba(11, 163, 127, 0.07);
+
+  color: var(--ignite-emerald);
+
+  transform: translateY(-1px);
+}
+
+.lead-table__action:active {
+  transform: translateY(0);
+}
+
+.lead-table__action:focus-visible {
+  outline: 2px solid rgba(11, 163, 127, 0.30);
+  outline-offset: 2px;
+}
+
+/* First action = view */
+
+.lead-table__action:first-child:hover {
+  border-color: rgba(15, 61, 62, 0.25);
+
+  background: rgba(15, 61, 62, 0.06);
+
+  color: var(--ignite-deep-teal);
+}
+
+/* =========================================================
    EMPTY STATE
-========================= */
+========================================================= */
+
+.lead-table-card--empty {
+  min-height: 280px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .lead-table-empty {
+  width: 100%;
+
   padding: 55px 20px;
 
   text-align: center;
@@ -358,30 +485,30 @@
 
 .lead-table-empty__icon {
   display: flex;
-
-  width: 52px;
-  height: 52px;
-
   align-items: center;
   justify-content: center;
 
-  margin: 0 auto 12px;
+  width: 54px;
+  height: 54px;
 
+  margin: 0 auto 14px;
+
+  border: 1px solid rgba(11, 163, 127, 0.16);
   border-radius: 14px;
 
-  background: var(--ignite-teal-050);
-  color: var(--ignite-deep-teal);
+  background: rgba(11, 163, 127, 0.07);
 
-  font-size: 24px;
+  color: var(--ignite-emerald);
 }
 
+.lead-table-empty h3,
 .lead-table-empty h4 {
-  margin: 0 0 5px;
+  margin: 0 0 6px;
 
-  color: var(--color-text-primary);
+  color: #1a1f24;
 
   font-size: 14px;
-  font-weight: var(--font-weight-bold);
+  font-weight: 700;
 }
 
 .lead-table-empty p {
@@ -389,26 +516,93 @@
 
   margin: 0 auto;
 
-  color: var(--color-text-muted);
+  color: #899698;
 
   font-size: 11px;
-  line-height: 1.5;
+
+  line-height: 1.6;
 }
 
-/* =========================
+/* =========================================================
+   LOADING
+========================================================= */
+
+.lead-table-card--loading {
+  min-height: 280px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =========================================================
+   SCROLLBAR
+========================================================= */
+
+.lead-table-wrapper::-webkit-scrollbar {
+  height: 7px;
+}
+
+.lead-table-wrapper::-webkit-scrollbar-track {
+  background: #f4f7f7;
+}
+
+.lead-table-wrapper::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #cbd7d7;
+}
+
+.lead-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #aebebe;
+}
+
+/* =========================================================
    RESPONSIVE
-========================= */
+========================================================= */
 
-@media (max-width: 700px) {
-  .lead-table-card__header {
-    padding: 15px;
-  }
-
+@media (max-width: 900px) {
   .lead-table th {
-    padding: 10px 12px;
+    padding: 0 13px;
   }
 
   .lead-table td {
-    padding: 11px 12px;
+    padding: 9px 13px;
+  }
+
+  .lead-table td:first-child {
+    padding-left: 15px;
+  }
+
+  .lead-table__lead {
+    min-width: 190px;
+  }
+}
+
+@media (max-width: 700px) {
+  .lead-table-card {
+    border-radius: 13px;
+  }
+
+  .lead-table {
+    min-width: 1000px;
+  }
+
+  .lead-table th {
+    height: 40px;
+
+    font-size: 9px;
+  }
+
+  .lead-table td {
+    height: 62px;
+
+    font-size: 11px;
+  }
+
+  .lead-table__avatar {
+    width: 35px;
+    height: 35px;
+
+    flex-basis: 35px;
   }
 }

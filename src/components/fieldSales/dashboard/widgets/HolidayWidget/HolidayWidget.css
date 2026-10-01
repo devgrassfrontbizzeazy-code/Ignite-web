@@ -1,0 +1,54 @@
+.field-sales-holiday-widget {
+  grid-column: span 4;
+}
+
+.upcoming-holiday-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.upcoming-holiday-item:last-child {
+  border-bottom: none;
+}
+
+.upcoming-holiday-item__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #edf7f4;
+  color: #0ba37f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.upcoming-holiday-item__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.upcoming-holiday-item__info strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1f24;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upcoming-holiday-item__info span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.upcoming-holiday-item__date strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f3d3e;
+}

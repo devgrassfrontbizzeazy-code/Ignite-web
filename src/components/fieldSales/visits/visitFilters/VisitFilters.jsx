@@ -6,6 +6,7 @@ import {
 
 import SearchInput from "../../../common/SearchInput/SearchInput";
 import Select from "../../../common/Select/Select";
+import DatePicker from "../../../common/DatePicker/DatePicker";
 import "./VisitFilters.css";
 
 const VisitFilters = ({
@@ -52,16 +53,11 @@ const VisitFilters = ({
         </div>
 
         <div className="visits__filter-date">
-          <div className="visits__date-control">
-            <CalendarDays size={16} />
-            <input
-              type="date"
-              value={date}
-              onChange={(event) =>
-                onDateChange(event.target.value)
-              }
-            />
-          </div>
+          <DatePicker
+            value={date}
+            onChange={onDateChange}
+            placeholder="Select Date"
+          />
         </div>
 
         {showEmployeeFilter && (

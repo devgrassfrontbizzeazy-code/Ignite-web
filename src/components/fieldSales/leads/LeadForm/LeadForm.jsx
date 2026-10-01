@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  FiAlertCircle,
-  FiBriefcase,
-  FiMapPin,
-  FiMail,
-  FiPhone,
-  FiSave,
-  FiUser,
-  FiUsers,
-  FiCalendar,
-  FiClock,
-} from "react-icons/fi";
+  AlertCircle,
+  Briefcase,
+  Calendar,
+  Clock,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  User,
+  Users,
+} from "lucide-react";
 
 import Button from "../../../common/Button/Button";
 import BackButton from "../../../common/BackButton/BackButton";
+import DatePicker from "../../../common/DatePicker/DatePicker";
+import TimePicker from "../../../common/TimePicker/TimePicker";
 import { getFieldSalesEmployees, createFieldSalesLead } from "../../../../services/api/fieldSalesAPI";
 import { useNotification } from "../../../../context/NotificationContext";
 
@@ -251,7 +253,7 @@ const LeadForm = ({
       {/* PAGE HEADER */}
       <div className="lead-form-page__heading">
         <div className="lead-form-page__icon">
-          <FiUser />
+          <User size={24} />
         </div>
 
         <div>
@@ -267,7 +269,7 @@ const LeadForm = ({
       {/* ERROR */}
       {error && (
         <div className="lead-form-page__alert">
-          <FiAlertCircle />
+          <AlertCircle size={18} />
           <span>{error}</span>
         </div>
       )}
@@ -279,7 +281,7 @@ const LeadForm = ({
         <section className="lead-form__section">
           <div className="lead-form__section-heading">
             <div className="lead-form__section-icon lead-form__section-icon--teal">
-              <FiUser />
+              <User size={18} />
             </div>
 
             <div>
@@ -295,7 +297,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiUser />
+                <User size={16} />
                 <input
                   id="first_name"
                   name="first_name"
@@ -315,7 +317,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiUser />
+                <User size={16} />
                 <input
                   id="last_name"
                   name="last_name"
@@ -333,7 +335,7 @@ const LeadForm = ({
               <label htmlFor="email">Email</label>
 
               <div className="lead-form__input-wrap">
-                <FiMail />
+                <Mail size={16} />
                 <input
                   id="email"
                   name="email"
@@ -353,7 +355,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiPhone />
+                <Phone size={16} />
                 <input
                   id="phone"
                   name="phone"
@@ -377,7 +379,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiBriefcase />
+                <Briefcase size={16} />
                 <input
                   id="company_name"
                   name="company_name"
@@ -399,14 +401,13 @@ const LeadForm = ({
         <section className="lead-form__section lead-form__section--purple">
           <div className="lead-form__section-heading">
             <div className="lead-form__section-icon lead-form__section-icon--purple">
-              <FiMapPin />
+              <MapPin size={18} />
             </div>
 
             <div>
               <h2>Lead Location</h2>
               <p>
-                Location used to validate field visit check-in within 100
-                meters.
+                Location used to validate field visit check-in within allowed radius.
               </p>
             </div>
           </div>
@@ -420,7 +421,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap lead-form__input-wrap--textarea">
-                <FiMapPin />
+                <MapPin size={16} />
                 <textarea
                   id="address"
                   name="address"
@@ -440,7 +441,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiMapPin />
+                <MapPin size={16} />
                 <input
                   id="latitude"
                   name="latitude"
@@ -461,7 +462,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiMapPin />
+                <MapPin size={16} />
                 <input
                   id="longitude"
                   name="longitude"
@@ -484,7 +485,7 @@ const LeadForm = ({
         <section className="lead-form__section lead-form__section--amber">
           <div className="lead-form__section-heading">
             <div className="lead-form__section-icon lead-form__section-icon--amber">
-              <FiCalendar />
+              <Calendar size={18} />
             </div>
 
             <div>
@@ -500,7 +501,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiUsers />
+                <Users size={16} />
 
                 <select
                   id="assigned_to"
@@ -537,16 +538,16 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiBriefcase />
+                <Briefcase size={16} />
                 <select
                   id="priority"
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}
                 >
-                  <option value="High">🔴 High Priority</option>
-                  <option value="Medium">🟡 Medium Priority</option>
-                  <option value="Low">🟢 Low Priority</option>
+                  <option value="High">High Priority</option>
+                  <option value="Medium">Medium Priority</option>
+                  <option value="Low">Low Priority</option>
                 </select>
               </div>
             </div>
@@ -556,17 +557,14 @@ const LeadForm = ({
                 Visit Date <span>*</span>
               </label>
 
-              <div className="lead-form__input-wrap">
-                <FiCalendar />
-                <input
-                  id="visit_date"
-                  name="visit_date"
-                  type="date"
-                  value={formData.visit_date}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <DatePicker
+                value={formData.visit_date}
+                onChange={(dateStr) => {
+                  setFormData((prev) => ({ ...prev, visit_date: dateStr }));
+                  setErrors((prev) => ({ ...prev, visit_date: "" }));
+                }}
+                placeholder="Select visit date"
+              />
             </div>
 
             <div className={getFieldClass("visit_time")}>
@@ -574,17 +572,13 @@ const LeadForm = ({
                 Visit Time <span>*</span>
               </label>
 
-              <div className="lead-form__input-wrap">
-                <FiClock />
-                <input
-                  id="visit_time"
-                  name="visit_time"
-                  type="time"
-                  value={formData.visit_time}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <TimePicker
+                value={formData.visit_time}
+                onChange={(timeStr) => {
+                  setFormData((prev) => ({ ...prev, visit_time: timeStr }));
+                  setErrors((prev) => ({ ...prev, visit_time: "" }));
+                }}
+              />
             </div>
 
             <div className={`${getFieldClass("visit_purpose")} lead-form__field--full`}>
@@ -593,7 +587,7 @@ const LeadForm = ({
               </label>
 
               <div className="lead-form__input-wrap">
-                <FiBriefcase />
+                <Briefcase size={16} />
                 <input
                   id="visit_purpose"
                   name="visit_purpose"
@@ -636,7 +630,7 @@ const LeadForm = ({
           </Button>
 
           <Button type="submit" variant="primary" disabled={submitting}>
-            <FiSave />
+            <Save size={16} />
             {submitting
               ? "Saving..."
               : isEditMode

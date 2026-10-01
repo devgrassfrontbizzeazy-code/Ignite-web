@@ -1,56 +1,126 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
-  Compass,
-  Phone,
-  MessageSquare,
   Play,
-  CheckCircle,
   Calendar,
-  Clock,
-  MapPin,
-  User,
-  Shield,
-  AlertTriangle,
   RefreshCw,
   Eye,
-  TrendingUp,
-  Layers,
+  Trophy,
+  CheckCircle2,
+  Clock3,
+  AlertCircle,
 } from "lucide-react";
+
 import Button from "../../components/common/Button/Button";
-import Card from "../../components/common/Card/Card";
 import Modal from "../../components/common/Modal/Modal";
 import Drawer from "../../components/common/Drawer/Drawer";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
+
+import DashboardWidget from "../../components/dashboard/DashboardWidget/DashboardWidget";
+import SummaryWidget from "../../components/dashboard/widgets/generic/SummaryWidget/SummaryWidget";
+
+import ApplyLeaveModal from "../../components/leave/ApplyLeaveModal/ApplyLeaveModal";
+import leaveApplicationAPI from "../../services/api/leaveApplicationAPI";
+
 import LocationPermissionModal from "../../components/fieldSales/common/LocationPermissionModal/LocationPermissionModal";
+import ActiveVisit from "../../components/fieldSales/dashboard/widgets/ActiveVisit/ActiveVisit";
+import AttendanceWidget from "../../components/fieldSales/dashboard/widgets/AttendanceWidget/AttendanceWidget";
+import AssignedLeads from "../../components/fieldSales/dashboard/widgets/AssignedLeads/AssignedLeads";
+import FollowUps from "../../components/fieldSales/dashboard/widgets/FollowUps/FollowUps";
+import HolidayWidget from "../../components/fieldSales/dashboard/widgets/HolidayWidget/HolidayWidget";
+import LeaveWidget from "../../components/fieldSales/dashboard/widgets/LeaveWidget/LeaveWidget";
+import QuickActions from "../../components/fieldSales/dashboard/widgets/QuickActions/QuickActions";
+import SalesSummaryCards from "../../components/fieldSales/dashboard/widgets/SalesSummaryCards/SalesSummaryCards";
+import ScheduledVisits from "../../components/fieldSales/dashboard/widgets/ScheduledVisits/ScheduledVisits";
 import VisitDetails from "../../components/fieldSales/visits/visitDetails/VisitDetails";
 import VisitCheckIn from "../../components/fieldSales/visits/visitCheckIn/VisitCheckIn";
 import VisitCheckOut from "../../components/fieldSales/visits/visitCheckOut/VisitCheckOut";
 import FollowUpOutcomeModal from "../../components/fieldSales/leads/FollowUpOutcomeModal/FollowUpOutcomeModal";
 import LeadTimelineDrawer from "../../components/fieldSales/leads/LeadTimelineDrawer/LeadTimelineDrawer";
 
+import useDashboardData from "../../components/dashboard/hooks/useDashboardData";
+
 import {
   getSalesDashboardSummary,
+  getFieldSalesVisits,
+  getFieldSalesFollowUps,
+  getFieldSalesLeads,
+  getFieldSalesEmployees,
+  getTeamLiveLocations,
   checkInFieldSalesVisit,
   submitFieldSalesVisitReport,
   logFollowUpOutcome,
   pingFieldSalesLocation,
   toggleFieldSalesLocation,
 } from "../../services/api/fieldSalesAPI";
-import { getCurrentUser } from "../../utils/permissionUtils";
+
+import {
+  getCurrentUser,
+  isFieldSalesManager,
+  canViewAttendance,
+  canViewLeaves,
+  canViewHolidays,
+} from "../../utils/permissionUtils";
 import { useNotification } from "../../context/NotificationContext";
 import "./SalesDashboard.css";
 
+/* Helper for date formatting */
+const getFormattedDate = () => {
+  return new Intl.DateTimeFormat("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+};
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
+};
+
+const normalizeStatus = (statusStr) => {
+  if (!statusStr) return "Scheduled";
+  const s = String(statusStr).trim();
+  if (s.toLowerCase() === "checked_in" || s.toLowerCase() === "in_progress") return "In Progress";
+  if (s.toLowerCase() === "checked_out" || s.toLowerCase() === "completed") return "Completed";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
 const SalesDashboard = () => {
   const user = useMemo(() => getCurrentUser(), []);
-  const { showNotification } = useNotification();
+  const isManager = useMemo(() => isFieldSalesManager(user), [user]);
+  const notificationContext = useNotification();
+  const notify = notificationContext?.notify || {};
+  const showNotification = notificationContext?.showNotification;
+
+  // HRMS Dashboard Data (Attendance, Leaves, Holidays, Quick Actions)
+  const hrmsData = useDashboardData();
+
+  // Permission Checks for HRMS Widgets
+  const hasAttendancePermission = useMemo(() => canViewAttendance(user), [user]);
+  const hasLeavePermission = useMemo(() => canViewLeaves(user), [user]);
+  const hasHolidayPermission = useMemo(() => canViewHolidays(user), [user]);
+
+  // Leave Modal State
+  const [showApplyLeave, setShowApplyLeave] = useState(false);
+  const [submittingLeave, setSubmittingLeave] = useState(false);
 
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Core Data Collections
   const [data, setData] = useState({
     stats: {},
     today_visits: [],
     today_followups: [],
+    leads: [],
+    employees: [],
+    liveLocations: [],
   });
 
+  // GPS Tracking State for Field Duty
   const [isFieldDutyActive, setIsFieldDutyActive] = useState(true);
   const [currentUserLocation, setCurrentUserLocation] = useState({
     latitude: 28.4595,
@@ -72,35 +142,122 @@ const SalesDashboard = () => {
   const [selectedLeadId, setSelectedLeadId] = useState(null);
   const [timelineDrawerOpen, setTimelineDrawerOpen] = useState(false);
 
-  // Fetch Dashboard Summary
-  const fetchDashboard = async (silent = false) => {
+  // Leave Apply Handler
+  const handleApplyLeave = async (leaveData) => {
     try {
-      if (!silent) setLoading(true);
-      const res = await getSalesDashboardSummary();
-      if (res?.data || res?.stats) {
-        setData({
-          stats: res.stats || {},
-          today_visits: res.today_visits || [],
-          today_followups: res.today_followups || [],
-        });
+      setSubmittingLeave(true);
+      await leaveApplicationAPI.applyLeave(leaveData);
+      if (notify?.success) {
+        notify.success("Leave application submitted successfully.");
+      } else if (showNotification) {
+        showNotification({ type: "success", message: "Leave application submitted successfully." });
       }
+      setShowApplyLeave(false);
+      await hrmsData.refreshLeaveData();
     } catch (err) {
-      console.error("Failed to load sales dashboard summary:", err);
+      console.error("Failed to submit leave:", err);
+      const msg = err?.response?.data?.detail || err?.response?.data?.message || "Failed to submit leave application.";
+      if (notify?.error) {
+        notify.error(msg);
+      } else if (showNotification) {
+        showNotification({ type: "error", message: msg });
+      }
     } finally {
-      if (!silent) setLoading(false);
+      setSubmittingLeave(false);
     }
   };
 
-  useEffect(() => {
-    fetchDashboard(false);
-    // Auto-refresh summary every 10 seconds for real-time manager updates
-    const interval = setInterval(() => {
-      fetchDashboard(true);
-    }, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  // Main Dashboard Data Fetching
+  const fetchDashboardData = useCallback(async (silent = false) => {
+    try {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
-  // GPS Location Watcher
+      const [summaryRes, visitsRes, followUpsRes, leadsRes, employeesRes, teamLiveRes] =
+        await Promise.allSettled([
+          getSalesDashboardSummary(),
+          getFieldSalesVisits(),
+          getFieldSalesFollowUps(),
+          getFieldSalesLeads(),
+          isManager ? getFieldSalesEmployees() : Promise.resolve(null),
+          isManager ? getTeamLiveLocations() : Promise.resolve(null),
+        ]);
+
+      const summaryData = summaryRes.status === "fulfilled" ? summaryRes.value : {};
+      const visitsData =
+        visitsRes.status === "fulfilled"
+          ? visitsRes.value?.data || visitsRes.value?.results || visitsRes.value || []
+          : [];
+      const followUpsData =
+        followUpsRes.status === "fulfilled"
+          ? followUpsRes.value?.data || followUpsRes.value?.results || followUpsRes.value || []
+          : [];
+      const leadsData =
+        leadsRes.status === "fulfilled"
+          ? leadsRes.value?.data || leadsRes.value?.results || leadsRes.value || []
+          : [];
+      const employeesData =
+        employeesRes.status === "fulfilled" && employeesRes.value
+          ? employeesRes.value?.data || employeesRes.value?.results || employeesRes.value || []
+          : [];
+      const liveLocsData =
+        teamLiveRes.status === "fulfilled" && teamLiveRes.value
+          ? teamLiveRes.value?.data || teamLiveRes.value?.results || teamLiveRes.value || []
+          : [];
+
+      const rawVisits = summaryData.today_visits || visitsData;
+      const todayVisits = Array.isArray(rawVisits) ? rawVisits : [];
+
+      const rawFollowUps = summaryData.today_followups || followUpsData;
+      const todayFollowups = Array.isArray(rawFollowUps) ? rawFollowUps : [];
+
+      const stats = summaryData.stats || {};
+
+      setData({
+        stats: {
+          today_visits_count: stats.today_visits_count ?? todayVisits.length,
+          active_visits_count:
+            stats.active_visits_count ??
+            todayVisits.filter((v) => ["In Progress", "Checked In", "CHECKED_IN", "IN_PROGRESS"].includes(v.status)).length,
+          completed_today_count:
+            stats.completed_today_count ??
+            todayVisits.filter((v) => ["Completed", "Checked Out", "CHECKED_OUT", "COMPLETED"].includes(v.status)).length,
+          pending_followups_count: stats.pending_followups_count ?? todayFollowups.length,
+          converted_leads_count:
+            stats.converted_leads_count ??
+            leadsData.filter((l) => ["Won", "Converted", "CONVERTED", "WON"].includes(l.status)).length,
+          active_field_employees:
+            stats.active_field_employees ??
+            (Array.isArray(liveLocsData) ? liveLocsData.filter((l) => l.is_active_tracking).length : 0),
+        },
+        today_visits: todayVisits,
+        today_followups: todayFollowups,
+        leads: Array.isArray(leadsData) ? leadsData : [],
+        employees: Array.isArray(employeesData) ? employeesData : [],
+        liveLocations: Array.isArray(liveLocsData) ? liveLocsData : [],
+      });
+    } catch (err) {
+      console.error("Failed to load Field Sales Dashboard data:", err);
+      if (!silent) {
+        setError("Failed to load dashboard data. Please check your connection and retry.");
+      }
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [isManager]);
+
+  useEffect(() => {
+    fetchDashboardData(false);
+
+    const interval = setInterval(() => {
+      fetchDashboardData(true);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
+
+  // Browser Geolocation Setup
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setGpsStatus("unavailable");
@@ -116,15 +273,17 @@ const SalesDashboard = () => {
         };
         setCurrentUserLocation(coords);
         setGpsStatus("success");
-        pingFieldSalesLocation(coords).catch(() => {});
+        if (!isManager) {
+          pingFieldSalesLocation(coords).catch(() => {});
+        }
       },
       (err) => {
-        console.warn("GPS error:", err);
+        console.warn("GPS access warning:", err);
         setGpsStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
       },
       { enableHighAccuracy: true, timeout: 15000 }
     );
-  }, []);
+  }, [isManager]);
 
   useEffect(() => {
     requestLocation();
@@ -145,26 +304,30 @@ const SalesDashboard = () => {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [requestLocation]);
 
-  // Periodic Heartbeat Ping (Every 12s) when field duty active
+  // Periodic Location Ping (Every 15s) when field duty active
   useEffect(() => {
-    if (!isFieldDutyActive || gpsStatus !== "success") return;
+    if (isManager || !isFieldDutyActive || gpsStatus !== "success") return;
     const interval = setInterval(() => {
       pingFieldSalesLocation(currentUserLocation).catch(() => {});
-    }, 12000);
+    }, 15000);
     return () => clearInterval(interval);
-  }, [isFieldDutyActive, gpsStatus, currentUserLocation]);
+  }, [isManager, isFieldDutyActive, gpsStatus, currentUserLocation]);
 
   const toggleFieldDuty = () => {
     const nextState = !isFieldDutyActive;
     setIsFieldDutyActive(nextState);
     toggleFieldSalesLocation(nextState).catch(() => {});
-    showNotification({
-      type: nextState ? "success" : "info",
-      message: nextState ? "Field Duty Started. Live GPS tracking is Active." : "Field Duty Paused. Location tracking stopped.",
-    });
+    if (showNotification) {
+      showNotification({
+        type: nextState ? "success" : "info",
+        message: nextState
+          ? "Field Duty active. Live GPS tracking enabled."
+          : "Field Duty paused. Location tracking stopped.",
+      });
+    }
   };
 
-  // Check In Handler
+  // Actions: Visit Check-In
   const handleCheckIn = async (overrideData = {}) => {
     if (!selectedVisit) return;
     try {
@@ -173,67 +336,67 @@ const SalesDashboard = () => {
         latitude: currentUserLocation.latitude,
         longitude: currentUserLocation.longitude,
         accuracy: currentUserLocation.accuracy,
-        distance_meters: selectedVisit.distance,
+        distance_meters: selectedVisit.distance || 0,
         is_location_overridden: Boolean(overrideData?.is_location_overridden),
         override_reason: overrideData?.override_reason || "",
         override_notes: overrideData?.override_notes || "",
       });
-      showNotification({
-        type: "success",
-        message: `Checked in successfully at ${selectedVisit.company_name || selectedVisit.customer_name}!`,
-      });
+      if (showNotification) {
+        showNotification({
+          type: "success",
+          message: `Checked in successfully at ${selectedVisit.company_name || selectedVisit.lead_title || selectedVisit.customer_name || "Client"}.`,
+        });
+      }
       setCheckInOpen(false);
-      fetchDashboard(true);
+      fetchDashboardData(true);
     } catch (err) {
-      showNotification({
-        type: "error",
-        message: err.response?.data?.message || "Check-in failed.",
-      });
+      const msg = err.response?.data?.message || err.response?.data?.detail || "Check-in failed.";
+      if (showNotification) showNotification({ type: "error", message: msg });
     } finally {
       setSubmittingAction(false);
     }
   };
 
-  // Submit Visit Report Handler
+  // Actions: Submit Visit Report
   const handleVisitReportSubmit = async (reportData) => {
     if (!selectedVisit) return;
     try {
       setSubmittingAction(true);
       await submitFieldSalesVisitReport(selectedVisit.id, reportData);
-      showNotification({
-        type: "success",
-        message: "Visit report submitted & next action recorded successfully!",
-      });
+      if (showNotification) {
+        showNotification({
+          type: "success",
+          message: "Visit report submitted successfully.",
+        });
+      }
       setReportOpen(false);
       setVisitDetailsOpen(false);
-      fetchDashboard();
+      fetchDashboardData(true);
     } catch (err) {
-      showNotification({
-        type: "error",
-        message: err.response?.data?.message || "Failed to submit report.",
-      });
+      const msg = err.response?.data?.message || err.response?.data?.detail || "Failed to submit report.";
+      if (showNotification) showNotification({ type: "error", message: msg });
     } finally {
       setSubmittingAction(false);
     }
   };
 
-  // Log Follow-up Outcome Handler
+  // Actions: Log Follow-up Outcome
   const handleFollowUpOutcomeSubmit = async (outcomeData) => {
     if (!selectedFollowUp) return;
     try {
       setSubmittingAction(true);
       await logFollowUpOutcome(selectedFollowUp.id, outcomeData);
-      showNotification({
-        type: "success",
-        message: `Follow-up outcome logged (${outcomeData.outcome}).`,
-      });
+      if (showNotification) {
+        showNotification({
+          type: "success",
+          message: `Follow-up outcome logged (${outcomeData.outcome}).`,
+        });
+      }
       setFollowUpModalOpen(false);
-      fetchDashboard();
+      fetchDashboardData(true);
     } catch (err) {
-      showNotification({
-        type: "error",
-        message: err.response?.data?.message || "Failed to log outcome.",
-      });
+      const msg = err.response?.data?.message || err.response?.data?.detail || "Failed to log outcome.";
+      if (showNotification) showNotification({ type: "error", message: msg });
     } finally {
       setSubmittingAction(false);
     }
@@ -244,22 +407,115 @@ const SalesDashboard = () => {
     const lng = v.longitude || v.lead_longitude;
     if (lat && lng) {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank");
-    } else if (v.location || v.address) {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v.location || v.address)}`, "_blank");
+    } else if (v.location || v.address || v.lead_address) {
+      window.open(
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          v.location || v.address || v.lead_address
+        )}`,
+        "_blank"
+      );
     }
   };
 
-  if (loading) {
-    return <IgniteLoader message="Loading your Sales Workspace..." />;
+  const handleScheduledVisitDetails = (visit) => {
+    setSelectedVisit({
+      ...visit,
+      id: String(visit.id),
+      companyName: visit.company_name || visit.lead_title,
+      leadName: visit.lead_name || visit.customer_name,
+      employeeName: visit.assigned_to_name || visit.employee_name || "Sales Rep",
+      scheduledDate: visit.visit_date,
+      scheduledTime: visit.visit_time,
+      location: visit.location || visit.lead_address,
+      purpose: visit.purpose || visit.visit_purpose || "Product Demo",
+      visitStatus: visit.status,
+      priority: visit.priority,
+      instructions: visit.instructions,
+      contactPhone: visit.contact_phone,
+      leadLatitude: visit.latitude,
+      leadLongitude: visit.longitude,
+      checkInTime: visit.check_in_time,
+      checkOutTime: visit.check_out_time,
+      clientResponse: visit.client_response,
+      feedback: visit.feedback,
+      outcome: visit.outcome,
+      photos: visit.photos || [],
+    });
+    setVisitDetailsOpen(true);
+  };
+
+  const handleScheduledVisitStart = (visit) => {
+    setSelectedVisit({
+      ...visit,
+      id: String(visit.id),
+      companyName: visit.company_name || visit.lead_title,
+      location: visit.location,
+      leadLatitude: visit.latitude,
+      leadLongitude: visit.longitude,
+    });
+    setCheckInOpen(true);
+  };
+
+  const handleScheduledVisitReport = (visit) => {
+    setSelectedVisit({
+      ...visit,
+      id: String(visit.id),
+      companyName: visit.company_name || visit.lead_title,
+      leadName: visit.lead_name || visit.customer_name,
+    });
+    setReportOpen(true);
+  };
+
+  if (loading && hrmsData.loading) {
+    return <IgniteLoader message="Loading Field Sales Workspace..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-page">
+        <div className="field-sales-error-card">
+          <AlertCircle size={32} color="#ef4444" />
+          <h3>Unable to load Field Sales Dashboard</h3>
+          <p>{error}</p>
+          <Button variant="primary" onClick={() => fetchDashboardData(false)}>
+            <RefreshCw size={14} /> Retry
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const visits = data.today_visits || [];
   const followups = data.today_followups || [];
+  const leads = data.leads || [];
+  const employees = data.employees || [];
+  const liveLocations = data.liveLocations || [];
+
+  // Active visit for sales person (if any)
+  const currentActiveVisit = visits.find((v) =>
+    ["In Progress", "Checked In", "CHECKED_IN", "IN_PROGRESS"].includes(v.status)
+  );
+
+  const firstName =
+    user?.first_name ||
+    user?.firstName ||
+    user?.full_name?.split(" ")[0] ||
+    user?.name?.split(" ")[0] ||
+    "Team Member";
+
+  // Leave balance computation for Leave Summary Widget
+  const leaveBalanceList = Array.isArray(hrmsData?.leaveBalance) ? hrmsData.leaveBalance : [];
+  const leaveTotal = leaveBalanceList.reduce((sum, l) => sum + Number(l?.total_entitlement || 0), 0);
+  const leaveRemaining = leaveBalanceList.reduce((sum, l) => sum + Number(l?.remaining_balance || 0), 0);
+  const leaveUsed = Math.max(leaveTotal - leaveRemaining, 0);
+
+  // Holidays list for Upcoming Holidays Widget
+  const upcomingHolidaysList = Array.isArray(hrmsData?.holidays) ? hrmsData.holidays : [];
 
   return (
-    <div className="sales-dashboard-page">
-      {/* LOCATION PERMISSION PROMPT */}
-      {(gpsStatus === "denied" || gpsStatus === "unavailable") && (
+    <div className="dashboard-page field-sales-dashboard-page">
+      {/* Location Permission Alert */}
+      {!isManager && (gpsStatus === "denied" || gpsStatus === "unavailable") && (
         <LocationPermissionModal
           open={true}
           isDenied={gpsStatus === "denied"}
@@ -267,340 +523,445 @@ const SalesDashboard = () => {
         />
       )}
 
-      {/* 1. HERO SALES PERSON GREETING & DUTY BAR */}
-      <div className="sales-hero-card">
-        <div className="sales-hero-content">
-          <div className="sales-hero-avatar">
-            {(user?.first_name || user?.name || "R")[0].toUpperCase()}
-          </div>
-          <div>
-            <span className="sales-hero-eyebrow">FIELD SALES WORKSPACE</span>
-            <h2>Good Morning, {user?.first_name || user?.name || "Rahul"} 👋</h2>
-            <p>You have {visits.length} scheduled visit(s) and {followups.length} pending follow-up(s) today.</p>
+      {/* ========================================================================= */}
+      {/* HRMS REUSED BRANDED HEADER BANNER (CLEAN & UNCLUTTERED)                  */}
+      {/* ========================================================================= */}
+      <header className="dashboard-header field-sales-header">
+        <div className="dashboard-header__content">
+          <div className="field-sales-header-title-row">
+            <div>
+              <h1 className="dashboard-header__title">
+                {getGreeting()}, {firstName}!
+              </h1>
+              <p className="dashboard-header__subtitle">
+                {isManager
+                  ? `Team sales overview & live tracking for ${getFormattedDate()}`
+                  : `Your sales workspace & schedule for ${getFormattedDate()}`}
+              </p>
+            </div>
+
+            {/* Field Duty toggle for Sales Reps */}
+            {!isManager && (
+              <div className="field-sales-duty-wrapper">
+                <button
+                  type="button"
+                  className={`sales-duty-btn ${isFieldDutyActive ? "active" : ""}`}
+                  onClick={toggleFieldDuty}
+                >
+                  <span className="sales-duty-dot" />
+                  {isFieldDutyActive ? "Field Duty Active" : "Start Field Duty"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
+      </header>
 
-        <div className="sales-hero-action">
-          <button
-            type="button"
-            className={`sales-duty-btn ${isFieldDutyActive ? "active" : ""}`}
-            onClick={toggleFieldDuty}
-          >
-            <span className="sales-duty-dot" />
-            {isFieldDutyActive ? "Field Duty Active [GPS ON]" : "Start Field Duty"}
-          </button>
-        </div>
-      </div>
+      {/* ========================================================================= */}
+      {/* DASHBOARD ROLE-BASED GRID LAYOUT                                          */}
+      {/* ========================================================================= */}
+      <main className="dashboard-grid">
+        {/* ----------------------------------------------------------------------- */}
+        {/* 1. FIELD MANAGER DASHBOARD                                              */}
+        {/* ----------------------------------------------------------------------- */}
+        {isManager ? (
+          <>
+            {/* MANAGER KPI SUMMARY CARDS */}
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 2" }}>
+              <SummaryWidget
+                title="Today's Visits"
+                value={data.stats.today_visits_count}
+                subtitle="Scheduled for team"
+                icon={Calendar}
+              />
+            </div>
 
-      {/* 2. SUMMARY STATS TILES */}
-      <div className="sales-stats-grid">
-        <div className="sales-stat-tile">
-          <div className="sales-stat-icon sales-stat-icon--blue">
-            <Calendar size={20} />
-          </div>
-          <div>
-            <small>Today's Visits</small>
-            <strong>{data.stats.today_visits_count ?? visits.length}</strong>
-          </div>
-        </div>
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 2" }}>
+              <SummaryWidget
+                title="Active Visits"
+                value={data.stats.active_visits_count}
+                subtitle="Visits in progress"
+                icon={Play}
+              />
+            </div>
 
-        <div className="sales-stat-tile">
-          <div className="sales-stat-icon sales-stat-icon--amber">
-            <Clock size={20} />
-          </div>
-          <div>
-            <small>Pending Follow-ups</small>
-            <strong>{data.stats.pending_followups_count ?? followups.length}</strong>
-          </div>
-        </div>
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 2" }}>
+              <SummaryWidget
+                title="Completed Visits"
+                value={data.stats.completed_today_count}
+                subtitle="Checked out today"
+                icon={CheckCircle2}
+              />
+            </div>
 
-        <div className="sales-stat-tile">
-          <div className="sales-stat-icon sales-stat-icon--emerald">
-            <CheckCircle size={20} />
-          </div>
-          <div>
-            <small>Completed Today</small>
-            <strong>{data.stats.completed_today_count ?? 0}</strong>
-          </div>
-        </div>
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 3" }}>
+              <SummaryWidget
+                title="Pending Follow-ups"
+                value={data.stats.pending_followups_count}
+                subtitle="Requires action"
+                icon={Clock3}
+              />
+            </div>
 
-        <div className="sales-stat-tile">
-          <div className="sales-stat-icon sales-stat-icon--purple">
-            <TrendingUp size={20} />
-          </div>
-          <div>
-            <small>Deals Converted</small>
-            <strong>{data.stats.converted_leads_count ?? 0}</strong>
-          </div>
-        </div>
-      </div>
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 3" }}>
+              <SummaryWidget
+                title="Deals Won"
+                value={data.stats.converted_leads_count}
+                subtitle="Converted leads"
+                icon={Trophy}
+              />
+            </div>
 
-      {/* 3. TWO COLUMN WORKSPACE: TODAY'S VISITS & TODAY'S FOLLOW-UPS */}
-      <div className="sales-workspace-grid">
-        {/* LEFT COLUMN: TODAY'S FIELD VISITS */}
-        <div className="sales-column">
-          <div className="sales-section-header">
-            <h3>📍 TODAY'S VISITS ({visits.length})</h3>
-            <span className="sales-section-badge">{visits.filter(v => v.status === "Completed").length} Done</span>
-          </div>
-
-          {visits.length === 0 ? (
-            <Card className="sales-empty-card">
-              <CheckCircle size={32} color="#10b981" />
-              <h4>No pending visits for today!</h4>
-              <p>Great job! All assigned visits are completed or none are scheduled for today.</p>
-            </Card>
-          ) : (
-            <div className="sales-card-stack">
-              {visits.map((v) => {
-                const isCompleted = v.status === "Completed";
-                const isInProgress = v.status === "In Progress";
-                const priority = v.priority || "High";
-                const priorityColor = priority === "High" ? "#ef4444" : priority === "Medium" ? "#f59e0b" : "#10b981";
-
-                return (
-                  <div key={v.id} className={`sales-visit-card ${isCompleted ? "completed" : ""}`}>
-                    {/* TOP BADGE ROW */}
-                    <div className="sales-visit-header">
-                      <span
-                        className="sales-priority-badge"
-                        style={{ background: `${priorityColor}15`, color: priorityColor, border: `1px solid ${priorityColor}40` }}
-                      >
-                        ● {priority} Priority
-                      </span>
-                      <span className={`sales-status-badge sales-status-badge--${(v.status || "scheduled").toLowerCase().replace(" ", "_")}`}>
-                        {v.status || "Scheduled"}
-                      </span>
+            {/* TEAM ACTIVITY SECTION */}
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 4" }}>
+              <DashboardWidget
+                title="Team Field Activity"
+                action="View Map"
+                onAction={() => (window.location.href = "/field-sales/visits")}
+              >
+                <div className="team-activity-summary-box">
+                  <div className="activity-stat-row">
+                    <div className="activity-stat-tile activity-stat-tile--green">
+                      <span>Punched In</span>
+                      <strong>{liveLocations.filter((l) => l.is_active_tracking).length}</strong>
                     </div>
-
-                    {/* CLIENT NAME & DETAILS */}
-                    <h4 className="sales-visit-title">{v.company_name || v.lead_title || "Client Name"}</h4>
-                    
-                    <div className="sales-visit-info">
-                      <div>
-                        <MapPin size={14} color="#64748b" />
-                        <span>{v.location || v.lead_address || "Client Address"}</span>
-                      </div>
-                      <div>
-                        <Clock size={14} color="#64748b" />
-                        <span>Today • {v.visit_time || "11:00 AM"}</span>
-                      </div>
-                      <div>
-                        <User size={14} color="#64748b" />
-                        <span>{v.lead_name || v.customer_name || "Contact Person"}</span>
-                      </div>
+                    <div className="activity-stat-tile activity-stat-tile--amber">
+                      <span>On Visit</span>
+                      <strong>
+                        {visits.filter((v) =>
+                          ["In Progress", "Checked In", "CHECKED_IN", "IN_PROGRESS"].includes(v.status)
+                        ).length}
+                      </strong>
                     </div>
-
-                    {/* MANAGER INSTRUCTIONS */}
-                    {v.instructions && (
-                      <div className="sales-instructions-box">
-                        <strong>Manager's Note:</strong> "{v.instructions}"
-                      </div>
-                    )}
-
-                    {/* ACTIONS */}
-                    <div className="sales-visit-actions">
-                      <button
-                        type="button"
-                        className="sales-btn-secondary"
-                        onClick={() => {
-                          setSelectedVisit({
-                            ...v,
-                            id: String(v.id),
-                            companyName: v.company_name || v.lead_title,
-                            leadName: v.lead_name || v.customer_name,
-                            employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
-                            scheduledDate: v.visit_date,
-                            scheduledTime: v.visit_time,
-                            location: v.location || v.lead_address,
-                            purpose: v.purpose || v.visit_purpose || "Product Demo & Pricing",
-                            visitStatus: v.status,
-                            priority: v.priority,
-                            instructions: v.instructions,
-                            contactPhone: v.contact_phone,
-                            leadLatitude: v.latitude,
-                            leadLongitude: v.longitude,
-                            checkInTime: v.check_in_time,
-                            checkOutTime: v.check_out_time,
-                            checkInLatitude: v.check_in_latitude,
-                            checkInLongitude: v.check_in_longitude,
-                            checkInDistanceMeters: v.check_in_distance_meters,
-                            isLocationOverridden: v.is_location_overridden,
-                            overrideReason: v.check_in_override_reason,
-                            overrideNotes: v.check_in_override_notes,
-                            clientResponse: v.client_response,
-                            feedback: v.feedback,
-                            meetingNotes: v.meeting_notes,
-                            outcome: v.outcome,
-                            photos: v.photos || [],
-                          });
-                          setVisitDetailsOpen(true);
-                        }}
-                      >
-                        <Eye size={14} /> View Details
-                      </button>
-
-                      <button
-                        type="button"
-                        className="sales-btn-secondary"
-                        onClick={() => handleOpenNavigation(v)}
-                      >
-                        <Compass size={14} color="#0284c7" /> Navigate
-                      </button>
-
-                      {!isCompleted && !isInProgress && (
-                        <Button
-                          variant="primary"
-                          onClick={() => {
-                            setSelectedVisit({
-                              ...v,
-                              id: String(v.id),
-                              companyName: v.company_name || v.lead_title,
-                              location: v.location,
-                              leadLatitude: v.latitude,
-                              leadLongitude: v.longitude,
-                            });
-                            setCheckInOpen(true);
-                          }}
-                        >
-                          <Play size={14} /> Start Visit
-                        </Button>
-                      )}
-
-                      {isInProgress && (
-                        <Button
-                          variant="primary"
-                          onClick={() => {
-                            setSelectedVisit({
-                              ...v,
-                              id: String(v.id),
-                              companyName: v.company_name || v.lead_title,
-                              leadName: v.lead_name || v.customer_name,
-                            });
-                            setReportOpen(true);
-                          }}
-                        >
-                          Submit Report
-                        </Button>
-                      )}
+                    <div className="activity-stat-tile activity-stat-tile--gray">
+                      <span>Off Duty</span>
+                      <strong>
+                        {Math.max(
+                          (employees.length > 0 ? employees.length : liveLocations.length) -
+                            liveLocations.filter((l) => l.is_active_tracking).length,
+                          0
+                        )}
+                      </strong>
                     </div>
                   </div>
-                );
-              })}
+
+                  {liveLocations.length === 0 && employees.length === 0 ? (
+                    <div className="field-sales-empty-sm">No sales team activity recorded.</div>
+                  ) : (
+                    <div className="team-members-mini-list">
+                      {(liveLocations.length > 0 ? liveLocations : employees).slice(0, 5).map((emp) => {
+                        const isTracking = Boolean(emp.is_active_tracking);
+                        const empName = emp.name || emp.employee_name || emp.full_name || emp.email;
+                        return (
+                          <div key={emp.id || emp.email} className="team-member-item">
+                            <div className="team-member-info">
+                              <span className={`status-dot ${isTracking ? "status-dot--active" : ""}`} />
+                              <span className="member-name">{empName}</span>
+                            </div>
+                            <span className={`member-tag ${isTracking ? "member-tag--live" : "member-tag--off"}`}>
+                              {isTracking ? "Active" : "Off Duty"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </DashboardWidget>
             </div>
-          )}
-        </div>
 
-        {/* RIGHT COLUMN: TODAY'S FOLLOW-UPS */}
-        <div className="sales-column">
-          <div className="sales-section-header">
-            <h3>🔔 TODAY'S FOLLOW-UPS ({followups.length})</h3>
-            <span className="sales-section-badge sales-section-badge--amber">Action Required</span>
-          </div>
-
-          {followups.length === 0 ? (
-            <Card className="sales-empty-card">
-              <CheckCircle size={32} color="#0284c7" />
-              <h4>No pending follow-ups due!</h4>
-              <p>You have addressed all phone calls, demos and negotiation follow-ups.</p>
-            </Card>
-          ) : (
-            <div className="sales-card-stack">
-              {followups.map((fu) => {
-                const attemptsCount = fu.call_attempts?.length || 0;
-                return (
-                  <div key={fu.id} className="sales-followup-card">
-                    <div className="sales-followup-header">
-                      <span className="sales-followup-type-badge">
-                        {fu.follow_up_type === "Call" ? "📞 Phone Call" : fu.follow_up_type === "WhatsApp" ? "💬 WhatsApp" : "💻 Demo Meeting"}
-                      </span>
-                      <span className="sales-followup-due">
-                        Due: {fu.due_date} {fu.due_time ? `• ${fu.due_time}` : ""}
-                      </span>
-                    </div>
-
-                    <h4 className="sales-visit-title">{fu.lead_company_name || fu.lead_title || "Client"}</h4>
-
-                    <p className="sales-followup-reason">
-                      <strong>Reason:</strong> {fu.reason || "Pricing / Demo Discussion"}
-                    </p>
-
-                    <div className="sales-followup-meta">
-                      <span>👤 {fu.lead_contact_name || "Contact Person"}</span>
-                      {fu.lead_phone && <span>📞 {fu.lead_phone}</span>}
-                      {attemptsCount > 0 && (
-                        <span className="sales-attempt-tag">
-                          {attemptsCount} attempt(s) recorded
-                        </span>
-                      )}
-                    </div>
-
-                    {/* FOLLOW-UP ACTIONS */}
-                    <div className="sales-followup-actions">
-                      {fu.lead_phone && (
-                        <a href={`tel:${fu.lead_phone}`} className="sales-btn-call">
-                          <Phone size={14} /> Call
-                        </a>
-                      )}
-
-                      {fu.lead_phone && (
-                        <a
-                          href={`https://wa.me/${fu.lead_phone.replace(/[^0-9]/g, "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="sales-btn-whatsapp"
-                        >
-                          <MessageSquare size={14} /> WhatsApp
-                        </a>
-                      )}
-
-                      <button
-                        type="button"
-                        className="sales-btn-primary"
-                        onClick={() => {
-                          setSelectedFollowUp(fu);
-                          setFollowUpModalOpen(true);
-                        }}
-                      >
-                        <CheckCircle size={14} /> Log Outcome
-                      </button>
-
-                      {fu.lead && (
-                        <button
-                          type="button"
-                          className="sales-btn-icon"
-                          title="View 360 History"
-                          onClick={() => {
-                            setSelectedLeadId(fu.lead);
-                            setTimelineDrawerOpen(true);
-                          }}
-                        >
-                          <Layers size={15} />
-                        </button>
-                      )}
-                    </div>
+            {/* SALES PIPELINE & VISIT PERFORMANCE */}
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 8" }}>
+              <DashboardWidget
+                title="Sales Pipeline & Performance"
+                action="Manage Leads"
+                onAction={() => (window.location.href = "/field-sales/leads")}
+              >
+                <div className="pipeline-performance-grid">
+                  <div className="pipeline-stat-card">
+                    <span className="pipeline-label">Total Leads</span>
+                    <strong className="pipeline-val">{leads.length}</strong>
+                    <span className="pipeline-sub">Active pipeline</span>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* ================================================================= */}
-      {/* MODALS & DRAWERS                                                  */}
-      {/* ================================================================= */}
+                  <div className="pipeline-stat-card">
+                    <span className="pipeline-label">In Negotiation</span>
+                    <strong className="pipeline-val pipeline-val--gold">
+                      {leads.filter((l) => ["Negotiation", "NEGOTIATION"].includes(l.status)).length}
+                    </strong>
+                    <span className="pipeline-sub">Closing soon</span>
+                  </div>
+
+                  <div className="pipeline-stat-card">
+                    <span className="pipeline-label">Demo Required</span>
+                    <strong className="pipeline-val pipeline-val--teal">
+                      {leads.filter((l) => ["Demo Required", "DEMO_REQUIRED"].includes(l.status)).length}
+                    </strong>
+                    <span className="pipeline-sub">Product demos</span>
+                  </div>
+
+                  <div className="pipeline-stat-card">
+                    <span className="pipeline-label">Win Rate</span>
+                    <strong className="pipeline-val pipeline-val--emerald">
+                      {leads.length > 0
+                        ? `${Math.round((data.stats.converted_leads_count / leads.length) * 100)}%`
+                        : "0%"}
+                    </strong>
+                    <span className="pipeline-sub">Conversion rate</span>
+                  </div>
+                </div>
+              </DashboardWidget>
+            </div>
+
+            {/* TODAY'S TEAM VISITS TABLE */}
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 7" }}>
+              <DashboardWidget
+                title={`Today's Team Visits (${visits.length})`}
+                action="All Visits"
+                onAction={() => (window.location.href = "/field-sales/visits")}
+              >
+                {visits.length === 0 ? (
+                  <div className="field-sales-empty-box">
+                    <CheckCircle2 size={24} color="#0ba37f" />
+                    <p>No team visits scheduled for today.</p>
+                  </div>
+                ) : (
+                  <div className="field-sales-table-wrapper" style={{ maxHeight: "340px", overflowY: "auto" }}>
+                    <table className="field-sales-table">
+                      <thead>
+                        <tr>
+                          <th>Employee</th>
+                          <th>Client / Lead</th>
+                          <th>Time</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: "right" }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visits.map((v) => {
+                          const statusLabel = normalizeStatus(v.status);
+                          const isDone = statusLabel === "Completed";
+                          const isInProg = statusLabel === "In Progress";
+                          return (
+                            <tr key={v.id}>
+                              <td>
+                                <strong className="cell-title">
+                                  {v.assigned_to_name || v.employee_name || "Sales Rep"}
+                                </strong>
+                              </td>
+                              <td>
+                                <span className="cell-title">{v.company_name || v.lead_title || v.lead_name || "Client"}</span>
+                                <small className="cell-sub">{v.location || v.lead_address || "Location"}</small>
+                              </td>
+                              <td>
+                                <span className="cell-time">{v.visit_time || "11:00 AM"}</span>
+                              </td>
+                              <td>
+                                <span
+                                  className={`status-chip ${
+                                    isDone
+                                      ? "status-chip--success"
+                                      : isInProg
+                                      ? "status-chip--warning"
+                                      : "status-chip--info"
+                                  }`}
+                                >
+                                  {statusLabel}
+                                </span>
+                              </td>
+                              <td style={{ textAlign: "right" }}>
+                                <button
+                                  type="button"
+                                  className="btn-action-icon"
+                                  onClick={() => {
+                                    setSelectedVisit({
+                                      ...v,
+                                      id: String(v.id),
+                                      companyName: v.company_name || v.lead_title,
+                                      leadName: v.lead_name || v.customer_name,
+                                      employeeName: v.assigned_to_name || v.employee_name || "Sales Rep",
+                                      scheduledDate: v.visit_date,
+                                      scheduledTime: v.visit_time,
+                                      location: v.location || v.lead_address,
+                                      purpose: v.purpose || v.visit_purpose || "Product Demo",
+                                      visitStatus: v.status,
+                                      priority: v.priority,
+                                      instructions: v.instructions,
+                                      contactPhone: v.contact_phone,
+                                      leadLatitude: v.latitude,
+                                      leadLongitude: v.longitude,
+                                      checkInTime: v.check_in_time,
+                                      checkOutTime: v.check_out_time,
+                                      clientResponse: v.client_response,
+                                      feedback: v.feedback,
+                                      outcome: v.outcome,
+                                      photos: v.photos || [],
+                                    });
+                                    setVisitDetailsOpen(true);
+                                  }}
+                                >
+                                  <Eye size={13} /> View
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </DashboardWidget>
+            </div>
+
+            {/* FOLLOW-UPS REQUIRING ATTENTION */}
+            <div className="dashboard-grid__item" style={{ gridColumn: "span 5" }}>
+              <DashboardWidget
+                title={`Follow-ups Requiring Attention (${followups.length})`}
+                action="View All"
+                onAction={() => (window.location.href = "/field-sales/leads")}
+              >
+                {followups.length === 0 ? (
+                  <div className="field-sales-empty-box">
+                    <CheckCircle2 size={24} color="#0ba37f" />
+                    <p>No urgent follow-ups pending.</p>
+                  </div>
+                ) : (
+                  <div className="field-sales-compact-list" style={{ maxHeight: "340px", overflowY: "auto" }}>
+                    {followups.map((fu) => {
+                      const isOverdue =
+                        fu.is_overdue || (fu.due_date && new Date(fu.due_date) < new Date());
+                      return (
+                        <div key={fu.id} className="followup-item-card">
+                          <div className="followup-item-header">
+                            <span className="followup-type-tag">
+                              {fu.follow_up_type === "Call"
+                                ? "Phone Call"
+                                : fu.follow_up_type === "WhatsApp"
+                                ? "WhatsApp"
+                                : "Demo"}
+                            </span>
+                            {isOverdue && <span className="overdue-chip">Overdue</span>}
+                          </div>
+
+                          <strong className="followup-client-title">
+                            {fu.lead_company_name || fu.lead_title || "Client"}
+                          </strong>
+
+                          <p className="followup-reason-text">{fu.reason || "Discussion follow-up"}</p>
+
+                          <div className="followup-footer-row">
+                            <span className="due-text">
+                              Due: {fu.due_date} {fu.due_time ? `• ${fu.due_time}` : ""}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-log-outcome"
+                              onClick={() => {
+                                setSelectedFollowUp(fu);
+                                setFollowUpModalOpen(true);
+                              }}
+                            >
+                              Log Outcome
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </DashboardWidget>
+            </div>
+          </>
+        ) : (
+          /* ----------------------------------------------------------------------- */
+          /* 2. REFINED SALES MEMBER DASHBOARD (CLEAN, COMPACT & PERMISSION WIDGETS) */
+          /* ----------------------------------------------------------------------- */
+          <>
+            <ActiveVisit
+              activeVisit={currentActiveVisit}
+              onReportClick={(activeVisit) => {
+                setSelectedVisit({
+                  ...activeVisit,
+                  id: String(activeVisit.id),
+                  companyName: activeVisit.company_name || activeVisit.lead_title,
+                  leadName: activeVisit.lead_name || activeVisit.customer_name,
+                });
+                setReportOpen(true);
+              }}
+            />
+
+            <SalesSummaryCards
+              todayVisitsCount={visits.length}
+              activeVisitsCount={currentActiveVisit ? 1 : 0}
+              completedTodayCount={visits.filter((visit) => normalizeStatus(visit.status) === "Completed").length}
+              pendingFollowupsCount={followups.length}
+            />
+
+            {/* HRMS PERMISSION-BASED WIDGETS INTEGRATION */}
+            {hasAttendancePermission && <AttendanceWidget hrmsData={hrmsData} />}
+
+            {hasLeavePermission && (
+              <LeaveWidget
+                loading={hrmsData.loading}
+                total={leaveTotal}
+                used={leaveUsed}
+                remaining={leaveRemaining}
+              />
+            )}
+
+            <QuickActions onApplyLeave={() => setShowApplyLeave(true)} />
+
+            {hasHolidayPermission && (
+              <HolidayWidget holidays={upcomingHolidaysList} loading={hrmsData.loading} />
+            )}
+
+            <ScheduledVisits
+              visits={visits}
+              onViewDetails={handleScheduledVisitDetails}
+              onStartVisit={handleScheduledVisitStart}
+              onReportClick={handleScheduledVisitReport}
+              onNavigate={handleOpenNavigation}
+            />
+
+            <FollowUps
+              followups={followups}
+              onLogOutcome={(followup) => {
+                setSelectedFollowUp(followup);
+                setFollowUpModalOpen(true);
+              }}
+            />
+
+            <AssignedLeads
+              leads={leads}
+              onViewTimeline={(leadId) => {
+                setSelectedLeadId(leadId);
+                setTimelineDrawerOpen(true);
+              }}
+            />
+          </>
+        )}
+      </main>
+
+      {/* ========================================================================= */}
+      {/* MODALS & DRAWERS                                                          */}
+      {/* ========================================================================= */}
+
+      {/* LEAVE APPLY MODAL */}
+      {showApplyLeave && (
+        <ApplyLeaveModal
+          options={hrmsData.leaveBalance}
+          submitting={submittingLeave}
+          onClose={() => !submittingLeave && setShowApplyLeave(false)}
+          onSubmit={handleApplyLeave}
+        />
+      )}
 
       {/* 1. VISIT DETAILS DRAWER */}
-      <Drawer
-        open={visitDetailsOpen}
-        onClose={() => setVisitDetailsOpen(false)}
-        title="Visit Details"
-      >
+      <Drawer open={visitDetailsOpen} onClose={() => setVisitDetailsOpen(false)} title="Visit Details">
         {selectedVisit && (
           <VisitDetails
             visit={selectedVisit}
-            isSales={true}
+            isSales={!isManager}
             onStartVisit={(v) => {
               setVisitDetailsOpen(false);
               setSelectedVisit(v);
@@ -616,26 +977,14 @@ const SalesDashboard = () => {
       </Drawer>
 
       {/* 2. VISIT GPS CHECK-IN MODAL */}
-      <Modal
-        open={checkInOpen}
-        onClose={() => setCheckInOpen(false)}
-        title="Start Field Visit"
-      >
+      <Modal open={checkInOpen} onClose={() => setCheckInOpen(false)} title="Start Field Visit">
         {selectedVisit && (
-          <VisitCheckIn
-            visit={selectedVisit}
-            loading={submittingAction}
-            onCheckIn={handleCheckIn}
-          />
+          <VisitCheckIn visit={selectedVisit} loading={submittingAction} onCheckIn={handleCheckIn} />
         )}
       </Modal>
 
-      {/* 3. VISIT REPORT & PHOTO SUBMISSION MODAL */}
-      <Modal
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        title="Submit Visit Report"
-      >
+      {/* 3. VISIT REPORT & CHECK-OUT MODAL */}
+      <Modal open={reportOpen} onClose={() => setReportOpen(false)} title="Submit Visit Report">
         {selectedVisit && (
           <VisitCheckOut
             visit={selectedVisit}
@@ -647,11 +996,7 @@ const SalesDashboard = () => {
       </Modal>
 
       {/* 4. FOLLOW-UP OUTCOME LOGGER MODAL */}
-      <Modal
-        open={followUpModalOpen}
-        onClose={() => setFollowUpModalOpen(false)}
-        title="Log Follow-up Outcome"
-      >
+      <Modal open={followUpModalOpen} onClose={() => setFollowUpModalOpen(false)} title="Log Follow-up Outcome">
         {selectedFollowUp && (
           <FollowUpOutcomeModal
             followup={selectedFollowUp}
@@ -663,16 +1008,9 @@ const SalesDashboard = () => {
       </Modal>
 
       {/* 5. 360° LEAD TIMELINE DRAWER */}
-      <Drawer
-        open={timelineDrawerOpen}
-        onClose={() => setTimelineDrawerOpen(false)}
-        title="Lead 360° History"
-      >
+      <Drawer open={timelineDrawerOpen} onClose={() => setTimelineDrawerOpen(false)} title="Lead 360° History">
         {selectedLeadId && (
-          <LeadTimelineDrawer
-            leadId={selectedLeadId}
-            onClose={() => setTimelineDrawerOpen(false)}
-          />
+          <LeadTimelineDrawer leadId={selectedLeadId} onClose={() => setTimelineDrawerOpen(false)} />
         )}
       </Drawer>
     </div>

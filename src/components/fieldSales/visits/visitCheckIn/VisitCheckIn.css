@@ -1,214 +1,499 @@
-/* ==========================================================================
+/* =========================================================
    VISIT CHECK-IN
-   ========================================================================== */
+   Ignite Field Sales
+========================================================= */
 
 .visit-checkin {
     width: 100%;
+    box-sizing: border-box;
+
     display: flex;
     flex-direction: column;
     gap: 16px;
+
+    padding: 2px;
+
+    font-family: var(--font-family-base,
+            "Montserrat",
+            sans-serif);
+
+    color: var(--color-text-primary, #1A1F24);
 }
 
-/* --------------------------------------------------------------------------
-   Lead Header
-   -------------------------------------------------------------------------- */
+
+/* =========================================================
+   LEAD HEADER
+========================================================= */
 
 .visit-checkin__lead {
+    position: relative;
+
     display: flex;
     align-items: center;
+
     gap: 12px;
-    padding: 14px;
-    border: 1px solid var(--color-border);
-    border-radius: 13px;
-    background: var(--color-bg-surface);
+
+    padding: 16px;
+
+    border: 1px solid rgba(15, 61, 62, 0.12);
+    border-radius: 14px;
+
+    background:
+        linear-gradient(135deg,
+            rgba(15, 61, 62, 0.07),
+            rgba(11, 163, 127, 0.035));
+
+    overflow: hidden;
+}
+
+.visit-checkin__lead::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 0;
+    bottom: 0;
+
+    width: 4px;
+
+    background: var(--ignite-emerald, #0BA37F);
 }
 
 .visit-checkin__lead-icon {
-    width: 43px;
-    height: 43px;
+    width: 42px;
+    height: 42px;
+
     flex-shrink: 0;
-    border-radius: 11px;
-    background: var(--color-secondary-soft);
-    color: var(--color-secondary);
+
     display: flex;
     align-items: center;
     justify-content: center;
+
+    border-radius: 11px;
+
+    background: var(--ignite-deep-teal, #0F3D3E);
+    color: #ffffff;
+
+    box-shadow:
+        0 4px 10px rgba(15, 61, 62, 0.14);
 }
 
-.visit-checkin__lead > div:last-child {
+.visit-checkin__lead>div:last-child {
     min-width: 0;
 }
 
-.visit-checkin__lead > div:last-child > span {
+.visit-checkin__lead>div:last-child>span {
     display: block;
+
     margin-bottom: 3px;
-    color: var(--color-secondary);
-    font-size: 8px;
-    font-weight: var(--font-weight-bold);
-    letter-spacing: 0.08em;
+
+    color: var(--ignite-emerald, #0BA37F);
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
 }
 
 .visit-checkin__lead h3 {
     margin: 0;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: var(--font-weight-bold);
-}
 
-.visit-checkin__lead p {
-    margin: 3px 0 0;
     overflow: hidden;
-    color: var(--color-text-muted);
-    font-size: 9px;
+
+    color: var(--ignite-deep-teal, #0F3D3E);
+
+    font-size: 15px;
+    font-weight: 750;
+
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* --------------------------------------------------------------------------
-   Location Card
-   -------------------------------------------------------------------------- */
+.visit-checkin__lead p {
+    margin: 3px 0 0;
+
+    overflow: hidden;
+
+    color: #64748b;
+
+    font-size: 10px;
+    font-weight: 500;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   LOCATION / GPS PANEL
+========================================================= */
 
 .visit-checkin__location-card {
-    padding: 15px;
-    border: 1px solid var(--color-border);
-    border-radius: 14px;
-    background:
-        linear-gradient(
-            135deg,
-            rgba(15, 61, 62, 0.035),
-            rgba(11, 163, 127, 0.02)
-        );
+    padding: 14px;
+
+    border: 1px solid #e2e9e9;
+    border-radius: 12px;
+
+    background: #ffffff;
 }
 
 .visit-checkin__location-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding-bottom: 13px;
-    border-bottom: 1px solid var(--color-border);
+
+    gap: 10px;
+
+    padding-bottom: 12px;
+
+    border-bottom: 1px solid #edf1f1;
 }
 
-.visit-checkin__location-header > div {
+.visit-checkin__location-header>div {
+    min-width: 0;
+
     display: flex;
     flex-direction: column;
-    gap: 4px;
+
+    gap: 3px;
 }
 
 .visit-checkin__label {
-    color: var(--color-text-muted);
-    font-size: 8px;
-    font-weight: var(--font-weight-medium);
+    color: #879394;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .visit-checkin__location-header strong {
-    color: var(--color-text-primary);
-    font-size: 13px;
-    font-weight: var(--font-weight-bold);
+    overflow: hidden;
+
+    color: #263536;
+
+    font-size: 11px;
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.visit-checkin__location-header > svg {
-    color: var(--color-secondary);
+.visit-checkin__location-header>svg {
+    flex-shrink: 0;
+
+    color: var(--ignite-deep-teal, #0F3D3E);
 }
 
-/* --------------------------------------------------------------------------
-   Metrics
-   -------------------------------------------------------------------------- */
+
+/* =========================================================
+   GPS METRICS
+========================================================= */
 
 .visit-checkin__metrics {
     display: grid;
+
     grid-template-columns: repeat(3, 1fr);
+
     gap: 8px;
-    padding-top: 13px;
+
+    padding-top: 11px;
 }
 
-.visit-checkin__metrics > div {
-    padding: 9px;
-    border-radius: 9px;
-    background: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
+.visit-checkin__metrics>div {
+    min-width: 0;
+
+    padding: 10px;
+
+    border: 1px solid #e7eded;
+    border-radius: 8px;
+
+    background: #f8fafb;
 }
 
 .visit-checkin__metrics small {
     display: block;
-    margin-bottom: 4px;
-    color: var(--color-text-muted);
+
+    margin-bottom: 3px;
+
+    color: #849193;
+
     font-size: 8px;
+    font-weight: 650;
+
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 .visit-checkin__metrics strong {
-    color: var(--color-text-primary);
-    font-size: 11px;
-    font-weight: var(--font-weight-bold);
+    display: block;
+
+    color: #253536;
+
+    font-size: 12px;
+    font-weight: 750;
 }
 
-/* --------------------------------------------------------------------------
-   Radius State
-   -------------------------------------------------------------------------- */
+
+/* =========================================================
+   RADIUS RESULT
+========================================================= */
 
 .visit-checkin__radius {
     display: flex;
     align-items: center;
-    gap: 11px;
+
+    gap: 10px;
+
     padding: 13px;
-    border-radius: 12px;
+
+    border-radius: 11px;
 }
 
 .visit-checkin__radius--valid {
     border: 1px solid rgba(11, 163, 127, 0.25);
     background: rgba(11, 163, 127, 0.07);
-    color: #047857;
 }
 
 .visit-checkin__radius--invalid {
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    background: rgba(212, 175, 55, 0.07);
-    color: #8a6a00;
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    background: rgba(212, 175, 55, 0.08);
 }
 
 .visit-checkin__radius-icon {
     width: 34px;
     height: 34px;
+
     flex-shrink: 0;
-    border-radius: 9px;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
+    border-radius: 9px;
 }
 
 .visit-checkin__radius--valid .visit-checkin__radius-icon {
     background: rgba(11, 163, 127, 0.12);
-    color: #047857;
 }
 
 .visit-checkin__radius--invalid .visit-checkin__radius-icon {
-    background: rgba(212, 175, 55, 0.13);
-    color: #8a6a00;
+    background: rgba(212, 175, 55, 0.15);
 }
 
-.visit-checkin__radius > div:last-child {
+.visit-checkin__radius>div:last-child {
     min-width: 0;
 }
 
 .visit-checkin__radius strong {
     display: block;
-    font-size: 10px;
-    font-weight: var(--font-weight-bold);
+
+    color: #334344;
+
+    font-size: 11px;
+    font-weight: 750;
 }
 
 .visit-checkin__radius p {
     margin: 3px 0 0;
-    color: var(--color-text-muted);
-    font-size: 9px;
-    line-height: 1.4;
+
+    color: #64748b;
+
+    font-size: 10px;
+    line-height: 1.45;
 }
 
-/* --------------------------------------------------------------------------
-   Responsive
-   -------------------------------------------------------------------------- */
+
+/* =========================================================
+   OVERRIDE
+========================================================= */
+
+.visit-checkin__override-container {
+    padding: 13px;
+
+    border: 1px solid #eadcae;
+    border-radius: 11px;
+
+    background: #fffdf4;
+}
+
+.visit-checkin__override-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+}
+
+.visit-checkin__override-title {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+}
+
+.visit-checkin__override-title svg {
+    flex-shrink: 0;
+
+    color: #a16207;
+}
+
+.visit-checkin__override-title strong {
+    color: #785b00;
+
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.visit-checkin__override-toggle {
+    flex-shrink: 0;
+
+    padding: 3px 0;
+
+    border: 0;
+    background: transparent;
+
+    color: #9a6b00;
+
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.visit-checkin__override-notice {
+    margin-bottom: 12px;
+
+    padding: 9px 10px;
+
+    border-radius: 8px;
+
+    background: #fff4cc;
+
+    color: #735900;
+
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.visit-checkin__field-group {
+    margin-bottom: 12px;
+}
+
+.visit-checkin__field-group:last-child {
+    margin-bottom: 0;
+}
+
+.visit-checkin__field-label {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #526163;
+
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.visit-checkin__field-select,
+.visit-checkin__field-textarea {
+    width: 100%;
+    box-sizing: border-box;
+
+    border: 1px solid #d8dfdf;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #263536;
+
+    font-family: inherit;
+    font-size: 10px;
+
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.visit-checkin__field-select {
+    height: 38px;
+
+    padding: 0 10px;
+}
+
+.visit-checkin__field-textarea {
+    min-height: 76px;
+
+    padding: 9px 10px;
+
+    resize: vertical;
+
+    line-height: 1.45;
+}
+
+.visit-checkin__field-select:focus,
+.visit-checkin__field-textarea:focus {
+    border-color: var(--ignite-emerald, #0BA37F);
+
+    box-shadow:
+        0 0 0 3px rgba(11, 163, 127, 0.08);
+}
+
+.visit-checkin__field-textarea--error {
+    border-color: #ef4444;
+}
+
+.visit-checkin__field-meta {
+    display: flex;
+
+    justify-content: flex-end;
+
+    margin-top: 4px;
+}
+
+
+/* =========================================================
+   SUBMIT
+========================================================= */
+
+.visit-checkin__actions {
+    width: 100%;
+
+    margin-top: 2px;
+}
+
+.visit-checkin__submit-btn {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 0 14px;
+
+    border-radius: 9px;
+
+    font-size: 11px;
+    font-weight: 750;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
 
 @media (max-width: 450px) {
     .visit-checkin__metrics {
         grid-template-columns: 1fr;
+    }
+
+    .visit-checkin__lead {
+        padding: 14px;
     }
 }

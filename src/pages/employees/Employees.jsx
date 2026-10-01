@@ -12,16 +12,20 @@ import EmployeeDetails from "../../components/employees/EmployeeDetails/Employee
 import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 
 import employeeService from "../../services/employeeService";
-import { canCreateEmployees, getCurrentUser } from "../../utils/permissionUtils";
+import {
+  canCreateEmployees,
+  getCurrentUser,
+} from "../../utils/permissionUtils";
 import { useNotification } from "../../context/NotificationContext";
-
 
 import "./Employees.css";
 
 const formatEmployeeName = (employee) =>
   [employee?.first_name, employee?.middle_name, employee?.last_name]
     .filter(Boolean)
-    .join(" ") || employee?.full_name || "Employee";
+    .join(" ") ||
+  employee?.full_name ||
+  "Employee";
 
 const Employees = () => {
   const navigate = useNavigate();
@@ -58,10 +62,7 @@ const Employees = () => {
   const [filters, setFilters] = useState({
     department: "all",
     designation: "all",
-    employmentType: "all",
     employmentStatus: "all",
-    workLocation: "all",
-    reportingManager: "all",
   });
 
   /*
@@ -99,10 +100,7 @@ const Employees = () => {
 
       setEmployees([]);
 
-      showNotification(
-        "error",
-        "Failed to load employees from server."
-      );
+      showNotification("error", "Failed to load employees from server.");
     } finally {
       setLoading(false);
     }
@@ -127,10 +125,7 @@ const Employees = () => {
     setFilters({
       department: "all",
       designation: "all",
-      employmentType: "all",
       employmentStatus: "all",
-      workLocation: "all",
-      reportingManager: "all",
     });
   };
 
@@ -153,42 +148,19 @@ const Employees = () => {
       const matchesDept =
         filters.department === "all" ||
         String(employee.department?.id || employee.department_id || "") ===
-        String(filters.department);
+          String(filters.department);
 
       const matchesDesig =
         filters.designation === "all" ||
         String(employee.designation?.id || employee.designation_id || "") ===
-        String(filters.designation);
-
-      const matchesType =
-        filters.employmentType === "all" ||
-        employee.employment_type === filters.employmentType;
+          String(filters.designation);
 
       const matchesStatus =
         filters.employmentStatus === "all" ||
-        employee.employment_status === filters.employmentStatus;
+        String(employee.employment_status || "").toLowerCase() ===
+          String(filters.employmentStatus).toLowerCase();
 
-      const matchesLocation =
-        filters.workLocation === "all" ||
-        employee.work_location === filters.workLocation;
-
-      const matchesManager =
-        filters.reportingManager === "all" ||
-        String(
-          employee.reporting_manager?.id ||
-          employee.reporting_manager_id ||
-          ""
-        ) === String(filters.reportingManager);
-
-      return (
-        matchesSearch &&
-        matchesDept &&
-        matchesDesig &&
-        matchesType &&
-        matchesStatus &&
-        matchesLocation &&
-        matchesManager
-      );
+      return matchesSearch && matchesDept && matchesDesig && matchesStatus;
     });
   }, [employees, search, filters]);
 
@@ -198,17 +170,17 @@ const Employees = () => {
   const stats = useMemo(() => {
     const total = employees.length;
     const active = employees.filter(
-      (e) => e.employment_status === "ACTIVE"
+      (e) => e.employment_status === "ACTIVE",
     ).length;
     const pending = employees.filter(
       (e) =>
-        e.invitation_status === "PENDING" || e.invitation_status === "SENT"
+        e.invitation_status === "PENDING" || e.invitation_status === "SENT",
     ).length;
     const inactive = employees.filter(
       (e) =>
         e.employment_status === "INACTIVE" ||
         e.employment_status === "TERMINATED" ||
-        e.employment_status === "RESIGNED"
+        e.employment_status === "RESIGNED",
     ).length;
 
     return { total, active, pending, inactive };
@@ -236,17 +208,13 @@ const Employees = () => {
     try {
       await employeeService.resendInvite(employee.id);
 
-      showNotification(
-        "success",
-        `Invitation resent to ${employee.email}.`
-      );
+      showNotification("success", `Invitation resent to ${employee.email}.`);
     } catch (error) {
       console.error("Failed to resend invite:", error);
 
       showNotification(
         "error",
-        error.response?.data?.message ||
-        "Failed to resend invitation email."
+        error.response?.data?.message || "Failed to resend invitation email.",
       );
     }
   };
@@ -274,7 +242,7 @@ const Employees = () => {
 
           showNotification(
             "success",
-            `Employee status updated to ${nextStatus}.`
+            `Employee status updated to ${nextStatus}.`,
           );
 
           await loadEmployees();
@@ -290,7 +258,7 @@ const Employees = () => {
           setConfirmState((prev) => ({ ...prev, loading: false }));
           showNotification(
             "error",
-            error.response?.data?.message || "Unable to update status."
+            error.response?.data?.message || "Unable to update status.",
           );
         }
       },
@@ -316,7 +284,7 @@ const Employees = () => {
 
           showNotification(
             "success",
-            "Employee has been marked as Terminated."
+            "Employee has been marked as Terminated.",
           );
 
           await loadEmployees();
@@ -328,7 +296,7 @@ const Employees = () => {
           setConfirmState((prev) => ({ ...prev, loading: false }));
           showNotification(
             "error",
-            error.response?.data?.message || "Unable to terminate employee."
+            error.response?.data?.message || "Unable to terminate employee.",
           );
         }
       },
@@ -352,10 +320,7 @@ const Employees = () => {
           setConfirmState((prev) => ({ ...prev, loading: true }));
           await employeeService.resign(employee.id);
 
-          showNotification(
-            "success",
-            "Employee has been marked as Resigned."
-          );
+          showNotification("success", "Employee has been marked as Resigned.");
 
           await loadEmployees();
           setShowDetails(false);
@@ -366,7 +331,7 @@ const Employees = () => {
           setConfirmState((prev) => ({ ...prev, loading: false }));
           showNotification(
             "error",
-            error.response?.data?.message || "Unable to resign employee."
+            error.response?.data?.message || "Unable to resign employee.",
           );
         }
       },
@@ -390,10 +355,7 @@ const Employees = () => {
           setConfirmState((prev) => ({ ...prev, loading: true }));
           await employeeService.delete(employee.id);
 
-          showNotification(
-            "success",
-            "Employee deleted successfully."
-          );
+          showNotification("success", "Employee deleted successfully.");
 
           await loadEmployees();
           setShowDetails(false);
@@ -404,7 +366,7 @@ const Employees = () => {
           setConfirmState((prev) => ({ ...prev, loading: false }));
           showNotification(
             "error",
-            error.response?.data?.message || "Unable to delete employee."
+            error.response?.data?.message || "Unable to delete employee.",
           );
         }
       },
@@ -432,9 +394,7 @@ const Employees = () => {
       <main className="employees-page">
         <header className="employees-page__header">
           <div>
-            <span className="employees-page__eyebrow">
-              EMPLOYEES
-            </span>
+            <span className="employees-page__eyebrow">EMPLOYEES</span>
             <h1>Employees</h1>
             <p>
               Manage employees, organization assignments and employee access.
@@ -459,17 +419,12 @@ const Employees = () => {
     <main className="employees-page">
       <header className="employees-page__header">
         <div>
-          <span className="employees-page__eyebrow">
-            EMPLOYEES
-          </span>
+          <span className="employees-page__eyebrow">EMPLOYEES</span>
           <h1>Employees</h1>
-          <p>
-            Manage employees, organization assignments and employee access.
-          </p>
+          <p>Manage employees, organization assignments and employee access.</p>
         </div>
 
         <div className="employees-page__header-actions">
-
           {isOwner && (
             <div className="employees-page__workspace-toggle">
               <button
@@ -499,7 +454,6 @@ const Employees = () => {
               + Add Employee
             </Button>
           )}
-
         </div>
       </header>
 

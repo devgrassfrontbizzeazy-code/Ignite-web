@@ -1,0 +1,112 @@
+/* FollowUps Widget Styles */
+.followups-widget-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.followup-widget-card {
+  background: #ffffff;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.followup-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.followup-type-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: #0f3d3e;
+  background: #edf7f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.followup-overdue-chip {
+  font-size: 9px;
+  font-weight: 800;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.followup-due-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.followup-client-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1f24;
+}
+
+.followup-reason {
+  margin: 0;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.followup-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.btn-outcome-action {
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: none;
+  background: #0ba37f;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-outcome-action:hover {
+  background: #0f3d3e;
+}
+
+.btn-call-link, .btn-wa-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.btn-call-link { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.btn-wa-link { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+
+.followups-widget-empty {
+  padding: 28px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+}

@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Phone, MessageSquare, CheckCircle, RefreshCw, Calendar, Clock, ArrowRight, DollarSign, XCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle } from "lucide-react";
 import Button from "../../../common/Button/Button";
+import DatePicker from "../../../common/DatePicker/DatePicker";
+import TimePicker from "../../../common/TimePicker/TimePicker";
 
 const OUTCOMES = [
-  { id: "Interested", label: "Interested", color: "#10b981" },
-  { id: "Negotiation", label: "Negotiation (Agreement / Pricing)", color: "#f59e0b" },
-  { id: "Demo Required", label: "Demo Required", color: "#8b5cf6" },
-  { id: "Converted", label: "Converted / Deal Won ✅", color: "#059669" },
-  { id: "Reschedule", label: "Reschedule Call", color: "#6366f1" },
-  { id: "No Response", label: "No Response (Attempt Logged)", color: "#64748b" },
-  { id: "Not Interested", label: "Not Interested / Lost ❌", color: "#ef4444" },
+  { id: "Interested", label: "Interested", color: "var(--ignite-emerald)" },
+  { id: "Negotiation", label: "Negotiation (Agreement / Pricing)", color: "var(--ignite-gold)" },
+  { id: "Demo Required", label: "Demo Required", color: "var(--ignite-deep-teal)" },
+  { id: "Converted", label: "Converted / Deal Won", color: "var(--ignite-emerald)" },
+  { id: "Reschedule", label: "Reschedule Call", color: "var(--ignite-deep-teal)" },
+  { id: "No Response", label: "No Response (Attempt Logged)", color: "var(--color-text-muted)" },
+  { id: "Not Interested", label: "Not Interested / Lost", color: "var(--color-danger)" },
 ];
 
 const FollowUpOutcomeModal = ({
@@ -65,23 +67,23 @@ const FollowUpOutcomeModal = ({
   const attemptsCount = (followup.call_attempts?.length || 0) + 1;
 
   return (
-    <form onSubmit={handleSubmit} style={{ padding: "4px", color: "#0f172a" }}>
+    <form onSubmit={handleSubmit} style={{ color: "var(--color-text-primary)", fontFamily: "var(--font-family-base)" }}>
       {/* HEADER */}
-      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
-        <div style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <div style={{ backgroundColor: "var(--color-bg-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "14px", marginBottom: "16px" }}>
+        <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--ignite-emerald)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
           FOLLOW-UP LOG • ATTEMPT #{attemptsCount}
         </div>
-        <h3 style={{ margin: "4px 0 2px", fontSize: "17px", fontWeight: "800", color: "#0f172a" }}>
+        <h3 style={{ margin: "4px 0 2px", fontSize: "16px", fontWeight: "700", color: "var(--ignite-deep-teal)" }}>
           {followup.lead_company_name || followup.lead_title || "Client"}
         </h3>
-        <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
+        <p style={{ margin: 0, fontSize: "12px", color: "var(--color-text-secondary)" }}>
           Contact: <strong>{followup.lead_contact_name || "Contact Person"}</strong> • {followup.lead_phone || "No phone"}
         </p>
       </div>
 
       {/* CALL ATTEMPT STATUS */}
       <div style={{ marginBottom: "16px" }}>
-        <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "6px" }}>
+        <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "var(--color-text-primary)", marginBottom: "6px" }}>
           Call Status
         </label>
         <div style={{ display: "flex", gap: "8px" }}>
@@ -96,12 +98,12 @@ const FollowUpOutcomeModal = ({
               style={{
                 flex: 1,
                 padding: "8px 10px",
-                borderRadius: "8px",
+                borderRadius: "var(--radius-sm)",
                 fontSize: "12px",
                 fontWeight: "600",
-                border: callStatus === st ? "2px solid #0284c7" : "1px solid #cbd5e1",
-                background: callStatus === st ? "#f0f9ff" : "#ffffff",
-                color: callStatus === st ? "#0284c7" : "#475569",
+                border: callStatus === st ? "2px solid var(--ignite-emerald)" : "1px solid var(--color-border)",
+                backgroundColor: callStatus === st ? "var(--ignite-emerald-050)" : "var(--color-bg-surface)",
+                color: callStatus === st ? "var(--ignite-deep-teal)" : "var(--color-text-secondary)",
                 cursor: "pointer",
               }}
             >
@@ -113,10 +115,10 @@ const FollowUpOutcomeModal = ({
 
       {/* OUTCOME SELECTION */}
       <div style={{ marginBottom: "16px" }}>
-        <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "6px" }}>
+        <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "var(--color-text-primary)", marginBottom: "6px" }}>
           Follow-up Outcome
         </label>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
           {OUTCOMES.map((opt) => (
             <button
               key={opt.id}
@@ -124,13 +126,13 @@ const FollowUpOutcomeModal = ({
               onClick={() => setOutcome(opt.id)}
               style={{
                 padding: "8px 10px",
-                borderRadius: "8px",
+                borderRadius: "var(--radius-sm)",
                 textAlign: "left",
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: outcome === opt.id ? "700" : "500",
-                border: outcome === opt.id ? `2px solid ${opt.color}` : "1px solid #e2e8f0",
-                background: outcome === opt.id ? `${opt.color}14` : "#ffffff",
-                color: outcome === opt.id ? opt.color : "#334155",
+                border: outcome === opt.id ? `2px solid ${opt.color}` : "1px solid var(--color-border)",
+                backgroundColor: outcome === opt.id ? "var(--color-bg-surface)" : "var(--color-bg-surface)",
+                color: outcome === opt.id ? opt.color : "var(--color-text-secondary)",
                 cursor: "pointer",
               }}
             >
@@ -142,7 +144,7 @@ const FollowUpOutcomeModal = ({
 
       {/* NOTES */}
       <div style={{ marginBottom: "14px" }}>
-        <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "4px" }}>
+        <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "var(--color-text-primary)", marginBottom: "4px" }}>
           Discussion Notes
         </label>
         <textarea
@@ -150,33 +152,33 @@ const FollowUpOutcomeModal = ({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Client requested agreement / discussed pricing..."
           rows={2}
-          style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+          style={{ width: "100%", padding: "8px 10px", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", fontSize: "13px", boxSizing: "border-box" }}
         />
       </div>
 
       {/* CONVERTED FIELDS */}
       {isConverted && (
-        <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "10px", padding: "12px", marginBottom: "14px" }}>
-          <div style={{ color: "#059669", fontWeight: "700", fontSize: "12px", marginBottom: "8px" }}>
-            🎉 WON DEAL INFORMATION
+        <div style={{ backgroundColor: "var(--ignite-emerald-050)", border: "1px solid var(--ignite-emerald-100)", borderRadius: "var(--radius-md)", padding: "14px", marginBottom: "14px" }}>
+          <div style={{ color: "var(--ignite-emerald-600)", fontWeight: "700", fontSize: "12px", marginBottom: "8px" }}>
+            WON DEAL INFORMATION
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
             <div>
-              <small style={{ color: "#065f46" }}>Deal Value (₹)</small>
+              <small style={{ color: "var(--color-text-secondary)", display: "block", marginBottom: "4px" }}>Deal Value (₹)</small>
               <input
                 type="number"
                 value={conversionValue}
                 onChange={(e) => setConversionValue(e.target.value)}
-                style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #6ee7b7", fontSize: "12px" }}
+                style={{ width: "100%", padding: "8px", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", fontSize: "13px", boxSizing: "border-box" }}
               />
             </div>
             <div>
-              <small style={{ color: "#065f46" }}>Product</small>
+              <small style={{ color: "var(--color-text-secondary)", display: "block", marginBottom: "4px" }}>Product</small>
               <input
                 type="text"
                 value={wonProduct}
                 onChange={(e) => setWonProduct(e.target.value)}
-                style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #6ee7b7", fontSize: "12px" }}
+                style={{ width: "100%", padding: "8px", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)", fontSize: "13px", boxSizing: "border-box" }}
               />
             </div>
           </div>
@@ -185,10 +187,10 @@ const FollowUpOutcomeModal = ({
 
       {/* NEXT FOLLOW-UP AUTO-CHAIN */}
       {!isConverted && !isLost && (
-        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", marginBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span style={{ fontSize: "12px", fontWeight: "700", color: "#0f172a" }}>
-              🗓️ Auto-Schedule Next Follow-up
+        <div style={{ backgroundColor: "var(--color-bg-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "14px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
+            <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--ignite-deep-teal)", display: "flex", alignItems: "center", gap: "6px" }}>
+              <Calendar size={15} color="var(--ignite-emerald)" /> Auto-Schedule Next Follow-up
             </span>
             <input
               type="checkbox"
@@ -199,23 +201,20 @@ const FollowUpOutcomeModal = ({
           </div>
 
           {scheduleNext && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginTop: "6px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "8px" }}>
               <div>
-                <small style={{ color: "#64748b" }}>Next Date</small>
-                <input
-                  type="date"
+                <small style={{ color: "var(--color-text-secondary)", display: "block", marginBottom: "4px" }}>Next Date</small>
+                <DatePicker
                   value={nextDate}
-                  onChange={(e) => setNextDate(e.target.value)}
-                  style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                  onChange={(d) => setNextDate(d)}
+                  placeholder="Select next date"
                 />
               </div>
               <div>
-                <small style={{ color: "#64748b" }}>Next Time</small>
-                <input
-                  type="time"
+                <small style={{ color: "var(--color-text-secondary)", display: "block", marginBottom: "4px" }}>Next Time</small>
+                <TimePicker
                   value={nextTime}
-                  onChange={(e) => setNextTime(e.target.value)}
-                  style={{ width: "100%", padding: "6px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px" }}
+                  onChange={(t) => setNextTime(t)}
                 />
               </div>
             </div>
@@ -225,7 +224,7 @@ const FollowUpOutcomeModal = ({
 
       {/* BUTTONS */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
-        <Button variant="outline" type="button" onClick={onCancel} disabled={submitting}>
+        <Button variant="secondary" type="button" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
         <Button variant="primary" type="submit" disabled={submitting}>

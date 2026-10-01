@@ -1,22 +1,16 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
   Clock,
   MapPin,
   User,
-  CheckCircle,
   Phone,
-  MessageSquare,
-  DollarSign,
-  AlertCircle,
+  Mail,
   Camera,
-  Layers,
-  ArrowRight,
 } from "lucide-react";
+import "./LeadTimelineDrawer.css";
 import { getLeadTimelineHistory } from "../../../../services/api/fieldSalesAPI";
 import IgniteLoader from "../../../common/IgniteLoader/IgniteLoader";
-
-
 
 const LeadTimelineDrawer = ({ leadId, onClose }) => {
   const [timelineData, setTimelineData] = useState(null);
@@ -26,21 +20,27 @@ const LeadTimelineDrawer = ({ leadId, onClose }) => {
     if (!leadId) return;
 
     let isMounted = true;
+
     const fetchTimeline = async () => {
       try {
         setLoading(true);
+
         const res = await getLeadTimelineHistory(leadId);
+
         if (isMounted && res?.data) {
           setTimelineData(res.data);
         }
       } catch (err) {
         console.error("Error fetching lead timeline:", err);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTimeline();
+
     return () => {
       isMounted = false;
     };
@@ -48,275 +48,361 @@ const LeadTimelineDrawer = ({ leadId, onClose }) => {
 
   if (loading) {
     return (
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <IgniteLoader size={36} />
-        <p style={{ marginTop: "12px", color: "#64748b", fontSize: "13px" }}>
-          Loading Lead 360° History...
-        </p>
+      <div className="lead-details-loading">
+        <IgniteLoader size={32} />
+        <span>Loading lead details...</span>
       </div>
     );
   }
 
   if (!timelineData) {
     return (
-      <div style={{ padding: "30px", textAlign: "center", color: "#64748b" }}>
-        No timeline details found.
+      <div className="lead-details-empty">
+        No lead details found.
       </div>
     );
   }
 
-  const { lead, visits = [], followups = [], activities = [] } = timelineData;
+  const {
+    lead,
+    visits = [],
+    activities = [],
+  } = timelineData;
 
-  const getStatusBadgeColor = (status) => {
-    switch (String(status).toLowerCase()) {
-      case "converted":
-      case "won":
-        return { bg: "#ecfdf5", text: "#059669", border: "#a7f3d0" };
-      case "lost":
-      case "not interested":
-        return { bg: "#fef2f2", text: "#dc2626", border: "#fecaca" };
-      case "negotiation":
-        return { bg: "#fffbeb", text: "#d97706", border: "#fde68a" };
-      case "follow-up required":
-      case "demo required":
-        return { bg: "#eff6ff", text: "#2563eb", border: "#bfdbfe" };
-      default:
-        return { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" };
+  const contactName =
+    lead.contact_name ||
+    `${lead.first_name || ""} ${lead.last_name || ""}`.trim() ||
+    "Lead";
+
+  const estimatedValue = Number(
+    lead.conversion_value || lead.estimated_value || 0
+  );
+
+  const getStatusClass = (status) => {
+    const value = String(status || "")
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .trim();
+
+    if (["converted", "won", "completed"].includes(value)) {
+      return "lead-status lead-status--success";
     }
+
+    if (["lost", "not interested"].includes(value)) {
+      return "lead-status lead-status--danger";
+    }
+
+    if (
+      ["negotiation", "follow-up required", "demo required"].includes(value)
+    ) {
+      return "lead-status lead-status--warning";
+    }
+
+    if (
+      ["in progress", "scheduled", "checked in", "checked out"].includes(value)
+    ) {
+      return "lead-status lead-status--info";
+    }
+
+    return "lead-status";
   };
 
-  const badge = getStatusBadgeColor(lead.status);
+  const getActivityClass = (activityType) => {
+    const type = String(activityType || "").toUpperCase();
+
+    if (type === "DEAL_CONVERTED") {
+      return "lead-timeline__dot lead-timeline__dot--success";
+    }
+
+    if (type === "DEAL_LOST") {
+      return "lead-timeline__dot lead-timeline__dot--danger";
+    }
+
+    if (type.includes("VISIT")) {
+      return "lead-timeline__dot lead-timeline__dot--teal";
+    }
+
+    return "lead-timeline__dot";
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "—";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatTime = (date) => {
+    if (!date) return "—";
+
+    return new Date(date).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
-    <div style={{ padding: "6px", color: "#0f172a", fontFamily: "inherit" }}>
-      {/* 1. LEAD SUMMARY HERO CARD */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-          border: "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "16px",
-          marginBottom: "20px",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+    <div className="lead-details">
+      {/* =====================================================
+          LEAD OVERVIEW
+      ===================================================== */}
+      <section className="lead-details__section">
+        <div className="lead-details__title-row">
           <div>
-            <span style={{ fontSize: "10px", fontWeight: "700", color: "#64748b", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-              LEAD 360° PROFILE
-            </span>
-            <h2 style={{ margin: "2px 0 4px", fontSize: "18px", fontWeight: "800", color: "#0f172a" }}>
-              {lead.company_name || lead.title}
+            <h2 className="lead-details__name">
+              {lead.company_name || lead.title || contactName}
             </h2>
-            <p style={{ margin: 0, fontSize: "12px", color: "#475569" }}>
-              👤 Contact: <strong>{lead.contact_name || `${lead.first_name} ${lead.last_name}`}</strong>
-              {lead.phone && ` • 📞 ${lead.phone}`}
-            </p>
+
+            {lead.company_name && (
+              <p className="lead-details__subtitle">
+                {contactName}
+              </p>
+            )}
           </div>
 
-          <span
-            style={{
-              padding: "4px 10px",
-              borderRadius: "16px",
-              fontSize: "11px",
-              fontWeight: "700",
-              background: badge.bg,
-              color: badge.text,
-              border: `1px solid ${badge.border}`,
-              textTransform: "uppercase",
-            }}
-          >
-            ● {lead.status}
+          <span className={getStatusClass(lead.status)}>
+            {lead.status || "New"}
           </span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", marginTop: "14px", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
-          <div>
-            <small style={{ color: "#64748b", fontSize: "10px", display: "block" }}>Assigned Sales Rep</small>
-            <strong style={{ fontSize: "12px", color: "#0f172a" }}>{lead.assigned_to_name || "Unassigned"}</strong>
+        {/* Contact */}
+        <div className="lead-details__contact-row">
+          {lead.phone && (
+            <div className="lead-details__contact-item">
+              <Phone size={15} />
+              <span>{lead.phone}</span>
+            </div>
+          )}
+
+          {lead.email && (
+            <div className="lead-details__contact-item">
+              <Mail size={15} />
+              <span>{lead.email}</span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* =====================================================
+          LEAD INFORMATION
+      ===================================================== */}
+      <section className="lead-details__section">
+        <h3 className="lead-details__section-title">
+          Lead Information
+        </h3>
+
+        <div className="lead-details__info-grid">
+          <div className="lead-details__field">
+            <span className="lead-details__label">
+              Assigned Sales Rep
+            </span>
+            <span className="lead-details__value">
+              {lead.assigned_to_name || "Unassigned"}
+            </span>
           </div>
-          <div>
-            <small style={{ color: "#64748b", fontSize: "10px", display: "block" }}>Priority</small>
-            <strong style={{ fontSize: "12px", color: lead.priority === "High" ? "#ef4444" : "#0f172a" }}>
-              {lead.priority || "High"}
-            </strong>
+
+          <div className="lead-details__field">
+            <span className="lead-details__label">
+              Priority
+            </span>
+            <span
+              className={`lead-details__value ${String(lead.priority).toLowerCase() === "high"
+                ? "lead-details__value--danger"
+                : ""
+                }`}
+            >
+              {lead.priority || "—"}
+            </span>
           </div>
-          <div>
-            <small style={{ color: "#64748b", fontSize: "10px", display: "block" }}>
-              {lead.status === "Converted" ? "Deal Value" : "Estimated Value"}
-            </small>
-            <strong style={{ fontSize: "12px", color: lead.status === "Converted" ? "#059669" : "#0f172a" }}>
-              ₹{Number(lead.conversion_value || lead.estimated_value || 0).toLocaleString()}
-            </strong>
+
+          <div className="lead-details__field">
+            <span className="lead-details__label">
+              Estimated Value
+            </span>
+            <span className="lead-details__value">
+              ₹{estimatedValue.toLocaleString("en-IN")}
+            </span>
           </div>
+
+          {lead.source && (
+            <div className="lead-details__field">
+              <span className="lead-details__label">
+                Source
+              </span>
+              <span className="lead-details__value">
+                {lead.source}
+              </span>
+            </div>
+          )}
         </div>
 
         {lead.address && (
-          <div style={{ marginTop: "10px", fontSize: "11px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
-            <MapPin size={13} color="#0284c7" /> {lead.address}
+          <div className="lead-details__location">
+            <MapPin size={16} />
+            <span>{lead.address}</span>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* 2. CHRONOLOGICAL UNIFIED TIMELINE */}
-      <h3 style={{ fontSize: "14px", fontWeight: "800", color: "#1e293b", marginBottom: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-        <Layers size={16} color="#0284c7" /> ACTIVITY & ENGAGEMENT HISTORY
-      </h3>
+      {/* =====================================================
+          ACTIVITY
+      ===================================================== */}
+      <section className="lead-details__section">
+        <div className="lead-details__section-header">
+          <h3 className="lead-details__section-title">
+            Activity
+          </h3>
 
-      <div style={{ position: "relative", paddingLeft: "24px" }}>
-        {/* Continuous timeline line */}
-        <div
-          style={{
-            position: "absolute",
-            left: "8px",
-            top: "8px",
-            bottom: "8px",
-            width: "2px",
-            background: "#cbd5e1",
-          }}
-        />
+          {activities.length > 0 && (
+            <span className="lead-details__count">
+              {activities.length}
+            </span>
+          )}
+        </div>
 
-        {/* Loop all activities */}
-        {activities.length > 0 ? (
-          activities.map((act, index) => {
-            const isVisit = act.activity_type.includes("VISIT");
-            const isFollowUp = act.activity_type.includes("FOLLOW_UP");
-            const isWon = act.activity_type === "DEAL_CONVERTED";
-            const isLost = act.activity_type === "DEAL_LOST";
-
-            const dotColor = isWon
-              ? "#10b981"
-              : isLost
-              ? "#ef4444"
-              : isVisit
-              ? "#0284c7"
-              : isFollowUp
-              ? "#f59e0b"
-              : "#64748b";
-
-            return (
+        {activities.length === 0 ? (
+          <div className="lead-details__empty-state">
+            No activity records yet.
+          </div>
+        ) : (
+          <div className="lead-timeline">
+            {activities.map((activity, index) => (
               <div
-                key={act.id || index}
-                style={{
-                  position: "relative",
-                  marginBottom: "20px",
-                }}
+                className="lead-timeline__item"
+                key={activity.id || index}
               >
-                {/* Milestone Node */}
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "-20px",
-                    top: "3px",
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    background: dotColor,
-                    border: "2px solid #ffffff",
-                    boxShadow: `0 0 0 2px ${dotColor}33`,
-                  }}
-                />
+                <div className={getActivityClass(activity.activity_type)} />
 
-                <div
-                  style={{
-                    background: isWon
-                      ? "#ecfdf5"
-                      : isLost
-                      ? "#fef2f2"
-                      : "#ffffff",
-                    border: `1px solid ${
-                      isWon
-                        ? "#a7f3d0"
-                        : isLost
-                        ? "#fecaca"
-                        : "#e2e8f0"
-                    }`,
-                    borderRadius: "10px",
-                    padding: "12px 14px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                    <strong style={{ fontSize: "13px", color: isWon ? "#065f46" : isLost ? "#991b1b" : "#0f172a" }}>
-                      {act.title}
-                    </strong>
-                    <span style={{ fontSize: "10px", color: "#64748b" }}>
-                      {new Date(act.performed_at).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                      })}{" "}
-                      •{" "}
-                      {new Date(act.performed_at).toLocaleTimeString("en-IN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                <div className="lead-timeline__content">
+                  <div className="lead-timeline__top">
+                    <span className="lead-timeline__title">
+                      {activity.title}
                     </span>
+
+                    {activity.performed_at && (
+                      <span className="lead-timeline__date">
+                        {formatDate(activity.performed_at)}
+                      </span>
+                    )}
                   </div>
 
-                  <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#334155", lineHeight: 1.45 }}>
-                    {act.description}
-                  </p>
+                  {activity.description && (
+                    <p className="lead-timeline__description">
+                      {activity.description}
+                    </p>
+                  )}
 
-                  {act.employee_name && (
-                    <div style={{ marginTop: "6px", fontSize: "10px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
-                      <User size={11} /> Logged by {act.employee_name}
-                    </div>
+                  {activity.employee_name && (
+                    <span className="lead-timeline__employee">
+                      <User size={12} />
+                      {activity.employee_name}
+                    </span>
                   )}
                 </div>
               </div>
-            );
-          })
-        ) : (
-          <p style={{ color: "#94a3b8", fontSize: "12px" }}>No activity records found yet.</p>
+            ))}
+          </div>
         )}
-      </div>
+      </section>
 
-      {/* 3. VISITS SNAPSHOT */}
-      {visits.length > 0 && (
-        <div style={{ marginTop: "24px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
-          <h4 style={{ fontSize: "13px", fontWeight: "700", color: "#1e293b", marginBottom: "10px" }}>
-            📍 Completed Field Visits ({visits.length})
-          </h4>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {visits.map((v) => (
+      {/* =====================================================
+          FIELD VISITS
+      ===================================================== */}
+      <section className="lead-details__section">
+        <div className="lead-details__section-header">
+          <h3 className="lead-details__section-title">
+            Field Visits
+          </h3>
+
+          {visits.length > 0 && (
+            <span className="lead-details__count">
+              {visits.length}
+            </span>
+          )}
+        </div>
+
+        {visits.length === 0 ? (
+          <div className="lead-details__empty-state">
+            No field visits recorded yet.
+          </div>
+        ) : (
+          <div className="lead-visits">
+            {visits.map((visit) => (
               <div
-                key={v.id}
-                style={{
-                  padding: "10px 12px",
-                  borderRadius: "8px",
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  fontSize: "12px",
-                }}
+                className="lead-visit"
+                key={visit.id}
               >
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <strong>{v.visit_code} • {v.visit_date}</strong>
-                  <span style={{ color: "#059669", fontWeight: "600" }}>✓ {v.status}</span>
-                </div>
-                <div style={{ color: "#64748b", fontSize: "11px", marginTop: "2px" }}>
-                  Check-in: {v.check_in_time ? new Date(v.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A"} • Check-out: {v.check_out_time ? new Date(v.check_out_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A"}
-                </div>
-                {v.feedback && (
-                  <div style={{ marginTop: "4px", color: "#334155", fontStyle: "italic", fontSize: "11px" }}>
-                    "{v.feedback}"
+                <div className="lead-visit__header">
+                  <div>
+                    <span className="lead-visit__code">
+                      {visit.visit_code}
+                    </span>
+
+                    <span className="lead-visit__date">
+                      {formatDate(visit.visit_date)}
+                    </span>
                   </div>
+
+                  <span className={getStatusClass(visit.status)}>
+                    {visit.status || "Scheduled"}
+                  </span>
+                </div>
+
+                <div className="lead-visit__meta">
+                  <div className="lead-visit__meta-item">
+                    <Clock size={14} />
+                    <span>
+                      Check-in:{" "}
+                      {visit.check_in_time
+                        ? formatTime(visit.check_in_time)
+                        : "Not started"}
+                    </span>
+                  </div>
+
+                  <div className="lead-visit__meta-item">
+                    <Clock size={14} />
+                    <span>
+                      Check-out:{" "}
+                      {visit.check_out_time
+                        ? formatTime(visit.check_out_time)
+                        : "—"}
+                    </span>
+                  </div>
+                </div>
+
+                {visit.feedback && (
+                  <p className="lead-visit__feedback">
+                    {visit.feedback}
+                  </p>
                 )}
-                {v.photos && v.photos.length > 0 && (
-                  <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
-                    {v.photos.map((p, idx) => (
-                      <img
-                        key={idx}
-                        src={p.photo_url || p.photo}
-                        alt="Visit photo"
-                        style={{ width: "40px", height: "40px", borderRadius: "4px", objectFit: "cover" }}
-                      />
-                    ))}
+
+                {visit.photos?.length > 0 && (
+                  <div className="lead-visit__photos">
+                    <div className="lead-visit__photos-label">
+                      <Camera size={14} />
+                      Photos
+                    </div>
+
+                    <div className="lead-visit__photo-list">
+                      {visit.photos.map((photo, index) => (
+                        <img
+                          key={index}
+                          src={photo.photo_url || photo.photo}
+                          alt="Visit"
+                          className="lead-visit__photo"
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </section>
     </div>
   );
 };

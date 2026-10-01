@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiEdit2, FiEye, FiMapPin, FiPlus, FiTrash2, FiUsers } from "react-icons/fi";
+import { Edit2, Eye, Plus, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import Button from "../../../components/common/Button/Button";
@@ -7,6 +7,7 @@ import Drawer from "../../../components/common/Drawer/Drawer";
 import RowActions from "../../../components/common/RowActions/RowActions";
 import SearchInput from "../../../components/common/SearchInput/SearchInput";
 import Select from "../../../components/common/Select/Select";
+import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import LeadStats from "../../../components/fieldSales/leads/leadStats/LeadStats";
 import LeadTimelineDrawer from "../../../components/fieldSales/leads/LeadTimelineDrawer/LeadTimelineDrawer";
 import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
@@ -252,8 +253,8 @@ const Leads = () => {
   const getLeadActions = (lead) => [
     {
       key: "timeline",
-      label: "360° History & Visits",
-      icon: FiEye,
+      label: "Lead History & Visits",
+      icon: Eye,
       onClick: () => {
         setSelectedLeadForTimeline(lead);
         setTimelineOpen(true);
@@ -262,7 +263,7 @@ const Leads = () => {
     {
       key: "edit",
       label: "Edit",
-      icon: FiEdit2,
+      icon: Edit2,
       onClick: () =>
         navigate(`/field-sales/leads/${lead.id}/edit`),
     },
@@ -280,36 +281,20 @@ const Leads = () => {
           HEADER
       ========================= */}
 
-      <header className="field-sales-leads-page__header">
-        <div>
-          <span className="field-sales-leads-page__eyebrow">
-            FIELD SALES
-          </span>
-
-          <h1>Leads</h1>
-
-          <p>
-            Manage leads, assignments and field visits.
-          </p>
-        </div>
-
-        <div className="field-sales-leads-page__header-actions">
-          <div className="field-sales-leads-page__date">
-            <FiMapPin />
-            <span>Field Sales</span>
-          </div>
-
+      <PageHeader
+        eyebrow="FIELD SALES"
+        title="Leads"
+        description="Manage sales leads, employee assignments, and field visit activities."
+        action={
           <Button
             variant="primary"
-            onClick={() =>
-              navigate("/field-sales/leads/add")
-            }
+            onClick={() => navigate("/field-sales/leads/add")}
           >
-            <FiPlus />
+            <Plus size={16} />
             Add Lead
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       {/* =========================
           STATS
@@ -428,7 +413,7 @@ const Leads = () => {
                         <div className="field-sales-leads-table__lead">
 
                           <div className="field-sales-leads-table__avatar">
-                            <FiUsers />
+                            <Users size={16} />
                           </div>
 
                           <div className="field-sales-leads-table__lead-info">

@@ -1,0 +1,227 @@
+.scheduled-visits-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.scheduled-visit-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.3fr) minmax(120px, 1.1fr) minmax(66px, 0.55fr) minmax(112px, 0.85fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e9edef;
+  color: #334155;
+  font-size: 12px;
+}
+
+.scheduled-visit-row:last-child {
+  border-bottom: 0;
+}
+
+.scheduled-visit-row:hover {
+  background: #f8fafb;
+}
+
+.scheduled-visit-row--completed {
+  color: #64748b;
+}
+
+.scheduled-visit-employee,
+.scheduled-visit-client,
+.scheduled-visit-location {
+  min-width: 0;
+}
+
+.scheduled-visit-employee {
+  overflow: hidden;
+  color: #475569;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduled-visit-client {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scheduled-visit-client strong {
+  overflow: hidden;
+  color: #1a1f24;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduled-visit-client span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduled-visit-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: #475569;
+  font-size: 11px;
+}
+
+.scheduled-visit-location svg {
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.scheduled-visit-location span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scheduled-visit-time {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scheduled-visit-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.scheduled-visit-priority,
+.scheduled-visit-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.scheduled-visit-priority {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.scheduled-visit-priority--high { background: #fef2f2; color: #b91c1c; }
+.scheduled-visit-priority--medium { background: #fff7ed; color: #b45309; }
+.scheduled-visit-priority--low { background: #f0fdf4; color: #15803d; }
+
+.scheduled-visit-status--scheduled { background: #f1f5f9; color: #475569; }
+.scheduled-visit-status--active { background: #fffbeb; color: #92400e; }
+.scheduled-visit-status--complete { background: #ecfdf5; color: #047857; }
+
+.scheduled-visit-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.scheduled-visit-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.scheduled-visit-icon-action:hover {
+  background: #edf2f4;
+  color: #0f3d3e;
+}
+
+.scheduled-visit-start-btn {
+  font-size: 11px !important;
+  padding: 4px 9px !important;
+  height: 28px !important;
+  white-space: nowrap;
+}
+
+.scheduled-visits-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.scheduled-visits-empty svg {
+  color: #0ba37f;
+}
+
+.scheduled-visits-empty p {
+  margin: 0;
+}
+
+@media (max-width: 1000px) {
+  .scheduled-visit-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    row-gap: 6px;
+  }
+
+  .scheduled-visit-employee {
+    grid-column: 1 / 3;
+  }
+
+  .scheduled-visit-time {
+    grid-column: 1;
+  }
+
+  .scheduled-visit-badges {
+    grid-column: 2;
+  }
+
+  .scheduled-visit-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 600px) {
+  .scheduled-visit-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 8px;
+    padding: 9px 4px;
+  }
+
+  .scheduled-visit-employee,
+  .scheduled-visit-client,
+  .scheduled-visit-location {
+    grid-column: 1;
+  }
+
+  .scheduled-visit-time {
+    grid-column: 1;
+  }
+
+  .scheduled-visit-badges {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .scheduled-visit-actions {
+    grid-column: 2;
+    grid-row: 1 / span 4;
+    align-self: center;
+  }
+
+}

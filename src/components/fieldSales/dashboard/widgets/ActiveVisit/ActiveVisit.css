@@ -1,0 +1,51 @@
+/* ActiveVisit Widget Styles */
+.active-visit-banner-compact {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.05);
+}
+
+.active-visit-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.active-visit-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #15803d;
+  letter-spacing: 0.05em;
+}
+
+.active-visit-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+}
+
+.active-visit-client-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f3d3e;
+}
+
+.active-visit-sub-details {
+  font-size: 12px;
+  color: #475569;
+}
+
+.active-visit-action-col {
+  flex-shrink: 0;
+}

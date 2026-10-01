@@ -1,6 +1,17 @@
 import { useState } from "react";
-import { Camera, MapPin, Calendar, Clock, DollarSign, Package, CheckCircle, ArrowRight } from "lucide-react";
+import {
+  Camera,
+  MapPin,
+  Calendar,
+  DollarSign,
+  Package,
+  CheckCircle,
+  ArrowRight,
+  XCircle,
+} from "lucide-react";
 import Button from "../../../common/Button/Button";
+import DatePicker from "../../../common/DatePicker/DatePicker";
+import TimePicker from "../../../common/TimePicker/TimePicker";
 import "./VisitCheckOut.css";
 
 const CLIENT_RESPONSES = [
@@ -12,6 +23,15 @@ const CLIENT_RESPONSES = [
   { id: "Meeting Rescheduled", label: "Meeting Rescheduled", color: "#6366f1", bg: "#eef2ff" },
   { id: "Not Interested", label: "Not Interested", color: "#ef4444", bg: "#fef2f2" },
 ];
+const RESPONSE_ICONS = {
+  Interested: ArrowRight,
+  "Follow-up Required": Calendar,
+  "Demo Required": Package,
+  Negotiation: DollarSign,
+  Converted: CheckCircle,
+  "Meeting Rescheduled": Calendar,
+  "Not Interested": XCircle,
+};
 
 const FOLLOWUP_TYPES = [
   { id: "Call", label: "Phone Call" },
@@ -29,7 +49,7 @@ const VisitCheckout = ({
   const [clientResponse, setClientResponse] = useState("Follow-up Required");
   const [feedback, setFeedback] = useState("");
   const [photos, setPhotos] = useState([]);
-  
+
   // Distinct subform triggers for each response type
   const isFollowUp = clientResponse === "Follow-up Required" || clientResponse === "Meeting Rescheduled";
   const isDemo = clientResponse === "Demo Required";
@@ -170,43 +190,42 @@ const VisitCheckout = ({
 
       {/* 1. CLIENT RESPONSE SELECTION */}
       <div className="visit-checkout__field">
-        <label style={{ fontWeight: "700", fontSize: "13px" }}>
-          Client Response <span style={{ color: "#ef4444" }}>*</span>
+        <label className="visit-checkout__label">
+          Client Response <span className="visit-checkout__required">*</span>
         </label>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", marginTop: "6px" }}>
+        <div className="visit-checkout__responses-grid">
           {CLIENT_RESPONSES.map((res) => {
             const isSelected = clientResponse === res.id;
+            const ResponseIcon = RESPONSE_ICONS[res.id];
+
             return (
               <button
                 key={res.id}
                 type="button"
                 onClick={() => setClientResponse(res.id)}
+                className={`visit-checkout__response-btn ${isSelected ? "visit-checkout__response-btn--selected" : ""
+                  }`}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  padding: "10px 12px",
-                  borderRadius: "10px",
-                  border: isSelected ? `2px solid ${res.color}` : "1px solid #e2e8f0",
-                  background: isSelected ? res.bg : "#ffffff",
-                  color: isSelected ? res.color : "#334155",
-                  fontWeight: isSelected ? "700" : "500",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "all 0.15s ease",
+                  "--response-color": res.color,
+                  "--response-bg": res.bg,
                 }}
               >
-                <span
-                  style={{
-                    width: "12px",
-                    height: "12px",
-                    borderRadius: "50%",
-                    border: `2px solid ${res.color}`,
-                    background: isSelected ? res.color : "transparent",
-                  }}
-                />
-                {res.label}
+                <span className="visit-checkout__response-icon">
+                  <ResponseIcon size={15} />
+                </span>
+
+                <span className="visit-checkout__response-content">
+                  <span className="visit-checkout__response-label">
+                    {res.label}
+                  </span>
+                </span>
+
+                {isSelected && (
+                  <CheckCircle
+                    className="visit-checkout__response-check"
+                    size={15}
+                  />
+                )}
               </button>
             );
           })}
@@ -215,7 +234,7 @@ const VisitCheckout = ({
 
       {/* 2. CLIENT FEEDBACK / NOTES */}
       <div className="visit-checkout__field">
-        <label htmlFor="visit-feedback" style={{ fontWeight: "700", fontSize: "13px" }}>
+        <label htmlFor="visit-feedback" className="visit-checkout__label">
           Client Feedback & Meeting Summary
         </label>
         <textarea
@@ -224,38 +243,17 @@ const VisitCheckout = ({
           onChange={(e) => setFeedback(e.target.value)}
           placeholder="Client feedback, requirements discussed, pain points and key takeaways..."
           rows={3}
-          style={{
-            width: "100%",
-            borderRadius: "10px",
-            border: "1px solid #cbd5e1",
-            padding: "10px",
-            fontSize: "12px",
-            marginTop: "6px",
-          }}
+          className="visit-checkout__textarea"
         />
       </div>
 
       {/* 3. TAKE PHOTO (PROOF + GPS AUTO-CAPTURED - MANDATORY) */}
       <div className="visit-checkout__field">
-        <label style={{ fontWeight: "700", fontSize: "13px" }}>
-          📷 Photo Proof (Auto GPS & Timestamp Stamped) <span style={{ color: "#ef4444" }}>* (Mandatory)</span>
+        <label className="visit-checkout__label">
+          Photo Proof <span className="visit-checkout__required">* (Mandatory)</span>
         </label>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "6px" }}>
-          <label
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "10px 16px",
-              borderRadius: "10px",
-              background: photoError ? "#fef2f2" : "#f1f5f9",
-              border: photoError ? "1px dashed #ef4444" : "1px dashed #94a3b8",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: "600",
-              color: photoError ? "#b91c1c" : "#334155",
-            }}
-          >
+        <div className="visit-checkout__photo-upload-row">
+          <label className={`visit-checkout__photo-upload-label ${photoError ? "visit-checkout__photo-upload-label--error" : ""}`}>
             <Camera size={18} color={photoError ? "#ef4444" : "#0284c7"} />
             <span>Take / Upload Photo</span>
             <input
@@ -266,58 +264,28 @@ const VisitCheckout = ({
               style={{ display: "none" }}
             />
           </label>
-          <span style={{ fontSize: "11px", color: photos.length > 0 ? "#059669" : "#64748b", fontWeight: photos.length > 0 ? "700" : "500" }}>
-            {photos.length > 0 ? `✓ ${photos.length} photo attached` : "At least 1 photo required"}
+          <span className={`visit-checkout__photo-status ${photos.length > 0 ? "visit-checkout__photo-status--attached" : ""}`}>
+            {photos.length > 0 ? `${photos.length} photo attached` : "At least 1 photo required"}
           </span>
         </div>
 
         {photoError && (
-          <div style={{ color: "#dc2626", fontSize: "11px", fontWeight: "600", marginTop: "4px" }}>
-            ⚠️ {photoError}
+          <div className="visit-checkout__photo-error">
+            {photoError}
           </div>
         )}
 
         {photos.length > 0 && (
-          <div style={{ display: "flex", gap: "8px", marginTop: "10px", flexWrap: "wrap" }}>
+          <div className="visit-checkout__photos-preview">
             {photos.map((p, idx) => (
-              <div
-                key={idx}
-                style={{
-                  position: "relative",
-                  width: "70px",
-                  height: "70px",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                  border: "1px solid #cbd5e1",
-                }}
-              >
-                <img
-                  src={p.photo_url}
-                  alt="Captured preview"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
+              <div key={idx} className="visit-checkout__photo-thumb">
+                <img src={p.photo_url} alt="Captured preview" />
                 <button
                   type="button"
                   onClick={() => setPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                  style={{
-                    position: "absolute",
-                    top: "2px",
-                    right: "2px",
-                    background: "rgba(0,0,0,0.6)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: "50%",
-                    width: "16px",
-                    height: "16px",
-                    fontSize: "10px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    lineHeight: "1",
-                  }}
+                  className="visit-checkout__photo-remove-btn"
                 >
-                  ✕
+                  <XCircle size={13} />
                 </button>
               </div>
             ))}
@@ -325,61 +293,41 @@ const VisitCheckout = ({
         )}
       </div>
 
-      {/* 4A. SUB-FORM: SCHEDULE NEXT FOLLOW-UP (Only for Follow-up Required / Rescheduled) */}
+      {/* 4A. SUB-FORM: SCHEDULE NEXT FOLLOW-UP */}
       {isFollowUp && (
-        <div
-          style={{
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: "12px",
-            padding: "14px",
-            marginTop: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#2563eb", fontWeight: "700", fontSize: "12px", marginBottom: "10px" }}>
-            <Calendar size={16} /> SCHEDULE NEXT FOLLOW-UP
+        <div className="visit-checkout__subform">
+          <div className="visit-checkout__subform-title">
+            <Calendar size={16} color="var(--color-secondary, #0BA37F)" /> SCHEDULE NEXT FOLLOW-UP
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="visit-checkout__subform-grid">
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#475569" }}>Follow-up Date</label>
-              <input
-                type="date"
+              <label className="visit-checkout__subform-label">Follow-up Date</label>
+              <DatePicker
                 value={followUpDate}
-                onChange={(e) => setFollowUpDate(e.target.value)}
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", marginTop: "4px" }}
+                onChange={(d) => setFollowUpDate(d)}
+                placeholder="Select date"
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#475569" }}>Time</label>
-              <input
-                type="time"
+              <label className="visit-checkout__subform-label">Time</label>
+              <TimePicker
                 value={followUpTime}
-                onChange={(e) => setFollowUpTime(e.target.value)}
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", marginTop: "4px" }}
+                onChange={(t) => setFollowUpTime(t)}
               />
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#475569" }}>Follow-up Mode</label>
-            <div style={{ display: "flex", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+          <div className="visit-checkout__subform-field">
+            <label className="visit-checkout__subform-label">Follow-up Mode</label>
+            <div className="visit-checkout__modes-group">
               {FOLLOWUP_TYPES.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setFollowUpType(t.id)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    border: followUpType === t.id ? "1px solid #2563eb" : "1px solid #cbd5e1",
-                    background: followUpType === t.id ? "#2563eb" : "#ffffff",
-                    color: followUpType === t.id ? "#ffffff" : "#475569",
-                    cursor: "pointer",
-                  }}
+                  className={`visit-checkout__mode-btn ${followUpType === t.id ? "visit-checkout__mode-btn--active" : ""}`}
                 >
                   {t.label}
                 </button>
@@ -387,14 +335,14 @@ const VisitCheckout = ({
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#475569" }}>Follow-up Reason / Notes</label>
+          <div className="visit-checkout__subform-field">
+            <label className="visit-checkout__subform-label">Follow-up Reason / Notes</label>
             <input
               type="text"
               value={followUpNote}
               onChange={(e) => setFollowUpNote(e.target.value)}
               placeholder="e.g. Final pricing discussion with HR Head"
-              style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", marginTop: "4px" }}
+              className="visit-checkout__subform-input"
             />
           </div>
         </div>
@@ -402,59 +350,39 @@ const VisitCheckout = ({
 
       {/* 4B. SUB-FORM: DEMO REQUIRED */}
       {isDemo && (
-        <div
-          style={{
-            background: "#f5f3ff",
-            border: "1px solid #ddd6fe",
-            borderRadius: "12px",
-            padding: "14px",
-            marginTop: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontWeight: "700", fontSize: "12px", marginBottom: "10px" }}>
-            <Package size={16} /> SCHEDULE PRODUCT DEMO SESSION
+        <div className="visit-checkout__subform">
+          <div className="visit-checkout__subform-title">
+            <Package size={16} color="var(--color-secondary, #0BA37F)" /> SCHEDULE PRODUCT DEMO SESSION
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="visit-checkout__subform-grid">
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#5b21b6" }}>Demo Date</label>
-              <input
-                type="date"
+              <label className="visit-checkout__subform-label">Demo Date</label>
+              <DatePicker
                 value={demoDate}
-                onChange={(e) => setDemoDate(e.target.value)}
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #c4b5fd", fontSize: "12px", marginTop: "4px" }}
+                onChange={(d) => setDemoDate(d)}
+                placeholder="Select date"
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#5b21b6" }}>Demo Time</label>
-              <input
-                type="time"
+              <label className="visit-checkout__subform-label">Demo Time</label>
+              <TimePicker
                 value={demoTime}
-                onChange={(e) => setDemoTime(e.target.value)}
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #c4b5fd", fontSize: "12px", marginTop: "4px" }}
+                onChange={(t) => setDemoTime(t)}
               />
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#5b21b6" }}>Demo Format / Type</label>
-            <div style={{ display: "flex", gap: "6px", marginTop: "4px" }}>
+          <div className="visit-checkout__subform-field">
+            <label className="visit-checkout__subform-label">Demo Format / Type</label>
+            <div className="visit-checkout__modes-group">
               {["Online (Google Meet/Zoom)", "On-Site / In-Person Demo"].map((type) => (
                 <button
                   key={type}
                   type="button"
                   onClick={() => setDemoType(type)}
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    border: demoType === type ? "1px solid #7c3aed" : "1px solid #cbd5e1",
-                    background: demoType === type ? "#7c3aed" : "#ffffff",
-                    color: demoType === type ? "#ffffff" : "#475569",
-                    cursor: "pointer",
-                  }}
+                  className={`visit-checkout__mode-btn ${demoType === type ? "visit-checkout__mode-btn--active" : ""}`}
                 >
                   {type}
                 </button>
@@ -462,14 +390,14 @@ const VisitCheckout = ({
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#5b21b6" }}>Key Attendees / Stakeholders</label>
+          <div className="visit-checkout__subform-field">
+            <label className="visit-checkout__subform-label">Key Attendees / Stakeholders</label>
             <input
               type="text"
               value={demoParticipants}
               onChange={(e) => setDemoParticipants(e.target.value)}
               placeholder="e.g. CTO, Product Manager & HR Team"
-              style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #c4b5fd", fontSize: "12px", marginTop: "4px" }}
+              className="visit-checkout__subform-input"
             />
           </div>
         </div>
@@ -477,51 +405,43 @@ const VisitCheckout = ({
 
       {/* 4C. SUB-FORM: NEGOTIATION */}
       {isNegotiation && (
-        <div
-          style={{
-            background: "#fffbeb",
-            border: "1px solid #fde68a",
-            borderRadius: "12px",
-            padding: "14px",
-            marginTop: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#d97706", fontWeight: "700", fontSize: "12px", marginBottom: "10px" }}>
-            <DollarSign size={16} /> COMMERCIAL & DEAL NEGOTIATION
+        <div className="visit-checkout__subform">
+          <div className="visit-checkout__subform-title">
+            <DollarSign size={16} color="var(--color-accent-gold, #D4AF37)" /> COMMERCIAL & DEAL NEGOTIATION
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="visit-checkout__subform-grid">
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#92400e" }}>Expected Deal Value (₹)</label>
+              <label className="visit-checkout__subform-label">Expected Deal Value (₹)</label>
               <input
                 type="number"
                 value={expectedDealValue}
                 onChange={(e) => setExpectedDealValue(e.target.value)}
                 placeholder="e.g. 75000"
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #fcd34d", fontSize: "12px", marginTop: "4px" }}
+                className="visit-checkout__subform-input"
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#92400e" }}>Discount / Terms Requested</label>
+              <label className="visit-checkout__subform-label">Discount / Terms Requested</label>
               <input
                 type="text"
                 value={discountRequested}
                 onChange={(e) => setDiscountRequested(e.target.value)}
                 placeholder="e.g. 15% discount or quarterly payment terms"
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #fcd34d", fontSize: "12px", marginTop: "4px" }}
+                className="visit-checkout__subform-input"
               />
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#92400e" }}>Negotiation Details / Next Review Date</label>
+          <div className="visit-checkout__subform-field">
+            <label className="visit-checkout__subform-label">Negotiation Details / Next Review Date</label>
             <input
               type="text"
               value={negotiationNotes}
               onChange={(e) => setNegotiationNotes(e.target.value)}
               placeholder="e.g. Sent revised commercial proposal, follow-up call on Friday"
-              style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #fcd34d", fontSize: "12px", marginTop: "4px" }}
+              className="visit-checkout__subform-input"
             />
           </div>
         </div>
@@ -529,37 +449,29 @@ const VisitCheckout = ({
 
       {/* 4D. SUB-FORM: INTERESTED */}
       {isInterested && (
-        <div
-          style={{
-            background: "#ecfdf5",
-            border: "1px solid #a7f3d0",
-            borderRadius: "12px",
-            padding: "14px",
-            marginTop: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#059669", fontWeight: "700", fontSize: "12px", marginBottom: "10px" }}>
-            <CheckCircle size={16} /> CLIENT INTEREST & OPPORTUNITY DETAILS
+        <div className="visit-checkout__subform">
+          <div className="visit-checkout__subform-title">
+            <CheckCircle size={16} color="var(--color-secondary, #0BA37F)" /> CLIENT INTEREST & OPPORTUNITY DETAILS
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="visit-checkout__subform-grid">
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#065f46" }}>Interested Product / Service</label>
+              <label className="visit-checkout__subform-label">Interested Product / Service</label>
               <input
                 type="text"
                 value={interestedProduct}
                 onChange={(e) => setInterestedProduct(e.target.value)}
                 placeholder="e.g. Ignite HRMS Suite"
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #6ee7b7", fontSize: "12px", marginTop: "4px" }}
+                className="visit-checkout__subform-input"
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#065f46" }}>Pipeline Stage</label>
+              <label className="visit-checkout__subform-label">Pipeline Stage</label>
               <select
                 value={leadStage}
                 onChange={(e) => setLeadStage(e.target.value)}
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #6ee7b7", fontSize: "12px", marginTop: "4px", background: "#fff" }}
+                className="visit-checkout__subform-select"
               >
                 <option value="Decision Pending">Decision Pending (Internal Approval)</option>
                 <option value="Budget Allocation">Budget Allocation In Progress</option>
@@ -569,13 +481,12 @@ const VisitCheckout = ({
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
-            <label style={{ fontSize: "11px", fontWeight: "600", color: "#065f46" }}>Tentative Decision / Closure Date</label>
-            <input
-              type="date"
+          <div className="visit-checkout__subform-field">
+            <label className="visit-checkout__subform-label">Tentative Decision / Closure Date</label>
+            <DatePicker
               value={tentativeClosureDate}
-              onChange={(e) => setTentativeClosureDate(e.target.value)}
-              style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #6ee7b7", fontSize: "12px", marginTop: "4px" }}
+              onChange={(d) => setTentativeClosureDate(d)}
+              placeholder="Select date"
             />
           </div>
         </div>
@@ -583,39 +494,33 @@ const VisitCheckout = ({
 
       {/* 5. SUB-FORM: CONVERTED / DEAL WON */}
       {isConverted && (
-        <div
-          style={{
-            background: "#d1fae5",
-            border: "1px solid #6ee7b7",
-            borderRadius: "12px",
-            padding: "14px",
-            marginTop: "10px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#047857", fontWeight: "700", fontSize: "12px", marginBottom: "10px" }}>
+        <div className="visit-checkout__subform visit-checkout__subform--converted">
+          <div className="visit-checkout__subform-title" style={{ color: "#047857" }}>
             <DollarSign size={16} /> CONVERSION / DEAL WON DETAILS
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+          <div className="visit-checkout__subform-grid">
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#065f46" }}>Deal Value (₹)</label>
+              <label className="visit-checkout__subform-label" style={{ color: "#065f46" }}>Deal Value (₹)</label>
               <input
                 type="number"
                 value={conversionValue}
                 onChange={(e) => setConversionValue(e.target.value)}
                 placeholder="50000"
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #34d399", fontSize: "12px", marginTop: "4px" }}
+                className="visit-checkout__subform-input"
+                style={{ borderColor: "#34d399" }}
               />
             </div>
 
             <div>
-              <label style={{ fontSize: "11px", fontWeight: "600", color: "#065f46" }}>Product Sold</label>
+              <label className="visit-checkout__subform-label" style={{ color: "#065f46" }}>Product Sold</label>
               <input
                 type="text"
                 value={wonProduct}
                 onChange={(e) => setWonProduct(e.target.value)}
                 placeholder="Ignite HRMS"
-                style={{ width: "100%", padding: "8px", borderRadius: "8px", border: "1px solid #34d399", fontSize: "12px", marginTop: "4px" }}
+                className="visit-checkout__subform-input"
+                style={{ borderColor: "#34d399" }}
               />
             </div>
           </div>
@@ -623,7 +528,7 @@ const VisitCheckout = ({
       )}
 
       {/* ACTIONS */}
-      <div className="visit-checkout__actions" style={{ marginTop: "18px" }}>
+      <div className="visit-checkout__actions">
         <Button variant="outline" type="button" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>

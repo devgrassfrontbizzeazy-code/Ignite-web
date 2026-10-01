@@ -51,465 +51,554 @@ const VisitDetails = ({
     priority.toLowerCase() === "high"
       ? "#ef4444"
       : priority.toLowerCase() === "medium"
-      ? "#f59e0b"
-      : "#10b981";
+        ? "#f59e0b"
+        : "#10b981";
 
   return (
     <div className="visit-details">
-      {/* HERO / HEADER */}
-      <div className="visit-details__hero">
-        <div className="visit-details__company-icon">
-          {(visit.companyName || "C").slice(0, 1).toUpperCase()}
-        </div>
 
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-            <span className="visit-details__eyebrow">FIELD VISIT</span>
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: "700",
-                padding: "2px 8px",
-                borderRadius: "12px",
-                background: `${priorityColor}18`,
-                color: priorityColor,
-                border: `1px solid ${priorityColor}40`,
-                textTransform: "uppercase",
-              }}
-            >
-              ● {priority} Priority
-            </span>
+      {/* =========================================================
+        VISIT HEADER
+    ========================================================= */}
+      <section className="visit-details__header">
+
+        <div className="visit-details__identity">
+          <div className="visit-details__avatar">
+            {(visit.companyName || "C").charAt(0).toUpperCase()}
           </div>
 
-          <h3>{visit.companyName || "Client"}</h3>
-          <p style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <UserRound size={12} /> {visit.leadName || "Contact Person"}
-          </p>
+          <div className="visit-details__identity-content">
+            <div className="visit-details__eyebrow">
+              FIELD VISIT
+            </div>
+
+            <h2>
+              {visit.companyName || "Client"}
+            </h2>
+
+            <div className="visit-details__contact">
+              <UserRound size={13} />
+              <span>
+                {visit.leadName || "Contact Person"}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* QUICK ACTION BUTTONS (For Sales Rep) */}
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button
-          type="button"
-          onClick={handleOpenMaps}
-          style={{
-            flex: 1,
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            padding: "10px 14px",
-            borderRadius: "10px",
-            background: "#f1f5f9",
-            color: "#0f172a",
-            border: "1px solid #cbd5e1",
-            fontWeight: "600",
-            fontSize: "12px",
-            cursor: "pointer",
-          }}
-        >
-          <Compass size={16} color="#0284c7" />
-          Navigate (Maps)
-        </button>
-
-        {visit.contactPhone && (
-          <a
-            href={`tel:${visit.contactPhone}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "6px",
-              padding: "10px 14px",
-              borderRadius: "10px",
-              background: "#ecfdf5",
-              color: "#047857",
-              border: "1px solid #a7f3d0",
-              fontWeight: "600",
-              fontSize: "12px",
-              textDecoration: "none",
-            }}
-          >
-            <Phone size={15} /> Call
-          </a>
-        )}
-
-        {visit.visitStatus !== "CHECKED_OUT" &&
-          visit.visitStatus !== "COMPLETED" && (
-            <Button
-              variant="primary"
-              onClick={() => onStartVisit?.(visit)}
-              style={{ flex: 1.2 }}
-            >
-              <Play size={15} />
-              {visit.visitStatus === "CHECKED_IN" ||
-              visit.visitStatus === "IN_PROGRESS"
-                ? "Visit in Progress"
-                : "Start Visit"}
-            </Button>
-          )}
-      </div>
-
-      {/* STATUS BADGE */}
-      <div className="visit-details__status-row">
         <span
-          className={`visit-status visit-status--${String(
-            visit.visitStatus
-          ).toLowerCase()}`}
+          className={`visit-details__priority visit-details__priority--${priority.toLowerCase()}`}
         >
-          <span className="visit-status__dot" />
-          {visit.visitStatus === "CHECKED_IN" ||
-          visit.visitStatus === "IN_PROGRESS"
-            ? "Visit in progress"
-            : visit.visitStatus === "CHECKED_OUT" ||
-              visit.visitStatus === "COMPLETED"
-            ? "Visit completed"
-            : "Scheduled"}
+          {priority}
         </span>
 
-        {visit.clientResponse && (
-          <span className="visit-details__outcome">
-            Response: {visit.clientResponse}
+      </section>
+
+
+      {/* =========================================================
+        STATUS + ACTIONS
+    ========================================================= */}
+      <section className="visit-details__command">
+
+        <div className="visit-details__status-line">
+
+          <span
+            className={`visit-status visit-status--${String(
+              visit.visitStatus
+            ).toLowerCase()}`}
+          >
+            <span className="visit-status__dot" />
+
+            {visit.visitStatus === "CHECKED_IN" ||
+              visit.visitStatus === "IN_PROGRESS"
+              ? "In Progress"
+              : visit.visitStatus === "CHECKED_OUT" ||
+                visit.visitStatus === "COMPLETED"
+                ? "Completed"
+                : "Not Started"}
           </span>
-        )}
-      </div>
 
-      {/* MANAGER'S INSTRUCTIONS */}
-      {visit.instructions && (
-        <div
-          style={{
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-            borderRadius: "10px",
-            padding: "12px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              color: "#1d4ed8",
-              fontWeight: "700",
-              fontSize: "11px",
-              marginBottom: "4px",
-            }}
-          >
-            <AlertCircle size={14} /> MANAGER'S INSTRUCTIONS
-          </div>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "12px",
-              color: "#1e293b",
-              lineHeight: 1.5,
-              fontWeight: "500",
-            }}
-          >
-            "{visit.instructions}"
-          </p>
+          {visit.clientResponse && (
+            <span className="visit-details__response">
+              {visit.clientResponse}
+            </span>
+          )}
+
         </div>
-      )}
 
-      {/* INFORMATION GRID */}
-      <div className="visit-details__section">
-        <span className="visit-details__section-title">Visit Information</span>
 
-        <div className="visit-details__grid">
-          <div className="visit-details__item">
-            <CalendarDays size={16} />
+        <div className="visit-details__actions">
+
+          <button
+            type="button"
+            className="visit-details__action visit-details__action--navigate"
+            onClick={handleOpenMaps}
+          >
+            <Navigation size={15} />
+            Navigate
+          </button>
+
+          {visit.contactPhone && (
+            <a
+              href={`tel:${visit.contactPhone}`}
+              className="visit-details__action visit-details__action--call"
+            >
+              <Phone size={15} />
+              Call
+            </a>
+          )}
+
+          {visit.visitStatus !== "CHECKED_OUT" &&
+            visit.visitStatus !== "COMPLETED" && (
+              <Button
+                variant="primary"
+                onClick={() => onStartVisit?.(visit)}
+                className="visit-details__start"
+              >
+                <Play size={15} />
+
+                {visit.visitStatus === "CHECKED_IN" ||
+                  visit.visitStatus === "IN_PROGRESS"
+                  ? "Visit in Progress"
+                  : "Start Visit"}
+              </Button>
+            )}
+
+        </div>
+
+      </section>
+
+
+      {/* =========================================================
+        VISIT ESSENTIALS
+    ========================================================= */}
+      <section className="visit-details__block">
+
+        <div className="visit-details__block-heading">
+          <div>
+            <span>Visit Details</span>
+            <small>Schedule and assignment</small>
+          </div>
+        </div>
+
+
+        <div className="visit-details__details-grid">
+
+          <div className="visit-details__detail">
+            <div className="visit-details__detail-icon">
+              <CalendarDays size={15} />
+            </div>
+
             <div>
-              <small>Scheduled Date</small>
-              <strong>{visit.scheduledDate || "Today"}</strong>
+              <small>Date</small>
+              <strong>
+                {visit.scheduledDate || "Today"}
+              </strong>
             </div>
           </div>
 
-          <div className="visit-details__item">
-            <Clock3 size={16} />
+
+          <div className="visit-details__detail">
+            <div className="visit-details__detail-icon">
+              <Clock3 size={15} />
+            </div>
+
             <div>
-              <small>Scheduled Time</small>
-              <strong>{visit.scheduledTime || "11:00 AM"}</strong>
+              <small>Time</small>
+              <strong>
+                {visit.scheduledTime || "11:00 AM"}
+              </strong>
             </div>
           </div>
 
-          <div className="visit-details__item">
-            <FileText size={16} />
-            <div>
-              <small>Purpose</small>
-              <strong>{visit.purpose || "Product Demo & Pricing"}</strong>
-            </div>
-          </div>
 
-          <div className="visit-details__item">
-            <UserRound size={16} />
+          <div className="visit-details__detail">
+            <div className="visit-details__detail-icon">
+              <UserRound size={15} />
+            </div>
+
             <div>
               <small>Assigned To</small>
-              <strong>{visit.employeeName || "Sales Person"}</strong>
+              <strong>
+                {visit.employeeName || "Sales Person"}
+              </strong>
             </div>
           </div>
 
-          <div
-            className="visit-details__item"
-            style={{ gridColumn: "span 2" }}
-          >
-            <MapPin size={16} />
+
+          <div className="visit-details__detail">
+            <div className="visit-details__detail-icon">
+              <FileText size={15} />
+            </div>
+
             <div>
-              <small>Location Address</small>
-              <strong>{visit.location || "Client address"}</strong>
+              <small>Purpose</small>
+              <strong>
+                {visit.purpose || "Product Demo & Pricing"}
+              </strong>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* CHECK-IN & CHECK-OUT EXECUTION TRAIL CARD */}
-      <div className="visit-details__section">
-        <span className="visit-details__section-title">Field Visit Execution Trail</span>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "10px",
-            background: "#f8fafc",
-            padding: "12px",
-            borderRadius: "10px",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <div>
-            <small style={{ color: "#64748b", fontSize: "11px", display: "block", marginBottom: "2px" }}>
-              🟢 Check-In Time
-            </small>
-            <strong style={{ fontSize: "12px", color: (visit.checkInTime || visit.checkOutTime) ? "#0f172a" : "#94a3b8" }}>
-              {visit.checkInTime ? (
-                visit.checkInTime.includes("T")
-                  ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
-                  : visit.checkInTime
-              ) : visit.checkOutTime ? (
-                visit.checkOutTime.includes("T")
-                  ? new Date(new Date(visit.checkOutTime).getTime() - 15 * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
-                  : "Recorded at Check-in"
-              ) : (
-                "Pending Check-in"
-              )}
-            </strong>
+
+          <div className="visit-details__detail visit-details__detail--location">
+
+            <div className="visit-details__detail-icon">
+              <MapPin size={15} />
+            </div>
+
+            <div>
+              <small>Location</small>
+
+              <strong>
+                {visit.location || "Client address"}
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =========================================================
+        MANAGER INSTRUCTIONS
+    ========================================================= */}
+      {visit.instructions && (
+        <section className="visit-details__notice">
+
+          <div className="visit-details__notice-icon">
+            <AlertCircle size={15} />
           </div>
 
           <div>
-            <small style={{ color: "#64748b", fontSize: "11px", display: "block", marginBottom: "2px" }}>
-              🔴 Check-Out Time
-            </small>
-            <strong style={{ fontSize: "12px", color: visit.checkOutTime ? "#0f172a" : "#94a3b8" }}>
-              {visit.checkOutTime ? (
-                visit.checkOutTime.includes("T")
-                  ? new Date(visit.checkOutTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
-                  : visit.checkOutTime
-              ) : (
-                "Pending Checkout"
-              )}
-            </strong>
+            <span>Manager Instructions</span>
+
+            <p>
+              {visit.instructions}
+            </p>
           </div>
 
-          <div style={{ gridColumn: "span 2", paddingTop: "6px", borderTop: "1px dashed #cbd5e1" }}>
-            <small style={{ color: "#64748b", fontSize: "11px", display: "block", marginBottom: "2px" }}>
-              📍 On-Field Recorded Location
-            </small>
-            <strong style={{ fontSize: "11px", color: "#334155" }}>
-              {visit.checkInLatitude && visit.checkInLongitude
-                ? `${Number(visit.checkInLatitude).toFixed(5)}°, ${Number(visit.checkInLongitude).toFixed(5)}°`
-                : visit.leadLatitude && visit.leadLongitude
-                ? `${Number(visit.leadLatitude).toFixed(5)}°, ${Number(visit.leadLongitude).toFixed(5)}°`
-                : "GPS coordinates logged"}
-            </strong>
+        </section>
+      )}
+
+
+      {/* =========================================================
+        FIELD EXECUTION
+    ========================================================= */}
+      <section className="visit-details__block">
+
+        <div className="visit-details__block-heading">
+          <div>
+            <span>Visit Execution</span>
+            <small>On-field activity</small>
           </div>
         </div>
-      </div>
 
-      {/* LIVE RADAR CARD (if checked in or completed) */}
+
+        <div className="visit-details__execution">
+
+          <div className="visit-details__execution-step">
+
+            <div className="visit-details__execution-marker visit-details__execution-marker--start">
+              <span />
+            </div>
+
+            <div className="visit-details__execution-content">
+              <small>Check-in</small>
+
+              <strong>
+                {visit.checkInTime
+                  ? visit.checkInTime.includes("T")
+                    ? new Date(
+                      visit.checkInTime
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                    : visit.checkInTime
+                  : "Not recorded"}
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div className="visit-details__execution-line" />
+
+
+          <div className="visit-details__execution-step">
+
+            <div
+              className={`visit-details__execution-marker ${visit.checkOutTime
+                  ? "visit-details__execution-marker--complete"
+                  : "visit-details__execution-marker--pending"
+                }`}
+            >
+              <span />
+            </div>
+
+            <div className="visit-details__execution-content">
+              <small>Check-out</small>
+
+              <strong>
+                {visit.checkOutTime
+                  ? visit.checkOutTime.includes("T")
+                    ? new Date(
+                      visit.checkOutTime
+                    ).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                    : visit.checkOutTime
+                  : "Pending"}
+              </strong>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =========================================================
+        LOCATION VERIFICATION
+    ========================================================= */}
       {(visit.visitStatus === "CHECKED_IN" ||
         visit.visitStatus === "IN_PROGRESS" ||
         visit.visitStatus === "CHECKED_OUT" ||
         visit.visitStatus === "COMPLETED" ||
         visit.checkInTime) && (
-        <div className="visit-details__live-card">
-          <div className="visit-details__live-header">
-            <span className="visit-details__live-indicator">
-              <span />
-              ON-SITE GPS RECORDED
-            </span>
-            <Navigation size={15} />
-          </div>
 
-          <div className="visit-details__live-grid">
-            <div>
-              <small>Distance from Client</small>
-              <strong style={{ color: visit.isLocationOverridden ? "#dc2626" : "#059669" }}>
-                {visit.checkInDistanceMeters != null
-                  ? `${Math.round(visit.checkInDistanceMeters)}m`
-                  : visit.distance != null
-                  ? `${Math.round(visit.distance)}m`
-                  : "0m"}
-              </strong>
-            </div>
+          <section className="visit-details__location-card">
 
-            <div>
-              <small>Check-In Coordinates</small>
-              <strong style={{ fontSize: "11px" }}>
-                {visit.checkInLatitude && visit.checkInLongitude
-                  ? `${Number(visit.checkInLatitude).toFixed(4)}°, ${Number(visit.checkInLongitude).toFixed(4)}°`
-                  : visit.currentLatitude && visit.currentLongitude
-                  ? `${Number(visit.currentLatitude).toFixed(4)}°, ${Number(visit.currentLongitude).toFixed(4)}°`
-                  : "Captured"}
-              </strong>
-            </div>
+            <div className="visit-details__location-header">
 
-            <div>
-              <small>Check-In Time</small>
-              <strong>
-                {visit.checkInTime
-                  ? visit.checkInTime.includes("T")
-                    ? new Date(visit.checkInTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
-                    : visit.checkInTime
-                  : "Recorded"}
-              </strong>
-            </div>
-          </div>
-
-          {/* MANAGER OVERRIDE REASON DISPLAY */}
-          {visit.isLocationOverridden && (
-            <div
-              style={{
-                marginTop: "12px",
-                padding: "10px 12px",
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
-                borderRadius: "8px",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  color: "#b91c1c",
-                  fontWeight: "700",
-                  fontSize: "11px",
-                  marginBottom: "4px",
-                }}
-              >
-                <AlertCircle size={14} /> LOCATION OVERRIDE (CHECKED IN AWAY FROM PIN)
-              </div>
-              <div style={{ fontSize: "12px", color: "#7f1d1d", fontWeight: "600" }}>
-                Reason: {visit.overrideReason || "Other"}
-              </div>
-              {visit.overrideNotes && (
-                <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#991b1b", lineHeight: 1.4 }}>
-                  "{visit.overrideNotes}"
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* CLIENT RESPONSE & VISIT REPORT */}
-      {(visit.clientResponse || visit.feedback || visit.meetingNotes || visit.outcome || visit.outcomeDescription) && (
-        <div className="visit-details__section">
-          <span className="visit-details__section-title">
-            Visit Report & Client Response
-          </span>
-
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: "10px",
-              padding: "12px",
-            }}
-          >
-            {visit.clientResponse && (
-              <div style={{ marginBottom: "8px" }}>
-                <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>
-                  Client Decision / Outcome:
-                </span>
-                <span
-                  style={{
-                    display: "inline-block",
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                    background:
-                      visit.clientResponse === "Converted" || visit.clientResponse === "Deal Won"
-                        ? "#ecfdf5"
-                        : visit.clientResponse === "Not Interested" || visit.clientResponse === "Lost"
-                        ? "#fef2f2"
-                        : "#eff6ff",
-                    color:
-                      visit.clientResponse === "Converted" || visit.clientResponse === "Deal Won"
-                        ? "#047857"
-                        : visit.clientResponse === "Not Interested" || visit.clientResponse === "Lost"
-                        ? "#dc2626"
-                        : "#1d4ed8",
-                    fontWeight: "700",
-                    fontSize: "12px",
-                    marginTop: "2px",
-                  }}
-                >
-                  ● {visit.clientResponse}
-                </span>
-              </div>
-            )}
-
-            {(visit.feedback || visit.meetingNotes || visit.outcomeDescription || visit.outcome) && (
               <div>
-                <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>
-                  Meeting Feedback & Notes:
-                </span>
-                <p
-                  style={{
-                    margin: "4px 0 0",
-                    fontSize: "12px",
-                    color: "#1e293b",
-                    lineHeight: 1.5,
-                  }}
+                <span>Location Verification</span>
+                <small>GPS captured during visit</small>
+              </div>
+
+              <div className="visit-details__gps-status">
+                <span />
+                Recorded
+              </div>
+
+            </div>
+
+
+            <div className="visit-details__location-stats">
+
+              <div>
+                <small>Distance from client</small>
+
+                <strong
+                  className={
+                    visit.isLocationOverridden
+                      ? "is-warning"
+                      : ""
+                  }
                 >
-                  {visit.feedback || visit.meetingNotes || visit.outcomeDescription || visit.outcome}
-                </p>
+                  {visit.checkInDistanceMeters != null
+                    ? `${Math.round(
+                      visit.checkInDistanceMeters
+                    )}m`
+                    : visit.distance != null
+                      ? `${Math.round(visit.distance)}m`
+                      : "0m"}
+                </strong>
+              </div>
+
+
+              <div>
+                <small>Check-in coordinates</small>
+
+                <strong>
+                  {visit.checkInLatitude &&
+                    visit.checkInLongitude
+                    ? `${Number(
+                      visit.checkInLatitude
+                    ).toFixed(4)}°, ${Number(
+                      visit.checkInLongitude
+                    ).toFixed(4)}°`
+                    : "Captured"}
+                </strong>
+              </div>
+
+
+              <div>
+                <small>Check-in time</small>
+
+                <strong>
+                  {visit.checkInTime
+                    ? visit.checkInTime.includes("T")
+                      ? new Date(
+                        visit.checkInTime
+                      ).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                      : visit.checkInTime
+                    : "Recorded"}
+                </strong>
+              </div>
+
+            </div>
+
+
+            {visit.isLocationOverridden && (
+              <div className="visit-details__override">
+
+                <AlertCircle size={14} />
+
+                <div>
+                  <strong>
+                    Location override
+                  </strong>
+
+                  <span>
+                    {visit.overrideReason || "Other"}
+                  </span>
+
+                  {visit.overrideNotes && (
+                    <p>
+                      {visit.overrideNotes}
+                    </p>
+                  )}
+                </div>
+
               </div>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* PHOTOS (if any uploaded) */}
-      {Array.isArray(visit.photos) && visit.photos.length > 0 && (
-        <div className="visit-details__section">
-          <span className="visit-details__section-title">
-            Geo-stamped Proof Photos ({visit.photos.length})
-          </span>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            {visit.photos.map((p, idx) => (
-              <div
-                key={p.id || idx}
-                style={{
-                  width: "120px",
-                  borderRadius: "8px",
-                  overflow: "hidden",
-                  border: "1px solid #e2e8f0",
-                }}
-              >
-                <img
-                  src={p.photo_url || p.photo}
-                  alt="Visit proof"
-                  style={{ width: "100%", height: "90px", objectFit: "cover" }}
-                />
-                <div style={{ padding: "4px 6px", fontSize: "9px", color: "#64748b" }}>
-                  📷 {p.captured_at ? new Date(p.captured_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Photo"}
-                </div>
+          </section>
+        )}
+
+
+      {/* =========================================================
+        VISIT REPORT
+    ========================================================= */}
+      {(visit.clientResponse ||
+        visit.feedback ||
+        visit.meetingNotes ||
+        visit.outcome ||
+        visit.outcomeDescription) && (
+
+          <section className="visit-details__block">
+
+            <div className="visit-details__block-heading">
+              <div>
+                <span>Visit Report</span>
+                <small>Client response and meeting notes</small>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+
+
+            <div className="visit-details__report">
+
+              {visit.clientResponse && (
+                <div className="visit-details__report-outcome">
+
+                  <small>Client response</small>
+
+                  <span
+                    className={
+                      visit.clientResponse === "Converted" ||
+                        visit.clientResponse === "Deal Won"
+                        ? "won"
+                        : visit.clientResponse === "Not Interested" ||
+                          visit.clientResponse === "Lost"
+                          ? "lost"
+                          : "neutral"
+                    }
+                  >
+                    {visit.clientResponse}
+                  </span>
+
+                </div>
+              )}
+
+
+              {(visit.feedback ||
+                visit.meetingNotes ||
+                visit.outcomeDescription ||
+                visit.outcome) && (
+
+                  <div className="visit-details__notes">
+
+                    <small>Meeting notes</small>
+
+                    <p>
+                      {visit.feedback ||
+                        visit.meetingNotes ||
+                        visit.outcomeDescription ||
+                        visit.outcome}
+                    </p>
+
+                  </div>
+
+                )}
+
+            </div>
+
+          </section>
+        )}
+
+
+      {/* =========================================================
+        PHOTOS
+    ========================================================= */}
+      {Array.isArray(visit.photos) &&
+        visit.photos.length > 0 && (
+
+          <section className="visit-details__block">
+
+            <div className="visit-details__block-heading">
+              <div>
+                <span>
+                  Visit Photos
+                </span>
+
+                <small>
+                  {visit.photos.length} geo-stamped photo
+                  {visit.photos.length !== 1 ? "s" : ""}
+                </small>
+              </div>
+            </div>
+
+
+            <div className="visit-details__photos">
+
+              {visit.photos.map((photo, index) => (
+                <div
+                  key={photo.id || index}
+                  className="visit-details__photo"
+                >
+                  <img
+                    src={photo.photo_url || photo.photo}
+                    alt="Visit proof"
+                  />
+
+                  <span>
+                    {photo.captured_at
+                      ? new Date(
+                        photo.captured_at
+                      ).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                      : "Photo"}
+                  </span>
+                </div>
+              ))}
+
+            </div>
+
+          </section>
+        )}
+
     </div>
   );
 };

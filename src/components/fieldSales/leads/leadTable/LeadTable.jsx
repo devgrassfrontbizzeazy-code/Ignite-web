@@ -1,8 +1,9 @@
 import {
-  FiEye,
-  FiEdit2,
-  FiMapPin,
-} from "react-icons/fi";
+  Eye,
+  Edit2,
+  MapPin,
+  Users,
+} from "lucide-react";
 
 import IgniteLoader from "../../../common/IgniteLoader/IgniteLoader";
 
@@ -46,7 +47,7 @@ const LeadTable = ({
       <div className="lead-table-card lead-table-card--empty">
         <div className="lead-table-empty">
           <div className="lead-table-empty__icon">
-            <FiUsersIcon />
+            <Users size={24} />
           </div>
 
           <h3>No leads found</h3>
@@ -117,7 +118,7 @@ const LeadTable = ({
 
                 <td>
                   <div className="lead-table__location">
-                    <FiMapPin />
+                    <MapPin size={14} />
 
                     <span>
                       {lead.address || "Location not added"}
@@ -144,7 +145,7 @@ const LeadTable = ({
                       title="View Lead"
                       onClick={() => onView?.(lead)}
                     >
-                      <FiEye />
+                      <Eye size={15} />
                     </button>
 
                     <button
@@ -153,7 +154,7 @@ const LeadTable = ({
                       title="Edit Lead"
                       onClick={() => onEdit?.(lead)}
                     >
-                      <FiEdit2 />
+                      <Edit2 size={15} />
                     </button>
                   </div>
                 </td>
