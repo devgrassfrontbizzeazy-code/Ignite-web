@@ -24,6 +24,20 @@ api.interceptors.request.use(
 
     if (accessToken && !isPublicEndpoint) {
       config.headers.Authorization = `Bearer ${accessToken}`;
+
+      // Attach X-Company-ID if present in active user session to ensure tenant scoping
+      try {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          const compId = parsed.company_id || parsed.companyId || parsed.company?.id;
+          if (compId) {
+            config.headers["X-Company-ID"] = String(compId);
+          }
+        }
+      } catch (e) {
+        // ignore parse error
+      }
     } else if (!accessToken) {
       delete config.headers.Authorization;
     }
