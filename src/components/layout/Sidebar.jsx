@@ -420,9 +420,26 @@ export default function Sidebar({
   const [profileOpen, setProfileOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      return u.profile_photo_url || u.photo_url || u.profilePhotoUrl || u.photoUrl || null;
+    } catch {
+      return null;
+    }
+  });
 
   const [activeSystem, setActiveSystem] = useState(() => {
     return localStorage.getItem("ignite_active_system") || "hrms";
+  });
+
+  const [companyLogo, setCompanyLogo] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      return u.company_logo || u.company_logo_url || u.companyLogo || null;
+    } catch {
+      return null;
+    }
   });
 
   const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
@@ -462,6 +479,26 @@ export default function Sidebar({
         setUser(merged);
         localStorage.setItem("user", JSON.stringify(merged));
 
+        const userPhoto = merged.profile_photo_url || merged.photo_url || merged.profilePhotoUrl || merged.photoUrl;
+        if (userPhoto) {
+          setProfilePhoto(userPhoto);
+        }
+
+        const logoUrl = merged.company_logo || merged.company_logo_url || merged.companyLogo;
+        if (logoUrl) {
+          setCompanyLogo(logoUrl);
+        } else {
+          try {
+            const compRes = await import("../../services/api/companyAPI").then(m => m.getCompany());
+            const fetchedLogo = compRes?.data?.logo_url || compRes?.logo_url;
+            if (fetchedLogo) {
+              setCompanyLogo(fetchedLogo);
+            }
+          } catch {
+            // Ignore company get error
+          }
+        }
+
         if (merged.email) {
           try {
             const employeesResponse = await getEmployees();
@@ -476,20 +513,33 @@ export default function Sidebar({
               ? employees
               : [];
 
-            const matchedEmployee = employeeList.find(
+            let matchedEmployee = employeeList.find(
               (employee) =>
                 String(employee?.email || "").toLowerCase() ===
                 String(merged.email || "").toLowerCase(),
             );
+
+            if (!matchedEmployee && (merged.is_field_sales || merged.department === "Field Sales")) {
+              try {
+                const { getFieldSalesEmployees } = await import("../../services/api/fieldSalesAPI");
+                const fsRes = await getFieldSalesEmployees();
+                const fsList = Array.isArray(fsRes) ? fsRes : (Array.isArray(fsRes?.data) ? fsRes.data : []);
+                matchedEmployee = fsList.find(
+                  (item) => String(item?.email || "").toLowerCase() === String(merged.email || "").toLowerCase()
+                );
+              } catch (fsErr) {
+                console.warn("Field Sales employee lookup in sidebar failed:", fsErr);
+              }
+            }
 
             if (matchedEmployee) {
               const name =
                 matchedEmployee.fullName ||
                 matchedEmployee.full_name ||
                 [
-                  matchedEmployee.firstName,
-                  matchedEmployee.middleName,
-                  matchedEmployee.lastName,
+                  matchedEmployee.firstName || matchedEmployee.first_name,
+                  matchedEmployee.middleName || matchedEmployee.middle_name,
+                  matchedEmployee.lastName || matchedEmployee.last_name,
                 ]
                   .filter(Boolean)
                   .join(" ")
@@ -497,6 +547,16 @@ export default function Sidebar({
 
               if (name) {
                 setEmployeeName(name);
+              }
+
+              const empPhoto =
+                matchedEmployee.profile_photo_url ||
+                matchedEmployee.profilePhotoUrl ||
+                matchedEmployee.photo_url ||
+                matchedEmployee.photoUrl;
+
+              if (empPhoto) {
+                setProfilePhoto(empPhoto);
               }
             }
           } catch (employeeError) {
@@ -830,6 +890,7 @@ export default function Sidebar({
             src={darkLogo}
             alt="Ignite"
             className="sidebar__logo"
+            style={{ maxHeight: "36px", objectFit: "contain" }}
           />
         </div>
 
@@ -1070,7 +1131,15 @@ export default function Sidebar({
             aria-label="Open profile menu"
           >
             <span className="sidebar__profile-avatar">
-              {initials || "GU"}
+              {profilePhoto ? (
+                <img
+                  src={profilePhoto}
+                  alt={displayName}
+                  className="sidebar__profile-avatar-img"
+                />
+              ) : (
+                initials || "GU"
+              )}
             </span>
 
             <span className="sidebar__profile-info">

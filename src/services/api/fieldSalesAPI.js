@@ -19,13 +19,44 @@ export const getFieldSalesEmployee = async (id) => {
   return response.data;
 };
 
+const isFormDataRequired = (data) => {
+  if (data instanceof FormData) return true;
+  if (!data || typeof data !== "object") return false;
+  return Object.values(data).some(
+    (value) => value instanceof File || value instanceof Blob
+  );
+};
+
+const buildFormData = (data) => {
+  if (data instanceof FormData) return data;
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      if (value instanceof File || value instanceof Blob) {
+        formData.append(key, value);
+      } else if (typeof value === "object") {
+        formData.append(key, JSON.stringify(value));
+      } else {
+        formData.append(key, value);
+      }
+    }
+  });
+  return formData;
+};
+
 export const createFieldSalesEmployee = async (data) => {
-  const response = await api.post("/field-sales/employees/", data);
+  const hasFiles = isFormDataRequired(data);
+  const payload = hasFiles ? buildFormData(data) : data;
+  const headers = hasFiles ? { "Content-Type": "multipart/form-data" } : undefined;
+  const response = await api.post("/field-sales/employees/", payload, { headers });
   return response.data;
 };
 
 export const updateFieldSalesEmployee = async (id, data) => {
-  const response = await api.put(`/field-sales/employees/${id}/`, data);
+  const hasFiles = isFormDataRequired(data);
+  const payload = hasFiles ? buildFormData(data) : data;
+  const headers = hasFiles ? { "Content-Type": "multipart/form-data" } : undefined;
+  const response = await api.put(`/field-sales/employees/${id}/`, payload, { headers });
   return response.data;
 };
 

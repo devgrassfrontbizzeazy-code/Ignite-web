@@ -150,12 +150,30 @@ const Profile = () => {
       setEditLoading(true);
       setEditError("");
 
-      const response = await getEmployee(employee.id);
-      const employeeData = response?.data || response;
+      let employeeData = null;
+
+      if (employee?.isFieldSalesEmployee) {
+        try {
+          const { getFieldSalesEmployee } = await import("../../services/api/fieldSalesAPI");
+          const res = await getFieldSalesEmployee(employee.id);
+          employeeData = res?.data || res;
+        } catch {
+          employeeData = employee;
+        }
+      } else {
+        const response = await getEmployee(employee.id);
+        employeeData = response?.data || response;
+      }
 
       setEditEmployee({
         ...employeeData,
-
+        firstName: employeeData?.firstName || employeeData?.first_name || "",
+        middleName: employeeData?.middleName || employeeData?.middle_name || "",
+        lastName: employeeData?.lastName || employeeData?.last_name || "",
+        gender: employeeData?.gender || "",
+        dateOfBirth: employeeData?.dateOfBirth || employeeData?.date_of_birth || null,
+        phone: employeeData?.phone || "",
+        address: employeeData?.address || "",
         emergencyContact: {
           name:
             employeeData?.emergencyContact?.name ||
@@ -237,34 +255,62 @@ const Profile = () => {
       setSaveLoading(true);
       setEditError("");
 
-      const payload = {
-        firstName: editEmployee.firstName || "",
-        middleName: editEmployee.middleName || "",
-        lastName: editEmployee.lastName || "",
-        gender: editEmployee.gender || "",
-        dateOfBirth: editEmployee.dateOfBirth || null,
-        phone: editEmployee.phone || "",
-        address: editEmployee.address || "",
-        emergencyContact: {
-          name: editEmployee.emergencyContact?.name || "",
-          phone: editEmployee.emergencyContact?.phone || "",
-        },
-      };
+      let updatedEmployee = null;
 
-      /*
-       * The backend response exposes profile_photo_url.
-       * The upload field is profile_photo.
-       *
-       * patchEmployee() automatically converts this payload
-       * to FormData because profile_photo is a File.
-       */
-      if (profilePhotoFile) {
-        payload.profile_photo = profilePhotoFile;
+      if (employee?.isFieldSalesEmployee) {
+        const { updateFieldSalesEmployee } = await import("../../services/api/fieldSalesAPI");
+        const payload = {
+          first_name: editEmployee.firstName || "",
+          middle_name: editEmployee.middleName || "",
+          last_name: editEmployee.lastName || "",
+          gender: editEmployee.gender || "",
+          date_of_birth: editEmployee.dateOfBirth || null,
+          phone: editEmployee.phone || "",
+          address: editEmployee.address || "",
+        };
+
+        if (profilePhotoFile) {
+          payload.profile_photo = profilePhotoFile;
+        }
+
+        const res = await updateFieldSalesEmployee(employee.id, payload);
+        const data = res?.data || res;
+        updatedEmployee = {
+          ...employee,
+          ...data,
+          firstName: data.first_name || editEmployee.firstName,
+          middleName: data.middle_name || editEmployee.middleName,
+          lastName: data.last_name || editEmployee.lastName,
+          fullName: data.full_name || `${editEmployee.firstName} ${editEmployee.lastName}`.trim(),
+          phone: data.phone || editEmployee.phone,
+          address: data.address || editEmployee.address,
+          gender: data.gender || editEmployee.gender,
+          dateOfBirth: data.date_of_birth || editEmployee.dateOfBirth,
+          profile_photo_url: data.profile_photo_url || data.profilePhotoUrl || profilePhotoPreview || employee.profile_photo_url,
+          profilePhotoUrl: data.profile_photo_url || data.profilePhotoUrl || profilePhotoPreview || employee.profile_photo_url,
+        };
+      } else {
+        const payload = {
+          firstName: editEmployee.firstName || "",
+          middleName: editEmployee.middleName || "",
+          lastName: editEmployee.lastName || "",
+          gender: editEmployee.gender || "",
+          dateOfBirth: editEmployee.dateOfBirth || null,
+          phone: editEmployee.phone || "",
+          address: editEmployee.address || "",
+          emergencyContact: {
+            name: editEmployee.emergencyContact?.name || "",
+            phone: editEmployee.emergencyContact?.phone || "",
+          },
+        };
+
+        if (profilePhotoFile) {
+          payload.profile_photo = profilePhotoFile;
+        }
+
+        const response = await patchEmployee(employee.id, payload);
+        updatedEmployee = response?.data || response;
       }
-
-      const response = await patchEmployee(employee.id, payload);
-
-      const updatedEmployee = response?.data || response;
 
       setEmployee(updatedEmployee);
 
@@ -277,6 +323,21 @@ const Profile = () => {
         null;
 
       setProfilePhotoPreview(updatedPhoto);
+
+      // Sync updated user profile across components/sidebar
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+        const mergedUser = {
+          ...storedUser,
+          profile_photo_url: updatedPhoto,
+          photo_url: updatedPhoto,
+          full_name: updatedEmployee?.fullName || updatedEmployee?.full_name || storedUser.full_name,
+        };
+        localStorage.setItem("user", JSON.stringify(mergedUser));
+        window.dispatchEvent(new CustomEvent("ignite:user-updated", { detail: { user: mergedUser } }));
+      } catch (syncErr) {
+        console.warn("Could not sync user to localStorage:", syncErr);
+      }
 
       setIsEditOpen(false);
     } catch (err) {
@@ -325,23 +386,153 @@ const Profile = () => {
 
         setCurrentUser(user);
 
-        const employeeResponse = await getEmployees();
+        let matchedEmployee = null;
 
-        const employees = Array.isArray(employeeResponse)
-          ? employeeResponse
-          : Array.isArray(employeeResponse?.data)
-            ? employeeResponse.data
-            : Array.isArray(employeeResponse?.results)
-              ? employeeResponse.results
-              : [];
+        // 1. If user is in Field Sales, check Field Sales employees first
+        if (user?.is_field_sales || user?.department === "Field Sales") {
+          try {
+            const { getFieldSalesEmployees } = await import("../../services/api/fieldSalesAPI");
+            const fsRes = await getFieldSalesEmployees();
+            const fsEmployees = Array.isArray(fsRes)
+              ? fsRes
+              : Array.isArray(fsRes?.data)
+                ? fsRes.data
+                : [];
+            const fsMatched = fsEmployees.find(
+              (item) => item?.email?.toLowerCase() === user.email.toLowerCase()
+            );
+            if (fsMatched) {
+              matchedEmployee = {
+                id: fsMatched.id,
+                employeeCode: fsMatched.employee_code || fsMatched.employeeCode,
+                firstName: fsMatched.first_name || fsMatched.firstName,
+                middleName: fsMatched.middle_name || fsMatched.middleName,
+                lastName: fsMatched.last_name || fsMatched.lastName,
+                fullName: fsMatched.full_name || fsMatched.fullName || `${fsMatched.first_name || ""} ${fsMatched.last_name || ""}`.trim(),
+                email: fsMatched.email,
+                phone: fsMatched.phone,
+                gender: fsMatched.gender,
+                dateOfBirth: fsMatched.date_of_birth || fsMatched.dateOfBirth,
+                dateOfJoining: fsMatched.date_of_joining || fsMatched.dateOfJoining,
+                address: fsMatched.address,
+                employmentType: fsMatched.employment_type || fsMatched.employmentType || "Full Time",
+                employmentStatus: fsMatched.employment_status || fsMatched.employmentStatus || (fsMatched.is_active ? "Active" : "Inactive"),
+                invitationStatus: fsMatched.invitation_status || "ACCEPTED",
+                workLocation: fsMatched.work_location || "Field",
+                department: { name: "Field Sales" },
+                designation: {
+                  name: fsMatched.role,
+                  accessProfile: fsMatched.role === "Manager" ? "Manager" : "Sales Person",
+                },
+                reportingManager: fsMatched.reporting_manager_details || fsMatched.reporting_manager,
+                profile_photo_url: fsMatched.profile_photo_url || fsMatched.photo_url || user.profile_photo_url || user.photo_url,
+                effectivePermissions: user.permissions || [],
+                isFieldSalesEmployee: true,
+              };
+            }
+          } catch (fsErr) {
+            console.warn("Field Sales employee lookup error:", fsErr);
+          }
+        }
 
-        const matchedEmployee = employees.find(
-          (item) =>
-            item?.email?.toLowerCase() === user.email.toLowerCase(),
-        );
-
+        // 2. If still not matched, check HRMS employees
         if (!matchedEmployee) {
-          throw new Error("Your employee profile could not be found.");
+          try {
+            const employeeResponse = await getEmployees();
+            const employees = Array.isArray(employeeResponse)
+              ? employeeResponse
+              : Array.isArray(employeeResponse?.data)
+                ? employeeResponse.data
+                : Array.isArray(employeeResponse?.results)
+                  ? employeeResponse.results
+                  : [];
+
+            const hrmsMatched = employees.find(
+              (item) =>
+                item?.email?.toLowerCase() === user.email.toLowerCase(),
+            );
+            if (hrmsMatched) {
+              matchedEmployee = {
+                ...hrmsMatched,
+                profile_photo_url: hrmsMatched.profile_photo_url || hrmsMatched.profilePhotoUrl || user.profile_photo_url || user.photo_url,
+              };
+            }
+          } catch (empErr) {
+            console.warn("HRMS getEmployees failed or restricted:", empErr);
+          }
+        }
+
+        // 3. If still not matched, fallback check Field Sales employees
+        if (!matchedEmployee) {
+          try {
+            const { getFieldSalesEmployees } = await import("../../services/api/fieldSalesAPI");
+            const fsRes = await getFieldSalesEmployees();
+            const fsEmployees = Array.isArray(fsRes)
+              ? fsRes
+              : Array.isArray(fsRes?.data)
+                ? fsRes.data
+                : [];
+            const fsMatched = fsEmployees.find(
+              (item) => item?.email?.toLowerCase() === user.email.toLowerCase()
+            );
+            if (fsMatched) {
+              matchedEmployee = {
+                id: fsMatched.id,
+                employeeCode: fsMatched.employee_code || fsMatched.employeeCode,
+                firstName: fsMatched.first_name || fsMatched.firstName,
+                middleName: fsMatched.middle_name || fsMatched.middleName,
+                lastName: fsMatched.last_name || fsMatched.lastName,
+                fullName: fsMatched.full_name || fsMatched.fullName || `${fsMatched.first_name || ""} ${fsMatched.last_name || ""}`.trim(),
+                email: fsMatched.email,
+                phone: fsMatched.phone,
+                gender: fsMatched.gender,
+                dateOfBirth: fsMatched.date_of_birth || fsMatched.dateOfBirth,
+                dateOfJoining: fsMatched.date_of_joining || fsMatched.dateOfJoining,
+                address: fsMatched.address,
+                employmentType: fsMatched.employment_type || fsMatched.employmentType || "Full Time",
+                employmentStatus: fsMatched.employment_status || fsMatched.employmentStatus || (fsMatched.is_active ? "Active" : "Inactive"),
+                invitationStatus: fsMatched.invitation_status || "ACCEPTED",
+                workLocation: fsMatched.work_location || "Field",
+                department: { name: "Field Sales" },
+                designation: {
+                  name: fsMatched.role,
+                  accessProfile: fsMatched.role === "Manager" ? "Manager" : "Sales Person",
+                },
+                reportingManager: fsMatched.reporting_manager_details || fsMatched.reporting_manager,
+                profile_photo_url: fsMatched.profile_photo_url || fsMatched.photo_url || user.profile_photo_url || user.photo_url,
+                effectivePermissions: user.permissions || [],
+                isFieldSalesEmployee: true,
+              };
+            }
+          } catch (fsErr) {
+            console.warn("Field Sales employee fallback lookup error:", fsErr);
+          }
+        }
+
+        // Fallback to user data if still not found
+        if (!matchedEmployee) {
+          matchedEmployee = {
+            id: user.employee_id || user.id,
+            employeeCode: user.employee_id ? `EMP-${user.employee_id}` : "N/A",
+            firstName: user.first_name || user.username || "",
+            lastName: user.last_name || "",
+            fullName: user.full_name || user.username || "User",
+            email: user.email,
+            phone: user.phone || "",
+            gender: user.gender || "",
+            dateOfBirth: null,
+            dateOfJoining: null,
+            address: user.address || "",
+            employmentType: "Full Time",
+            employmentStatus: "Active",
+            invitationStatus: "ACCEPTED",
+            workLocation: "Office",
+            department: { name: user.department || "Field Sales" },
+            designation: { name: user.designation || user.role || "Employee", accessProfile: user.role || "Employee" },
+            reportingManager: null,
+            profile_photo_url: null,
+            effectivePermissions: user.permissions || [],
+          };
         }
 
         if (!isMounted) return;
@@ -646,46 +837,6 @@ const Profile = () => {
                   "Employee"
                 }
               />
-            </div>
-
-            <div className="profile-permissions">
-              <div className="profile-permissions-header">
-                <div>
-                  <h3>Effective Permissions</h3>
-                  <p>
-                    Permissions currently available to your account.
-                  </p>
-                </div>
-
-                <span className="profile-permission-count">
-                  {permissions.includes("*")
-                    ? "Full Access"
-                    : `${permissions.length} permissions`}
-                </span>
-              </div>
-
-              <div className="profile-permission-list">
-                {permissions.length > 0 ? (
-                  permissions.includes("*") ? (
-                    <span className="profile-permission-tag">
-                      Full system access
-                    </span>
-                  ) : (
-                    permissions.map((permission) => (
-                      <span
-                        className="profile-permission-tag"
-                        key={permission}
-                      >
-                        {permission}
-                      </span>
-                    ))
-                  )
-                ) : (
-                  <span className="profile-empty">
-                    No permissions assigned.
-                  </span>
-                )}
-              </div>
             </div>
           </Card>
         </div>

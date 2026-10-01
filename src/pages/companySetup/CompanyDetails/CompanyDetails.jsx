@@ -170,12 +170,30 @@ export default function CompanyDetails({ mode = "setup" }) {
         registration_no: form.registrationNumber,
       };
 
-      const updatedCompany = await updateCompany(payload);
+      if (form.companyLogoFile) {
+        payload.logo = form.companyLogoFile;
+      }
+
+      const updatedCompanyRes = await updateCompany(payload);
+      const updatedCompany = updatedCompanyRes?.data || updatedCompanyRes;
 
       updateCompanySetupData({
         ...form,
         ...(updatedCompany || {}),
       });
+
+      // Notify other parts of the app (like Sidebar) about company logo update
+      try {
+        const logoUrl = updatedCompany?.logo_url || updatedCompany?.logo;
+        if (logoUrl) {
+          const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+          const merged = { ...storedUser, company_logo: logoUrl, company_logo_url: logoUrl };
+          localStorage.setItem("user", JSON.stringify(merged));
+          window.dispatchEvent(new CustomEvent("ignite:user-updated", { detail: { user: merged } }));
+        }
+      } catch (syncErr) {
+        console.warn("Could not sync company logo:", syncErr);
+      }
 
       navigate("/organization-overview");
     } catch (err) {
