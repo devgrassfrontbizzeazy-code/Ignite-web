@@ -17,7 +17,13 @@ import Button from "../../../common/Button/Button";
 import BackButton from "../../../common/BackButton/BackButton";
 import DatePicker from "../../../common/DatePicker/DatePicker";
 import TimePicker from "../../../common/TimePicker/TimePicker";
-import { getFieldSalesEmployees, createFieldSalesLead } from "../../../../services/api/fieldSalesAPI";
+import IgniteLoader from "../../../common/IgniteLoader/IgniteLoader";
+import {
+  getFieldSalesEmployees,
+  createFieldSalesLead,
+  getFieldSalesLead,
+  updateFieldSalesLead,
+} from "../../../../services/api/fieldSalesAPI";
 import { useNotification } from "../../../../context/NotificationContext";
 
 import "./LeadForm.css";
@@ -65,6 +71,7 @@ const LeadForm = ({
     Array.isArray(propEmployees) ? propEmployees : []
   );
   const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [loadingLead, setLoadingLead] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
 
@@ -76,6 +83,63 @@ const LeadForm = ({
       });
     }
   }, [initialData]);
+
+  // Fetch lead data when in edit mode
+  useEffect(() => {
+    if (!id || initialData) return;
+
+    let isMounted = true;
+    const fetchLeadData = async () => {
+      try {
+        setLoadingLead(true);
+        const res = await getFieldSalesLead(id);
+        const lead = res?.data || res;
+        if (lead && isMounted) {
+          let firstName = lead.first_name || "";
+          let lastName = lead.last_name || "";
+          if (!firstName && lead.contact_name) {
+            const parts = lead.contact_name.trim().split(" ");
+            firstName = parts[0] || "";
+            lastName = parts.slice(1).join(" ") || "";
+          }
+
+          setFormData({
+            first_name: firstName,
+            last_name: lastName,
+            email: lead.email || "",
+            phone: lead.phone || "",
+            company_name: lead.company_name || "",
+            address: lead.address || "",
+            latitude: lead.latitude != null ? String(lead.latitude) : "",
+            longitude: lead.longitude != null ? String(lead.longitude) : "",
+            assigned_to: lead.assigned_to ? String(lead.assigned_to) : (lead.assigned_to_details?.id ? String(lead.assigned_to_details.id) : ""),
+            priority: lead.priority || "High",
+            visit_date: lead.visit_date || getToday(),
+            visit_time: lead.visit_time || "11:00",
+            visit_purpose: lead.visit_purpose || "Product Demo",
+            instructions: lead.visit_instructions || lead.instructions || lead.notes || "",
+            description: lead.description || lead.notes || "",
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch lead for editing:", err);
+        showNotification({
+          type: "error",
+          message: "Failed to load lead details for editing.",
+        });
+      } finally {
+        if (isMounted) {
+          setLoadingLead(false);
+        }
+      }
+    };
+
+    fetchLeadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, initialData]);
 
   useEffect(() => {
     if (Array.isArray(propEmployees) && propEmployees.length > 0) {
@@ -201,19 +265,27 @@ const LeadForm = ({
       };
 
 
-      await createFieldSalesLead(payload);
-      showNotification({
-        type: "success",
-        message: `Lead for ${formData.first_name} ${formData.last_name} created successfully!`,
-      });
+      if (isEditMode) {
+        await updateFieldSalesLead(id, payload);
+        showNotification({
+          type: "success",
+          message: `Lead for ${formData.first_name} ${formData.last_name} updated successfully!`,
+        });
+      } else {
+        await createFieldSalesLead(payload);
+        showNotification({
+          type: "success",
+          message: `Lead for ${formData.first_name} ${formData.last_name} created successfully!`,
+        });
+      }
       navigate("/field-sales/leads");
     } catch (err) {
-      console.error("Failed to create lead:", err);
+      console.error("Failed to save lead:", err);
       const errMsg =
         err.response?.data?.message ||
         (typeof err.response?.data === "object"
           ? JSON.stringify(err.response.data)
-          : "Failed to create lead. Please check the fields and try again.");
+          : "Failed to save lead. Please check the fields and try again.");
       setApiError(errMsg);
       showNotification({
         type: "error",
@@ -241,6 +313,22 @@ const LeadForm = ({
       ? "lead-form__field lead-form__field--error"
       : "lead-form__field";
   };
+
+  if (loadingLead) {
+    return (
+      <div className="lead-form-page">
+        <div className="lead-form-page__top">
+          <BackButton
+            label="Back to Leads"
+            onClick={() => navigate("/field-sales/leads")}
+          />
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "300px" }}>
+          <IgniteLoader message="Loading lead details..." />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="lead-form-page">

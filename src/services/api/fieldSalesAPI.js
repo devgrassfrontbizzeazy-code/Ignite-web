@@ -108,6 +108,16 @@ export const getFieldSalesLead = async (id) => {
   return response.data;
 };
 
+export const updateFieldSalesLead = async (id, data) => {
+  const response = await api.patch(`/field-sales/leads/${id}/`, data);
+  return response.data;
+};
+
+export const deleteFieldSalesLead = async (id) => {
+  const response = await api.delete(`/field-sales/leads/${id}/`);
+  return response.data;
+};
+
 export const getLeadTimelineHistory = async (leadId) => {
   const response = await api.get(`/field-sales/leads/${leadId}/timeline/`);
   return response.data;
