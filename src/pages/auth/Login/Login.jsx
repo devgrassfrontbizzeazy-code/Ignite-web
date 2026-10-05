@@ -75,17 +75,10 @@ const Login = () => {
       // LOGIN
       // ------------------------------------------
 
-      const response = await loginUser(
-        trimmedEmail,
-        password
-      );
-
-      
+      const response = await loginUser(trimmedEmail, password);
 
       if (response.status !== "success") {
-        throw new Error(
-          response.message || "Login failed."
-        );
+        throw new Error(response.message || "Login failed.");
       }
 
       const { user, tokens } = response;
@@ -94,25 +87,13 @@ const Login = () => {
       // SAVE AUTH DATA
       // ------------------------------------------
 
-      localStorage.setItem(
-        "accessToken",
-        tokens.access
-      );
+      localStorage.setItem("accessToken", tokens.access);
 
-      localStorage.setItem(
-        "refreshToken",
-        tokens.refresh
-      );
+      localStorage.setItem("refreshToken", tokens.refresh);
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify(user)
-      );
+      localStorage.setItem("user", JSON.stringify(user));
 
-      localStorage.setItem(
-        "ignite_authenticated",
-        "true"
-      );
+      localStorage.setItem("ignite_authenticated", "true");
 
       // ------------------------------------------
       // CHECK ROLE & COMPANY SETUP
@@ -125,9 +106,17 @@ const Login = () => {
         role.includes("MEMBER") ||
         role.includes("EMPLOYEE");
 
+      // Field Sales employees go directly to Field Sales
+      if (user?.is_field_sales === true) {
+        navigate("/field-sales", {
+          replace: true,
+        });
+        return;
+      }
+
       if (isEmployee) {
-        // Employees belong to an existing company — send directly to Dashboard
         const from = location.state?.from;
+
         navigate(from || "/dashboard", {
           replace: true,
         });
@@ -137,8 +126,6 @@ const Login = () => {
       try {
         const companyResponse = await getCompany();
 
-        
-
         /*
          * Company exists.
          * User has already completed company setup,
@@ -147,17 +134,11 @@ const Login = () => {
 
         const from = location.state?.from;
 
-        navigate(
-          from || "/dashboard",
-          {
-            replace: true,
-          }
-        );
-
+        navigate(from || "/dashboard", {
+          replace: true,
+        });
       } catch (companyError) {
-
-        const status =
-          companyError?.response?.status;
+        const status = companyError?.response?.status;
 
         /*
          * 404 means the authenticated organization admin
@@ -165,13 +146,9 @@ const Login = () => {
          */
 
         if (status === 404) {
-
-          navigate(
-            "/company-setup/company-details",
-            {
-              replace: true,
-            }
-          );
+          navigate("/company-setup/company-details", {
+            replace: true,
+          });
 
           return;
         }
@@ -195,27 +172,16 @@ const Login = () => {
          * A 500 / network error is a backend problem.
          */
 
-        console.error(
-          "Company setup check failed:",
-          companyError
-        );
+        console.error("Company setup check failed:", companyError);
 
         throw new Error(
-          "Unable to verify your company setup. Please try again."
+          "Unable to verify your company setup. Please try again.",
         );
       }
-
     } catch (err) {
+      console.error("Login error:", err);
 
-      console.error(
-        "Login error:",
-        err
-      );
-
-      setError(
-        getErrorMessage(err)
-      );
-
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -227,85 +193,48 @@ const Login = () => {
 
   return (
     <div className="login-container">
-
       {/* Back to Home */}
-<div className="login-back-button">
-  <BackButton
-    label="Back"
-    onClick={() => navigate("/")}
-  />
-</div>
+      <div className="login-back-button">
+        <BackButton label="Back" onClick={() => navigate("/")} />
+      </div>
 
       {/* Background Elements */}
       <div className="login-background-elements">
-
         <div className="background-shape bg-shape-1"></div>
 
         <div className="background-shape bg-shape-2"></div>
-
       </div>
 
       {/* Login Card */}
       <div className="login-card">
-
         {/* Logo */}
         <div className="login-header">
-
-          <img
-            src={logo}
-            alt="IGNITE Logo"
-            className="login-logo"
-          />
-
+          <img src={logo} alt="IGNITE Logo" className="login-logo" />
         </div>
 
         {/* Welcome Text */}
         <div className="login-welcome">
+          <h1>Welcome back</h1>
 
-          <h1>
-            Welcome back
-          </h1>
-
-          <p>
-            Sign in to access your IGNITE account
-          </p>
-
+          <p>Sign in to access your IGNITE account</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div
-            className="error-message"
-            role="alert"
-          >
+          <div className="error-message" role="alert">
             {error}
           </div>
         )}
 
         {/* Login Form */}
-        <form
-          onSubmit={handleSubmit}
-          className="login-form"
-          noValidate
-        >
-
+        <form onSubmit={handleSubmit} className="login-form" noValidate>
           {/* Email */}
           <div className="form-group">
-
-            <label htmlFor="email">
-              Email Address
-            </label>
+            <label htmlFor="email">Email Address</label>
 
             <div className="input-wrapper">
-
-              <div
-                className="input-icon"
-                aria-hidden="true"
-              >
-                <Mail
-                  size={18}
-                  strokeWidth={2}
-                />
+              <div className="input-icon" aria-hidden="true">
+                <Mail size={18} strokeWidth={2} />
               </div>
 
               <input
@@ -322,36 +251,20 @@ const Login = () => {
                 disabled={loading}
                 className="form-input"
               />
-
             </div>
-
           </div>
 
           {/* Password */}
           <div className="form-group">
-
-            <label htmlFor="password">
-              Password
-            </label>
+            <label htmlFor="password">Password</label>
 
             <div className="input-wrapper">
-
-              <div
-                className="input-icon"
-                aria-hidden="true"
-              >
-                <Lock
-                  size={18}
-                  strokeWidth={2}
-                />
+              <div className="input-icon" aria-hidden="true">
+                <Lock size={18} strokeWidth={2} />
               </div>
 
               <input
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
+                type={showPassword ? "text" : "password"}
                 id="password"
                 name="password"
                 placeholder="Enter your password"
@@ -369,83 +282,49 @@ const Login = () => {
                 type="button"
                 className="password-toggle"
                 onClick={togglePasswordVisibility}
-                aria-label={
-                  showPassword
-                    ? "Hide password"
-                    : "Show password"
-                }
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 disabled={loading}
               >
                 {showPassword ? (
-                  <EyeOff
-                    size={18}
-                    strokeWidth={2}
-                  />
+                  <EyeOff size={18} strokeWidth={2} />
                 ) : (
-                  <Eye
-                    size={18}
-                    strokeWidth={2}
-                  />
+                  <Eye size={18} strokeWidth={2} />
                 )}
               </button>
-
             </div>
-
           </div>
 
           {/* Remember Me & Forgot Password */}
           <div className="form-footer">
-
             <div className="remember-me">
-
               <input
                 type="checkbox"
                 id="remember"
                 name="rememberMe"
                 checked={rememberMe}
-                onChange={(e) =>
-                  setRememberMe(e.target.checked)
-                }
+                onChange={(e) => setRememberMe(e.target.checked)}
                 disabled={loading}
                 className="checkbox-input"
               />
 
-              <label
-                htmlFor="remember"
-                className="checkbox-label"
-              >
+              <label htmlFor="remember" className="checkbox-label">
                 Remember me
               </label>
-
             </div>
 
-            <Link
-              to="/forgot-password"
-              className="forgot-password-link"
-            >
+            <Link to="/forgot-password" className="forgot-password-link">
               Forgot password?
             </Link>
-
           </div>
 
           {/* Login Button */}
-          <button
-            type="submit"
-            className="login-button"
-            disabled={loading}
-          >
-            {loading
-              ? "Logging in..."
-              : "Log in"}
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Logging in..." : "Log in"}
           </button>
-
         </form>
-
       </div>
-
     </div>
   );
 };
 
 export default Login;
-

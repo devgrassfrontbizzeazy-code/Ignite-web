@@ -17,6 +17,7 @@ import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 import DashboardWidget from "../../components/dashboard/DashboardWidget/DashboardWidget";
 import SummaryWidget from "../../components/dashboard/widgets/generic/SummaryWidget/SummaryWidget";
+import ChartWidget from "../../components/dashboard/widgets/generic/ChartWidget/ChartWidget";
 
 import ApplyLeaveModal from "../../components/leave/ApplyLeaveModal/ApplyLeaveModal";
 import leaveApplicationAPI from "../../services/api/leaveApplicationAPI";
@@ -102,6 +103,25 @@ const SalesDashboard = () => {
   const hasAttendancePermission = useMemo(() => canViewAttendance(user), [user]);
   const hasLeavePermission = useMemo(() => canViewLeaves(user), [user]);
   const hasHolidayPermission = useMemo(() => canViewHolidays(user), [user]);
+
+  // Working Hours Chart Data for Attendance Graph
+  const attendanceChartData = useMemo(() => {
+    const history = hrmsData?.attendanceHistory;
+    const attendanceData = Array.isArray(history?.data)
+      ? history.data
+      : Array.isArray(history)
+      ? history
+      : [];
+
+    return attendanceData
+      .filter((item) => item?.status !== "Holiday")
+      .map((item) => ({
+        date: item?.attendanceDate || item?.date || "--",
+        hours: Number(
+          (Number(item?.workingSeconds || item?.working_seconds || 0) / 3600).toFixed(2)
+        ),
+      }));
+  }, [hrmsData?.attendanceHistory]);
 
   // Leave Modal State
   const [showApplyLeave, setShowApplyLeave] = useState(false);
@@ -611,6 +631,41 @@ const SalesDashboard = () => {
                 icon={Trophy}
               />
             </div>
+
+            {/* COMMON HRMS WIDGETS INTEGRATION */}
+            {hasAttendancePermission && <AttendanceWidget hrmsData={hrmsData} />}
+
+            {hasAttendancePermission && (
+              <div className="dashboard-grid__item" style={{ gridColumn: "span 8" }}>
+                <ChartWidget
+                  title="Working Hours"
+                  description="Daily working hours for the selected period."
+                  data={attendanceChartData}
+                  type="line"
+                  xKey="date"
+                  dataKey="hours"
+                  color="#0BA37F"
+                  valueFormatter={(value) => `${Number(value).toFixed(1)}h`}
+                  emptyMessage="No working hours data available."
+                  loading={hrmsData.loading}
+                />
+              </div>
+            )}
+
+            {hasLeavePermission && (
+              <LeaveWidget
+                loading={hrmsData.loading}
+                total={leaveTotal}
+                used={leaveUsed}
+                remaining={leaveRemaining}
+              />
+            )}
+
+            <QuickActions onApplyLeave={() => setShowApplyLeave(true)} />
+
+            {hasHolidayPermission && (
+              <HolidayWidget holidays={upcomingHolidaysList} loading={hrmsData.loading} />
+            )}
 
             {/* TEAM ACTIVITY SECTION */}
             <div className="dashboard-grid__item" style={{ gridColumn: "span 4" }}>

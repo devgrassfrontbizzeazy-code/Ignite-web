@@ -364,12 +364,12 @@ const FIELD_SALES_NAV_ITEMS = [
     icon: VisitsIcon,
     isPublic: true,
   },
-  {
-    label: "Customers",
-    path: "/field-sales/customers",
-    icon: CustomersIcon,
-    isPublic: true,
-  },
+  // {
+  //   label: "Customers",
+  //   path: "/field-sales/customers",
+  //   icon: CustomersIcon,
+  //   isPublic: true,
+  // },
   {
     label: "Attendance",
     path: "/attendance",
