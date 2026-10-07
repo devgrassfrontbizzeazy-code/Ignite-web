@@ -330,16 +330,16 @@ export default function App() {
                       />
 
 
+                      <Route path="/field-sales/leads" element={<Leads />} />
+                      <Route
+                        path="/field-sales/leads/add"
+                        element={<LeadForm />}
+                      />
+                      <Route
+                        path="/field-sales/leads/:id/edit"
+                        element={<LeadForm />}
+                      />
                       <Route element={<FieldSalesManagerGuard />}>
-                        <Route path="/field-sales/leads" element={<Leads />} />
-                        <Route
-                          path="/field-sales/leads/add"
-                          element={<LeadForm />}
-                        />
-                        <Route
-                          path="/field-sales/leads/:id/edit"
-                          element={<LeadForm />}
-                        />
                         <Route
                           path="/field-sales/employees"
                           element={<FieldSalesEmployees />}

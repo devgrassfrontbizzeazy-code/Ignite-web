@@ -16,6 +16,7 @@ import VisitCheckIn from "../../../components/fieldSales/visits/visitCheckIn/Vis
 import VisitCheckOut from "../../../components/fieldSales/visits/visitCheckOut/VisitCheckOut";
 import LocationPermissionModal from "../../../components/fieldSales/common/LocationPermissionModal/LocationPermissionModal";
 import { getCurrentUser, isFieldSalesManager, isSalesPerson } from "../../../utils/permissionUtils";
+import { useNotification } from "../../../context/NotificationContext";
 import {
   getFieldSalesVisits,
   getFieldSalesEmployees,
@@ -84,6 +85,7 @@ const normalizeVisitStatus = (statusStr) => {
 /* -------------------------------------------------------------------------- */
 
 const Visits = () => {
+  const { showNotification } = useNotification();
   const user = useMemo(() => getCurrentUser(), []);
   const isManager = isFieldSalesManager(user);
   const isSales = isSalesPerson(user);
@@ -107,6 +109,7 @@ const Visits = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
 
   const [currentUserLocation, setCurrentUserLocation] = useState({
     latitude: 28.4595,
@@ -713,38 +716,67 @@ const Visits = () => {
 
     const now = new Date();
     try {
+      setCheckoutSubmitting(true);
       await submitFieldSalesVisitReport(selectedVisit.id, reportData);
+
+      showNotification({
+        type: "success",
+        message: "Visit checked out and report submitted successfully!",
+      });
+
+      setVisits((currentVisits) =>
+        currentVisits.map((visit) =>
+          visit.id === selectedVisit.id
+            ? {
+              ...visit,
+              visitStatus: "COMPLETED",
+              clientResponse: reportData.client_response,
+              feedback: reportData.feedback,
+              photos: reportData.photos || [],
+              outcome: reportData.client_response,
+              checkOutTime: formatTime(now),
+            }
+            : visit
+        )
+      );
+
+      setSelectedVisit((current) => ({
+        ...current,
+        visitStatus: "COMPLETED",
+        clientResponse: reportData.client_response,
+        feedback: reportData.feedback,
+        photos: reportData.photos || [],
+        outcome: reportData.client_response,
+        checkOutTime: formatTime(now),
+      }));
+
+      setCheckOutOpen(false);
+      setDetailsOpen(false);
+
+      // Re-fetch from server to ensure database sync
+      try {
+        const refreshed = await getFieldSalesVisits();
+        const vList = refreshed?.data || (Array.isArray(refreshed) ? refreshed : []);
+        if (vList.length > 0) {
+          setVisits(vList);
+        }
+      } catch (refErr) {
+        console.warn("Could not reload visits after checkout:", refErr);
+      }
     } catch (err) {
-      console.warn("Backend report submission error:", err);
+      console.error("Backend report submission error:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        (typeof err.response?.data === "string" ? err.response.data : "") ||
+        "Failed to submit checkout report. Please check the entered details.";
+      showNotification({
+        type: "error",
+        message: errMsg,
+      });
+    } finally {
+      setCheckoutSubmitting(false);
     }
-
-    setVisits((currentVisits) =>
-      currentVisits.map((visit) =>
-        visit.id === selectedVisit.id
-          ? {
-            ...visit,
-            visitStatus: "CHECKED_OUT",
-            clientResponse: reportData.client_response,
-            feedback: reportData.feedback,
-            photos: reportData.photos || [],
-            outcome: reportData.client_response,
-            checkOutTime: formatTime(now),
-          }
-          : visit
-      )
-    );
-
-    setSelectedVisit((current) => ({
-      ...current,
-      visitStatus: "CHECKED_OUT",
-      clientResponse: reportData.client_response,
-      feedback: reportData.feedback,
-      photos: reportData.photos || [],
-      outcome: reportData.client_response,
-      checkOutTime: formatTime(now),
-    }));
-
-    setCheckOutOpen(false);
   };
 
 
@@ -786,7 +818,14 @@ const Visits = () => {
                 Schedule Visit
               </span>
             </Button>
-          ) : null
+          ) : (
+            <Button onClick={() => (window.location.href = "/field-sales/leads/add")}>
+              <span className="visits__button-content">
+                <Plus size={16} />
+                Add Lead
+              </span>
+            </Button>
+          )
         }
       />
 
@@ -946,6 +985,7 @@ const Visits = () => {
             visit={activeVisit}
             onComplete={handleCheckout}
             onCancel={() => setCheckOutOpen(false)}
+            submitting={checkoutSubmitting}
           />
         )}
       </Modal>

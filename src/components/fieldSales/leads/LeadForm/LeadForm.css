@@ -513,3 +513,139 @@
     width: 100%;
   }
 }
+
+/* ==========================================================================
+   USE CURRENT LOCATION BUTTON & WORKFLOW ENHANCEMENTS
+   ========================================================================== */
+
+.lead-form__section-heading--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.lead-form__locate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  border: 1px solid #c4b5fd;
+  background: #f5f3ff;
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lead-form__locate-btn:hover:not(:disabled) {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+  color: #5b21b6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
+}
+
+.lead-form__locate-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@keyframes spin-geo {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lead-form__spin {
+  animation: spin-geo 1s linear infinite;
+}
+
+/* DUPLICATE WARNING BANNER (Case 13) */
+
+.lead-form__duplicate-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  color: #92400e;
+}
+
+.lead-form__duplicate-warning svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #d97706;
+}
+
+.lead-form__duplicate-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.lead-form__duplicate-content strong {
+  font-weight: 700;
+  color: #78350f;
+}
+
+.lead-form__duplicate-content p {
+  margin: 0;
+  color: #92400e;
+}
+
+.lead-form__duplicate-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.lead-form__duplicate-confirm input {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  accent-color: #d97706;
+}
+
+/* TERRITORY & ASSIGNMENT HINTS */
+
+.lead-form__territory-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  color: #166534;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.lead-form__field-hint {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+.lead-form__field-hint--warn {
+  color: #d97706;
+  font-weight: 500;
+}

@@ -356,7 +356,7 @@ const FIELD_SALES_NAV_ITEMS = [
     label: "Leads",
     path: "/field-sales/leads",
     icon: LeadsIcon,
-    managerOnly: true,
+    isPublic: true,
   },
   {
     label: "Visits",

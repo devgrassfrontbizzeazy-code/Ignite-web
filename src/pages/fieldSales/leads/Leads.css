@@ -126,12 +126,154 @@
 
 .field-sales-leads-filters {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 190px 190px;
+  grid-template-columns: minmax(220px, 1fr) 170px 170px 170px;
   gap: 10px;
   padding: 16px;
   border: 1px solid var(--color-border);
   border-radius: 14px;
   background: var(--color-bg-surface);
+}
+
+/* User & Role Badges in Table */
+.field-sales-leads-user-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field-sales-leads-user-name {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+}
+
+.field-sales-leads-role-tag {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(15, 61, 62, 0.08);
+  color: var(--ignite-deep-teal);
+}
+
+.field-sales-leads-role-tag--manager {
+  background: rgba(212, 175, 55, 0.15);
+  color: #855e00;
+}
+
+/* Assignment Status Badges */
+.field-sales-assignment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.field-sales-assignment-badge--assigned {
+  background: rgba(11, 163, 127, 0.1);
+  color: #087f63;
+  border: 1px solid rgba(11, 163, 127, 0.2);
+}
+
+.field-sales-assignment-badge--unassigned {
+  background: #f1f3f5;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.field-sales-assignment-badge--pending {
+  background: #fff8e6;
+  color: #a06e00;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.field-sales-assignment-badge--escalated {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  animation: pulse-border 2s infinite ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: rgba(220, 38, 38, 0.3); }
+  50% { border-color: rgba(220, 38, 38, 0.8); }
+}
+
+/* Modal form layouts */
+.lead-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 6px 0;
+}
+
+.lead-modal-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.lead-modal-summary__title {
+  color: var(--ignite-deep-teal);
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+}
+
+.lead-modal-summary__detail {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.lead-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lead-modal-field label {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.lead-modal-field textarea,
+.lead-modal-field input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.lead-modal-field textarea:focus,
+.lead-modal-field input[type="text"]:focus {
+  border-color: var(--ignite-emerald);
+}
+
+.lead-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 /* =========================
