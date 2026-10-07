@@ -391,6 +391,22 @@ const LeadForm = ({
     try {
       setIsSubmitting(true);
       setApiError("");
+
+      const formatTimeTo24Hour = (timeStr) => {
+        if (!timeStr) return "11:00";
+        const str = String(timeStr).trim();
+        const match = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+        if (!match) return str;
+        let [_, hours, minutes, modifier] = match;
+        let h = parseInt(hours, 10);
+        if (modifier) {
+          const mod = modifier.toUpperCase();
+          if (mod === "PM" && h < 12) h += 12;
+          if (mod === "AM" && h === 12) h = 0;
+        }
+        return `${String(h).padStart(2, "0")}:${minutes}`;
+      };
+
       const payload = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -398,12 +414,12 @@ const LeadForm = ({
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         address: formData.address.trim(),
-        latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude),
+        latitude: !isNaN(parseFloat(formData.latitude)) ? parseFloat(formData.latitude) : null,
+        longitude: !isNaN(parseFloat(formData.longitude)) ? parseFloat(formData.longitude) : null,
         assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
         priority: formData.priority || "High",
         visit_date: formData.visit_date || getToday(),
-        visit_time: formData.visit_time || "11:00",
+        visit_time: formatTimeTo24Hour(formData.visit_time),
         visit_purpose: formData.visit_purpose || "Product Demo",
         visit_instructions: formData.instructions || "",
         notes: formData.instructions || "",
