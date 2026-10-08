@@ -125,7 +125,7 @@ const Visits = () => {
       if (!silent) setLoading(true);
       const [visitsRes, empsRes] = await Promise.allSettled([
         getFieldSalesVisits(),
-        isManager ? getFieldSalesEmployees({ role: "SALES_PERSON" }) : Promise.resolve(null),
+        isManager ? getFieldSalesEmployees() : Promise.resolve(null),
       ]);
 
       if (visitsRes.status === "fulfilled") {
@@ -183,13 +183,18 @@ const Visits = () => {
         const empData = empsRes.value?.data || empsRes.value?.results || empsRes.value || [];
         if (Array.isArray(empData)) {
           setEmployees(
-            empData.map((e) => ({
-              id: String(e.id),
-              name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
-              role: e.role || "Sales Person",
-              email: e.email,
-              phone: e.phone_number || e.phone,
-            }))
+            empData
+              .filter((e) => {
+                const r = String(e.role || "").toUpperCase();
+                return r !== "MANAGER" && !r.includes("MANAGER");
+              })
+              .map((e) => ({
+                id: String(e.id),
+                name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
+                role: e.role || "Sales Person",
+                email: e.email,
+                phone: e.phone_number || e.phone,
+              }))
           );
         }
       }
@@ -341,7 +346,7 @@ const Visits = () => {
     };
 
     fetchTeamLive();
-    const interval = setInterval(fetchTeamLive, 12000);
+    const interval = setInterval(fetchTeamLive, 6000);
 
     return () => {
       isMounted = false;
