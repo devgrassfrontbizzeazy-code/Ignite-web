@@ -509,6 +509,7 @@ const Visits = () => {
         name: emp.name,
         role: emp.role || "Sales Person",
         phone: emp.phone,
+        hasLiveGps: false,
         latitude: null,
         longitude: null,
         isActiveTracking: false,
@@ -530,6 +531,7 @@ const Visits = () => {
         name: v.employeeName,
         role: v.employeeRole || "Sales Person",
         phone: "",
+        hasLiveGps: false,
         latitude: null,
         longitude: null,
         isActiveTracking: false,
@@ -558,7 +560,10 @@ const Visits = () => {
       const empId = String(loc.id || loc.employee_id || loc.employee);
       const existing = map.get(empId);
       if (existing) {
-        if (loc.latitude != null) existing.latitude = Number(loc.latitude);
+        if (loc.latitude != null) {
+          existing.latitude = Number(loc.latitude);
+          existing.hasLiveGps = true;
+        }
         if (loc.longitude != null) existing.longitude = Number(loc.longitude);
         if (loc.accuracy != null) existing.accuracy = Number(loc.accuracy || 8);
         existing.isActiveTracking = Boolean(loc.is_active_tracking);
@@ -570,6 +575,7 @@ const Visits = () => {
           id: empId,
           name: loc.name || loc.employee_name,
           role: "Sales Person",
+          hasLiveGps: loc.latitude != null,
           latitude: loc.latitude != null ? Number(loc.latitude) : null,
           longitude: loc.longitude != null ? Number(loc.longitude) : null,
           accuracy: Number(loc.accuracy || 8),
@@ -585,11 +591,11 @@ const Visits = () => {
     return Array.from(map.values());
   }, [filteredVisits, employees, liveLocations]);
 
-  // Check for inactive employees to alert Manager
+  // Check for inactive employees to alert Manager (only if they have live GPS history and stopped sending)
   const inactiveEmployees = useMemo(() => {
     if (!isManager) return [];
     return filteredMapEmployees.filter(
-      (emp) => emp.latitude != null && emp.isActiveTracking === false
+      (emp) => emp.hasLiveGps && emp.isActiveTracking === false
     );
   }, [isManager, filteredMapEmployees]);
 
