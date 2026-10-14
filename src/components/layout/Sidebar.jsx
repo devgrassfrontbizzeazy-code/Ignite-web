@@ -62,6 +62,13 @@ const DepartmentsIcon = () => (
     <path d="M10 7.5v3M10 10.5H5.75v2M10 10.5h4.25v2" />
   </svg>
 );
+const AccountIcon = () => (
+  <svg {...iconProps}>
+    <rect x="2.5" y="4" width="15" height="12" rx="2" />
+    <path d="M2.5 8h15" />
+    <path d="M6 12h3" />
+  </svg>
+);
 
 const DesignationsIcon = () => (
   <svg {...iconProps}>
@@ -326,6 +333,12 @@ const NAV_ITEMS = [
     icon: HolidaysIcon,
     isEmployeeDefault: true,
     permission: "view_holiday",
+  },
+  {
+    label: "Account",
+    path: "/account/payslips",
+    icon: AccountIcon,
+    adminOnly: true,
   },
   {
     label: "Settings",
@@ -818,13 +831,13 @@ export default function Sidebar({
   const currentWorkspace =
     activeSystem === "field-sales"
       ? {
-          name: "Field Sales",
-          icon: BriefcaseBusinessIcon,
-        }
+        name: "Field Sales",
+        icon: BriefcaseBusinessIcon,
+      }
       : {
-          name: "HRMS",
-          icon: OrganizationIcon,
-        };
+        name: "HRMS",
+        icon: OrganizationIcon,
+      };
 
   const CurrentWorkspaceIcon = currentWorkspace.icon;
 
@@ -944,9 +957,8 @@ export default function Sidebar({
 
                 {fieldSalesEnabled && (
                   <span
-                    className={`sidebar__workspace-chevron ${
-                      workspaceOpen ? "is-open" : ""
-                    }`}
+                    className={`sidebar__workspace-chevron ${workspaceOpen ? "is-open" : ""
+                      }`}
                   >
                     <WorkspaceChevronIcon />
                   </span>
@@ -1016,8 +1028,7 @@ export default function Sidebar({
                     to={path}
                     end
                     className={({ isActive }) =>
-                      `sidebar__nav-item${
-                        isActive ? " is-active" : ""
+                      `sidebar__nav-item${isActive ? " is-active" : ""
                       }`
                     }
                     title={collapsed ? label : undefined}
@@ -1043,10 +1054,9 @@ export default function Sidebar({
                             key={childPath}
                             to={childPath}
                             className={({ isActive }) =>
-                              `sidebar__nav-item sidebar__nav-item--child${
-                                isActive
-                                  ? " is-active"
-                                  : ""
+                              `sidebar__nav-item sidebar__nav-item--child${isActive
+                                ? " is-active"
+                                : ""
                               }`
                             }
                           >
@@ -1072,8 +1082,7 @@ export default function Sidebar({
                 to={path}
                 end
                 className={({ isActive }) =>
-                  `sidebar__nav-item${
-                    isActive ? " is-active" : ""
+                  `sidebar__nav-item${isActive ? " is-active" : ""
                   }`
                 }
                 title={collapsed ? label : undefined}
@@ -1124,9 +1133,8 @@ export default function Sidebar({
 
           <button
             type="button"
-            className={`sidebar__profile${
-              profileOpen ? " is-open" : ""
-            }`}
+            className={`sidebar__profile${profileOpen ? " is-open" : ""
+              }`}
             aria-expanded={profileOpen}
             aria-label="Open profile menu"
           >

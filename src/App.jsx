@@ -84,6 +84,9 @@ import Visits from "./pages/fieldSales/visits/Visits";
 import SalesDashboard from "./pages/fieldSales/SalesDashboard";
 
 
+import Payslips from "./pages/account/Payslips";
+
+
 /* =========================================================
    TEMPORARY / DASHBOARD
 ========================================================= */
@@ -430,6 +433,11 @@ export default function App() {
                         />
 
                         <Route path="/settings" element={<Settings />} />
+
+                        <Route
+                          path="/account/payslips"
+                          element={<Payslips />}
+                        />
                       </Route>
 
                       {/* =================================================
