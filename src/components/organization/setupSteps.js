@@ -81,8 +81,8 @@ const SETUP_STEPS = [
       'Configure payroll cycle, salary and deduction settings.',
     completed: false,
     actionLabel: 'Configure',
+    path: '/account/payroll-settings',
   },
 ];
 
 export default SETUP_STEPS;
-

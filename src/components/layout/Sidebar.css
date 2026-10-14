@@ -43,41 +43,45 @@
    ========================================================================== */
 
 .sidebar__header {
-  height: 72px;
-  min-height: 72px;
-
+  height: 80px;
+  min-height: 80px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  padding: 0 18px;
-
+  padding: 0 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-
   flex-shrink: 0;
 }
 
 .sidebar__brand {
   display: flex;
   align-items: center;
-
+  justify-content: flex-start;
+  flex: 1;
   min-width: 0;
+  height: 100%;
   overflow: hidden;
 }
 
 .sidebar__logo {
   display: block;
-
-  width: 145px;
-  height: 54px;
-
+  width: 150px;
+  height: 50px;
+  max-width: 100%;
   object-fit: contain;
-
+  object-position: left center;
+  flex-shrink: 0;
   transition: opacity 180ms ease;
 }
 
 .sidebar__logo:hover {
   opacity: 0.92;
+}
+
+/* Keep the logo properly sized when the sidebar expands on hover */
+.sidebar--collapsed:hover .sidebar__logo {
+  width: 170px;
+  height: 60px;
 }
 
 
@@ -397,7 +401,7 @@
 
   color: rgba(255, 255, 255, 0.62);
 
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
 
   white-space: nowrap;
@@ -622,7 +626,7 @@
 
   color: #ffffff;
 
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 
   line-height: 1.35;
@@ -719,7 +723,7 @@
 
   color: rgba(255, 255, 255, 0.78);
 
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
 
   text-align: left;

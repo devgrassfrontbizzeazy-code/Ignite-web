@@ -85,7 +85,11 @@ import SalesDashboard from "./pages/fieldSales/SalesDashboard";
 
 
 import Payslips from "./pages/account/Payslips";
-
+import SalaryStructures from "./pages/account/SalaryStructures/SalaryStructures";
+import ProcessPayroll from "./pages/account/ProcessPayroll/ProcessPayroll";
+import PayrollHistory from "./pages/account/PayrollHistory/PayrollHistory";
+import EmployeeSelfService from "./pages/account/EmployeeSelfService/EmployeeSelfService";
+import PayrollSettings from "./pages/account/PayrollSettings/PayrollSettings";
 
 /* =========================================================
    TEMPORARY / DASHBOARD
@@ -438,6 +442,29 @@ export default function App() {
                           path="/account/payslips"
                           element={<Payslips />}
                         />
+                        <Route
+                          path="/account/salary-structures"
+                          element={<SalaryStructures />}
+                        />
+
+                        <Route
+                          path="/account/process-payroll"
+                          element={<ProcessPayroll />}
+                        />
+
+                        <Route
+                          path="/account/payroll-history"
+                          element={<PayrollHistory />}
+                        />
+                        <Route
+                          path="/account/payroll-settings"
+                          element={<PayrollSettings />}
+                        />
+                        <Route
+                          path="/account/my-payroll"
+                          element={<EmployeeSelfService />}
+                        />
+
                       </Route>
 
                       {/* =================================================

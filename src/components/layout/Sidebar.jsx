@@ -903,7 +903,7 @@ export default function Sidebar({
             src={darkLogo}
             alt="Ignite"
             className="sidebar__logo"
-            style={{ maxHeight: "36px", objectFit: "contain" }}
+
           />
         </div>
 

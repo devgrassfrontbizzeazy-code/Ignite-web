@@ -49,6 +49,14 @@ const extractList = (response) => {
   return [];
 };
 
+const readPayrollSettings = () => {
+  try {
+    return JSON.parse(localStorage.getItem("ignite_payroll_settings") || "null");
+  } catch {
+    return null;
+  }
+};
+
 const normalizeCompany = (raw) => {
   const c = raw?.company || raw?.data || raw?.result || raw || {};
 
@@ -285,6 +293,7 @@ export default function OrganizationOverview() {
   const [workSchedule, setWorkSchedule] = useState(null);
   const [leavePolicies, setLeavePolicies] = useState([]);
   const [holidays, setHolidays] = useState([]);
+  const [payrollSettings, setPayrollSettings] = useState(readPayrollSettings);
   const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
     return localStorage.getItem("ignite_field_sales_enabled") === "true";
   });
@@ -374,6 +383,31 @@ export default function OrganizationOverview() {
     loadOverview();
   }, []);
 
+  useEffect(() => {
+    const handlePayrollSettingsUpdate = (event) => {
+      const nextSettings = event.detail ?? readPayrollSettings();
+      setPayrollSettings(nextSettings);
+    };
+    const handleStorage = (event) => {
+      if (event.key === "ignite_payroll_settings") {
+        setPayrollSettings(readPayrollSettings());
+      }
+    };
+
+    window.addEventListener(
+      "ignite:payroll-settings-updated",
+      handlePayrollSettingsUpdate,
+    );
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(
+        "ignite:payroll-settings-updated",
+        handlePayrollSettingsUpdate,
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   const handleRefresh = () => {
     loadOverview(true);
   };
@@ -386,6 +420,7 @@ export default function OrganizationOverview() {
     workSchedule,
     leavePolicies,
     holidays,
+    payrollSettings,
   });
 
   if (loading) {

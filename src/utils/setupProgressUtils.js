@@ -1,6 +1,5 @@
 /**
- * Organization Setup Progress Single Source of Truth Utility
- * Determines setup completion strictly from actual backend API responses.
+ * Calculates organization setup progress from API data and validated payroll preferences.
  */
 
 const extractList = (response) => {
@@ -50,6 +49,23 @@ const isWorkScheduleConfigured = (workScheduleData) => {
   return Boolean(shifts.length > 0 || defaultShiftId || hasActiveDay);
 };
 
+export const isPayrollSettingsConfigured = (settings) => {
+  if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+    return false;
+  }
+
+  const payrollDay = Number(settings.payrollDay);
+
+  return (
+    settings.payrollCycle === "Monthly" &&
+    Number.isInteger(payrollDay) &&
+    payrollDay >= 1 &&
+    payrollDay <= 28 &&
+    ["April–March", "January–December"].includes(settings.financialYear) &&
+    ["INR", "USD", "GBP", "EUR"].includes(settings.currency)
+  );
+};
+
 export const getOrganizationSetupItems = ({
   company = null,
   departments = [],
@@ -58,6 +74,7 @@ export const getOrganizationSetupItems = ({
   workSchedule = null,
   leavePolicies = [],
   holidays = [],
+  payrollSettings = null,
 } = {}) => {
   const comp = company?.data || company || {};
 
@@ -102,6 +119,14 @@ export const getOrganizationSetupItems = ({
       complete: Boolean(currency && currency !== "—"),
       action: "Edit",
       path: "/company/business-settings/edit",
+    },
+    {
+      key: "payroll_settings",
+      label: "Payroll Settings",
+      description: "Configure payroll cycle, salary and deduction settings",
+      complete: isPayrollSettingsConfigured(payrollSettings),
+      action: "Configure",
+      path: "/account/payroll-settings",
     },
     {
       key: "departments",

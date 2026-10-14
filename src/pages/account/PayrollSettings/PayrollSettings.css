@@ -1,0 +1,437 @@
+/* ==========================================================================
+   IGNITE — PAYROLL SETTINGS
+   Visual reference: Attendance Page & Design Tokens
+   ========================================================================== */
+
+.payroll-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  padding: 26px 28px;
+  box-sizing: border-box;
+  background: var(--color-bg-page, #f8fafb);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  color: var(--color-text-primary, #1a1f24);
+}
+
+.payroll-settings-page * {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   HEADER ACTIONS
+   ========================================================================== */
+
+.payroll-settings-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   STATUS & INFO BANNERS (Matches Attendance Info Banners)
+   ========================================================================== */
+
+.payroll-settings-success {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid #c1ebde;
+  border-radius: 14px;
+  background: #f0fdf9;
+  color: #065f46;
+}
+
+.payroll-settings-success svg {
+  color: var(--ignite-emerald);
+  flex-shrink: 0;
+}
+
+.payroll-settings-success strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ignite-deep-teal);
+}
+
+.payroll-settings-success span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #047857;
+}
+
+.payroll-settings-notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid #c1ebde;
+  border-radius: 14px;
+  background: #f0fdf9;
+}
+
+.payroll-settings-notice svg {
+  color: var(--ignite-emerald);
+  flex-shrink: 0;
+}
+
+.payroll-settings-notice p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   SETTINGS SECTION CARDS
+   ========================================================================== */
+
+.payroll-settings-card {
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-bg-surface);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 22px;
+}
+
+.payroll-settings-card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.payroll-settings-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  flex-shrink: 0;
+}
+
+.payroll-settings-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.payroll-settings-card-heading h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+}
+
+.payroll-settings-card-heading p {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   FORM FIELDS
+   ========================================================================== */
+
+.payroll-settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.payroll-settings-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.payroll-settings-field label {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 7px;
+}
+
+.payroll-settings-field select,
+.payroll-settings-field input,
+.payroll-settings-field textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
+}
+
+.payroll-settings-field textarea {
+  min-height: 84px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.payroll-settings-field select:focus,
+.payroll-settings-field input:focus,
+.payroll-settings-field textarea:focus {
+  border-color: var(--ignite-emerald);
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.15);
+  background: var(--color-bg-surface);
+}
+
+.payroll-settings-field small {
+  margin-top: 6px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.payroll-settings-footer-field {
+  margin-top: 20px;
+}
+
+/* ==========================================================================
+   COMPONENT TOGGLE LIST
+   ========================================================================== */
+
+.payroll-settings-component-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.payroll-settings-component {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  transition: border-color 0.15s ease;
+}
+
+.payroll-settings-component:hover {
+  border-color: #cbd5e1;
+}
+
+.payroll-settings-component-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.payroll-settings-component-copy strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.payroll-settings-component-copy span {
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.payroll-settings-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-earning {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.type-deduction {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   TOGGLE SWITCH (Matches Ignite Modern Switch Design)
+   ========================================================================== */
+
+.settings-toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-border);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+}
+
+.settings-toggle:focus-visible {
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.35);
+}
+
+.settings-toggle span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.settings-toggle.is-on {
+  background: var(--ignite-emerald);
+}
+
+.settings-toggle.is-on span {
+  transform: translateX(20px);
+}
+
+.payroll-settings-inline-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--color-bg-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.payroll-settings-inline-note svg {
+  color: var(--ignite-deep-teal);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   PAYSLIP PREFERENCES LIST
+   ========================================================================== */
+
+.payroll-settings-preferences {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.payroll-settings-preference {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+}
+
+.payroll-settings-preference > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.payroll-settings-preference strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.payroll-settings-preference span {
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   BOTTOM ACTIONS BAR
+   ========================================================================== */
+
+.payroll-settings-bottom-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.payroll-settings-bottom-actions span {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   RESPONSIVE (Matches Attendance Breakpoints)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .payroll-settings-fields,
+  .payroll-settings-component-list,
+  .payroll-settings-preferences {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .payroll-settings-page {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .payroll-settings-page {
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .payroll-settings-card {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .payroll-settings-header-actions {
+    width: 100%;
+  }
+
+  .payroll-settings-header-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .payroll-settings-bottom-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    text-align: center;
+  }
+}

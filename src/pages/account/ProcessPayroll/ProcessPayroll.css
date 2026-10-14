@@ -1,0 +1,583 @@
+/* ==========================================================================
+   IGNITE — PROCESS PAYROLL
+   Visual reference: Attendance Page & Design Tokens
+   ========================================================================== */
+
+.process-payroll-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  padding: 26px 28px;
+  box-sizing: border-box;
+  background: var(--color-bg-page, #f8fafb);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  color: var(--color-text-primary, #1a1f24);
+}
+
+.process-payroll-page * {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   NOTICE & WARNING BANNERS (Matches Attendance Info Banners)
+   ========================================================================== */
+
+.process-payroll-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid #c1ebde;
+  border-radius: 14px;
+  background: #f0fdf9;
+}
+
+.process-payroll-notice > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--ignite-emerald);
+}
+
+.process-payroll-notice strong {
+  display: block;
+  color: var(--ignite-deep-teal);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.process-payroll-notice p {
+  margin: 3px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.payroll-workflow-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--ignite-emerald-600);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.payroll-workflow-cta:hover {
+  text-decoration: underline;
+  color: var(--ignite-deep-teal);
+}
+
+.process-payroll-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  background: #fefce8;
+  color: #92400e;
+}
+
+.process-payroll-warning > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #d97706;
+}
+
+.process-payroll-warning strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.process-payroll-warning p {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #b45309;
+}
+
+/* ==========================================================================
+   PERIOD SELECTION TOOLBAR CARD
+   ========================================================================== */
+
+.process-payroll-page > .card:first-of-type {
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.process-payroll-page > .card:first-of-type .card__body {
+  padding: 20px 24px;
+}
+
+.process-payroll-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.process-payroll-period {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 240px;
+}
+
+.process-payroll-period label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.process-payroll-period label svg {
+  color: var(--ignite-deep-teal);
+}
+
+.process-payroll-period input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  outline: none;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.process-payroll-period input:focus {
+  border-color: var(--ignite-emerald);
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.15);
+  background: var(--color-bg-surface);
+}
+
+.process-payroll-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.process-payroll-message {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.process-payroll-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.process-payroll-error button {
+  border: none;
+  background: transparent;
+  color: #b91c1c;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.process-payroll-helper {
+  margin: 14px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   SUMMARY STAT CARDS (Exact Attendance StatCard Pattern)
+   ========================================================================== */
+
+.process-payroll-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.process-payroll-summary .card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 144px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.process-payroll-summary .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.process-payroll-summary .card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  z-index: 1;
+}
+
+.process-payroll-summary .card::after {
+  content: "";
+  position: absolute;
+  right: -25px;
+  bottom: -35px;
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+/* Card 1: Employees Included (Teal) */
+.process-payroll-summary .card:nth-child(1)::before {
+  background: var(--ignite-deep-teal);
+}
+.process-payroll-summary .card:nth-child(1)::after {
+  background: var(--ignite-teal-050);
+}
+.process-payroll-summary .card:nth-child(1) .process-payroll-stat-icon {
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+/* Card 2: Gross Payroll (Blue) */
+.process-payroll-summary .card:nth-child(2)::before {
+  background: #2563eb;
+}
+.process-payroll-summary .card:nth-child(2)::after {
+  background: #eff6ff;
+}
+.process-payroll-summary .card:nth-child(2) .process-payroll-stat-icon {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* Card 3: Total Deductions (Danger / Red) */
+.process-payroll-summary .card:nth-child(3)::before {
+  background: #e02424;
+}
+.process-payroll-summary .card:nth-child(3)::after {
+  background: #fdf2f2;
+}
+.process-payroll-summary .card:nth-child(3) .process-payroll-stat-icon {
+  background: #fde8e8;
+  color: #e02424;
+}
+
+/* Card 4: Net Payout (Emerald) */
+.process-payroll-summary .card:nth-child(4)::before {
+  background: var(--ignite-emerald);
+}
+.process-payroll-summary .card:nth-child(4)::after {
+  background: var(--ignite-emerald-050);
+}
+.process-payroll-summary .card:nth-child(4) .process-payroll-stat-icon {
+  background: var(--ignite-emerald-050);
+  color: var(--ignite-emerald);
+}
+
+.process-payroll-summary .card .card__body {
+  padding: 16px 18px;
+  height: 100%;
+}
+
+.process-payroll-stat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.process-payroll-stat-icon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.process-payroll-stat-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.process-payroll-stat > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-right: 44px;
+}
+
+.process-payroll-stat > div > span {
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+.process-payroll-stat strong {
+  display: block;
+  margin-top: 14px;
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.process-payroll-stat small {
+  display: block;
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ==========================================================================
+   TABLE CARD & HEADING
+   ========================================================================== */
+
+.process-payroll-page > .card:last-of-type {
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.process-payroll-page > .card:last-of-type .card__body {
+  padding: 0;
+}
+
+.process-payroll-table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.process-payroll-table-heading h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+}
+
+.process-payroll-table-heading p {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.process-payroll-existing-run {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 20px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.process-payroll-existing-run strong {
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   TABLE (Matches Attendance Table Styles)
+   ========================================================================== */
+
+.process-payroll-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.process-payroll-table {
+  width: 100%;
+  min-width: 950px;
+  border-collapse: collapse;
+}
+
+.process-payroll-table th {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-subtle, #f8fafb);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  text-align: left;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.process-payroll-table td {
+  padding: 15px 16px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.process-payroll-table tbody tr:hover {
+  background: rgba(15, 61, 62, 0.02);
+}
+
+.process-payroll-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.process-payroll-employee {
+  display: flex;
+  flex-direction: column;
+}
+
+.process-payroll-employee strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.process-payroll-employee span {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.process-payroll-table td:nth-child(4),
+.process-payroll-table td:nth-child(5),
+.process-payroll-table td:nth-child(6),
+.process-payroll-table td:nth-child(7) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.process-payroll-table th:nth-child(4),
+.process-payroll-table th:nth-child(5),
+.process-payroll-table th:nth-child(6),
+.process-payroll-table th:nth-child(7) {
+  text-align: right;
+}
+
+.process-payroll-table td:nth-child(7) {
+  color: var(--ignite-emerald-600);
+  font-weight: 700;
+}
+
+/* Status Badges */
+.process-payroll-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 27px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.process-payroll-status.is-ready {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.process-payroll-status.is-missing {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* ==========================================================================
+   RESPONSIVE (Matches Attendance Breakpoints)
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .process-payroll-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .process-payroll-page {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .process-payroll-page {
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .process-payroll-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .process-payroll-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .process-payroll-actions {
+    width: 100%;
+  }
+
+  .process-payroll-actions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .process-payroll-table-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

@@ -57,6 +57,7 @@
   --color-info: var(--ignite-deep-teal);
 
   --color-bg: var(--ignite-light-bg);
+  --color-bg-page: var(--ignite-light-bg);
   --color-bg-surface: var(--ignite-white);
   --color-bg-inverse: var(--ignite-charcoal);
   --color-bg-inverse-elevated: #232A31;
