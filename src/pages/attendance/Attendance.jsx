@@ -11,6 +11,10 @@ import Modal from "../../components/common/Modal/Modal";
 import Button from "../../components/common/Button/Button";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
+import {
+  canApproveAttendance,
+  isFieldSalesManager,
+} from "../../utils/permissionUtils";
 import { attendanceAPI } from "../../services/api/attendanceAPI";
 import { useNotification } from "../../context/NotificationContext";
 import "./Attendance.css";
@@ -45,11 +49,25 @@ const Attendance = () => {
     ? user.permissions
     : [];
 
+  const isManager =
+    user.is_manager === true ||
+    rawRole === "MANAGER" ||
+    rawRole === "FIELD SALES MANAGER" ||
+    isFieldSalesManager(user);
+
   const canViewEmployees =
     isAdminOrOwner ||
+    isManager ||
+    canApproveAttendance(user) ||
     userPermissions.includes("*") ||
     userPermissions.includes("attendance.view_all") ||
     userPermissions.includes("view_all_attendance") ||
+    userPermissions.includes("attendance.view_team") ||
+    userPermissions.includes("attendance.view_department") ||
+    userPermissions.includes("attendance.approve") ||
+    userPermissions.includes("attendance.approve_team") ||
+    userPermissions.includes("attendance.approve_department") ||
+    userPermissions.includes("approve_attendance") ||
     userPermissions.includes("attendance.manage") ||
     userPermissions.includes("manage_attendance") ||
     userPermissions.includes("view_employee_attendance") ||

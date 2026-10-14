@@ -16,6 +16,7 @@ import VisitCheckIn from "../../../components/fieldSales/visits/visitCheckIn/Vis
 import VisitCheckOut from "../../../components/fieldSales/visits/visitCheckOut/VisitCheckOut";
 import LocationPermissionModal from "../../../components/fieldSales/common/LocationPermissionModal/LocationPermissionModal";
 import { getCurrentUser, isFieldSalesManager, isSalesPerson } from "../../../utils/permissionUtils";
+import { useNotification } from "../../../context/NotificationContext";
 import {
   getFieldSalesVisits,
   getFieldSalesEmployees,
@@ -84,6 +85,7 @@ const normalizeVisitStatus = (statusStr) => {
 /* -------------------------------------------------------------------------- */
 
 const Visits = () => {
+  const { showNotification } = useNotification();
   const user = useMemo(() => getCurrentUser(), []);
   const isManager = isFieldSalesManager(user);
   const isSales = isSalesPerson(user);
@@ -107,6 +109,7 @@ const Visits = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
 
   const [currentUserLocation, setCurrentUserLocation] = useState({
     latitude: 28.4595,
@@ -122,7 +125,7 @@ const Visits = () => {
       if (!silent) setLoading(true);
       const [visitsRes, empsRes] = await Promise.allSettled([
         getFieldSalesVisits(),
-        isManager ? getFieldSalesEmployees({ role: "SALES_PERSON" }) : Promise.resolve(null),
+        isManager ? getFieldSalesEmployees() : Promise.resolve(null),
       ]);
 
       if (visitsRes.status === "fulfilled") {
@@ -180,13 +183,18 @@ const Visits = () => {
         const empData = empsRes.value?.data || empsRes.value?.results || empsRes.value || [];
         if (Array.isArray(empData)) {
           setEmployees(
-            empData.map((e) => ({
-              id: String(e.id),
-              name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
-              role: e.role || "Sales Person",
-              email: e.email,
-              phone: e.phone_number || e.phone,
-            }))
+            empData
+              .filter((e) => {
+                const r = String(e.role || "").toUpperCase();
+                return r !== "MANAGER" && !r.includes("MANAGER");
+              })
+              .map((e) => ({
+                id: String(e.id),
+                name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
+                role: e.role || "Sales Person",
+                email: e.email,
+                phone: e.phone_number || e.phone,
+              }))
           );
         }
       }
@@ -311,8 +319,8 @@ const Visits = () => {
     // Immediate ping
     doPing();
 
-    // 12-second interval
-    const interval = setInterval(doPing, 12000);
+    // 5-second interval
+    const interval = setInterval(doPing, 5000);
 
     return () => clearInterval(interval);
   }, [isSales, gpsStatus, currentUserLocation?.latitude, currentUserLocation?.longitude]);
@@ -338,7 +346,7 @@ const Visits = () => {
     };
 
     fetchTeamLive();
-    const interval = setInterval(fetchTeamLive, 12000);
+    const interval = setInterval(fetchTeamLive, 6000);
 
     return () => {
       isMounted = false;
@@ -506,6 +514,7 @@ const Visits = () => {
         name: emp.name,
         role: emp.role || "Sales Person",
         phone: emp.phone,
+        hasLiveGps: false,
         latitude: null,
         longitude: null,
         isActiveTracking: false,
@@ -527,6 +536,7 @@ const Visits = () => {
         name: v.employeeName,
         role: v.employeeRole || "Sales Person",
         phone: "",
+        hasLiveGps: false,
         latitude: null,
         longitude: null,
         isActiveTracking: false,
@@ -555,7 +565,10 @@ const Visits = () => {
       const empId = String(loc.id || loc.employee_id || loc.employee);
       const existing = map.get(empId);
       if (existing) {
-        if (loc.latitude != null) existing.latitude = Number(loc.latitude);
+        if (loc.latitude != null) {
+          existing.latitude = Number(loc.latitude);
+          existing.hasLiveGps = true;
+        }
         if (loc.longitude != null) existing.longitude = Number(loc.longitude);
         if (loc.accuracy != null) existing.accuracy = Number(loc.accuracy || 8);
         existing.isActiveTracking = Boolean(loc.is_active_tracking);
@@ -567,6 +580,7 @@ const Visits = () => {
           id: empId,
           name: loc.name || loc.employee_name,
           role: "Sales Person",
+          hasLiveGps: loc.latitude != null,
           latitude: loc.latitude != null ? Number(loc.latitude) : null,
           longitude: loc.longitude != null ? Number(loc.longitude) : null,
           accuracy: Number(loc.accuracy || 8),
@@ -582,11 +596,11 @@ const Visits = () => {
     return Array.from(map.values());
   }, [filteredVisits, employees, liveLocations]);
 
-  // Check for inactive employees to alert Manager
+  // Check for inactive employees to alert Manager (only if they have live GPS history and stopped sending)
   const inactiveEmployees = useMemo(() => {
     if (!isManager) return [];
     return filteredMapEmployees.filter(
-      (emp) => emp.latitude != null && emp.isActiveTracking === false
+      (emp) => emp.hasLiveGps && emp.isActiveTracking === false
     );
   }, [isManager, filteredMapEmployees]);
 
@@ -713,38 +727,67 @@ const Visits = () => {
 
     const now = new Date();
     try {
+      setCheckoutSubmitting(true);
       await submitFieldSalesVisitReport(selectedVisit.id, reportData);
+
+      showNotification({
+        type: "success",
+        message: "Visit checked out and report submitted successfully!",
+      });
+
+      setVisits((currentVisits) =>
+        currentVisits.map((visit) =>
+          visit.id === selectedVisit.id
+            ? {
+              ...visit,
+              visitStatus: "COMPLETED",
+              clientResponse: reportData.client_response,
+              feedback: reportData.feedback,
+              photos: reportData.photos || [],
+              outcome: reportData.client_response,
+              checkOutTime: formatTime(now),
+            }
+            : visit
+        )
+      );
+
+      setSelectedVisit((current) => ({
+        ...current,
+        visitStatus: "COMPLETED",
+        clientResponse: reportData.client_response,
+        feedback: reportData.feedback,
+        photos: reportData.photos || [],
+        outcome: reportData.client_response,
+        checkOutTime: formatTime(now),
+      }));
+
+      setCheckOutOpen(false);
+      setDetailsOpen(false);
+
+      // Re-fetch from server to ensure database sync
+      try {
+        const refreshed = await getFieldSalesVisits();
+        const vList = refreshed?.data || (Array.isArray(refreshed) ? refreshed : []);
+        if (vList.length > 0) {
+          setVisits(vList);
+        }
+      } catch (refErr) {
+        console.warn("Could not reload visits after checkout:", refErr);
+      }
     } catch (err) {
-      console.warn("Backend report submission error:", err);
+      console.error("Backend report submission error:", err);
+      const errMsg =
+        err.response?.data?.message ||
+        err.response?.data?.detail ||
+        (typeof err.response?.data === "string" ? err.response.data : "") ||
+        "Failed to submit checkout report. Please check the entered details.";
+      showNotification({
+        type: "error",
+        message: errMsg,
+      });
+    } finally {
+      setCheckoutSubmitting(false);
     }
-
-    setVisits((currentVisits) =>
-      currentVisits.map((visit) =>
-        visit.id === selectedVisit.id
-          ? {
-            ...visit,
-            visitStatus: "CHECKED_OUT",
-            clientResponse: reportData.client_response,
-            feedback: reportData.feedback,
-            photos: reportData.photos || [],
-            outcome: reportData.client_response,
-            checkOutTime: formatTime(now),
-          }
-          : visit
-      )
-    );
-
-    setSelectedVisit((current) => ({
-      ...current,
-      visitStatus: "CHECKED_OUT",
-      clientResponse: reportData.client_response,
-      feedback: reportData.feedback,
-      photos: reportData.photos || [],
-      outcome: reportData.client_response,
-      checkOutTime: formatTime(now),
-    }));
-
-    setCheckOutOpen(false);
   };
 
 
@@ -786,7 +829,14 @@ const Visits = () => {
                 Schedule Visit
               </span>
             </Button>
-          ) : null
+          ) : (
+            <Button onClick={() => (window.location.href = "/field-sales/leads/add")}>
+              <span className="visits__button-content">
+                <Plus size={16} />
+                Add Lead
+              </span>
+            </Button>
+          )
         }
       />
 
@@ -946,6 +996,7 @@ const Visits = () => {
             visit={activeVisit}
             onComplete={handleCheckout}
             onCancel={() => setCheckOutOpen(false)}
+            submitting={checkoutSubmitting}
           />
         )}
       </Modal>

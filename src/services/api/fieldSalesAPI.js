@@ -118,6 +118,36 @@ export const deleteFieldSalesLead = async (id) => {
   return response.data;
 };
 
+export const getFieldSalesCurrentEmployee = async () => {
+  const response = await api.get("/field-sales/me/");
+  return response.data;
+};
+
+export const checkFieldSalesLeadDuplicate = async (params = {}) => {
+  const response = await api.get("/field-sales/leads/check-duplicate/", { params });
+  return response.data;
+};
+
+export const reassignFieldSalesLead = async (id, data) => {
+  const response = await api.post(`/field-sales/leads/${id}/reassign/`, data);
+  return response.data;
+};
+
+export const escalateFieldSalesLead = async (id, data) => {
+  const response = await api.post(`/field-sales/leads/${id}/escalate/`, data);
+  return response.data;
+};
+
+export const approveFieldSalesLeadAssignment = async (id, data) => {
+  const response = await api.post(`/field-sales/leads/${id}/approve-assignment/`, data);
+  return response.data;
+};
+
+export const getFieldSalesLeadAssignmentHistory = async (id) => {
+  const response = await api.get(`/field-sales/leads/${id}/assignment-history/`);
+  return response.data;
+};
+
 export const getLeadTimelineHistory = async (leadId) => {
   const response = await api.get(`/field-sales/leads/${leadId}/timeline/`);
   return response.data;

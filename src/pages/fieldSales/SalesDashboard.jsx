@@ -273,7 +273,7 @@ const SalesDashboard = () => {
 
     const interval = setInterval(() => {
       fetchDashboardData(true);
-    }, 15000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [fetchDashboardData]);
 

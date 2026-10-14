@@ -120,57 +120,56 @@ const VisitCheckout = ({
     e.preventDefault();
     if (!clientResponse) return;
 
-    if (!photos || photos.length === 0) {
-      setPhotoError("Photo proof is mandatory. Please capture or upload at least 1 photo.");
-      return;
-    }
-
     setPhotoError("");
 
     let scheduleFollowUp = false;
     let computedFollowUpDate = null;
     let computedFollowUpTime = null;
-    let computedFollowUpType = null;
-    let computedFollowUpNote = null;
+    let computedFollowUpType = "Call";
+    let computedFollowUpNote = "";
 
     if (isFollowUp) {
       scheduleFollowUp = true;
       computedFollowUpDate = followUpDate;
       computedFollowUpTime = followUpTime;
-      computedFollowUpType = followUpType;
-      computedFollowUpNote = followUpNote || feedback;
+      computedFollowUpType = followUpType || "Call";
+      computedFollowUpNote = followUpNote || feedback || "";
     } else if (isDemo) {
       scheduleFollowUp = true;
       computedFollowUpDate = demoDate;
       computedFollowUpTime = demoTime;
       computedFollowUpType = "Demo";
-      computedFollowUpNote = `[Demo Request: ${demoType}] Participants: ${demoParticipants || "Key Stakeholders"}. Notes: ${feedback}`;
+      computedFollowUpNote = `[Demo Request: ${demoType}] Participants: ${demoParticipants || "Key Stakeholders"}. Notes: ${feedback || ""}`;
     } else if (isNegotiation) {
       scheduleFollowUp = true;
       computedFollowUpDate = followUpDate;
       computedFollowUpTime = followUpTime;
       computedFollowUpType = "Meeting";
-      computedFollowUpNote = `[Negotiation Details] Expected Value: ₹${expectedDealValue || "TBD"}, Discount/Terms: ${discountRequested || "Standard"}. Notes: ${negotiationNotes || feedback}`;
+      computedFollowUpNote = `[Negotiation Details] Expected Value: ₹${expectedDealValue || "TBD"}, Discount/Terms: ${discountRequested || "Standard"}. Notes: ${negotiationNotes || feedback || ""}`;
     } else if (isInterested) {
       scheduleFollowUp = true;
       computedFollowUpDate = tentativeClosureDate;
       computedFollowUpTime = "11:00";
       computedFollowUpType = "Call";
-      computedFollowUpNote = `[High Interest] Product: ${interestedProduct}, Stage: ${leadStage}. Tentative closure: ${tentativeClosureDate}. Notes: ${feedback}`;
+      computedFollowUpNote = `[High Interest] Product: ${interestedProduct}, Stage: ${leadStage}. Tentative closure: ${tentativeClosureDate}. Notes: ${feedback || ""}`;
     }
+
+    const cleanConversionValue = isConverted
+      ? (parseFloat(conversionValue) || 0)
+      : (parseFloat(expectedDealValue) || 0);
 
     onComplete?.({
       client_response: clientResponse,
-      feedback,
-      meeting_notes: feedback,
-      photos,
+      feedback: feedback || "",
+      meeting_notes: feedback || "",
+      photos: photos || [],
       schedule_follow_up: scheduleFollowUp,
       follow_up_date: computedFollowUpDate,
       follow_up_time: computedFollowUpTime,
       follow_up_type: computedFollowUpType,
       follow_up_note: computedFollowUpNote,
-      conversion_value: isConverted ? parseFloat(conversionValue || 0) : (parseFloat(expectedDealValue || 0)),
-      won_product: isConverted ? wonProduct : (interestedProduct || ""),
+      conversion_value: cleanConversionValue,
+      won_product: isConverted ? (wonProduct || "Ignite HRMS") : (interestedProduct || ""),
     });
   };
 

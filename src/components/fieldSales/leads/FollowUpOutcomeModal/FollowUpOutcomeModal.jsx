@@ -27,8 +27,8 @@ const FollowUpOutcomeModal = ({
   const [notes, setNotes] = useState("");
   const [nextAction, setNextAction] = useState("");
 
-  // Next follow-up
-  const [scheduleNext, setScheduleNext] = useState(true);
+  // Next follow-up (optional, controlled strictly by schedule_next_follow_up)
+  const [scheduleNext, setScheduleNext] = useState(false);
   const [nextDate, setNextDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 2);
@@ -48,16 +48,18 @@ const FollowUpOutcomeModal = ({
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const shouldSchedule = Boolean(scheduleNext && !isConverted && !isLost);
+
     onLogOutcome?.({
       call_status: callStatus,
       outcome,
       notes,
       next_action: nextAction || (isConverted ? "Send Agreement & Onboard" : "Follow-up"),
-      schedule_next_follow_up: scheduleNext && !isConverted && !isLost,
-      next_due_date: (scheduleNext && !isConverted && !isLost) ? nextDate : null,
-      next_due_time: (scheduleNext && !isConverted && !isLost) ? nextTime : null,
-      next_follow_up_type: nextType,
-      next_reason: nextReason || notes,
+      schedule_next_follow_up: shouldSchedule,
+      next_due_date: shouldSchedule ? nextDate : null,
+      next_due_time: shouldSchedule ? nextTime : null,
+      next_follow_up_type: shouldSchedule ? nextType : null,
+      next_reason: shouldSchedule ? (nextReason || notes || "Follow-up") : null,
       conversion_value: isConverted ? parseFloat(conversionValue || 0) : 0,
       won_product: isConverted ? wonProduct : "",
       lost_reason: isLost ? lostReason : "",
@@ -190,7 +192,7 @@ const FollowUpOutcomeModal = ({
         <div style={{ backgroundColor: "var(--color-bg-surface)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-md)", padding: "14px", marginBottom: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px" }}>
             <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--ignite-deep-teal)", display: "flex", alignItems: "center", gap: "6px" }}>
-              <Calendar size={15} color="var(--ignite-emerald)" /> Auto-Schedule Next Follow-up
+              <Calendar size={15} color="var(--ignite-emerald)" /> Schedule New Follow-up
             </span>
             <input
               type="checkbox"
