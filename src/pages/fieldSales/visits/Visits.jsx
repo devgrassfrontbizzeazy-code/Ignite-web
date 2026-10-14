@@ -319,8 +319,8 @@ const Visits = () => {
     // Immediate ping
     doPing();
 
-    // 12-second interval
-    const interval = setInterval(doPing, 12000);
+    // 5-second interval
+    const interval = setInterval(doPing, 5000);
 
     return () => clearInterval(interval);
   }, [isSales, gpsStatus, currentUserLocation?.latitude, currentUserLocation?.longitude]);
