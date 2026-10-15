@@ -512,7 +512,16 @@ export default function Sidebar({
           }
         }
 
-        if (merged.email) {
+        const existingName =
+          merged.fullName ||
+          merged.full_name ||
+          merged.name ||
+          [merged.first_name, merged.last_name].filter(Boolean).join(" ");
+        if (existingName) {
+          setEmployeeName(existingName);
+        }
+
+        if (merged.email && (!existingName || !userPhoto)) {
           try {
             const employeesResponse = await getEmployees();
 

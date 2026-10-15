@@ -311,6 +311,17 @@ export const TeamsTasksProvider = ({ children }) => {
     let mounted = true;
 
     const loadInitialData = async () => {
+      const token =
+        localStorage.getItem("accessToken") ||
+        localStorage.getItem("access_token");
+
+      if (!token) {
+        if (mounted) {
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -334,8 +345,17 @@ export const TeamsTasksProvider = ({ children }) => {
 
     loadInitialData();
 
+    const handleAuthChange = () => {
+      loadInitialData();
+    };
+
+    window.addEventListener("ignite:user-updated", handleAuthChange);
+    window.addEventListener("storage", handleAuthChange);
+
     return () => {
       mounted = false;
+      window.removeEventListener("ignite:user-updated", handleAuthChange);
+      window.removeEventListener("storage", handleAuthChange);
     };
   }, []);
 
