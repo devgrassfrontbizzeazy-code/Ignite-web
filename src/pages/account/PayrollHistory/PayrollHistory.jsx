@@ -457,7 +457,7 @@ export default function PayrollHistory() {
     return (
         <div className="payroll-history-page">
             <PageHeader
-                eyebrow="ACCOUNT · PAYROLL"
+                eyebrow="ACCOUNT"
                 title="Payroll History"
                 description="Review saved payroll runs and inspect employee-wise salary calculations."
             />

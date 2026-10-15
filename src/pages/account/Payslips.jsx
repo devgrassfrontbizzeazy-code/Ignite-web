@@ -331,7 +331,7 @@ const Payslips = () => {
     return (
         <div className="payslips-page">
             <PageHeader
-                eyebrow="ACCOUNT · PAYROLL"
+                eyebrow="ACCOUNT"
                 title="Payslips"
                 description="View and print payslips from approved payroll runs."
                 action={

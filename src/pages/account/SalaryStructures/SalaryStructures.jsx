@@ -1101,7 +1101,7 @@ const SalaryStructures = () => {
     return (
         <div className="salary-structures-page">
             <PageHeader
-                eyebrow="ACCOUNT · PAYROLL"
+                eyebrow="ACCOUNT"
                 title="Salary Structures"
                 description="Manage employee salary components, effective dates and revisions."
 

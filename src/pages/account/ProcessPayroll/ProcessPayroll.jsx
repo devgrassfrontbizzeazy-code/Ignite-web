@@ -397,7 +397,7 @@ export default function ProcessPayroll() {
     return (
         <div className="process-payroll-page">
             <PageHeader
-                eyebrow="ACCOUNT · PAYROLL"
+                eyebrow="ACCOUNT "
                 title="Process Payroll"
                 description="Calculate, review, and prepare employee payroll for a selected month."
             />
@@ -614,8 +614,8 @@ export default function ProcessPayroll() {
                                             <td>
                                                 <span
                                                     className={`process-payroll-status ${row.status === "Ready"
-                                                            ? "is-ready"
-                                                            : "is-missing"
+                                                        ? "is-ready"
+                                                        : "is-missing"
                                                         }`}
                                                 >
                                                     {row.status}
