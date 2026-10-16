@@ -310,6 +310,7 @@ const SalaryStructures = () => {
 
     const [activeTab, setActiveTab] = useState("structures");
     const [selectedEmployees, setSelectedEmployees] = useState([]);
+    const [bulkDepartment, setBulkDepartment] = useState("");
     const [bulkTemplateId, setBulkTemplateId] = useState("");
     const [bulkEffectiveDate, setBulkEffectiveDate] = useState(getLocalDate());
     const [templateDrawerOpen, setTemplateDrawerOpen] = useState(false);
@@ -406,6 +407,32 @@ const SalaryStructures = () => {
                 .sort((a, b) => a.label.localeCompare(b.label)),
         [employees]
     );
+
+    // Department-first selection: don't render the employee list until a department is chosen.
+    const departmentOptions = useMemo(() => {
+        const departments = new Set();
+
+        employeeOptions.forEach((option) => {
+            const employee = employeeMap.get(option.value);
+            const department = getEmployeeDepartment(employee);
+            departments.add(department === "—" ? "Unassigned" : department.trim());
+        });
+
+        return [...departments]
+            .filter(Boolean)
+            .sort((a, b) => a.localeCompare(b))
+            .map((department) => ({ value: department, label: department }));
+    }, [employeeOptions, employeeMap]);
+
+    const departmentEmployeeOptions = useMemo(() => {
+        if (!bulkDepartment) return [];
+
+        return employeeOptions.filter((option) => {
+            const department = getEmployeeDepartment(employeeMap.get(option.value));
+            const normalizedDepartment = department === "—" ? "Unassigned" : department.trim();
+            return normalizedDepartment === bulkDepartment;
+        });
+    }, [bulkDepartment, employeeOptions, employeeMap]);
 
     const visibleStructures = useMemo(() => {
         const normalizedSearch = search.trim().toLowerCase();
@@ -740,10 +767,13 @@ const SalaryStructures = () => {
     };
 
     const toggleAllEmployees = () => {
+        const departmentEmployeeIds = departmentEmployeeOptions.map((employee) => employee.value);
+        const allDepartmentEmployeesSelected =
+            departmentEmployeeIds.length > 0 &&
+            departmentEmployeeIds.every((id) => selectedEmployees.includes(id));
+
         setSelectedEmployees((current) =>
-            current.length === employeeOptions.length
-                ? []
-                : employeeOptions.map((employee) => employee.value)
+            allDepartmentEmployeesSelected ? [] : departmentEmployeeIds
         );
     };
 
@@ -1710,6 +1740,21 @@ const SalaryStructures = () => {
                             </FormField>
                         </div>
 
+                        <div style={{ maxWidth: 420, marginBottom: 20 }}>
+                            <FormField label="Department" required>
+                                <Select
+                                    value={bulkDepartment}
+                                    onChange={(value) => {
+                                        setBulkDepartment(value);
+                                        setSelectedEmployees([]);
+                                        setBulkError("");
+                                    }}
+                                    options={departmentOptions}
+                                    placeholder="Choose a department first"
+                                />
+                            </FormField>
+                        </div>
+
                         {!employeesLoading && employeeOptions.length === 0 && (
                             <p className="salary-bulk-error">
                                 No active employees are available for assignment.
@@ -1720,7 +1765,9 @@ const SalaryStructures = () => {
                             <div>
                                 <h3>Select Employees</h3>
                                 <p>
-                                    {selectedEmployees.length} of {employeeOptions.length} selected
+                                    {!bulkDepartment
+                                        ? "Choose a department to view employees"
+                                        : `${selectedEmployees.length} of ${departmentEmployeeOptions.length} selected`}
                                 </p>
                             </div>
 
@@ -1728,21 +1775,31 @@ const SalaryStructures = () => {
                                 variant="secondary"
                                 size="sm"
                                 onClick={toggleAllEmployees}
-                                disabled={employeesLoading || employeeOptions.length === 0}
+                                disabled={
+                                    employeesLoading ||
+                                    !bulkDepartment ||
+                                    departmentEmployeeOptions.length === 0
+                                }
                             >
                                 <CheckSquare size={15} />
-                                {selectedEmployees.length === employeeOptions.length &&
-                                    employeeOptions.length > 0
+                                {departmentEmployeeOptions.length > 0 &&
+                                    departmentEmployeeOptions.every((employee) =>
+                                        selectedEmployees.includes(employee.value)
+                                    )
                                     ? "Clear Selection"
-                                    : "Select All"}
+                                    : "Select All in Department"}
                             </Button>
                         </div>
 
                         <div className="salary-bulk-employee-list">
                             {employeesLoading ? (
                                 <p>Loading employees...</p>
+                            ) : !bulkDepartment ? (
+                                <p>Select a department above to view its employees.</p>
+                            ) : departmentEmployeeOptions.length === 0 ? (
+                                <p>No active employees found in this department.</p>
                             ) : (
-                                employeeOptions.map((option) => {
+                                departmentEmployeeOptions.map((option) => {
                                     const employee = employeeMap.get(option.value);
                                     const checked = selectedEmployees.includes(option.value);
                                     const duplicate = structures.some(
