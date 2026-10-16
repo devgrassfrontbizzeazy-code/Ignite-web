@@ -1,12 +1,14 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     CalendarDays,
     CircleAlert,
     Eye,
     FileText,
+    Pencil,
     RefreshCw,
+    Save,
     Search,
     Wallet,
     X,
@@ -17,19 +19,21 @@ import Card from "../../../components/common/Card/Card";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import PayrollWorkflowNav from "../../../components/account/PayrollWorkflowNav";
 import { useNotification } from "../../../context/NotificationContext";
+import {
+    getPayrollDrafts,
+    getPayrollDraft,
+    approvePayrollDraft,
+    adjustPayrollRecord,
+    cancelPayrollRun,
+    finalizePayrollRun,
+    lockPayrollRun,
+    recalculatePayrollDraft,
+    exportPayrollRun,
+    unwrapList,
+    triggerBlobDownload,
+} from "../../../services/api/accountAPI";
 
 import "./PayrollHistory.css";
-
-const STORAGE_KEY = "ignite_payroll_runs";
-
-const readRuns = () => {
-    try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        return Array.isArray(saved) ? saved : [];
-    } catch {
-        return [];
-    }
-};
 
 const money = (amount) =>
     new Intl.NumberFormat("en-IN", {
@@ -64,7 +68,13 @@ const formatDateTime = (value) => {
 };
 
 const getRunEmployees = (run) =>
-    Array.isArray(run?.employees) ? run.employees : [];
+    Array.isArray(run?.employees)
+        ? run.employees
+        : Array.isArray(run?.records)
+            ? run.records
+            : Array.isArray(run?.payroll_records)
+                ? run.payroll_records
+                : [];
 
 const getEmployeeName = (employee) =>
     employee.employeeName || employee.employee_name || employee.name || "Employee";
@@ -74,6 +84,7 @@ const getEmployeeCode = (employee) =>
 
 const getGross = (run) =>
     run.gross ??
+    run.gross_payroll ??
     getRunEmployees(run).reduce(
         (sum, employee) => sum + (Number(employee.gross) || 0),
         0
@@ -81,15 +92,17 @@ const getGross = (run) =>
 
 const getDeductions = (run) =>
     run.deductions ??
+    run.total_deductions ??
     getRunEmployees(run).reduce(
-        (sum, employee) => sum + (Number(employee.totalDeductions) || 0),
+        (sum, employee) => sum + (Number(employee.totalDeductions ?? employee.total_deductions) || 0),
         0
     );
 
 const getNet = (run) =>
     run.net ??
+    run.net_payout ??
     getRunEmployees(run).reduce(
-        (sum, employee) => sum + (Number(employee.net) || 0),
+        (sum, employee) => sum + (Number(employee.net ?? employee.net_pay) || 0),
         0
     );
 
@@ -98,139 +111,88 @@ const getStatusClass = (status) => {
 
     if (normalized === "approved") return "is-approved";
     if (normalized === "locked") return "is-locked";
+    if (normalized === "cancelled" || normalized === "canceled") return "is-cancelled";
+    if (normalized === "finalized") return "is-locked";
     return "is-draft";
-};
-
-const getCurrentActor = () => {
-    try {
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        return (
-            user.full_name ||
-            user.name ||
-            user.email ||
-            user.username ||
-            "Current user"
-        );
-    } catch {
-        return "Current user";
-    }
-};
-
-const validatePayrollRun = (run) => {
-    const employees = getRunEmployees(run);
-
-    if (employees.length === 0) {
-        return "This payroll run has no employee records.";
-    }
-
-    if (employees.some((employee) => employee.status !== "Ready")) {
-        return "Resolve all employee payroll exceptions before approval.";
-    }
-
-    for (const employee of employees) {
-        const amounts = [
-            employee.basic,
-            employee.hra,
-            employee.otherAllowances,
-            employee.bonus,
-            employee.gross,
-            employee.pf,
-            employee.insurance,
-            employee.otherDeductions,
-            employee.totalDeductions,
-            employee.net,
-        ];
-
-        if (
-            amounts.some(
-                (amount) =>
-                    amount === null ||
-                    amount === undefined ||
-                    amount === "" ||
-                    !Number.isFinite(Number(amount)) ||
-                    Number(amount) < 0
-            )
-        ) {
-            return `Invalid or negative salary amount found for ${getEmployeeName(employee)}.`;
-        }
-
-        const expectedGross =
-            Number(employee.basic) +
-            Number(employee.hra) +
-            Number(employee.otherAllowances) +
-            Number(employee.bonus);
-
-        const expectedDeductions =
-            Number(employee.pf) +
-            Number(employee.insurance) +
-            Number(employee.otherDeductions);
-
-        const expectedNet = expectedGross - expectedDeductions;
-
-        if (
-            Math.abs(expectedGross - Number(employee.gross)) > 0.01 ||
-            Math.abs(expectedDeductions - Number(employee.totalDeductions)) > 0.01 ||
-            Math.abs(expectedNet - Number(employee.net)) > 0.01
-        ) {
-            return `Salary totals do not match for ${getEmployeeName(employee)}. Regenerate and review payroll.`;
-        }
-    }
-
-    const calculatedGross = employees.reduce(
-        (sum, employee) => sum + Number(employee.gross),
-        0
-    );
-    const calculatedDeductions = employees.reduce(
-        (sum, employee) => sum + Number(employee.totalDeductions),
-        0
-    );
-    const calculatedNet = employees.reduce(
-        (sum, employee) => sum + Number(employee.net),
-        0
-    );
-
-    if (
-        Math.abs(calculatedGross - Number(getGross(run))) > 0.01 ||
-        Math.abs(calculatedDeductions - Number(getDeductions(run))) > 0.01 ||
-        Math.abs(calculatedNet - Number(getNet(run))) > 0.01
-    ) {
-        return "The payroll summary does not match its employee records.";
-    }
-
-    return null;
 };
 
 
 export default function PayrollHistory() {
     const { showNotification } = useNotification();
+    const notify = useCallback(
+        (type, message) => showNotification({ type, message }),
+        [showNotification]
+    );
 
-    const [runs, setRuns] = useState(readRuns);
+    const [runs, setRuns] = useState([]);
     const [search, setSearch] = useState("");
     const [monthFilter, setMonthFilter] = useState("all");
     const [statusFilter, setStatusFilter] = useState("all");
     const [selectedRun, setSelectedRun] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(false);
+    const [editingRecordId, setEditingRecordId] = useState(null);
+    const [recordForm, setRecordForm] = useState({});
 
-    const refreshRuns = () => {
-        const latest = readRuns();
-        setRuns(latest);
-        setSelectedRun((current) =>
-            current ? latest.find((run) => run.id === current.id) || null : null
-        );
+    const fetchRuns = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await getPayrollDrafts();
+            const list = unwrapList(response);
+            setRuns(list.map((run) => ({
+                ...run,
+                period: run.period ?? run.payroll_period ?? "",
+                status: run.status ?? run.payroll_status ?? "Draft",
+            })));
+            setSelectedRun((current) =>
+                current ? list.find((run) => String(run.id) === String(current.id)) || null : null
+            );
+        } catch (error) {
+            console.error("Failed to load payroll history:", error);
+            notify("error", "Could not load payroll history. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    }, [notify]);
+
+    useEffect(() => {
+        void Promise.resolve().then(fetchRuns);
+    }, [fetchRuns]);
+
+    const openRun = async (run) => {
+        if (!run?.id) {
+            notify("error", "This payroll run does not include a backend ID.");
+            return;
+        }
+        setActionLoading(true);
+        try {
+            const response = await getPayrollDraft(run.id);
+            const detail = response?.data ?? response;
+            setSelectedRun({
+                ...detail,
+                employees: detail.employees ?? detail.records ?? detail.payroll_records,
+                period: detail.period ?? detail.payroll_period ?? run.period,
+                status: detail.status ?? detail.payroll_status ?? run.status,
+            });
+        } catch (error) {
+            console.error("Failed to load payroll details:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Could not load payroll details."
+            );
+        } finally {
+            setActionLoading(false);
+        }
     };
 
-    const changeRunStatus = (run, nextStatus) => {
+    const changeRunStatus = async (run, nextStatus) => {
         const currentStatus = String(run.status || "Draft");
 
         if (nextStatus === "Approved") {
-            if (currentStatus !== "Draft") {
-                showNotification("Only draft payroll can be approved.", "error");
-                return;
-            }
-
-            const validationError = validatePayrollRun(run);
-
-            if (validationError) {
-                showNotification(validationError, "error");
+            if (currentStatus.toLowerCase() !== "draft") {
+                notify("error", "Only draft payroll can be approved.");
                 return;
             }
 
@@ -242,115 +204,167 @@ export default function PayrollHistory() {
                 return;
             }
         } else if (nextStatus === "Locked") {
-            if (currentStatus !== "Approved") {
-                showNotification("Only approved payroll can be locked.", "error");
+            if (!["approved", "finalized"].includes(currentStatus.toLowerCase())) {
+                notify("error", "Only approved or finalized payroll can be locked.");
                 return;
             }
 
             if (
                 !window.confirm(
-                    `Lock payroll for ${getPeriodLabel(run.period)}? This action cannot be undone from this demo interface.`
+                    `Lock payroll for ${getPeriodLabel(run.period)}? This action cannot be undone.`
                 )
             ) {
                 return;
             }
+        } else if (nextStatus === "Cancelled") {
+            if (!["draft", "approved"].includes(currentStatus.toLowerCase())) {
+                notify("error", "Only draft or approved payroll can be cancelled.");
+                return;
+            }
+
+            if (
+                !window.confirm(
+                    `Cancel payroll for ${getPeriodLabel(run.period)}? This action cannot be undone.`
+                )
+            ) {
+                return;
+            }
+        } else if (nextStatus === "Finalized") {
+            if (currentStatus.toLowerCase() !== "approved") {
+                notify("error", "Only approved payroll can be finalized.");
+                return;
+            }
+            if (!window.confirm(`Finalize payroll for ${getPeriodLabel(run.period)}?`)) return;
+        } else if (nextStatus === "Recalculate") {
+            if (currentStatus.toLowerCase() !== "draft") {
+                notify("error", "Only draft payroll can be recalculated.");
+                return;
+            }
+            if (!window.confirm(`Recalculate the draft for ${getPeriodLabel(run.period)}?`)) return;
         } else {
             return;
         }
 
+        setActionLoading(true);
+
         try {
-            const latestRuns = readRuns();
-            const targetRun = latestRuns.find(
-                (item) => String(item.id) === String(run.id)
-            );
-
-            if (!targetRun) {
-                showNotification("Payroll run not found. Refresh and try again.", "error");
-                refreshRuns();
-                return;
-            }
-
-            // Recheck the status against the latest browser-stored record.
-            const latestStatus = String(targetRun.status || "Draft");
-
-            if (
-                (nextStatus === "Approved" && latestStatus !== "Draft") ||
-                (nextStatus === "Locked" && latestStatus !== "Approved")
-            ) {
-                showNotification(
-                    "The payroll status has changed. Refresh and try again.",
-                    "error"
-                );
-                refreshRuns();
-                return;
-            }
-
             if (nextStatus === "Approved") {
-                const validationError = validatePayrollRun(targetRun);
-
-                if (validationError) {
-                    showNotification(validationError, "error");
-                    refreshRuns();
-                    return;
-                }
+                await approvePayrollDraft(run.id);
+            } else if (nextStatus === "Locked") {
+                await lockPayrollRun(run.id);
+            } else if (nextStatus === "Cancelled") {
+                await cancelPayrollRun(run.id);
+            } else if (nextStatus === "Finalized") {
+                await finalizePayrollRun(run.id);
+            } else if (nextStatus === "Recalculate") {
+                await recalculatePayrollDraft(run.id);
             }
 
-            const now = new Date().toISOString();
-            const actor = getCurrentActor();
-
-            const auditEntry = {
-                action: nextStatus,
-                actor,
-                timestamp: now,
-            };
-
-            const updatedRun = {
-                ...targetRun,
-                status: nextStatus,
-                updatedAt: now,
-                ...(nextStatus === "Approved"
-                    ? { approvedAt: now, approvedBy: actor }
-                    : { lockedAt: now, lockedBy: actor }),
-                auditTrail: [
-                    ...(Array.isArray(targetRun.auditTrail) ? targetRun.auditTrail : []),
-                    auditEntry,
-                ],
-            };
-
-            const updatedRuns = latestRuns.map((item) =>
-                String(item.id) === String(run.id) ? updatedRun : item
-            );
-
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRuns));
-            setRuns(updatedRuns);
-            setSelectedRun(updatedRun);
-
-            showNotification(
+            notify(
+                "success",
                 nextStatus === "Approved"
                     ? "Payroll approved successfully."
-                    : "Payroll locked successfully.",
-                "success"
+                    : nextStatus === "Locked"
+                        ? "Payroll locked successfully."
+                        : nextStatus === "Finalized"
+                            ? "Payroll finalized successfully."
+                            : nextStatus === "Recalculate"
+                                ? "Payroll draft recalculated successfully."
+                                : "Payroll cancelled successfully."
             );
+
+            // Refresh data from the backend
+            await fetchRuns();
+            await openRun(run);
         } catch (error) {
             console.error("Failed to update payroll status:", error);
-            showNotification(
-                "Could not update payroll status. Please try again.",
-                "error"
+            const message =
+                error?.response?.data?.detail ||
+                error?.response?.data?.message ||
+                "Could not update payroll status. Please try again.";
+            notify("error", message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleExportRun = async (run) => {
+        if (!run.id) {
+            notify("error", "This payroll run does not include a backend ID.");
+            return;
+        }
+        try {
+            const blob = await exportPayrollRun(run.id);
+            triggerBlobDownload(blob, `ignite-payroll-${run.period || "history"}.csv`);
+            notify("success", "Payroll CSV exported.");
+        } catch (error) {
+            console.error("Failed to export payroll:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to export this payroll run."
             );
         }
     };
 
+    const saveRecordAdjustment = async (record) => {
+        const recordId = record.id ?? record.record_id ?? record.payroll_record_id;
+        if (!selectedRun?.id || !recordId) {
+            notify("error", "This payroll record cannot be adjusted because its backend ID is missing.");
+            return;
+        }
 
-    useEffect(() => {
-        const handleStorage = (event) => {
-            if (!event.key || event.key === STORAGE_KEY) {
-                refreshRuns();
-            }
-        };
+        const amountFields = [
+            "basic",
+            "hra",
+            "other_allowances",
+            "bonus",
+            "pf",
+            "insurance",
+            "other_deductions",
+        ];
+        if (
+            amountFields.some(
+                (field) =>
+                    recordForm[field] === "" ||
+                    !Number.isFinite(Number(recordForm[field])) ||
+                    Number(recordForm[field]) < 0
+            )
+        ) {
+            notify("error", "Enter a valid non-negative amount for every payroll component.");
+            return;
+        }
 
-        window.addEventListener("storage", handleStorage);
-        return () => window.removeEventListener("storage", handleStorage);
-    }, []);
+        setActionLoading(true);
+        try {
+            const payload = {
+                basic: Number(recordForm.basic),
+                hra: Number(recordForm.hra),
+                other_allowances: Number(recordForm.other_allowances),
+                bonus: Number(recordForm.bonus),
+                pf: Number(recordForm.pf),
+                insurance: Number(recordForm.insurance),
+                other_deductions: Number(recordForm.other_deductions),
+            };
+            await adjustPayrollRecord(selectedRun.id, recordId, payload);
+            setEditingRecordId(null);
+            setRecordForm({});
+            notify("success", "Payroll record adjusted.");
+            await fetchRuns();
+            await openRun(selectedRun);
+        } catch (error) {
+            console.error("Failed to adjust payroll record:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to adjust the payroll record."
+            );
+        } finally {
+            setActionLoading(false);
+        }
+    };
 
     const sortedRuns = useMemo(
         () => [...runs].sort((a, b) => String(b.period).localeCompare(String(a.period))),
@@ -363,7 +377,7 @@ export default function PayrollHistory() {
         return sortedRuns.filter((run) => {
             const matchesSearch =
                 !term ||
-                String(run.periodLabel || getPeriodLabel(run.period))
+                String(run.periodLabel || run.period_label || getPeriodLabel(run.period))
                     .toLowerCase()
                     .includes(term) ||
                 String(run.period || "").toLowerCase().includes(term);
@@ -391,69 +405,6 @@ export default function PayrollHistory() {
         [runs]
     );
 
-    const exportRun = (run) => {
-        const employees = getRunEmployees(run);
-
-        if (!employees.length) {
-            showNotification("This payroll run has no employee details to export.", "error");
-            return;
-        }
-
-        const headers = [
-            "Employee Code",
-            "Employee Name",
-            "Department",
-            "Basic",
-            "HRA",
-            "Other Allowances",
-            "Bonus",
-            "Gross",
-            "PF",
-            "Insurance",
-            "Other Deductions",
-            "Total Deductions",
-            "Net Pay",
-            "Status",
-        ];
-
-        const escapeCSV = (value) =>
-            `"${String(value ?? "").replace(/"/g, '""')}"`;
-
-        const csv = [
-            headers.map(escapeCSV).join(","),
-            ...employees.map((employee) =>
-                [
-                    getEmployeeCode(employee),
-                    getEmployeeName(employee),
-                    employee.department || "—",
-                    employee.basic,
-                    employee.hra,
-                    employee.otherAllowances,
-                    employee.bonus,
-                    employee.gross,
-                    employee.pf,
-                    employee.insurance,
-                    employee.otherDeductions,
-                    employee.totalDeductions,
-                    employee.net,
-                    employee.status || "Ready",
-                ]
-                    .map(escapeCSV)
-                    .join(",")
-            ),
-        ].join("\r\n");
-
-        const blob = new Blob(["\uFEFF", csv], {
-            type: "text/csv;charset=utf-8;",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `ignite-payroll-${run.period || "history"}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
-
     return (
         <div className="payroll-history-page">
             <PageHeader
@@ -463,17 +414,6 @@ export default function PayrollHistory() {
             />
 
             <PayrollWorkflowNav />
-
-            <div className="payroll-history-notice">
-                <CircleAlert size={18} />
-                <div>
-                    <strong>Browser demo data</strong>
-                    <p>
-                        Payroll runs and their status changes are stored in this browser
-                        only; they are not submitted to a payroll backend.
-                    </p>
-                </div>
-            </div>
 
             <div className="payroll-history-summary">
                 <Card>
@@ -559,14 +499,20 @@ export default function PayrollHistory() {
                         <option value="all">All statuses</option>
                         <option value="draft">Draft</option>
                         <option value="approved">Approved</option>
+                        <option value="finalized">Finalized</option>
                         <option value="locked">Locked</option>
+                        <option value="cancelled">Cancelled</option>
                     </select>
 
-                    <Button variant="secondary" onClick={refreshRuns}>
+                    <Button variant="secondary" onClick={fetchRuns} disabled={loading}>
                         <RefreshCw size={16} />
-                        Refresh
+                        {loading ? "Loading..." : "Refresh"}
                     </Button>
                 </div>
+
+                {loading && runs.length === 0 && (
+                    <p className="payroll-history-loading">Loading payroll history...</p>
+                )}
 
                 <div className="payroll-history-table-wrap">
                     <table className="payroll-history-table">
@@ -592,12 +538,12 @@ export default function PayrollHistory() {
                                         </strong>
                                     </td>
                                     <td>
-                                        {run.employeeCount ?? getRunEmployees(run).length}
+                                        {run.employeeCount ?? run.employee_count ?? getRunEmployees(run).length}
                                     </td>
                                     <td>{money(getGross(run))}</td>
                                     <td>{money(getDeductions(run))}</td>
                                     <td className="payroll-history-net">{money(getNet(run))}</td>
-                                    <td>{formatDateTime(run.updatedAt || run.createdAt)}</td>
+                                    <td>{formatDateTime(run.updatedAt || run.updated_at || run.createdAt || run.created_at)}</td>
                                     <td>
                                         <span
                                             className={`payroll-history-status ${getStatusClass(run.status)}`}
@@ -609,7 +555,7 @@ export default function PayrollHistory() {
                                         <div className="payroll-history-row-actions">
                                             <button
                                                 type="button"
-                                                onClick={() => setSelectedRun(run)}
+                                                onClick={() => openRun(run)}
                                                 aria-label={`View ${getPeriodLabel(run.period)}`}
                                                 title="View details"
                                             >
@@ -617,7 +563,7 @@ export default function PayrollHistory() {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => exportRun(run)}
+                                                onClick={() => handleExportRun(run)}
                                                 aria-label={`Export ${getPeriodLabel(run.period)}`}
                                                 title="Export CSV"
                                             >
@@ -628,7 +574,7 @@ export default function PayrollHistory() {
                                 </tr>
                             ))}
 
-                            {filteredRuns.length === 0 && (
+                            {filteredRuns.length === 0 && !loading && (
                                 <tr>
                                     <td colSpan={8}>
                                         <div className="payroll-history-empty">
@@ -694,7 +640,7 @@ export default function PayrollHistory() {
                             <div>
                                 <span>Employees</span>
                                 <strong>
-                                    {selectedRun.employeeCount ??
+                                    {selectedRun.employeeCount ?? selectedRun.employee_count ??
                                         getRunEmployees(selectedRun).length}
                                 </strong>
                             </div>
@@ -716,33 +662,33 @@ export default function PayrollHistory() {
 
                             <div className="payroll-history-run-meta">
                                 <span>
-                                    Created: {formatDateTime(selectedRun.createdAt)}
+                                    Created: {formatDateTime(selectedRun.createdAt || selectedRun.created_at)}
                                 </span>
                                 <span>
-                                    Updated: {formatDateTime(selectedRun.updatedAt)}
+                                    Updated: {formatDateTime(selectedRun.updatedAt || selectedRun.updated_at)}
                                 </span>
 
-                                {selectedRun.approvedAt && (
+                                {(selectedRun.approvedAt || selectedRun.approved_at) && (
                                     <span>
-                                        Approved by {selectedRun.approvedBy || "Unknown"} on{" "}
-                                        {formatDateTime(selectedRun.approvedAt)}
+                                        Approved by {selectedRun.approvedBy || selectedRun.approved_by || "Unknown"} on{" "}
+                                        {formatDateTime(selectedRun.approvedAt || selectedRun.approved_at)}
                                     </span>
                                 )}
 
-                                {selectedRun.lockedAt && (
+                                {(selectedRun.lockedAt || selectedRun.locked_at) && (
                                     <span>
-                                        Locked by {selectedRun.lockedBy || "Unknown"} on{" "}
-                                        {formatDateTime(selectedRun.lockedAt)}
+                                        Locked by {selectedRun.lockedBy || selectedRun.locked_by || "Unknown"} on{" "}
+                                        {formatDateTime(selectedRun.lockedAt || selectedRun.locked_at)}
                                     </span>
                                 )}
                             </div>
 
-                            {Array.isArray(selectedRun.auditTrail) &&
-                                selectedRun.auditTrail.length > 0 && (
+                            {Array.isArray(selectedRun.auditTrail || selectedRun.audit_trail) &&
+                                (selectedRun.auditTrail || selectedRun.audit_trail).length > 0 && (
                                     <div className="payroll-history-audit">
                                         <h3>Activity history</h3>
 
-                                        {selectedRun.auditTrail.map((entry, index) => (
+                                        {(selectedRun.auditTrail || selectedRun.audit_trail).map((entry, index) => (
                                             <div
                                                 className="payroll-history-audit-entry"
                                                 key={`${entry.timestamp}-${index}`}
@@ -768,36 +714,108 @@ export default function PayrollHistory() {
                                             <th>Deductions</th>
                                             <th>Net pay</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {getRunEmployees(selectedRun).map((employee, index) => (
-                                            <tr
-                                                key={
-                                                    employee.employeeId ||
-                                                    employee.employee_id ||
-                                                    `${getEmployeeCode(employee)}-${index}`
-                                                }
-                                            >
-                                                <td>
-                                                    <div className="payroll-history-employee">
-                                                        <strong>{getEmployeeName(employee)}</strong>
-                                                        <span>{getEmployeeCode(employee)}</span>
-                                                    </div>
-                                                </td>
-                                                <td>{money(employee.basic)}</td>
-                                                <td>{money(employee.gross)}</td>
-                                                <td>{money(employee.totalDeductions)}</td>
-                                                <td className="payroll-history-net">
-                                                    {money(employee.net)}
-                                                </td>
-                                                <td>{employee.status || "Ready"}</td>
-                                            </tr>
+                                            <Fragment                                             key={employee.id ?? employee.record_id ?? employee.payroll_record_id ?? `${getEmployeeCode(employee)}-${index}`}>
+                                                <tr>
+                                                    <td>
+                                                        <div className="payroll-history-employee">
+                                                            <strong>{getEmployeeName(employee)}</strong>
+                                                            <span>{getEmployeeCode(employee)}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>{money(employee.basic)}</td>
+                                                    <td>{money(employee.gross)}</td>
+                                                    <td>{money(employee.totalDeductions ?? employee.total_deductions)}</td>
+                                                    <td className="payroll-history-net">
+                                                        {money(employee.net ?? employee.net_pay)}
+                                                    </td>
+                                                    <td>{employee.status || "—"}</td>
+                                                    <td>
+                                                        {String(selectedRun.status).toLowerCase() === "draft" &&
+                                                            (employee.id ?? employee.record_id ?? employee.payroll_record_id) && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const id = employee.id ?? employee.record_id ?? employee.payroll_record_id;
+                                                                        setEditingRecordId(id);
+                                                                        setRecordForm({
+                                                                            basic: String(employee.basic ?? ""),
+                                                                            hra: String(employee.hra ?? ""),
+                                                                            other_allowances: String(employee.other_allowances ?? employee.otherAllowances ?? ""),
+                                                                            bonus: String(employee.bonus ?? ""),
+                                                                            pf: String(employee.pf ?? ""),
+                                                                            insurance: String(employee.insurance ?? ""),
+                                                                            other_deductions: String(employee.other_deductions ?? employee.otherDeductions ?? ""),
+                                                                        });
+                                                                    }}
+                                                                    aria-label={`Adjust ${getEmployeeName(employee)} payroll`}
+                                                                    title="Adjust record"
+                                                                >
+                                                                    <Pencil size={16} />
+                                                                </button>
+                                                            )}
+                                                    </td>
+                                                </tr>
+                                                {editingRecordId === (employee.id ?? employee.record_id ?? employee.payroll_record_id) && (
+                                                    <tr>
+                                                        <td colSpan={7}>
+                                                            <form
+                                                                className="payroll-history-record-editor"
+                                                                onSubmit={(event) => {
+                                                                    event.preventDefault();
+                                                                    saveRecordAdjustment(employee);
+                                                                }}
+                                                            >
+                                                                {[
+                                                                    ["basic", "Basic"],
+                                                                    ["hra", "HRA"],
+                                                                    ["other_allowances", "Other allowances"],
+                                                                    ["bonus", "Bonus"],
+                                                                    ["pf", "PF"],
+                                                                    ["insurance", "Insurance"],
+                                                                    ["other_deductions", "Other deductions"],
+                                                                ].map(([field, label]) => (
+                                                                    <label key={field}>
+                                                                        {label}
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="0.01"
+                                                                            value={recordForm[field] ?? ""}
+                                                                            onChange={(event) =>
+                                                                                setRecordForm((current) => ({
+                                                                                    ...current,
+                                                                                    [field]: event.target.value,
+                                                                                }))
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                ))}
+                                                                <Button type="submit" disabled={actionLoading}>
+                                                                    <Save size={15} /> Save adjustment
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="secondary"
+                                                                    onClick={() => setEditingRecordId(null)}
+                                                                    disabled={actionLoading}
+                                                                >
+                                                                    Cancel
+                                                                </Button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </Fragment>
                                         ))}
 
                                         {getRunEmployees(selectedRun).length === 0 && (
                                             <tr>
-                                                <td colSpan={6}>
+                                                <td colSpan={7}>
                                                     No employee details were stored in this run.
                                                 </td>
                                             </tr>
@@ -818,31 +836,76 @@ export default function PayrollHistory() {
 
                             <Button
                                 variant="secondary"
-                                onClick={() => exportRun(selectedRun)}
+                                onClick={() => handleExportRun(selectedRun)}
                             >
                                 <FileText size={16} />
                                 Export CSV
                             </Button>
 
-                            {(selectedRun.status || "Draft") === "Draft" && (
+                            {String(selectedRun.status || "Draft").toLowerCase() === "draft" && (
                                 <Button
                                     onClick={() => changeRunStatus(selectedRun, "Approved")}
+                                    disabled={actionLoading}
                                 >
                                     <FileText size={16} />
-                                    Approve Payroll
+                                    {actionLoading ? "Processing..." : "Approve Payroll"}
                                 </Button>
                             )}
 
-                            {selectedRun.status === "Approved" && (
-                                <Button
-                                    onClick={() => changeRunStatus(selectedRun, "Locked")}
-                                >
-                                    <Wallet size={16} />
-                                    Lock Payroll
-                                </Button>
+                            {["approved", "finalized"].includes(
+                                String(selectedRun.status || "").toLowerCase()
+                            ) && (
+                                <>
+                                    {String(selectedRun.status || "").toLowerCase() === "approved" && (
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => changeRunStatus(selectedRun, "Finalized")}
+                                            disabled={actionLoading}
+                                        >
+                                            <FileText size={16} />
+                                            {actionLoading ? "Processing..." : "Finalize Payroll"}
+                                        </Button>
+                                    )}
+                                    <Button
+                                        onClick={() => changeRunStatus(selectedRun, "Locked")}
+                                        disabled={actionLoading}
+                                    >
+                                        <Wallet size={16} />
+                                        {actionLoading ? "Processing..." : "Lock Payroll"}
+                                    </Button>
+                                    {String(selectedRun.status || "").toLowerCase() === "approved" && (
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => changeRunStatus(selectedRun, "Cancelled")}
+                                            disabled={actionLoading}
+                                        >
+                                            Cancel Payroll
+                                        </Button>
+                                    )}
+                                </>
                             )}
 
-                            {selectedRun.status === "Locked" && (
+                            {String(selectedRun.status || "Draft").toLowerCase() === "draft" && (
+                                <>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => changeRunStatus(selectedRun, "Recalculate")}
+                                        disabled={actionLoading}
+                                    >
+                                        <RefreshCw size={16} />
+                                        Recalculate
+                                    </Button>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => changeRunStatus(selectedRun, "Cancelled")}
+                                        disabled={actionLoading}
+                                    >
+                                        Cancel Draft
+                                    </Button>
+                                </>
+                            )}
+
+                            {String(selectedRun.status || "").toLowerCase() === "locked" && (
                                 <span className="payroll-history-locked-label">
                                     <CircleAlert size={16} />
                                     Payroll Locked

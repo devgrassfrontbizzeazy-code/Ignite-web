@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Plus,
     Search,
@@ -31,6 +31,88 @@ import employeeService from "../../../services/employeeService";
 import { useNotification } from "../../../context/NotificationContext";
 
 import "./SalaryStructures.css";
+import {
+    getSalaryStructures,
+    createSalaryStructure,
+    patchSalaryStructure,
+    deleteSalaryStructure,
+    bulkAssignSalaryTemplate,
+    importSalaryStructures,
+    exportSalaryStructures,
+    getSalaryTemplates,
+    createSalaryTemplate,
+    patchSalaryTemplate,
+    deleteSalaryTemplate,
+    triggerBlobDownload,
+} from "../../../services/api/accountAPI";
+const unwrapList = (response) => {
+    const data = response?.data ?? response;
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.results)) return data.results;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.data?.results)) return data.data.results;
+
+    return [];
+};
+
+const normalizeStructure = (item) => ({
+    ...item,
+    id: item.id,
+    employeeId: String(
+        item.employee_id ??
+        item.employee?.id ??
+        item.employeeId ??
+        ""
+    ),
+    effectiveDate:
+        item.effective_date ??
+        item.effectiveDate ??
+        "",
+    basic: item.basic ?? 0,
+    hra: item.hra ?? 0,
+    otherAllowances:
+        item.other_allowances ??
+        item.otherAllowances ??
+        0,
+    bonus: item.bonus ?? 0,
+    pf: item.pf ?? 0,
+    insurance: item.insurance ?? 0,
+    otherDeductions:
+        item.other_deductions ??
+        item.otherDeductions ??
+        0,
+    templateId:
+        item.template_id ??
+        item.template?.id ??
+        item.templateId ??
+        null,
+    templateName:
+        item.template_name ??
+        item.template?.name ??
+        item.templateName ??
+        "",
+});
+
+const normalizeTemplate = (item) => ({
+    ...item,
+    id: item.id,
+    name: item.name ?? "",
+    description: item.description ?? "",
+    basic: item.basic ?? 0,
+    hra: item.hra ?? 0,
+    otherAllowances:
+        item.other_allowances ??
+        item.otherAllowances ??
+        0,
+    bonus: item.bonus ?? 0,
+    pf: item.pf ?? 0,
+    insurance: item.insurance ?? 0,
+    otherDeductions:
+        item.other_deductions ??
+        item.otherDeductions ??
+        0,
+});
 
 const EMPTY_FORM = {
     employeeId: "",
@@ -135,18 +217,6 @@ const calculateSalary = (form) => {
 const getStructureStatus = (effectiveDate) =>
     effectiveDate > getLocalDate() ? "Upcoming" : "Active";
 
-
-const TEMPLATE_STORAGE_KEY = "ignite_salary_templates";
-const STRUCTURE_STORAGE_KEY = "ignite_salary_structures";
-
-const readLocalData = (key) => {
-    try {
-        const saved = localStorage.getItem(key);
-        return saved ? JSON.parse(saved) : [];
-    } catch {
-        return [];
-    }
-};
 
 const EMPTY_TEMPLATE = {
     name: "",
@@ -296,17 +366,19 @@ const isValidISODate = (value) => {
 
 const SalaryStructures = () => {
     const { showNotification } = useNotification();
+    const notify = useCallback(
+        (type, message) => showNotification({ type, message }),
+        [showNotification]
+    );
 
     const [employees, setEmployees] = useState([]);
     const [employeesLoading, setEmployeesLoading] = useState(true);
     const [employeesError, setEmployeesError] = useState(false);
 
-    const [structures, setStructures] = useState(() =>
-        readLocalData(STRUCTURE_STORAGE_KEY)
-    );
-    const [templates, setTemplates] = useState(() =>
-        readLocalData(TEMPLATE_STORAGE_KEY)
-    );
+    const [structures, setStructures] = useState([]);
+    const [templates, setTemplates] = useState([]);
+    const [dataLoading, setDataLoading] = useState(true);
+    const [dataError, setDataError] = useState("");
 
     const [activeTab, setActiveTab] = useState("structures");
     const [selectedEmployees, setSelectedEmployees] = useState([]);
@@ -317,12 +389,15 @@ const SalaryStructures = () => {
     const [editingTemplateId, setEditingTemplateId] = useState(null);
     const [templateForm, setTemplateForm] = useState({ ...EMPTY_TEMPLATE });
     const [templateError, setTemplateError] = useState("");
+    const [templateSaving, setTemplateSaving] = useState(false);
     const [bulkError, setBulkError] = useState("");
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
     const csvInputRef = useRef(null);
     const [csvPreview, setCsvPreview] = useState([]);
     const [csvErrors, setCsvErrors] = useState([]);
+    const [csvImportFile, setCsvImportFile] = useState(null);
+    const [importing, setImporting] = useState(false);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
@@ -332,13 +407,31 @@ const SalaryStructures = () => {
     });
     const [errors, setErrors] = useState({});
     const [saving, setSaving] = useState(false);
-    useEffect(() => {
-        localStorage.setItem(STRUCTURE_STORAGE_KEY, JSON.stringify(structures));
-    }, [structures]);
+    const [deletingStructureId, setDeletingStructureId] = useState(null);
+
+    const loadStructuresAndTemplates = useCallback(async () => {
+        setDataLoading(true);
+        setDataError("");
+        try {
+            const [structureResponse, templateResponse] = await Promise.all([
+                getSalaryStructures(),
+                getSalaryTemplates(),
+            ]);
+            setStructures(unwrapList(structureResponse).map(normalizeStructure));
+            setTemplates(unwrapList(templateResponse).map(normalizeTemplate));
+        } catch (error) {
+            console.error("Failed to load salary structures and templates:", error);
+            setStructures([]);
+            setTemplates([]);
+            setDataError("Unable to load salary structures and templates.");
+        } finally {
+            setDataLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(templates));
-    }, [templates]);
+        void Promise.resolve().then(loadStructuresAndTemplates);
+    }, [loadStructuresAndTemplates]);
 
     useEffect(() => {
         let mounted = true;
@@ -367,10 +460,7 @@ const SalaryStructures = () => {
                 if (mounted) {
                     setEmployees([]);
                     setEmployeesError(true);
-                    showNotification?.(
-                        "error",
-                        "Unable to load employees. Please try again."
-                    );
+                    notify("error", "Unable to load employees. Please try again.");
                 }
             } finally {
                 if (mounted) setEmployeesLoading(false);
@@ -382,7 +472,7 @@ const SalaryStructures = () => {
         return () => {
             mounted = false;
         };
-    }, [showNotification]);
+    }, [notify]);
 
     const employeeMap = useMemo(
         () => new Map(employees.map((employee) => [String(employee.id), employee])),
@@ -621,7 +711,7 @@ const SalaryStructures = () => {
         return Object.keys(nextErrors).length === 0;
     };
 
-    const handleSave = (event) => {
+    const handleSave = async (event) => {
         event.preventDefault();
 
         if (saving || !validateForm()) return;
@@ -630,40 +720,66 @@ const SalaryStructures = () => {
 
         const salary = calculateSalary(form);
 
-        const structure = {
-            id: editingId ?? `salary-${Date.now()}`,
-            employeeId: String(form.employeeId),
-            effectiveDate: form.effectiveDate,
+        const payload = {
+            employee_id: form.employeeId,
+            effective_date: form.effectiveDate,
             basic: salary.basic,
             hra: salary.hra,
-            otherAllowances: salary.otherAllowances,
+            other_allowances: salary.otherAllowances,
             bonus: salary.bonus,
             pf: salary.pf,
             insurance: salary.insurance,
-            otherDeductions: salary.otherDeductions,
-            updatedAt: new Date().toISOString(),
+            other_deductions: salary.otherDeductions,
         };
 
-        if (editingId) {
-            setStructures((current) =>
-                current.map((item) => (item.id === editingId ? structure : item))
-            );
-        } else {
-            setStructures((current) => [...current, structure]);
+        setSaving(true);
+        try {
+            if (editingId !== null && editingId !== undefined) {
+                await patchSalaryStructure(editingId, payload);
+            } else {
+                await createSalaryStructure(payload);
+            }
+
+            setDrawerOpen(false);
+            setEditingId(null);
+            setErrors({});
+            setForm({ ...EMPTY_FORM, effectiveDate: getLocalDate() });
+            notify("success", editingId ? "Salary structure updated." : "Salary structure created.");
+            await loadStructuresAndTemplates();
+        } catch (error) {
+            console.error("Failed to save salary structure:", error);
+            const message =
+                error?.response?.data?.detail ||
+                error?.response?.data?.message ||
+                "Unable to save the salary structure.";
+            setErrors((current) => ({ ...current, form: message }));
+            notify("error", message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const deleteStructure = async (structure) => {
+        if (!window.confirm("Delete this salary structure? This action cannot be undone.")) {
+            return;
         }
 
-        setSaving(false);
-        setDrawerOpen(false);
-        setEditingId(null);
-        setErrors({});
-        setForm({ ...EMPTY_FORM, effectiveDate: getLocalDate() });
-
-        showNotification?.(
-            "success",
-            editingId
-                ? "Salary structure updated for this demo session."
-                : "Salary structure created for this demo session."
-        );
+        setDeletingStructureId(structure.id);
+        try {
+            await deleteSalaryStructure(structure.id);
+            notify("success", "Salary structure deleted.");
+            await loadStructuresAndTemplates();
+        } catch (error) {
+            console.error("Failed to delete salary structure:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to delete the salary structure."
+            );
+        } finally {
+            setDeletingStructureId(null);
+        }
     };
 
     const openTemplateDrawer = (template = null) => {
@@ -687,7 +803,7 @@ const SalaryStructures = () => {
         setTemplateDrawerOpen(true);
     };
 
-    const saveTemplate = (event) => {
+    const saveTemplate = async (event) => {
         event.preventDefault();
 
         if (!templateForm.name.trim()) {
@@ -724,36 +840,40 @@ const SalaryStructures = () => {
             return;
         }
 
-        const template = {
-            ...templateForm,
-            id: editingTemplateId ?? `template-${Date.now()}`,
+        const payload = {
             name: templateForm.name.trim(),
+            description: templateForm.description.trim(),
             basic: salary.basic,
             hra: salary.hra,
-            otherAllowances: salary.otherAllowances,
+            other_allowances: salary.otherAllowances,
             bonus: salary.bonus,
             pf: salary.pf,
             insurance: salary.insurance,
-            otherDeductions: salary.otherDeductions,
-            updatedAt: new Date().toISOString(),
+            other_deductions: salary.otherDeductions,
         };
 
-        setTemplates((current) =>
-            editingTemplateId
-                ? current.map((item) =>
-                    item.id === editingTemplateId ? template : item
-                )
-                : [...current, template]
-        );
-
-        setTemplateDrawerOpen(false);
-        setEditingTemplateId(null);
-        setTemplateForm({ ...EMPTY_TEMPLATE });
-
-        showNotification?.(
-            "success",
-            editingTemplateId ? "Salary template updated." : "Salary template created."
-        );
+        setTemplateSaving(true);
+        try {
+            if (editingTemplateId !== null && editingTemplateId !== undefined) {
+                await patchSalaryTemplate(editingTemplateId, payload);
+            } else {
+                await createSalaryTemplate(payload);
+            }
+            setTemplateDrawerOpen(false);
+            setEditingTemplateId(null);
+            setTemplateForm({ ...EMPTY_TEMPLATE });
+            notify("success", editingTemplateId ? "Salary template updated." : "Salary template created.");
+            await loadStructuresAndTemplates();
+        } catch (error) {
+            console.error("Failed to save salary template:", error);
+            setTemplateError(
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to save the salary template."
+            );
+        } finally {
+            setTemplateSaving(false);
+        }
     };
 
     const toggleEmployee = (employeeId) => {
@@ -772,12 +892,12 @@ const SalaryStructures = () => {
             departmentEmployeeIds.length > 0 &&
             departmentEmployeeIds.every((id) => selectedEmployees.includes(id));
 
-        setSelectedEmployees((current) =>
+        setSelectedEmployees(
             allDepartmentEmployeesSelected ? [] : departmentEmployeeIds
         );
     };
 
-    const assignTemplate = () => {
+    const assignTemplate = async () => {
         setBulkError("");
 
         const template = templates.find(
@@ -820,49 +940,51 @@ const SalaryStructures = () => {
             return;
         }
 
-        const newStructures = selectedEmployees.map((employeeId, index) => ({
-            id: `salary-${Date.now()}-${index}`,
-            employeeId,
-            templateId: template.id,
-            templateName: template.name,
-            effectiveDate: bulkEffectiveDate,
-            basic: Number(template.basic) || 0,
-            hra: Number(template.hra) || 0,
-            otherAllowances: Number(template.otherAllowances) || 0,
-            bonus: Number(template.bonus) || 0,
-            pf: Number(template.pf) || 0,
-            insurance: Number(template.insurance) || 0,
-            otherDeductions: Number(template.otherDeductions) || 0,
-            updatedAt: new Date().toISOString(),
-        }));
-
-        setStructures((current) => [...current, ...newStructures]);
-        setSelectedEmployees([]);
-        setBulkTemplateId("");
-        setActiveTab("structures");
-
-        showNotification?.(
-            "success",
-            `Salary template assigned to ${newStructures.length} employee(s).`
-        );
+        try {
+            await bulkAssignSalaryTemplate({
+                employee_ids: selectedEmployees,
+                template_id: template.id,
+                effective_date: bulkEffectiveDate,
+            });
+            setSelectedEmployees([]);
+            setBulkTemplateId("");
+            setActiveTab("structures");
+            notify("success", "Salary template assignment completed.");
+            await loadStructuresAndTemplates();
+        } catch (error) {
+            console.error("Failed to assign salary template:", error);
+            setBulkError(
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to assign the salary template."
+            );
+        }
     };
 
-    const deleteTemplate = (templateId) => {
+    const deleteTemplate = async (templateId) => {
         const inUse = structures.some(
             (structure) => structure.templateId === templateId
         );
 
         if (inUse) {
-            showNotification?.(
-                "error",
-                "This template has been assigned to employees and cannot be deleted."
-            );
+            notify("error", "This template has been assigned to employees and cannot be deleted.");
             return;
         }
 
-        setTemplates((current) =>
-            current.filter((template) => template.id !== templateId)
-        );
+        if (!window.confirm("Delete this salary template?")) return;
+        try {
+            await deleteSalaryTemplate(templateId);
+            notify("success", "Salary template deleted.");
+            await loadStructuresAndTemplates();
+        } catch (error) {
+            console.error("Failed to delete salary template:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to delete the salary template."
+            );
+        }
     };
 
 
@@ -872,51 +994,20 @@ const SalaryStructures = () => {
         ]);
     };
 
-    const exportStructures = () => {
-        const headers = [
-            "employee_code",
-            "employee_name",
-            "department",
-            "effective_date",
-            "basic",
-            "hra",
-            "other_allowances",
-            "bonus",
-            "pf",
-            "insurance",
-            "other_deductions",
-            "gross",
-            "total_deductions",
-            "net",
-            "template_name",
-        ];
-
-        const rows = structures.map((structure) => {
-            const employee = employeeMap.get(String(structure.employeeId));
-            const salary = calculateSalary(structure);
-
-            return [
-                getEmployeeCode(employee),
-                getEmployeeName(employee),
-                getEmployeeDepartment(employee),
-                structure.effectiveDate,
-                salary.basic,
-                salary.hra,
-                salary.otherAllowances,
-                salary.bonus,
-                salary.pf,
-                salary.insurance,
-                salary.otherDeductions,
-                salary.gross,
-                salary.totalDeductions,
-                salary.net,
-                structure.templateName || "",
-            ];
-        });
-
-        downloadCSV("ignite_salary_structures.csv", [headers, ...rows]);
-
-        showNotification?.("success", "Salary structures exported to CSV.");
+    const exportStructures = async () => {
+        try {
+            const blob = await exportSalaryStructures();
+            triggerBlobDownload(blob, "ignite_salary_structures.csv");
+            notify("success", "Salary structures exported.");
+        } catch (error) {
+            console.error("Failed to export salary structures:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to export salary structures."
+            );
+        }
     };
 
     const handleCSVFile = async (event) => {
@@ -928,13 +1019,14 @@ const SalaryStructures = () => {
         if (!file) return;
 
         if (!file.name.toLowerCase().endsWith(".csv")) {
-            showNotification?.("error", "Please select a CSV file.");
+            notify("error", "Please select a CSV file.");
             return;
         }
 
         try {
             const text = await file.text();
             const parsedRows = parseCSV(text);
+            setCsvImportFile(file);
 
             const employeesByCode = new Map();
 
@@ -1079,50 +1171,69 @@ const SalaryStructures = () => {
             setCsvErrors(rowErrors);
 
             if (preview.length === 0) {
-                showNotification?.("error", "No importable rows were found.");
+                notify("error", "No importable rows were found.");
             }
         } catch (error) {
             setCsvPreview([]);
             setCsvErrors([]);
-            showNotification?.(
+            setCsvImportFile(null);
+            notify(
                 "error",
                 error instanceof Error ? error.message : "Could not read the CSV file."
             );
         }
     };
 
-    const importValidCSVRows = () => {
+    const importValidCSVRows = async () => {
         const validRows = csvPreview.filter((row) => row.issues.length === 0);
 
         if (validRows.length === 0) {
-            showNotification?.("error", "There are no valid rows to import.");
+            notify("error", "There are no valid rows to import.");
             return;
         }
 
-        const importedAt = new Date().toISOString();
-
-        const newStructures = validRows.map((row, index) => ({
-            id: `salary-csv-${Date.now()}-${index}`,
-            employeeId: row.employeeId,
-            effectiveDate: row.effectiveDate,
-            basic: row.basic,
-            hra: row.hra,
-            otherAllowances: row.otherAllowances,
-            bonus: row.bonus,
-            pf: row.pf,
-            insurance: row.insurance,
-            otherDeductions: row.otherDeductions,
-            updatedAt: importedAt,
-        }));
-
-        setStructures((current) => [...current, ...newStructures]);
-        setCsvPreview([]);
-        setCsvErrors([]);
-
-        showNotification?.(
-            "success",
-            `Imported ${newStructures.length} salary structure(s). Invalid and duplicate rows were skipped.`
+        const csvRows = [
+            CSV_IMPORT_HEADERS,
+            ...validRows.map((row) => [
+                row.employeeCode,
+                row.effectiveDate,
+                row.basic,
+                row.hra,
+                row.otherAllowances,
+                row.bonus,
+                row.pf,
+                row.insurance,
+                row.otherDeductions,
+            ]),
+        ];
+        const csvContent = csvRows
+            .map((row) => row.map(csvEscape).join(","))
+            .join("\r\n");
+        const upload = new File(
+            [csvContent],
+            csvImportFile?.name || "salary_structures.csv",
+            { type: "text/csv" }
         );
+
+        setImporting(true);
+        try {
+            await importSalaryStructures(upload);
+            setCsvPreview([]);
+            setCsvErrors([]);
+            setCsvImportFile(null);
+            notify("success", "Salary structure import completed.");
+            await loadStructuresAndTemplates();
+        } catch (error) {
+            console.error("Failed to import salary structures:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to import salary structures."
+            );
+        } finally {
+            setImporting(false);
+        }
     };
 
 
@@ -1179,18 +1290,15 @@ const SalaryStructures = () => {
             />
 
 
-            <div className="salary-demo-notice">
-                <span className="salary-demo-notice__icon">
-                    <RefreshCw size={17} />
-                </span>
-                <div>
-                    <strong>Frontend demo mode</strong>
-                    <p>
-                        Salary structures are saved in this browser only and are not
-                        submitted to the backend.
-                    </p>
+            {dataError && (
+                <div className="salary-page-state" role="alert">
+                    <h3>Could not load payroll data</h3>
+                    <p>{dataError}</p>
+                    <Button variant="secondary" onClick={loadStructuresAndTemplates}>
+                        <RefreshCw size={16} /> Retry
+                    </Button>
                 </div>
-            </div>
+            )}
 
             <div className="salary-summary-grid">
                 <Card className="salary-summary-card">
@@ -1400,11 +1508,12 @@ const SalaryStructures = () => {
 
                         <Button
                             onClick={importValidCSVRows}
-                            disabled={!csvPreview.some((row) => row.issues.length === 0)}
+                            disabled={importing || !csvPreview.some((row) => row.issues.length === 0)}
                         >
                             <Upload size={16} />
-                            Import Valid Rows (
-                            {csvPreview.filter((row) => row.issues.length === 0).length})
+                            {importing
+                                ? "Importing..."
+                                : `Import Valid Rows (${csvPreview.filter((row) => row.issues.length === 0).length})`}
                         </Button>
                     </div>
                 </Card>
@@ -1452,7 +1561,12 @@ const SalaryStructures = () => {
                         />
                     </div>
 
-                    {employeesLoading ? (
+                    {dataLoading ? (
+                        <div className="salary-page-state">
+                            <span className="salary-loading-spinner" />
+                            <p>Loading salary structures...</p>
+                        </div>
+                    ) : employeesLoading ? (
                         <div className="salary-page-state">
                             <span className="salary-loading-spinner" />
                             <p>Loading employees...</p>
@@ -1469,7 +1583,17 @@ const SalaryStructures = () => {
                             </p>
                             <Button
                                 variant="secondary"
-                                onClick={() => window.location.reload()}
+                                onClick={async () => {
+                                    setEmployeesError(false);
+                                    try {
+                                        const employeeList = await employeeService.getAll();
+                                        setEmployees(employeeList);
+                                    } catch (error) {
+                                        console.error("Failed to reload employees:", error);
+                                        setEmployeesError(true);
+                                        notify("error", "Unable to load employees. Please try again.");
+                                    }
+                                }}
                             >
                                 Retry
                             </Button>
@@ -1579,6 +1703,16 @@ const SalaryStructures = () => {
                                                             <Pencil size={14} />
                                                             Edit
                                                         </Button>
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            disabled={deletingStructureId === structure.id}
+                                                            onClick={() => deleteStructure(structure)}
+                                                            aria-label={`Delete salary structure for ${getEmployeeName(employee)}`}
+                                                        >
+                                                            <Trash2 size={14} />
+                                                            {deletingStructureId === structure.id ? "Deleting..." : "Delete"}
+                                                        </Button>
                                                     </td>
                                                 </tr>
                                             );
@@ -1620,7 +1754,12 @@ const SalaryStructures = () => {
                         </Button>
                     }
                 >
-                    {templates.length === 0 ? (
+                    {dataLoading ? (
+                        <div className="salary-page-state">
+                            <span className="salary-loading-spinner" />
+                            <p>Loading salary templates...</p>
+                        </div>
+                    ) : templates.length === 0 ? (
                         <div className="salary-page-state">
                             <div className="salary-page-state__icon">
                                 <Layers size={24} />
@@ -2147,8 +2286,12 @@ const SalaryStructures = () => {
                         >
                             Cancel
                         </Button>
-                        <Button onClick={saveTemplate}>
-                            {editingTemplateId ? "Save Changes" : "Create Template"}
+                        <Button onClick={saveTemplate} disabled={templateSaving}>
+                            {templateSaving
+                                ? "Saving..."
+                                : editingTemplateId
+                                    ? "Save Changes"
+                                    : "Create Template"}
                         </Button>
                     </div>
                 }

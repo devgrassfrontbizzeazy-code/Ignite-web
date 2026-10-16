@@ -1,6 +1,5 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
     Calculator,
     CalendarDays,
@@ -16,26 +15,22 @@ import Button from "../../../components/common/Button/Button";
 import Card from "../../../components/common/Card/Card";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import PayrollWorkflowNav from "../../../components/account/PayrollWorkflowNav";
-import employeeService from "../../../services/employeeService";
 import { useNotification } from "../../../context/NotificationContext";
+import {
+    calculatePayroll,
+    createPayrollDraft,
+    patchPayrollDraft,
+    getPayrollDrafts,
+    exportPayrollRun,
+    unwrapList,
+    triggerBlobDownload,
+} from "../../../services/api/accountAPI";
 
 import "./ProcessPayroll.css";
-
-const STRUCTURE_STORAGE_KEY = "ignite_salary_structures";
-const PAYROLL_STORAGE_KEY = "ignite_payroll_runs";
 
 const getCurrentPeriod = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-};
-
-const readLocalData = (key) => {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || "[]");
-        return Array.isArray(value) ? value : [];
-    } catch {
-        return [];
-    }
 };
 
 const money = (amount) =>
@@ -57,9 +52,6 @@ const formatDate = (date) => {
         });
 };
 
-const getEmployeeId = (employee) =>
-    String(employee?.id ?? employee?.employee_id ?? "");
-
 const getEmployeeName = (employee) =>
     [
         employee?.first_name,
@@ -70,75 +62,18 @@ const getEmployeeName = (employee) =>
         .join(" ") ||
     employee?.full_name ||
     employee?.name ||
+    employee?.employeeName ||
     "Unnamed employee";
-
-const isActiveEmployee = (employee) => {
-    if (employee?.is_active === false) return false;
-
-    const status = String(employee?.employment_status || "").toLowerCase();
-    return !["inactive", "terminated", "resigned", "exited"].includes(status);
-};
-
-const getStructureForPeriod = (structures, employeeId, periodEnd) => {
-    return structures
-        .filter(
-            (structure) =>
-                String(structure.employeeId ?? structure.employee_id ?? "") ===
-                employeeId &&
-                structure.effectiveDate &&
-                structure.effectiveDate <= periodEnd
-        )
-        .sort((a, b) =>
-            String(b.effectiveDate).localeCompare(String(a.effectiveDate))
-        )[0];
-};
-
-const calculateRow = (employee, structure) => {
-    const basic = Number(structure.basic) || 0;
-    const hra = Number(structure.hra) || 0;
-    const otherAllowances = Number(structure.otherAllowances) || 0;
-    const bonus = Number(structure.bonus) || 0;
-    const pf = Number(structure.pf) || 0;
-    const insurance = Number(structure.insurance) || 0;
-    const otherDeductions = Number(structure.otherDeductions) || 0;
-
-    const gross = basic + hra + otherAllowances + bonus;
-    const totalDeductions = pf + insurance + otherDeductions;
-
-    return {
-        employeeId: getEmployeeId(employee),
-        employeeCode: employee.employee_code || employee.employeeCode || "—",
-        employeeName: getEmployeeName(employee),
-        department:
-            employee.department_name ||
-            employee.department?.name ||
-            employee.department ||
-            "—",
-        structureId: structure.id,
-        effectiveDate: structure.effectiveDate,
-        basic,
-        hra,
-        otherAllowances,
-        bonus,
-        pf,
-        insurance,
-        otherDeductions,
-        gross,
-        totalDeductions,
-        net: gross - totalDeductions,
-        status: "Ready",
-    };
-};
 
 export default function ProcessPayroll() {
     const { showNotification } = useNotification();
+    const notify = useCallback(
+        (type, message) => showNotification({ type, message }),
+        [showNotification]
+    );
 
     const [period, setPeriod] = useState(getCurrentPeriod);
-    const [employees, setEmployees] = useState([]);
-    const [structures, setStructures] = useState([]);
-    const [payrollRuns, setPayrollRuns] = useState(() =>
-        readLocalData(PAYROLL_STORAGE_KEY)
-    );
+    const [existingDrafts, setExistingDrafts] = useState([]);
     const [rows, setRows] = useState([]);
     const [hasGenerated, setHasGenerated] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -151,23 +86,12 @@ export default function ProcessPayroll() {
         setLoadError("");
 
         try {
-            const result = await employeeService.getAll();
-            const list = Array.isArray(result)
-                ? result
-                : Array.isArray(result?.results)
-                    ? result.results
-                    : Array.isArray(result?.data)
-                        ? result.data
-                        : [];
-
-            setEmployees(list.filter(isActiveEmployee));
-            setStructures(readLocalData(STRUCTURE_STORAGE_KEY));
-            setPayrollRuns(readLocalData(PAYROLL_STORAGE_KEY));
+            const draftsResult = await getPayrollDrafts();
+            setExistingDrafts(unwrapList(draftsResult));
         } catch (error) {
-            console.error("Failed to load payroll employees:", error);
-            setLoadError("Employees could not be loaded. Please try again.");
-            setEmployees([]);
-            setStructures(readLocalData(STRUCTURE_STORAGE_KEY));
+            console.error("Failed to load payroll data:", error);
+            setLoadError("Data could not be loaded. Please try again.");
+            setExistingDrafts([]);
         } finally {
             setLoading(false);
         }
@@ -204,55 +128,71 @@ export default function ProcessPayroll() {
     }, [period]);
 
     const existingRun = useMemo(
-        () => payrollRuns.find((run) => run.period === period),
-        [payrollRuns, period]
+        () =>
+            existingDrafts.find(
+                (run) => (run.period ?? run.payroll_period) === period
+            ),
+        [existingDrafts, period]
     );
 
-    const generatePayroll = () => {
+    const generatePayroll = async () => {
         if (!periodEnd) {
-            showNotification("Please select a valid payroll month.", "error");
+            notify("error", "Please select a valid payroll month.");
             return;
         }
 
         setGenerating(true);
 
         try {
-            const nextRows = employees.map((employee) => {
-                const id = getEmployeeId(employee);
-                const structure = getStructureForPeriod(structures, id, periodEnd);
+            const response = await calculatePayroll({ period });
+            const data = response?.data ?? response;
+            const calcRows = unwrapList(data);
+            const rowsFromObject =
+                data?.records ?? data?.employees ?? data?.payroll_records;
+            const backendRows = calcRows.length
+                ? calcRows
+                : Array.isArray(rowsFromObject)
+                    ? rowsFromObject
+                    : [];
+            const mappedRows = backendRows.map((row) => ({
+                ...row,
+                employeeId: String(row.employee_id ?? row.employeeId ?? row.employee?.id ?? ""),
+                employeeCode: row.employee_code ?? row.employeeCode ?? "—",
+                employeeName: row.employee_name ?? row.employeeName ?? getEmployeeName(row.employee || row),
+                department: row.department_name ?? row.department?.name ?? row.department ?? "—",
+                structureId: row.structure_id ?? row.structureId,
+                effectiveDate: row.effective_date ?? row.effectiveDate,
+                basic: Number(row.basic) || 0,
+                hra: Number(row.hra) || 0,
+                otherAllowances: Number(row.other_allowances ?? row.otherAllowances) || 0,
+                bonus: Number(row.bonus) || 0,
+                pf: Number(row.pf) || 0,
+                insurance: Number(row.insurance) || 0,
+                otherDeductions: Number(row.other_deductions ?? row.otherDeductions) || 0,
+                gross: Number(row.gross ?? row.gross_salary) || 0,
+                totalDeductions: Number(row.total_deductions ?? row.totalDeductions) || 0,
+                net: Number(row.net ?? row.net_pay) || 0,
+                status: row.status ?? "—",
+                recordId: row.id ?? row.record_id,
+            }));
 
-                if (!structure) {
-                    return {
-                        employeeId: id,
-                        employeeCode: employee.employee_code || employee.employeeCode || "—",
-                        employeeName: getEmployeeName(employee),
-                        department:
-                            employee.department_name ||
-                            employee.department?.name ||
-                            employee.department ||
-                            "—",
-                        status: "Missing salary structure",
-                        gross: 0,
-                        totalDeductions: 0,
-                        net: 0,
-                    };
-                }
-
-                return calculateRow(employee, structure);
-            });
-
-            setRows(nextRows);
+            setRows(mappedRows);
             setHasGenerated(true);
 
-            const missing = nextRows.filter(
-                (row) => row.status !== "Ready"
-            ).length;
-
-            showNotification(
+            const missing = mappedRows.filter((row) => row.status !== "Ready").length;
+            notify(
+                missing ? "warning" : "success",
                 missing
-                    ? `Payroll calculated. ${missing} employee(s) need a salary structure.`
-                    : `Payroll calculated for ${periodLabel}.`,
-                missing ? "warning" : "success"
+                    ? `Payroll calculated. ${missing} employee(s) need attention.`
+                    : `Payroll calculated for ${periodLabel}.`
+            );
+        } catch (error) {
+            console.error("Payroll generation failed:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Payroll calculation failed. Please try again."
             );
         } finally {
             setGenerating(false);
@@ -260,7 +200,11 @@ export default function ProcessPayroll() {
     };
 
     const totals = useMemo(() => {
-        const readyRows = rows.filter((row) => row.status === "Ready");
+        const readyRows = rows.filter(
+            (row) =>
+                !["missing", "missing salary structure", "error", "exception", "failed", "blocked"]
+                    .some((status) => String(row.status || "").toLowerCase().includes(status))
+        );
 
         return {
             employees: readyRows.length,
@@ -274,124 +218,96 @@ export default function ProcessPayroll() {
         };
     }, [rows]);
 
-    const saveDraft = () => {
+    const saveDraft = async () => {
         if (!hasGenerated || rows.length === 0) {
-            showNotification("Generate payroll before saving a draft.", "error");
+            notify("error", "Generate payroll before saving a draft.");
             return;
         }
 
         if (totals.missing > 0) {
-            showNotification(
-                "Assign salary structures to all active employees before saving the payroll draft.",
-                "error"
-            );
+            notify("error", "Resolve all payroll exceptions before saving the draft.");
             return;
         }
 
-        if (existingRun && existingRun.status !== "Draft") {
-            showNotification(
-                "A non-draft payroll run already exists for this month. It cannot be overwritten.",
-                "error"
-            );
+        if (existingRun && String(existingRun.status || "Draft").toLowerCase() !== "draft") {
+            notify("error", "A non-draft payroll run already exists for this month. It cannot be overwritten.");
             return;
         }
 
         setSaving(true);
 
         try {
-            const savedAt = new Date().toISOString();
-            const run = {
-                id: existingRun?.id || `payroll-${period}`,
+            const payload = {
                 period,
-                periodLabel,
+                period_label: periodLabel,
                 status: "Draft",
-                createdAt: existingRun?.createdAt || savedAt,
-                updatedAt: savedAt,
-                employeeCount: totals.employees,
+                employee_count: totals.employees,
                 gross: totals.gross,
                 deductions: totals.deductions,
                 net: totals.net,
-                employees: rows,
+                employees: rows.map((row) => ({
+                    employee_id: row.employeeId,
+                    employee_code: row.employeeCode,
+                    employee_name: row.employeeName,
+                    department: row.department,
+                    structure_id: row.structureId,
+                    effective_date: row.effectiveDate,
+                    basic: row.basic,
+                    hra: row.hra,
+                    other_allowances: row.otherAllowances,
+                    bonus: row.bonus,
+                    pf: row.pf,
+                    insurance: row.insurance,
+                    other_deductions: row.otherDeductions,
+                    gross: row.gross,
+                    total_deductions: row.totalDeductions,
+                    net: row.net,
+                    ...(row.status !== "—" ? { status: row.status } : {}),
+                    record_id: row.recordId,
+                })),
             };
 
-            const nextRuns = [
-                ...payrollRuns.filter((item) => item.period !== period),
-                run,
-            ].sort((a, b) => b.period.localeCompare(a.period));
+            if (existingRun?.id) {
+                await patchPayrollDraft(existingRun.id, payload);
+            } else {
+                await createPayrollDraft(payload);
+            }
 
-            localStorage.setItem(PAYROLL_STORAGE_KEY, JSON.stringify(nextRuns));
-            setPayrollRuns(nextRuns);
-            showNotification("Payroll draft saved in this browser.", "success");
+            // Refresh drafts from backend
+            const refreshedDrafts = await getPayrollDrafts();
+            setExistingDrafts(unwrapList(refreshedDrafts));
+
+            notify("success", existingRun ? "Payroll draft updated successfully." : "Payroll draft saved successfully.");
         } catch (error) {
             console.error("Failed to save payroll draft:", error);
-            showNotification(
-                "Could not save the draft. Check browser storage and try again.",
-                "error"
-            );
+            const message =
+                error?.response?.data?.detail ||
+                error?.response?.data?.message ||
+                "Could not save the draft. Please try again.";
+            notify("error", message);
         } finally {
             setSaving(false);
         }
     };
 
-    const exportCSV = () => {
+    const exportCSV = async () => {
         if (!hasGenerated || rows.length === 0) {
-            showNotification("Generate payroll before exporting.", "error");
+            notify("error", "Generate payroll before exporting.");
             return;
         }
 
-        const headers = [
-            "Employee Code",
-            "Employee Name",
-            "Department",
-            "Basic",
-            "HRA",
-            "Other Allowances",
-            "Bonus",
-            "Gross",
-            "PF",
-            "Insurance",
-            "Other Deductions",
-            "Total Deductions",
-            "Net Pay",
-            "Status",
-        ];
-
-        const escapeCSV = (value) =>
-            `"${String(value ?? "").replace(/"/g, '""')}"`;
-
-        const csv = [
-            headers.map(escapeCSV).join(","),
-            ...rows.map((row) =>
-                [
-                    row.employeeCode,
-                    row.employeeName,
-                    row.department,
-                    row.basic ?? "",
-                    row.hra ?? "",
-                    row.otherAllowances ?? "",
-                    row.bonus ?? "",
-                    row.gross,
-                    row.pf ?? "",
-                    row.insurance ?? "",
-                    row.otherDeductions ?? "",
-                    row.totalDeductions,
-                    row.net,
-                    row.status,
-                ]
-                    .map(escapeCSV)
-                    .join(",")
-            ),
-        ].join("\r\n");
-
-        const blob = new Blob(["\uFEFF", csv], {
-            type: "text/csv;charset=utf-8;",
-        });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `ignite-payroll-${period}.csv`;
-        link.click();
-        URL.revokeObjectURL(url);
+        if (existingRun?.id) {
+            try {
+                const blob = await exportPayrollRun(existingRun.id);
+                triggerBlobDownload(blob, `ignite-payroll-${period}.csv`);
+                return;
+            } catch (error) {
+                console.error("Failed to export payroll:", error);
+                notify("error", "Unable to export this payroll run.");
+                return;
+            }
+        }
+        notify("error", "Save a payroll draft before exporting it.");
     };
 
     return (
@@ -403,23 +319,6 @@ export default function ProcessPayroll() {
             />
 
             <PayrollWorkflowNav />
-
-            <div className="process-payroll-notice">
-                <CircleAlert size={18} />
-                <div>
-                    <strong>Frontend demo mode</strong>
-                    <p>
-                        Payroll drafts are saved in this browser only. No salaries are
-                        submitted to the backend, approved, or paid from this page.
-                    </p>
-                    <Link
-                        className="payroll-workflow-cta"
-                        to="/account/salary-structures"
-                    >
-                        Manage salary structures
-                    </Link>
-                </div>
-            </div>
 
             <Card>
                 <div className="process-payroll-toolbar">
@@ -457,7 +356,7 @@ export default function ProcessPayroll() {
                 </div>
 
                 {loading && (
-                    <p className="process-payroll-message">Loading active employees...</p>
+                    <p className="process-payroll-message">Loading payroll drafts...</p>
                 )}
 
                 {loadError && (
@@ -471,8 +370,8 @@ export default function ProcessPayroll() {
 
                 {!loading && !loadError && (
                     <p className="process-payroll-helper">
-                        {employees.length} active employee(s) found. Salary structures
-                        effective on or before {formatDate(periodEnd)} are considered.
+                        Payroll calculations use salary structures effective on or before{" "}
+                        {formatDate(periodEnd)}.
                     </p>
                 )}
             </Card>
@@ -565,7 +464,7 @@ export default function ProcessPayroll() {
                                         saving ||
                                         totals.missing > 0 ||
                                         rows.length === 0 ||
-                                        (existingRun && existingRun.status !== "Draft")
+                                        (existingRun && String(existingRun.status || "Draft").toLowerCase() !== "draft")
                                     }
                                 >
                                     <Save size={16} />
@@ -577,7 +476,7 @@ export default function ProcessPayroll() {
                         {existingRun && (
                             <div className="process-payroll-existing-run">
                                 Existing run for this month: <strong>{existingRun.status}</strong>
-                                {existingRun.status !== "Draft" &&
+                                {String(existingRun.status || "Draft").toLowerCase() !== "draft" &&
                                     " — this run cannot be overwritten."}
                             </div>
                         )}
@@ -641,7 +540,7 @@ export default function ProcessPayroll() {
 
                         {rows.length === 0 && (
                             <div className="process-payroll-empty">
-                                No active employees found for payroll.
+                                No payroll records were returned for this period.
                             </div>
                         )}
                     </Card>

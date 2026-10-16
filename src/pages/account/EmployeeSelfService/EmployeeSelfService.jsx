@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Wallet,
     TrendingUp,
@@ -8,12 +8,18 @@ import {
     RefreshCw,
     CircleAlert,
     UserRound,
+    Download,
 } from "lucide-react";
 import { getCurrentUser } from "../../../services/api/authAPI";
+import { useNotification } from "../../../context/NotificationContext";
+import {
+    getPayslips,
+    getSalaryStructures,
+    downloadPayslip,
+    unwrapList,
+    triggerBlobDownload,
+} from "../../../services/api/accountAPI";
 import "./EmployeeSelfService.css";
-
-const PAYROLL_KEY = "ignite_payroll_runs";
-const STRUCTURES_KEY = "ignite_salary_structures";
 
 const getUserObject = (response) =>
     response?.data?.user ??
@@ -44,20 +50,6 @@ const getEmployeeName = (user) =>
     user?.employee?.first_name ??
     "Employee";
 
-const readStorage = (key) => {
-    try {
-        const value = JSON.parse(localStorage.getItem(key) || "[]");
-        return Array.isArray(value) ? value : [];
-    } catch {
-        return [];
-    }
-};
-
-const isReleased = (run) =>
-    ["approved", "locked"].includes(
-        String(run?.status || "").toLowerCase()
-    );
-
 const money = (value, currency = "INR") =>
     new Intl.NumberFormat("en-IN", {
         style: "currency",
@@ -77,12 +69,18 @@ const formatPeriod = (period) => {
 };
 
 export default function EmployeeSelfService() {
+    const { showNotification } = useNotification();
+    const notify = useCallback(
+        (type, message) => showNotification({ type, message }),
+        [showNotification]
+    );
     const [user, setUser] = useState(null);
-    const [runs, setRuns] = useState([]);
+    const [payslipData, setPayslipData] = useState([]);
     const [structures, setStructures] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [refreshKey, setRefreshKey] = useState(0);
+    const [downloadingId, setDownloadingId] = useState(null);
 
     useEffect(() => {
         let active = true;
@@ -92,7 +90,10 @@ export default function EmployeeSelfService() {
             setError("");
 
             try {
-                const response = await getCurrentUser();
+                const [response, payslipsResponse] = await Promise.all([
+                    getCurrentUser(),
+                    getPayslips(),
+                ]);
                 const currentUser = getUserObject(response);
 
                 if (!currentUser || typeof currentUser !== "object") {
@@ -101,8 +102,20 @@ export default function EmployeeSelfService() {
 
                 if (active) {
                     setUser(currentUser);
-                    setRuns(readStorage(PAYROLL_KEY));
-                    setStructures(readStorage(STRUCTURES_KEY));
+                }
+
+                if (active) {
+                    setPayslipData(unwrapList(payslipsResponse));
+                }
+                try {
+                    const structuresResponse = await getSalaryStructures();
+                    if (active) setStructures(unwrapList(structuresResponse));
+                } catch (structureError) {
+                    console.error("Failed to load employee salary structure:", structureError);
+                    if (active) {
+                        setStructures([]);
+                        notify("error", "Your payslips loaded, but your salary structure could not be loaded.");
+                    }
                 }
             } catch (err) {
                 if (active) {
@@ -120,18 +133,10 @@ export default function EmployeeSelfService() {
 
         load();
 
-        const onStorage = () => {
-            setRuns(readStorage(PAYROLL_KEY));
-            setStructures(readStorage(STRUCTURES_KEY));
-        };
-
-        window.addEventListener("storage", onStorage);
-
         return () => {
             active = false;
-            window.removeEventListener("storage", onStorage);
         };
-    }, [refreshKey]);
+    }, [refreshKey, notify]);
 
     const employeeId = getEmployeeId(user);
     const employeeCode = getEmployeeCode(user);
@@ -139,52 +144,88 @@ export default function EmployeeSelfService() {
     const employeePayroll = useMemo(() => {
         if (!user || (!employeeId && !employeeCode)) return [];
 
-        return runs
-            .filter(isReleased)
-            .map((run) => {
-                const matchingEmployees = (run.employees || []).filter((employee) => {
-                    const sameId =
-                        employeeId != null &&
-                        String(employee.employeeId ?? employee.employee_id ?? employee.id) ===
-                        String(employeeId);
+        return payslipData
+            .filter((slip) => {
+                const slipEmployee = slip.employee && typeof slip.employee === "object"
+                    ? slip.employee
+                    : {};
+                const slipEmployeeId = String(
+                    slip.employee_id ??
+                        slip.employeeId ??
+                        slipEmployee.id ??
+                        (typeof slip.employee === "string" ? slip.employee : "")
+                );
+                const slipEmployeeCode = String(
+                    slip.employee_code ??
+                        slip.employeeCode ??
+                        slipEmployee.employee_code ??
+                        slipEmployee.code ??
+                        ""
+                ).toLowerCase();
 
-                    const sameCode =
-                        employeeCode &&
-                        String(employee.employeeCode ?? employee.employee_code ?? "")
-                            .toLowerCase() === employeeCode.toLowerCase();
-
-                    return sameId || sameCode;
-                });
-
-                return matchingEmployees.map((employee) => ({
-                    ...employee,
-                    period: run.period,
-                    periodLabel: run.periodLabel || formatPeriod(run.period),
-                    runStatus: run.status,
-                }));
+                return (
+                    (employeeId != null && slipEmployeeId === String(employeeId)) ||
+                    (employeeCode && slipEmployeeCode === employeeCode.toLowerCase())
+                );
             })
-            .flat()
+            .map((slip) => ({
+                ...slip,
+                period: slip.period || slip.payroll_period,
+                periodLabel: slip.period_label || formatPeriod(slip.period || slip.payroll_period),
+                runStatus: slip.payroll_status || slip.status || "—",
+                payslipId: slip.id || slip.payslip_id,
+            }))
             .sort((a, b) => String(b.period).localeCompare(String(a.period)));
-    }, [runs, user, employeeId, employeeCode]);
+    }, [payslipData, user, employeeId, employeeCode]);
 
     const latest = employeePayroll[0];
+    const currentStructure = useMemo(
+        () =>
+            structures.find((item) => {
+                const employee = item.employee && typeof item.employee === "object"
+                    ? item.employee
+                    : {};
+                const structureEmployeeId = String(
+                    item.employee_id ?? item.employeeId ?? employee.id ?? item.employee ?? ""
+                );
+                const structureEmployeeCode = String(
+                    item.employee_code ?? item.employeeCode ?? employee.employee_code ?? ""
+                ).toLowerCase();
+                return (
+                    (employeeId != null && structureEmployeeId === String(employeeId)) ||
+                    (employeeCode && structureEmployeeCode === employeeCode.toLowerCase())
+                );
+            }),
+        [structures, employeeId, employeeCode]
+    );
 
-    const currentStructure = useMemo(() => {
-        if (!employeeId && !employeeCode) return null;
+    const handleDownload = async (payroll) => {
+        const payslipId = payroll.payslipId || payroll.id || payroll.payslip_id;
+        if (!payslipId) {
+            notify("error", "This payslip does not include a backend ID for download.");
+            return;
+        }
 
-        return structures.find((item) => {
-            const sameId =
-                employeeId != null &&
-                String(item.employeeId ?? item.employee_id) === String(employeeId);
-
-            const sameCode =
-                employeeCode &&
-                String(item.employeeCode ?? item.employee_code ?? "")
-                    .toLowerCase() === employeeCode.toLowerCase();
-
-            return sameId || sameCode;
-        });
-    }, [structures, employeeId, employeeCode]);
+        setDownloadingId(payslipId);
+        try {
+            const blob = await downloadPayslip(payslipId);
+            triggerBlobDownload(
+                blob,
+                `${employeeCode || employeeId}-${payroll.period}-payslip.pdf`
+            );
+            notify("success", "Payslip PDF downloaded.");
+        } catch (error) {
+            console.error("Failed to download payslip:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to download your payslip."
+            );
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -274,7 +315,7 @@ export default function EmployeeSelfService() {
                         <span>Latest Net Salary</span>
                         <div className="ess-summary-icon"><Wallet size={19} /></div>
                     </div>
-                    <strong>{latest ? money(latest.net) : "—"}</strong>
+                    <strong>{latest ? money(latest.net ?? latest.net_pay) : "—"}</strong>
                     <p>{latest ? latest.periodLabel : "No released payroll yet"}</p>
                 </article>
 
@@ -296,10 +337,11 @@ export default function EmployeeSelfService() {
                         {latest
                             ? money(
                                 latest.totalDeductions ??
+                                latest.total_deductions ??
                                 latest.deductions ??
                                 Number(latest.pf || 0) +
                                 Number(latest.insurance || 0) +
-                                Number(latest.otherDeductions || 0)
+                                Number(latest.otherDeductions ?? latest.other_deductions ?? 0)
                             )
                             : "—"}
                     </strong>
@@ -330,7 +372,7 @@ export default function EmployeeSelfService() {
                         <SalaryValue label="HRA" value={currentStructure.hra} />
                         <SalaryValue
                             label="Other Allowances"
-                            value={currentStructure.otherAllowances}
+                            value={currentStructure.otherAllowances ?? currentStructure.other_allowances}
                         />
                         <SalaryValue label="Bonus" value={currentStructure.bonus} />
                         <SalaryValue label="PF" value={currentStructure.pf} />
@@ -373,6 +415,7 @@ export default function EmployeeSelfService() {
                                     <th>Deductions</th>
                                     <th>Net Salary</th>
                                     <th>Status</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -385,17 +428,33 @@ export default function EmployeeSelfService() {
                                         <td>
                                             {money(
                                                 payroll.totalDeductions ??
+                                                payroll.total_deductions ??
                                                 payroll.deductions ??
                                                 0
                                             )}
                                         </td>
                                         <td className="ess-net">
-                                            {money(payroll.net)}
+                                            {money(payroll.net ?? payroll.net_pay)}
                                         </td>
                                         <td>
                                             <span className="ess-release-badge">
                                                 {payroll.runStatus}
                                             </span>
+                                        </td>
+                                        <td>
+                                            {(payroll.payslipId || payroll.id) && (
+                                                <button
+                                                    className="ess-download-btn"
+                                                    onClick={() => handleDownload(payroll)}
+                                                    disabled={downloadingId === (payroll.payslipId || payroll.id)}
+                                                    title="Download payslip PDF"
+                                                >
+                                                    <Download size={15} />
+                                                    {downloadingId === (payroll.payslipId || payroll.id)
+                                                        ? "..."
+                                                        : "PDF"}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -404,12 +463,6 @@ export default function EmployeeSelfService() {
                     </div>
                 )}
             </section>
-
-            <p className="ess-disclaimer">
-                Payroll information is currently read from this browser’s saved
-                payroll data. Production employee access must use a backend endpoint
-                that enforces employee ownership.
-            </p>
         </main>
     );
 }

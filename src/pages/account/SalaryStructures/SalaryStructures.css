@@ -32,51 +32,6 @@
 }
 
 /* ==========================================================================
-   DEMO NOTICE BANNER (Matches Attendance Info Banners)
-   ========================================================================== */
-
-.salary-demo-notice {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
-  border: 1px solid #c1ebde;
-  border-radius: 14px;
-  background: #f0fdf9;
-}
-
-.salary-demo-notice__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--ignite-emerald-100);
-  color: var(--ignite-emerald);
-  flex-shrink: 0;
-}
-
-.salary-demo-notice__icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.salary-demo-notice strong {
-  display: block;
-  color: var(--ignite-deep-teal);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.salary-demo-notice p {
-  margin: 3px 0 0;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-/* ==========================================================================
    SUMMARY STAT CARDS (Exact Attendance StatCard Pattern)
    ========================================================================== */
 

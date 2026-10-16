@@ -431,6 +431,31 @@
     }
 }
 
+.ess-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px solid #0ba37f;
+    border-radius: 6px;
+    background: transparent;
+    color: #0ba37f;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ess-download-btn:hover {
+    background: #0ba37f;
+    color: #fff;
+}
+
+.ess-download-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 @media (max-width: 390px) {
     .ess-summary-grid {
         grid-template-columns: 1fr;

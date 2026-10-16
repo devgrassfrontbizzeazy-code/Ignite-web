@@ -17,26 +17,18 @@ import {
 } from "lucide-react";
 
 import { getCompany } from "../../services/api/companyAPI";
+import { useNotification } from "../../context/NotificationContext";
+import {
+    getPayslips,
+    getPayslip,
+    downloadPayslip,
+    unwrapList,
+    triggerBlobDownload,
+} from "../../services/api/accountAPI";
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
 import PayrollWorkflowNav from "../../components/account/PayrollWorkflowNav";
 import "./Payslips.css";
-
-const STORAGE_KEY = "ignite_payroll_runs";
-
-const readPayrollRuns = () => {
-    try {
-        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        return Array.isArray(stored) ? stored : [];
-    } catch {
-        return [];
-    }
-};
-
-const isReleasedRun = (run) =>
-    ["approved", "locked"].includes(
-        String(run?.status || "").toLowerCase()
-    );
 
 const getPeriodLabel = (period) => {
     if (!period || !/^\d{4}-\d{2}$/.test(period)) {
@@ -52,6 +44,7 @@ const getPeriodLabel = (period) => {
 
 const getEmployeeName = (employee) =>
     employee.employeeName ||
+    employee.employee_name ||
     employee.name ||
     [employee.first_name, employee.middle_name, employee.last_name]
         .filter(Boolean)
@@ -59,7 +52,7 @@ const getEmployeeName = (employee) =>
     "Employee";
 
 const getEmployeeCode = (employee) =>
-    employee.employeeCode || employee.employeeId || "—";
+    employee.employeeCode || employee.employee_code || employee.employeeId || employee.employee_id || "—";
 
 const getGross = (employee) =>
     Number(
@@ -67,23 +60,23 @@ const getGross = (employee) =>
         (
             Number(employee.basic || 0) +
             Number(employee.hra || 0) +
-            Number(employee.otherAllowances || 0) +
+            Number(employee.otherAllowances ?? employee.other_allowances ?? 0) +
             Number(employee.bonus || 0)
         )
     );
 
 const getDeductions = (employee) =>
     Number(
-        employee.totalDeductions ??
+        employee.totalDeductions ?? employee.total_deductions ??
         (
             Number(employee.pf || 0) +
             Number(employee.insurance || 0) +
-            Number(employee.otherDeductions || 0)
+            Number(employee.otherDeductions ?? employee.other_deductions ?? 0)
         )
     );
 
 const getNetSalary = (employee) =>
-    Number(employee.net ?? getGross(employee) - getDeductions(employee));
+    Number(employee.net ?? employee.net_pay ?? getGross(employee) - getDeductions(employee));
 
 const getInitials = (name) =>
     String(name || "Employee")
@@ -123,25 +116,27 @@ const formatAddress = (company) =>
         .join(", ");
 
 const Payslips = () => {
+    const { showNotification } = useNotification();
+    const notify = (type, message) => showNotification({ type, message });
+
     const [company, setCompany] = useState(null);
     const [companyError, setCompanyError] = useState(false);
-    const [runs, setRuns] = useState([]);
+    const [payslipData, setPayslipData] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState("");
     const [search, setSearch] = useState("");
     const [selectedPayslip, setSelectedPayslip] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
+    const [viewingPayslipId, setViewingPayslipId] = useState(null);
+    const [loadError, setLoadError] = useState("");
 
     useEffect(() => {
         let mounted = true;
 
-
         const loadCompany = async () => {
             try {
                 const response = await getCompany();
-
-                // API response contains company details inside "data"
                 const companyDetails = response?.data;
-
-                console.log("Company details:", companyDetails);
 
                 if (!companyDetails || !companyDetails.name) {
                     throw new Error("Company details are missing from the API response.");
@@ -153,100 +148,107 @@ const Payslips = () => {
                 }
             } catch (error) {
                 console.error("Failed to load company details:", error);
-
                 if (mounted) {
                     setCompanyError(true);
                 }
             }
         };
 
-
-        const loadRuns = () => {
-            const storedRuns = readPayrollRuns();
-
-            if (!mounted) return;
-
-            setRuns(storedRuns);
-
-            setSelectedMonth((currentMonth) => {
-                if (currentMonth) return currentMonth;
-
-                const availableRuns = storedRuns
-                    .filter(isReleasedRun)
-                    .sort((a, b) =>
-                        String(b.period || "").localeCompare(
-                            String(a.period || "")
-                        )
+        const loadPayslipData = async () => {
+            setLoading(true);
+            setLoadError("");
+            try {
+                const response = await getPayslips();
+                if (mounted) setPayslipData(unwrapList(response));
+            } catch (error) {
+                console.error("Failed to load payslip data:", error);
+                if (mounted) {
+                    setPayslipData([]);
+                    setLoadError(
+                        error?.response?.data?.detail ||
+                            error?.response?.data?.message ||
+                            "Could not load payslips from the server."
                     );
-
-                return availableRuns[0]?.period ||
-                    new Date().toISOString().slice(0, 7);
-            });
+                }
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
         };
 
         loadCompany();
-        loadRuns();
-
-        const handleStorage = (event) => {
-            if (!event.key || event.key === STORAGE_KEY) loadRuns();
-        };
-
-        window.addEventListener("storage", handleStorage);
+        loadPayslipData();
 
         return () => {
             mounted = false;
-            window.removeEventListener("storage", handleStorage);
         };
     }, []);
 
+    const availablePeriods = useMemo(
+        () =>
+            [...new Set(
+                payslipData
+                    .map((slip) => slip.period ?? slip.payroll_period)
+                    .filter(Boolean)
+            )].sort((a, b) => String(b).localeCompare(String(a))),
+        [payslipData]
+    );
+
+    const activeMonth = availablePeriods.includes(selectedMonth)
+        ? selectedMonth
+        : availablePeriods[0] || "";
+
     const currency = getCurrencyCode(company?.currency);
 
-    const availableRuns = useMemo(
-        () =>
-            runs
-                .filter(isReleasedRun)
-                .sort((a, b) =>
-                    String(b.period || "").localeCompare(
-                        String(a.period || "")
-                    )
-                ),
-        [runs]
-    );
-
     const selectedRun = useMemo(
-        () =>
-            availableRuns.find(
-                (run) => String(run.period) === String(selectedMonth)
-            ) || null,
-        [availableRuns, selectedMonth]
+        () => {
+            const slips = payslipData.filter(
+                (slip) => String(slip.period ?? slip.payroll_period) === String(activeMonth)
+            );
+            return slips.length
+                ? {
+                    period: activeMonth,
+                    status: slips[0].payroll_status ?? slips[0].status ?? "—",
+                    payslips: slips,
+                }
+                : null;
+        },
+        [payslipData, activeMonth]
     );
 
-    const monthLabel = getPeriodLabel(selectedMonth);
+    const monthLabel = getPeriodLabel(activeMonth);
 
     const payslips = useMemo(() => {
-        if (!selectedRun || !Array.isArray(selectedRun.employees)) return [];
+        if (!selectedRun || !Array.isArray(selectedRun.payslips)) return [];
 
-        return selectedRun.employees
-            .filter((employee) => employee.status === "Ready")
-            .map((employee, index) => ({
-                ...employee,
-                _rowId: `${selectedRun.id || selectedRun.period}-${getEmployeeCode(employee)}-${index}`,
-                employeeId: getEmployeeCode(employee),
-                name: getEmployeeName(employee),
-                department: employee.department || employee.departmentName || "—",
-                basic: Number(employee.basic || 0),
-                hra: Number(employee.hra || 0),
-                otherAllowances: Number(employee.otherAllowances || 0),
-                bonus: Number(employee.bonus || 0),
-                pf: Number(employee.pf || 0),
-                insurance: Number(employee.insurance || 0),
-                otherDeductions: Number(employee.otherDeductions || 0),
-                gross: getGross(employee),
-                deductions: getDeductions(employee),
-                net: getNetSalary(employee),
-                payrollStatus: selectedRun.status,
-                period: selectedRun.period,
-            }));
+        return selectedRun.payslips
+            .map((slip, index) => {
+                const employee =
+                    slip.employee && typeof slip.employee === "object"
+                        ? slip.employee
+                        : slip;
+                return {
+                    ...slip,
+                    _rowId: String(slip.id ?? slip.payslip_id ?? `${selectedRun.period}-${index}`),
+                    _payslipId: slip.id ?? slip.payslip_id,
+                    employeeId: getEmployeeCode({ ...employee, ...slip }),
+                    name: getEmployeeName({ ...employee, ...slip }),
+                    department: slip.department ?? slip.department_name ?? employee.department_name ?? "—",
+                    basic: Number(slip.basic || 0),
+                    hra: Number(slip.hra || 0),
+                    otherAllowances: Number(slip.other_allowances ?? slip.otherAllowances ?? 0),
+                    bonus: Number(slip.bonus || 0),
+                    pf: Number(slip.pf || 0),
+                    insurance: Number(slip.insurance || 0),
+                    otherDeductions: Number(slip.other_deductions ?? slip.otherDeductions ?? 0),
+                    gross: getGross(slip),
+                    deductions: getDeductions(slip),
+                    net: getNetSalary(slip),
+                    payrollStatus: slip.payroll_status ?? slip.status ?? selectedRun.status,
+                    period: slip.period ?? slip.payroll_period ?? selectedRun.period,
+                };
+            });
     }, [selectedRun]);
 
     const filteredPayslips = useMemo(() => {
@@ -278,31 +280,100 @@ const Payslips = () => {
         [payslips]
     );
 
-    const exportPayslipCsv = () => {
-        if (!selectedPayslip) return;
+    const handleDownloadPayslip = async (employee) => {
+        const payslipId = employee._payslipId;
+        if (!payslipId) {
+            notify("error", "This payslip does not include a backend ID for PDF download.");
+            return;
+        }
 
-        const employee = selectedPayslip;
+        setDownloading(true);
+        try {
+            const blob = await downloadPayslip(payslipId);
+            triggerBlobDownload(
+                blob,
+                `${employee.employeeId}-${employee.period}-payslip.pdf`
+            );
+            notify("success", "Payslip PDF downloaded.");
+        } catch (error) {
+            console.error("Failed to download payslip PDF:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to download the payslip PDF."
+            );
+        } finally {
+            setDownloading(false);
+        }
+    };
+
+    const viewPayslip = async (employee) => {
+        if (!employee._payslipId) {
+            notify("error", "This payslip does not include a backend ID for details.");
+            return;
+        }
+        setViewingPayslipId(employee._payslipId);
+        try {
+            const response = await getPayslip(employee._payslipId);
+            const detail = response?.payslip ?? response?.data ?? response;
+            setSelectedPayslip({
+                ...employee,
+                ...detail,
+                employeeId: getEmployeeCode({ ...employee, ...detail }),
+                name: getEmployeeName({ ...employee, ...detail }),
+                department:
+                    detail.department ??
+                    detail.department_name ??
+                    employee.department,
+                otherAllowances:
+                    detail.other_allowances ?? detail.otherAllowances ?? employee.otherAllowances,
+                otherDeductions:
+                    detail.other_deductions ?? detail.otherDeductions ?? employee.otherDeductions,
+                deductions: getDeductions(detail),
+                gross: getGross(detail),
+                net: getNetSalary(detail),
+                _payslipId: employee._payslipId,
+                period: detail.period ?? detail.payroll_period ?? employee.period,
+            });
+        } catch (error) {
+            console.error("Failed to load payslip details:", error);
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Unable to load payslip details."
+            );
+        } finally {
+            setViewingPayslipId(null);
+        }
+    };
+
+    const exportPayslipCsv = (employee) => {
+        const target = employee || selectedPayslip;
+        if (!target) return;
+
         const rows = [
             [company?.name || "Company", ""],
-            ["Payslip period", getPeriodLabel(employee.period)],
-            ["Payroll status", employee.payrollStatus],
-            ["Employee name", employee.name],
-            ["Employee ID", employee.employeeId],
-            ["Department", employee.department],
+            ["Payslip period", getPeriodLabel(target.period)],
+            ["Payroll status", target.payrollStatus],
+            ["Employee name", target.name],
+            ["Employee ID", target.employeeId],
+            ["Department", target.department],
             ["", ""],
             ["Earnings", "Amount"],
-            ["Basic salary", employee.basic],
-            ["HRA", employee.hra],
-            ["Other allowances", employee.otherAllowances],
-            ["Bonus", employee.bonus],
-            ["Gross salary", employee.gross],
+            ["Basic salary", target.basic],
+            ["HRA", target.hra],
+            ["Other allowances", target.otherAllowances],
+            ["Bonus", target.bonus],
+            ["Gross salary", target.gross],
             ["", ""],
             ["Deductions", "Amount"],
-            ["PF", employee.pf],
-            ["Insurance", employee.insurance],
-            ["Other deductions", employee.otherDeductions],
-            ["Total deductions", employee.deductions],
-            ["Net salary payable", employee.net],
+            ["PF", target.pf],
+            ["Insurance", target.insurance],
+            ["Other deductions", target.otherDeductions],
+            ["Total deductions", target.deductions],
+            ["Net salary payable", target.net],
         ];
 
         const csv = rows
@@ -321,7 +392,7 @@ const Payslips = () => {
         const link = document.createElement("a");
 
         link.href = url;
-        link.download = `${employee.employeeId}-${employee.period}-payslip.csv`;
+        link.download = `${target.employeeId}-${target.period}-payslip.csv`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -338,21 +409,21 @@ const Payslips = () => {
                     <label className="payslips-month-picker">
                         <CalendarDays size={16} />
                         <select
-                            value={selectedMonth}
+                            value={activeMonth}
                             onChange={(event) => {
                                 setSelectedMonth(event.target.value);
                                 setSelectedPayslip(null);
                             }}
                             aria-label="Select payroll month"
                         >
-                            {!availableRuns.length && (
+                            {!availablePeriods.length && (
                                 <option value={selectedMonth}>
-                                    {monthLabel}
+                                    No payslips
                                 </option>
                             )}
-                            {availableRuns.map((run) => (
-                                <option key={run.id || run.period} value={run.period}>
-                                    {getPeriodLabel(run.period)}
+                            {availablePeriods.map((period) => (
+                                <option key={period} value={period}>
+                                    {getPeriodLabel(period)}
                                 </option>
                             ))}
                         </select>
@@ -367,6 +438,19 @@ const Payslips = () => {
                     <AlertCircle size={18} />
                     Company details could not be loaded. Payslips can still be
                     previewed, but company information may be incomplete.
+                </div>
+            )}
+            {loadError && (
+                <div className="payslips-notice payslips-notice-warning" role="alert">
+                    <AlertCircle size={18} />
+                    {loadError}
+                </div>
+            )}
+
+            {loading && (
+                <div className="payslips-notice">
+                    <AlertCircle size={18} />
+                    Loading payslip data...
                 </div>
             )}
 
@@ -402,7 +486,7 @@ const Payslips = () => {
                         {selectedRun?.status || "Unavailable"}
                     </div>
                     <div className="payslips-stat-note">
-                        Only approved or locked runs are shown
+                        Backend payslip status
                     </div>
                 </div>
 
@@ -446,10 +530,9 @@ const Payslips = () => {
                 {!selectedRun ? (
                     <div className="payslips-empty-state">
                         <FileText size={32} />
-                        <h3>No approved payroll for this month</h3>
+                        <h3>No payslips for this month</h3>
                         <p>
-                            Save a payroll draft, then approve it in Payroll
-                            History. Approved and locked runs will appear here.
+                            Payslips appear here when the backend makes them available.
                         </p>
                         <Link
                             className="payslips-empty-state__link"
@@ -507,10 +590,11 @@ const Payslips = () => {
                                             <button
                                                 type="button"
                                                 className="payslips-view-button"
-                                                onClick={() => setSelectedPayslip(employee)}
+                                                onClick={() => viewPayslip(employee)}
+                                                disabled={viewingPayslipId === employee._payslipId}
                                             >
                                                 <Eye size={16} />
-                                                View
+                                                {viewingPayslipId === employee._payslipId ? "Loading..." : "View"}
                                             </button>
                                         </td>
                                     </tr>
@@ -518,7 +602,7 @@ const Payslips = () => {
                                 {!filteredPayslips.length && (
                                     <tr>
                                         <td colSpan="7" className="payslips-empty">
-                                            No employee records match your search.
+                                            {payslips.length ? "No employee records match your search." : "There are no payslips for this month."}
                                         </td>
                                     </tr>
                                 )}
@@ -534,7 +618,7 @@ const Payslips = () => {
                     <span>
                         {selectedRun
                             ? `Payroll ${selectedRun.status}`
-                            : "No approved payroll"}
+                            : "No payslips"}
                     </span>
                 </div>
             </section>
@@ -678,19 +762,26 @@ const Payslips = () => {
                             </div>
 
                             <p className="payslips-demo-note">
-                                This payslip is generated from the selected payroll
-                                run. Please verify company and payroll details before
-                                distribution.
+                                This payslip detail was retrieved from the backend.
+                                Please verify company details before distribution.
                             </p>
                         </div>
 
                         <div className="payslips-modal-actions">
                             <Button
                                 variant="secondary"
-                                onClick={exportPayslipCsv}
+                                onClick={() => exportPayslipCsv(selectedPayslip)}
                             >
                                 <Download size={16} />
                                 Export CSV
+                            </Button>
+                            <Button
+                                variant="secondary"
+                                onClick={() => handleDownloadPayslip(selectedPayslip)}
+                                disabled={downloading}
+                            >
+                                <Download size={16} />
+                                {downloading ? "Downloading..." : "Download PDF"}
                             </Button>
                             <Button
                                 onClick={() => window.print()}
