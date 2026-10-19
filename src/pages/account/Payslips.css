@@ -21,8 +21,18 @@
 }
 
 /* ==========================================================================
-   HEADER MONTH PICKER (Matches Attendance Date Pill)
+   HEADER ACTIONS & DATEPICKER (Matches Attendance Date Pill)
    ========================================================================== */
+
+.payslips-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.payslips-header-datepicker {
+  width: 190px;
+}
 
 .payslips-month-picker {
   display: inline-flex;
@@ -446,7 +456,8 @@
 .payslips-status {
   display: inline-flex;
   align-items: center;
-  min-height: 27px;
+  gap: 6px;
+  min-height: 26px;
   padding: 0 10px;
   border-radius: var(--radius-pill);
   font-size: 11px;
@@ -454,19 +465,89 @@
   white-space: nowrap;
 }
 
-.payslips-status-approved {
-  background: #dcfce7;
-  color: #15803d;
+.payslips-status .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.payslips-status-locked {
-  background: #f3e8ff;
-  color: #7e22ce;
+.payslips-status-approved {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.payslips-status-approved .badge-dot {
+  background: #22c55e;
+}
+
+.payslips-status-locked,
+.payslips-status-finalized {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.payslips-status-locked .badge-dot,
+.payslips-status-finalized .badge-dot {
+  background: #3b82f6;
 }
 
 .payslips-status-draft {
-  background: #f1f5f9;
-  color: #475569;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.payslips-status-draft .badge-dot {
+  background: #f59e0b;
+}
+
+.payslips-status-cancelled,
+.payslips-status-rejected {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.payslips-status-cancelled .badge-dot,
+.payslips-status-rejected .badge-dot {
+  background: #ef4444;
+}
+
+/* Row Actions (Matches Attendance Action Buttons) */
+.payslips-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.payslips-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.payslips-action-btn:hover:not(:disabled) {
+  background: var(--color-bg-surface);
+  color: var(--ignite-deep-teal);
+  border-color: var(--ignite-emerald);
+}
+
+.payslips-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.payslips-action-btn--download:hover:not(:disabled) {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #059669;
 }
 
 .payslips-view-button {

@@ -1,0 +1,469 @@
+/* ==========================================================================
+   IGNITE — MY PAYSLIPS (EMPLOYEE PORTAL)
+   Design Reference: Attendance Module (tokens, cards, tables, badges, modals)
+   ========================================================================== */
+
+.my-payslips-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  padding: 26px 28px;
+  box-sizing: border-box;
+  background: var(--color-bg-page, #f8fafb);
+  font-family: var(--font-family-base, "Montserrat", sans-serif);
+  color: var(--color-text-primary, #1a1f24);
+}
+
+.my-payslips-page * {
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   TOOLBAR & FILTER SECTION (Matches Attendance Toolbar)
+   ========================================================================== */
+
+.my-payslips-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.my-payslips-toolbar__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.my-payslips-date-wrapper {
+  width: 180px;
+}
+
+.my-payslips-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.my-payslips-period-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.my-payslips-period-badge svg {
+  color: var(--ignite-emerald);
+}
+
+/* ==========================================================================
+   NOTICE BANNER
+   ========================================================================== */
+
+.my-payslips-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.my-payslips-notice__content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.my-payslips-notice__content svg {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   STAT CARDS (Matches Attendance 4-5 card responsive grid)
+   ========================================================================== */
+
+.my-payslips-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+/* Top accent bars & soft hover */
+.my-payslips-stats-grid .attendance-stat-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 140px;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 16px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.my-payslips-stats-grid .attendance-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.my-payslips-stats-grid .attendance-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+}
+
+.my-payslips-stats-grid .attendance-stat-card::after {
+  content: "";
+  position: absolute;
+  right: -25px;
+  bottom: -35px;
+  width: 95px;
+  height: 95px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   TABLE CARD & SECTION (Matches EmployeeAttendance Table Card)
+   ========================================================================== */
+
+.my-payslips-table-card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.my-payslips-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.my-payslips-card-header__info h2 {
+  margin: 0;
+  color: var(--ignite-deep-teal);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.my-payslips-card-header__info p {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.my-payslips-record-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.my-payslips-loader-wrap {
+  padding: 48px 24px;
+}
+
+/* Table cells */
+.my-payslips-period-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.my-payslips-cell-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+  flex-shrink: 0;
+}
+
+.my-payslips-cell-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.my-payslips-cell-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
+.my-payslips-cell-sub {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.my-payslips-amount {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-payslips-amount--deduction {
+  color: #dc2626;
+}
+
+.my-payslips-amount--net {
+  color: var(--ignite-deep-teal);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   MODAL STYLING (Matches Attendance Detail Modal)
+   ========================================================================== */
+
+.my-payslips-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.my-payslips-net-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #0f3d3e 0%, #165b5d 100%);
+  border-radius: 14px;
+  color: #ffffff;
+}
+
+.my-payslips-net-hero__main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.my-payslips-net-hero__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #c1ebde;
+}
+
+.my-payslips-net-hero__amount {
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.my-payslips-net-hero__period {
+  font-size: 12px;
+  color: #e7eeee;
+}
+
+.my-payslips-net-hero__stats {
+  display: flex;
+  gap: 16px;
+}
+
+.my-payslips-net-hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+  text-align: right;
+}
+
+.my-payslips-net-hero__stat span {
+  font-size: 11px;
+  color: #c1ebde;
+}
+
+.my-payslips-net-hero__stat strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.my-payslips-text-danger {
+  color: #f87171 !important;
+}
+
+/* Breakdown columns */
+.my-payslips-breakdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.my-payslips-breakdown-col {
+  padding: 18px;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+}
+
+.my-payslips-breakdown-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ignite-deep-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.my-payslips-breakdown-title--earnings svg {
+  color: #059669;
+}
+
+.my-payslips-breakdown-title--deductions svg {
+  color: #dc2626;
+}
+
+.my-payslips-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-payslips-breakdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.my-payslips-breakdown-item span {
+  color: var(--color-text-secondary);
+}
+
+.my-payslips-breakdown-item strong {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.my-payslips-breakdown-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 2px solid var(--color-border);
+  font-size: 13px;
+}
+
+.my-payslips-breakdown-total span {
+  font-weight: 700;
+  color: var(--ignite-deep-teal);
+}
+
+.my-payslips-breakdown-total strong {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ignite-deep-teal);
+}
+
+.my-payslips-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 1200px) {
+  .my-payslips-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .my-payslips-page {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .my-payslips-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .my-payslips-toolbar__left {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .my-payslips-date-wrapper {
+    width: 100%;
+  }
+
+  .my-payslips-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-payslips-net-hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .my-payslips-net-hero__stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .my-payslips-breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+}

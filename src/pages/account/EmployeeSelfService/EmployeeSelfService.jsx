@@ -445,6 +445,7 @@ export default function EmployeeSelfService() {
                                         </td>
                                         <td>
                                             <span className="ess-release-badge">
+                                                <span className="badge-dot" />
                                                 {payroll.runStatus}
                                             </span>
                                         </td>

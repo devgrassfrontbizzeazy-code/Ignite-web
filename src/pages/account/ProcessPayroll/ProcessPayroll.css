@@ -159,6 +159,17 @@
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
+.process-payroll-datepicker-wrapper {
+  width: 100%;
+}
+
+.process-payroll-datepicker-wrapper .date-picker__trigger {
+  min-height: 40px;
+  border-radius: 10px;
+  background: var(--color-bg-page);
+  font-size: 13px;
+}
+
 .process-payroll-period input:focus {
   border-color: var(--ignite-emerald);
   box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.15);
@@ -526,14 +537,29 @@
   white-space: nowrap;
 }
 
+.process-payroll-status .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .process-payroll-status.is-ready {
-  background: #dcfce7;
-  color: #15803d;
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.process-payroll-status.is-ready .badge-dot {
+  background: #10b981;
 }
 
 .process-payroll-status.is-missing {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.process-payroll-status.is-missing .badge-dot {
+  background: #ef4444;
 }
 
 /* ==========================================================================

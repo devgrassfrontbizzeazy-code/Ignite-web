@@ -824,6 +824,7 @@ export default function PayrollSettings() {
                                                     className={`salary-component-status ${component.active ? "is-active" : "is-inactive"
                                                         }`}
                                                 >
+                                                    <span className="badge-dot" />
                                                     {component.active ? "Active" : "Inactive"}
                                                 </span>
                                             </td>

@@ -274,6 +274,17 @@
   font-family: inherit;
 }
 
+.payroll-history-datepicker-wrap {
+  width: 180px;
+}
+
+.payroll-history-datepicker-wrap .date-picker__trigger {
+  min-height: 40px;
+  border-radius: 10px;
+  background: var(--color-bg-page);
+  font-size: 13px;
+}
+
 .payroll-history-filters select {
   min-height: 40px;
   padding: 0 14px;
@@ -368,6 +379,7 @@
 .payroll-history-status {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 27px;
   padding: 0 10px;
   border-radius: var(--radius-pill);
@@ -376,19 +388,51 @@
   white-space: nowrap;
 }
 
-.payroll-history-status.is-approved {
-  background: #dcfce7;
-  color: #15803d;
+.payroll-history-status .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.payroll-history-status.is-locked {
-  background: #f3e8ff;
-  color: #7e22ce;
+.payroll-history-status.is-approved {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.payroll-history-status.is-approved .badge-dot {
+  background: #22c55e;
+}
+
+.payroll-history-status.is-locked,
+.payroll-history-status.is-finalized {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.payroll-history-status.is-locked .badge-dot,
+.payroll-history-status.is-finalized .badge-dot {
+  background: #3b82f6;
 }
 
 .payroll-history-status.is-draft {
-  background: #f1f5f9;
-  color: #475569;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.payroll-history-status.is-draft .badge-dot {
+  background: #f59e0b;
+}
+
+.payroll-history-status.is-cancelled,
+.payroll-history-status.is-canceled {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.payroll-history-status.is-cancelled .badge-dot,
+.payroll-history-status.is-canceled .badge-dot {
+  background: #ef4444;
 }
 
 /* Actions in Table Row */

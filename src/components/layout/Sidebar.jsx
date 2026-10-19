@@ -334,6 +334,14 @@ const NAV_ITEMS = [
     isEmployeeDefault: true,
     permission: "view_holiday",
   },
+  
+{
+  label: "My Payslips",
+  path: "/my-payslips",
+  icon: AccountIcon,
+  isEmployeeDefault: true,
+},
+
   {
     label: "Account",
     path: "/account/payslips",

@@ -39,11 +39,16 @@ const DatePicker = ({
     onChange,
     minDate,
     maxDate,
-    placeholder = "Select date",
+    placeholder,
     disabled = false,
+    mode = "date", // 'date' | 'month'
+    className = "",
 }) => {
     const wrapperRef = useRef(null);
     const triggerRef = useRef(null);
+
+    const defaultPlaceholder = mode === "month" ? "Select month" : "Select date";
+    const activePlaceholder = placeholder || defaultPlaceholder;
 
     const getInitialDate = () => {
         if (value) {
@@ -128,8 +133,8 @@ const DatePicker = ({
             const rect =
                 triggerRef.current.getBoundingClientRect();
 
-            const popupWidth = 280;
-            const popupHeight = 340;
+            const popupWidth = mode === "month" ? 270 : 280;
+            const popupHeight = mode === "month" ? 260 : 340;
             const gap = 6;
 
             const spaceBelow =
@@ -188,7 +193,7 @@ const DatePicker = ({
                 true
             );
         };
-    }, [isOpen]);
+    }, [isOpen, mode]);
 
     const calendarDays = generateCalendar(
         viewDate.getFullYear(),
@@ -241,6 +246,26 @@ const DatePicker = ({
         );
     };
 
+    const handlePreviousYear = () => {
+        setViewDate(
+            new Date(
+                viewDate.getFullYear() - 1,
+                viewDate.getMonth(),
+                1
+            )
+        );
+    };
+
+    const handleNextYear = () => {
+        setViewDate(
+            new Date(
+                viewDate.getFullYear() + 1,
+                viewDate.getMonth(),
+                1
+            )
+        );
+    };
+
     const handleDateSelect = (date) => {
         if (isDateDisabled(date)) {
             return;
@@ -250,8 +275,32 @@ const DatePicker = ({
         setIsOpen(false);
     };
 
+    const handleMonthSelect = (monthIndex) => {
+        const year = viewDate.getFullYear();
+        const monthStr = String(monthIndex + 1).padStart(2, "0");
+        const formatted = `${year}-${monthStr}`;
+
+        if (isMonthDisabled(year, monthIndex)) {
+            return;
+        }
+
+        onChange?.(formatted);
+        setViewDate(new Date(year, monthIndex, 1));
+        setIsOpen(false);
+    };
+
     const handleToday = () => {
         const today = new Date();
+
+        if (mode === "month") {
+            const year = today.getFullYear();
+            const monthStr = String(today.getMonth() + 1).padStart(2, "0");
+            const formatted = `${year}-${monthStr}`;
+            onChange?.(formatted);
+            setViewDate(new Date(year, today.getMonth(), 1));
+            setIsOpen(false);
+            return;
+        }
 
         if (!isDateDisabled(today)) {
             onChange?.(formatDate(today));
@@ -288,12 +337,25 @@ const DatePicker = ({
         return false;
     };
 
+    const isMonthDisabled = (year, monthIndex) => {
+        const monthStr = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+        if (minDate && monthStr < minDate.slice(0, 7)) {
+            return true;
+        }
+        if (maxDate && monthStr > maxDate.slice(0, 7)) {
+            return true;
+        }
+        return false;
+    };
+
+    const currentYear = new Date().getFullYear();
+
     return (
         <div
             className={`date-picker ${disabled
                     ? "date-picker--disabled"
                     : ""
-                }`}
+                } ${mode === "month" ? "date-picker--month-mode" : ""} ${className}`}
             ref={wrapperRef}
         >
             <button
@@ -325,168 +387,259 @@ const DatePicker = ({
                     }
                 >
                     {value
-                        ? formatDisplayDate(value)
-                        : placeholder}
+                        ? formatDisplayDate(value, mode)
+                        : activePlaceholder}
                 </span>
             </button>
 
             {isOpen &&
                 createPortal(
                     <div
-                        className="date-picker__popup"
+                        className={`date-picker__popup ${mode === "month" ? "date-picker__popup--month" : ""}`}
                         style={{
                             top: `${popupPosition.top}px`,
                             left: `${popupPosition.left}px`,
                         }}
                     >
-                        {/* Calendar Header */}
-                        <div className="date-picker__header">
-                            <button
-                                type="button"
-                                className="date-picker__nav-button"
-                                onClick={
-                                    handlePreviousMonth
-                                }
-                                aria-label="Previous month"
-                            >
-                                <ChevronLeft size={16} />
-                            </button>
+                        {mode === "month" ? (
+                            <>
+                                {/* Month mode header */}
+                                <div className="date-picker__header">
+                                    <button
+                                        type="button"
+                                        className="date-picker__nav-button"
+                                        onClick={handlePreviousYear}
+                                        aria-label="Previous year"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
 
-                            <div className="date-picker__month-year">
-                                <select
-                                    className="date-picker__select date-picker__select--month"
-                                    value={viewDate.getMonth()}
-                                    onChange={handleMonthChange}
-                                    aria-label="Select month"
-                                >
-                                    {MONTHS.map((monthName, idx) => (
-                                        <option key={monthName} value={idx}>
-                                            {monthName}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <div className="date-picker__month-year">
+                                        <select
+                                            className="date-picker__select date-picker__select--year"
+                                            value={viewDate.getFullYear()}
+                                            onChange={handleYearChange}
+                                            aria-label="Select year"
+                                        >
+                                            {Array.from({ length: 120 }, (_, i) => {
+                                                const year = currentYear + 10 - i;
+                                                return (
+                                                    <option key={year} value={year}>
+                                                        {year}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
 
-                                <select
-                                    className="date-picker__select date-picker__select--year"
-                                    value={viewDate.getFullYear()}
-                                    onChange={handleYearChange}
-                                    aria-label="Select year"
-                                >
-                                    {Array.from({ length: 120 }, (_, i) => {
-                                        const currentYear = new Date().getFullYear();
-                                        const year = currentYear + 10 - i;
+                                    <button
+                                        type="button"
+                                        className="date-picker__nav-button"
+                                        onClick={handleNextYear}
+                                        aria-label="Next year"
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Month Grid */}
+                                <div className="date-picker__months-grid">
+                                    {MONTHS.map((monthName, idx) => {
+                                        const isSelected =
+                                            selectedDate &&
+                                            selectedDate.getFullYear() === viewDate.getFullYear() &&
+                                            selectedDate.getMonth() === idx;
+
+                                        const now = new Date();
+                                        const isCurrent =
+                                            now.getFullYear() === viewDate.getFullYear() &&
+                                            now.getMonth() === idx;
+
+                                        const isDisabled = isMonthDisabled(
+                                            viewDate.getFullYear(),
+                                            idx
+                                        );
+
                                         return (
-                                            <option key={year} value={year}>
-                                                {year}
-                                            </option>
+                                            <button
+                                                type="button"
+                                                key={monthName}
+                                                className={`date-picker__month-cell ${
+                                                    isSelected ? "date-picker__month-cell--selected" : ""
+                                                } ${
+                                                    isCurrent ? "date-picker__month-cell--current" : ""
+                                                }`}
+                                                onClick={() => handleMonthSelect(idx)}
+                                                disabled={isDisabled}
+                                            >
+                                                {monthName.slice(0, 3)}
+                                            </button>
                                         );
                                     })}
-                                </select>
-                            </div>
+                                </div>
 
-                            <button
-                                type="button"
-                                className="date-picker__nav-button"
-                                onClick={
-                                    handleNextMonth
-                                }
-                                aria-label="Next month"
-                            >
-                                <ChevronRight size={16} />
-                            </button>
-                        </div>
+                                {/* Footer */}
+                                <div className="date-picker__footer">
+                                    <button
+                                        type="button"
+                                        className="date-picker__today-button"
+                                        onClick={handleToday}
+                                    >
+                                        This Month
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                {/* Calendar Header */}
+                                <div className="date-picker__header">
+                                    <button
+                                        type="button"
+                                        className="date-picker__nav-button"
+                                        onClick={
+                                            handlePreviousMonth
+                                        }
+                                        aria-label="Previous month"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
 
-                        {/* Weekdays */}
-                        <div className="date-picker__weekdays">
-                            {WEEKDAYS.map((day) => (
-                                <span key={day}>
-                                    {day}
-                                </span>
-                            ))}
-                        </div>
-
-                        {/* Calendar Days */}
-                        <div className="date-picker__calendar">
-                            {calendarDays.map(
-                                (date, index) => {
-                                    if (!date) {
-                                        return (
-                                            <span
-                                                className="date-picker__empty"
-                                                key={`empty-${index}`}
-                                            />
-                                        );
-                                    }
-
-                                    const isSelected =
-                                        selectedDate &&
-                                        isSameDate(
-                                            date,
-                                            selectedDate
-                                        );
-
-                                    const isToday =
-                                        isSameDate(
-                                            date,
-                                            new Date()
-                                        );
-
-                                    const isDisabled =
-                                        isDateDisabled(
-                                            date
-                                        );
-
-                                    return (
-                                        <button
-                                            type="button"
-                                            key={formatDate(
-                                                date
-                                            )}
-                                            className={[
-                                                "date-picker__day",
-                                                isSelected
-                                                    ? "date-picker__day--selected"
-                                                    : "",
-                                                isToday
-                                                    ? "date-picker__day--today"
-                                                    : "",
-                                                isDisabled
-                                                    ? "date-picker__day--disabled"
-                                                    : "",
-                                            ]
-                                                .filter(
-                                                    Boolean
-                                                )
-                                                .join(" ")}
-                                            onClick={() =>
-                                                handleDateSelect(
-                                                    date
-                                                )
-                                            }
-                                            disabled={
-                                                isDisabled
-                                            }
+                                    <div className="date-picker__month-year">
+                                        <select
+                                            className="date-picker__select date-picker__select--month"
+                                            value={viewDate.getMonth()}
+                                            onChange={handleMonthChange}
+                                            aria-label="Select month"
                                         >
-                                            {date.getDate()}
-                                        </button>
-                                    );
-                                }
-                            )}
-                        </div>
+                                            {MONTHS.map((monthName, idx) => (
+                                                <option key={monthName} value={idx}>
+                                                    {monthName}
+                                                </option>
+                                            ))}
+                                        </select>
 
-                        {/* Footer */}
-                        <div className="date-picker__footer">
-                            <button
-                                type="button"
-                                className="date-picker__today-button"
-                                onClick={handleToday}
-                                disabled={isDateDisabled(
-                                    new Date()
-                                )}
-                            >
-                                Today
-                            </button>
-                        </div>
+                                        <select
+                                            className="date-picker__select date-picker__select--year"
+                                            value={viewDate.getFullYear()}
+                                            onChange={handleYearChange}
+                                            aria-label="Select year"
+                                        >
+                                            {Array.from({ length: 120 }, (_, i) => {
+                                                const year = currentYear + 10 - i;
+                                                return (
+                                                    <option key={year} value={year}>
+                                                        {year}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="date-picker__nav-button"
+                                        onClick={
+                                            handleNextMonth
+                                        }
+                                        aria-label="Next month"
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Weekdays */}
+                                <div className="date-picker__weekdays">
+                                    {WEEKDAYS.map((day) => (
+                                        <span key={day}>
+                                            {day}
+                                        </span>
+                                    ))}
+                                </div>
+
+                                {/* Calendar Days */}
+                                <div className="date-picker__calendar">
+                                    {calendarDays.map(
+                                        (date, index) => {
+                                            if (!date) {
+                                                return (
+                                                    <span
+                                                        className="date-picker__empty"
+                                                        key={`empty-${index}`}
+                                                    />
+                                                );
+                                            }
+
+                                            const isSelected =
+                                                selectedDate &&
+                                                isSameDate(
+                                                    date,
+                                                    selectedDate
+                                                );
+
+                                            const isToday =
+                                                isSameDate(
+                                                    date,
+                                                    new Date()
+                                                );
+
+                                            const isDisabled =
+                                                isDateDisabled(
+                                                    date
+                                                );
+
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={formatDate(
+                                                        date
+                                                    )}
+                                                    className={[
+                                                        "date-picker__day",
+                                                        isSelected
+                                                            ? "date-picker__day--selected"
+                                                            : "",
+                                                        isToday
+                                                            ? "date-picker__day--today"
+                                                            : "",
+                                                        isDisabled
+                                                            ? "date-picker__day--disabled"
+                                                            : "",
+                                                    ]
+                                                        .filter(
+                                                            Boolean
+                                                        )
+                                                        .join(" ")}
+                                                    onClick={() =>
+                                                        handleDateSelect(
+                                                            date
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        isDisabled
+                                                    }
+                                                >
+                                                    {date.getDate()}
+                                                </button>
+                                            );
+                                        }
+                                    )}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="date-picker__footer">
+                                    <button
+                                        type="button"
+                                        className="date-picker__today-button"
+                                        onClick={handleToday}
+                                        disabled={isDateDisabled(
+                                            new Date()
+                                        )}
+                                    >
+                                        Today
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>,
                     document.body
                 )}
@@ -499,19 +652,21 @@ function parseDate(value) {
         return null;
     }
 
-    const [year, month, day] = value
-        .split("-")
-        .map(Number);
-
-    if (!year || !month || !day) {
-        return null;
+    if (value instanceof Date) {
+        return value;
     }
 
-    return new Date(
-        year,
-        month - 1,
-        day
-    );
+    const parts = String(value).split("-").map(Number);
+
+    if (parts.length >= 2 && parts[0] && parts[1]) {
+        return new Date(
+            parts[0],
+            parts[1] - 1,
+            parts[2] || 1
+        );
+    }
+
+    return null;
 }
 
 function formatDate(date) {
@@ -528,11 +683,21 @@ function formatDate(date) {
     return `${year}-${month}-${day}`;
 }
 
-function formatDisplayDate(value) {
+function formatDisplayDate(value, mode = "date") {
     const date = parseDate(value);
 
     if (!date) {
         return value;
+    }
+
+    if (mode === "month") {
+        return date.toLocaleDateString(
+            "en-US",
+            {
+                month: "long",
+                year: "numeric",
+            }
+        );
     }
 
     return date.toLocaleDateString(

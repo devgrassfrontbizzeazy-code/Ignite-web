@@ -17,6 +17,7 @@ import {
 import Button from "../../../components/common/Button/Button";
 import Card from "../../../components/common/Card/Card";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
+import DatePicker from "../../../components/common/DatePicker/DatePicker";
 import PayrollWorkflowNav from "../../../components/account/PayrollWorkflowNav";
 import { useNotification } from "../../../context/NotificationContext";
 import {
@@ -480,18 +481,23 @@ export default function PayrollHistory() {
                         />
                     </div>
 
-                    <select
-                        value={monthFilter}
-                        onChange={(event) => setMonthFilter(event.target.value)}
-                        aria-label="Filter by month"
-                    >
-                        <option value="all">All months</option>
-                        {sortedRuns.map((run) => (
-                            <option key={run.id || run.period} value={run.period}>
-                                {getPeriodLabel(run.period)}
-                            </option>
-                        ))}
-                    </select>
+                    <div className="payroll-history-datepicker-wrap">
+                        <DatePicker
+                            mode="month"
+                            value={monthFilter === "all" ? "" : monthFilter}
+                            onChange={(val) => setMonthFilter(val)}
+                            placeholder="Filter by month"
+                        />
+                    </div>
+
+                    {monthFilter !== "all" && (
+                        <Button
+                            variant="secondary"
+                            onClick={() => setMonthFilter("all")}
+                        >
+                            All Months
+                        </Button>
+                    )}
 
                     <select
                         value={statusFilter}
@@ -550,6 +556,7 @@ export default function PayrollHistory() {
                                         <span
                                             className={`payroll-history-status ${getStatusClass(run.status)}`}
                                         >
+                                            <span className="badge-dot" />
                                             {run.status || "Draft"}
                                         </span>
                                     </td>

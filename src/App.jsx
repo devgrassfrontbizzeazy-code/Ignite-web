@@ -90,6 +90,7 @@ import ProcessPayroll from "./pages/account/ProcessPayroll/ProcessPayroll";
 import PayrollHistory from "./pages/account/PayrollHistory/PayrollHistory";
 import EmployeeSelfService from "./pages/account/EmployeeSelfService/EmployeeSelfService";
 import PayrollSettings from "./pages/account/PayrollSettings/PayrollSettings";
+import MyPayslips from "./pages/account/MyPayslips/MyPayslips";
 
 /* =========================================================
    TEMPORARY / DASHBOARD
@@ -359,6 +360,7 @@ export default function App() {
                       <Route path="/leaves" element={<Leaves />} />
 
                       <Route path="/holidays" element={<Holidays />} />
+                      <Route path="/my-payslips" element={<MyPayslips />} />
 
                       {/* =================================================
                           WORK MANAGEMENT

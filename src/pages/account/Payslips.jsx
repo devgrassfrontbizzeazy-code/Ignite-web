@@ -27,6 +27,7 @@ import {
 } from "../../services/api/accountAPI";
 import PageHeader from "../../components/common/PageHeader/PageHeader";
 import Button from "../../components/common/Button/Button";
+import DatePicker from "../../components/common/DatePicker/DatePicker";
 import PayrollWorkflowNav from "../../components/account/PayrollWorkflowNav";
 import "./Payslips.css";
 
@@ -412,28 +413,18 @@ const Payslips = () => {
                 title="Payslips"
                 description="View and print payslips from approved payroll runs."
                 action={
-                    <label className="payslips-month-picker">
-                        <CalendarDays size={16} />
-                        <select
+                    <div className="payslips-header-actions">
+                        <DatePicker
+                            mode="month"
                             value={activeMonth}
-                            onChange={(event) => {
-                                setSelectedMonth(event.target.value);
+                            onChange={(val) => {
+                                setSelectedMonth(val);
                                 setSelectedPayslip(null);
                             }}
-                            aria-label="Select payroll month"
-                        >
-                            {!availablePeriods.length && (
-                                <option value={selectedMonth}>
-                                    No payslips
-                                </option>
-                            )}
-                            {availablePeriods.map((period) => (
-                                <option key={period} value={period}>
-                                    {getPeriodLabel(period)}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                            placeholder="Select payroll month"
+                            className="payslips-header-datepicker"
+                        />
+                    </div>
                 }
             />
 
@@ -589,19 +580,33 @@ const Payslips = () => {
                                             <span
                                                 className={`payslips-status payslips-status-${String(employee.payrollStatus).toLowerCase()}`}
                                             >
+                                                <span className="badge-dot" />
                                                 {employee.payrollStatus}
                                             </span>
                                         </td>
                                         <td>
-                                            <button
-                                                type="button"
-                                                className="payslips-view-button"
-                                                onClick={() => viewPayslip(employee)}
-                                                disabled={viewingPayslipId === employee._payslipId}
-                                            >
-                                                <Eye size={16} />
-                                                {viewingPayslipId === employee._payslipId ? "Loading..." : "View"}
-                                            </button>
+                                            <div className="payslips-row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="payslips-action-btn payslips-action-btn--view"
+                                                    onClick={() => viewPayslip(employee)}
+                                                    disabled={viewingPayslipId === employee._payslipId}
+                                                    title="View payslip details"
+                                                    aria-label={`View payslip for ${employee.name}`}
+                                                >
+                                                    <Eye size={15} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="payslips-action-btn payslips-action-btn--download"
+                                                    onClick={() => handleDownloadPayslip(employee)}
+                                                    disabled={downloading}
+                                                    title="Download PDF"
+                                                    aria-label={`Download payslip PDF for ${employee.name}`}
+                                                >
+                                                    <Download size={15} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

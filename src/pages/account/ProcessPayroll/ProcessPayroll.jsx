@@ -14,6 +14,7 @@ import {
 import Button from "../../../components/common/Button/Button";
 import Card from "../../../components/common/Card/Card";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
+import DatePicker from "../../../components/common/DatePicker/DatePicker";
 import PayrollWorkflowNav from "../../../components/account/PayrollWorkflowNav";
 import { useNotification } from "../../../context/NotificationContext";
 import {
@@ -691,21 +692,23 @@ export default function ProcessPayroll() {
             <Card>
                 <div className="process-payroll-toolbar">
                     <div className="process-payroll-period">
-                        <label htmlFor="payroll-period">
+                        <label>
                             <CalendarDays size={16} />
                             Payroll month
                         </label>
 
-                        <input
-                            id="payroll-period"
-                            type="month"
-                            value={period}
-                            onChange={(event) => {
-                                setPeriod(event.target.value);
-                                setHasGenerated(false);
-                                setRows([]);
-                            }}
-                        />
+                        <div className="process-payroll-datepicker-wrapper">
+                            <DatePicker
+                                mode="month"
+                                value={period}
+                                onChange={(val) => {
+                                    setPeriod(val);
+                                    setHasGenerated(false);
+                                    setRows([]);
+                                }}
+                                placeholder="Select payroll month"
+                            />
+                        </div>
                     </div>
 
                     <div className="process-payroll-actions">
@@ -927,6 +930,7 @@ export default function ProcessPayroll() {
                                                                 : "is-ready"
                                                             }`}
                                                     >
+                                                        <span className="badge-dot" />
                                                         {row.status}
                                                     </span>
                                                 </td>

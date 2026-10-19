@@ -229,3 +229,62 @@
 .date-picker__today-button:hover {
     background: rgba(11, 163, 127, 0.08);
 }
+
+/* =========================================
+   MONTH MODE
+   ========================================= */
+
+.date-picker__popup--month {
+    width: 270px;
+}
+
+.date-picker__months-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 12px 0 6px;
+}
+
+.date-picker__month-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-bg-page);
+    color: var(--color-text-primary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.date-picker__month-cell:hover:not(:disabled) {
+    background: var(--ignite-teal-050);
+    border-color: var(--ignite-emerald);
+    color: var(--ignite-deep-teal);
+    font-weight: 600;
+}
+
+.date-picker__month-cell--selected {
+    background: var(--ignite-deep-teal) !important;
+    border-color: var(--ignite-deep-teal) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(15, 61, 62, 0.2);
+}
+
+.date-picker__month-cell--current:not(.date-picker__month-cell--selected) {
+    border-color: var(--ignite-emerald);
+    color: var(--ignite-emerald);
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--ignite-emerald);
+}
+
+.date-picker__month-cell:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: transparent;
+}
