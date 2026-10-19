@@ -19,7 +19,7 @@ import { useNotification } from "../../../context/NotificationContext";
 import {
     calculatePayroll,
     createPayrollDraft,
-    patchPayrollDraft,
+    recalculatePayrollDraft,
     getPayrollDrafts,
     exportPayrollRun,
     unwrapList,
@@ -42,9 +42,16 @@ const money = (amount) =>
 
 const formatDate = (date) => {
     if (!date) return "—";
-    const parsed = new Date(`${date}T00:00:00`);
+
+    const value = String(date);
+    const parsed = new Date(
+        /^\d{4}-\d{2}-\d{2}$/.test(value)
+            ? `${value}T00:00:00`
+            : value
+    );
+
     return Number.isNaN(parsed.getTime())
-        ? date
+        ? value
         : parsed.toLocaleDateString("en-IN", {
             day: "2-digit",
             month: "short",
@@ -65,8 +72,367 @@ const getEmployeeName = (employee) =>
     employee?.employeeName ||
     "Unnamed employee";
 
+const toNumber = (value) => {
+    if (value === null || value === undefined || value === "") return 0;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+};
+
+const normalizeText = (value) =>
+    String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s_-]+/g, " ");
+
+const asArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === "object") return Object.values(value).flat();
+    return value ? [value] : [];
+};
+
+const getComponentAmount = (components, match) => {
+    const component = components.find((item) => match(item));
+    return toNumber(
+        component?.amount ??
+        component?.calculated_amount ??
+        component?.value ??
+        component?.total
+    );
+};
+
+const isBasicComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+
+    return (
+        code === "bs" ||
+        code === "basic" ||
+        name === "basic salary" ||
+        name === "basic"
+    );
+};
+
+const isHraComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+
+    return (
+        code === "hra" ||
+        name === "hra" ||
+        name === "house rent allowance"
+    );
+};
+
+const isBonusComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+
+    return code === "bonus" || name.includes("bonus");
+};
+
+const isLopComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+    const type = normalizeText(item?.component_type);
+
+    return (
+        code === "lop" ||
+        code === "lwop" ||
+        name.includes("loss of pay") ||
+        name.includes("leave without pay") ||
+        name.includes("unpaid leave") ||
+        name.includes("lop") ||
+        name.includes("lwop") ||
+        type === "lop"
+    );
+};
+
+const isPfComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+
+    return (
+        code === "pf" ||
+        code === "epf" ||
+        name === "pf" ||
+        name.includes("provident fund")
+    );
+};
+
+const isInsuranceComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+
+    return code.includes("insurance") || name.includes("insurance");
+};
+
+const isOtherDeductionComponent = (item) => {
+    const code = normalizeText(item?.code);
+    const name = normalizeText(item?.name ?? item?.component_name);
+
+    // Keep LOP separate, but include professional tax and generic other deductions.
+    return (
+        code === "od" ||
+        code === "other deduction" ||
+        code === "pt" ||
+        code === "professional tax" ||
+        name === "other deductions" ||
+        name === "other deduction" ||
+        name === "professional tax"
+    );
+};
+
+const getStructureId = (row) => {
+    const value =
+        row?.salary_structure_id ??
+        row?.salary_structure?.id ??
+        row?.salary_structure ??
+        row?.structure_id ??
+        row?.structureId;
+
+    if (value && typeof value === "object") return value.id ?? null;
+    return value ?? null;
+};
+
+const getEmployeeId = (row) => {
+    const value =
+        row?.employee_id ??
+        row?.employeeId ??
+        row?.employee?.id ??
+        row?.employee;
+
+    if (value && typeof value === "object") return value.id ?? "";
+    return value ?? "";
+};
+
+const normalizePayrollRow = (row, index) => {
+    const earnings = asArray(
+        row?.earnings_breakdown ??
+        row?.earningsBreakdown ??
+        row?.earning_breakdown
+    );
+
+    const deductions = asArray(
+        row?.deductions_breakdown ??
+        row?.deductionsBreakdown ??
+        row?.deduction_breakdown
+    );
+
+    const basicFromBreakdown = getComponentAmount(earnings, isBasicComponent);
+    const hraFromBreakdown = getComponentAmount(earnings, isHraComponent);
+    const bonusFromBreakdown = getComponentAmount(earnings, isBonusComponent);
+
+    const gross = toNumber(
+        row?.gross ??
+        row?.gross_salary ??
+        row?.gross_pay ??
+        row?.total_gross
+    );
+
+    const basic =
+        earnings.length > 0
+            ? basicFromBreakdown
+            : toNumber(row?.basic);
+
+    const hra =
+        earnings.length > 0
+            ? hraFromBreakdown
+            : toNumber(row?.hra);
+
+    const bonus =
+        earnings.length > 0
+            ? bonusFromBreakdown
+            : toNumber(row?.bonus);
+
+    const breakdownEarningsTotal = earnings.reduce(
+        (sum, item) =>
+            sum +
+            toNumber(
+                item?.amount ??
+                item?.calculated_amount ??
+                item?.value ??
+                item?.total
+            ),
+        0
+    );
+
+    const otherAllowances =
+        earnings.length > 0
+            ? Math.max(
+                0,
+                breakdownEarningsTotal - basicFromBreakdown - hraFromBreakdown - bonusFromBreakdown
+            )
+            : toNumber(row?.other_allowances ?? row?.otherAllowances);
+
+    const lop =
+        deductions.length > 0
+            ? getComponentAmount(deductions, isLopComponent)
+            : toNumber(row?.lop ?? row?.loss_of_pay ?? row?.lwop);
+
+    const pf =
+        deductions.length > 0
+            ? getComponentAmount(deductions, isPfComponent)
+            : toNumber(row?.pf);
+
+    const insurance =
+        deductions.length > 0
+            ? getComponentAmount(deductions, isInsuranceComponent)
+            : toNumber(row?.insurance);
+
+    const otherDeductionsFromBreakdown = deductions
+        .filter(isOtherDeductionComponent)
+        .reduce(
+            (sum, item) =>
+                sum +
+                toNumber(
+                    item?.amount ??
+                    item?.calculated_amount ??
+                    item?.value ??
+                    item?.total
+                ),
+            0
+        );
+
+    const otherDeductions =
+        deductions.length > 0
+            ? otherDeductionsFromBreakdown
+            : toNumber(row?.other_deductions ?? row?.otherDeductions);
+
+    const deductionsTotalFromBreakdown = deductions.reduce(
+        (sum, item) =>
+            sum +
+            toNumber(
+                item?.amount ??
+                item?.calculated_amount ??
+                item?.value ??
+                item?.total
+            ),
+        0
+    );
+
+    const totalDeductions = toNumber(
+        row?.total_deductions ??
+        row?.totalDeductions ??
+        (deductions.length > 0
+            ? deductionsTotalFromBreakdown
+            : pf + insurance + lop + otherDeductions)
+    );
+
+    const net = toNumber(
+        row?.net ??
+        row?.net_salary ??
+        row?.net_pay ??
+        (gross - totalDeductions)
+    );
+
+    const structureId = getStructureId(row);
+
+    const exceptions = asArray(row?.exceptions)
+        .map((item) => {
+            if (typeof item === "string") return item;
+            if (item && typeof item === "object") {
+                return (
+                    item.message ??
+                    item.detail ??
+                    item.description ??
+                    item.name ??
+                    JSON.stringify(item)
+                );
+            }
+            return String(item ?? "");
+        })
+        .filter(Boolean);
+
+    const status = row?.status ?? (structureId ? "Ready" : "Missing salary structure");
+
+    return {
+        ...row,
+        employeeId: String(getEmployeeId(row) || `row-${index}`),
+        employeeCode:
+            row?.employee_code ??
+            row?.employeeCode ??
+            row?.employee?.employee_code ??
+            row?.employee?.employee_id ??
+            "—",
+        employeeName:
+            row?.employee_name ??
+            row?.employeeName ??
+            getEmployeeName(row?.employee || row),
+        department:
+            row?.department_name ??
+            row?.department?.name ??
+            row?.department ??
+            "—",
+        structureId,
+        effectiveDate:
+            row?.effective_from ??
+            row?.effective_date ??
+            row?.effectiveDate ??
+            row?.salary_structure?.effective_from ??
+            row?.salary_structure_effective_from ??
+            null,
+        basic,
+        hra,
+        otherAllowances,
+        bonus,
+        pf,
+        insurance,
+        lop,
+        otherDeductions,
+        gross,
+        totalDeductions,
+        net,
+        status,
+        exceptions,
+        earningsBreakdown: earnings,
+        deductionsBreakdown: deductions,
+        attendanceSummary:
+            row?.attendance_summary ??
+            row?.attendanceSummary ??
+            null,
+        recordId: row?.id ?? row?.record_id,
+    };
+};
+
+const getRowIssues = (row) => {
+    const status = normalizeText(row.status);
+    const issues = [...row.exceptions];
+
+    if (!row.structureId || status.includes("missing salary structure")) {
+        issues.unshift("Missing salary structure");
+    }
+
+    if (
+        ["error", "exception", "failed", "blocked", "invalid"].some((token) =>
+            status.includes(token)
+        )
+    ) {
+        issues.push(`Payroll status: ${row.status}`);
+    }
+
+    return [...new Set(issues)];
+};
+
+const isRowBlocked = (row) => {
+    const status = normalizeText(row.status);
+
+    return (
+        !row.structureId ||
+        [
+            "missing",
+            "error",
+            "exception",
+            "failed",
+            "blocked",
+            "invalid",
+        ].some((token) => status.includes(token)) ||
+        row.exceptions.length > 0
+    );
+};
+
 export default function ProcessPayroll() {
     const { showNotification } = useNotification();
+
     const notify = useCallback(
         (type, message) => showNotification({ type, message }),
         [showNotification]
@@ -79,6 +445,7 @@ export default function ProcessPayroll() {
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [loadError, setLoadError] = useState("");
 
     const loadData = useCallback(async () => {
@@ -89,8 +456,8 @@ export default function ProcessPayroll() {
             const draftsResult = await getPayrollDrafts();
             setExistingDrafts(unwrapList(draftsResult));
         } catch (error) {
-            console.error("Failed to load payroll data:", error);
-            setLoadError("Data could not be loaded. Please try again.");
+            console.error("Failed to load payroll drafts:", error);
+            setLoadError("Payroll drafts could not be loaded. Please try again.");
             setExistingDrafts([]);
         } finally {
             setLoading(false);
@@ -98,29 +465,24 @@ export default function ProcessPayroll() {
     }, []);
 
     useEffect(() => {
-        let isMounted = true;
-        const fetchInitialData = async () => {
-            if (isMounted) {
-                await loadData();
-            }
-        };
-        fetchInitialData();
-        return () => {
-            isMounted = false;
-        };
+        loadData();
     }, [loadData]);
 
     const periodEnd = useMemo(() => {
-        if (!/^\d{4}-\d{2}$/.test(period)) return "";
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) return "";
+
         const [year, month] = period.split("-").map(Number);
+
         return `${year}-${String(month).padStart(2, "0")}-${String(
             new Date(year, month, 0).getDate()
         ).padStart(2, "0")}`;
     }, [period]);
 
     const periodLabel = useMemo(() => {
-        if (!period) return "";
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) return "";
+
         const [year, month] = period.split("-").map(Number);
+
         return new Date(year, month - 1, 1).toLocaleDateString("en-IN", {
             month: "long",
             year: "numeric",
@@ -146,53 +508,49 @@ export default function ProcessPayroll() {
         try {
             const response = await calculatePayroll({ period });
             const data = response?.data ?? response;
-            const calcRows = unwrapList(data);
+
             const rowsFromObject =
-                data?.records ?? data?.employees ?? data?.payroll_records;
-            const backendRows = calcRows.length
-                ? calcRows
+                data?.records ??
+                data?.employees ??
+                data?.payroll_records ??
+                data?.results;
+
+            const backendRows = unwrapList(data);
+
+            const sourceRows = backendRows.length
+                ? backendRows
                 : Array.isArray(rowsFromObject)
                     ? rowsFromObject
                     : [];
-            const mappedRows = backendRows.map((row) => ({
-                ...row,
-                employeeId: String(row.employee_id ?? row.employeeId ?? row.employee?.id ?? ""),
-                employeeCode: row.employee_code ?? row.employeeCode ?? "—",
-                employeeName: row.employee_name ?? row.employeeName ?? getEmployeeName(row.employee || row),
-                department: row.department_name ?? row.department?.name ?? row.department ?? "—",
-                structureId: row.structure_id ?? row.structureId,
-                effectiveDate: row.effective_date ?? row.effectiveDate,
-                basic: Number(row.basic) || 0,
-                hra: Number(row.hra) || 0,
-                otherAllowances: Number(row.other_allowances ?? row.otherAllowances) || 0,
-                bonus: Number(row.bonus) || 0,
-                pf: Number(row.pf) || 0,
-                insurance: Number(row.insurance) || 0,
-                otherDeductions: Number(row.other_deductions ?? row.otherDeductions) || 0,
-                gross: Number(row.gross ?? row.gross_salary) || 0,
-                totalDeductions: Number(row.total_deductions ?? row.totalDeductions) || 0,
-                net: Number(row.net ?? row.net_pay) || 0,
-                status: row.status ?? "—",
-                recordId: row.id ?? row.record_id,
-            }));
+
+            const mappedRows = sourceRows.map(normalizePayrollRow);
 
             setRows(mappedRows);
             setHasGenerated(true);
 
-            const missing = mappedRows.filter((row) => row.status !== "Ready").length;
+            if (mappedRows.length === 0) {
+                notify("warning", `No payroll records were returned for ${periodLabel}.`);
+                return;
+            }
+
+            const issueCount = mappedRows.filter(
+                (row) => getRowIssues(row).length > 0
+            ).length;
+
             notify(
-                missing ? "warning" : "success",
-                missing
-                    ? `Payroll calculated. ${missing} employee(s) need attention.`
+                issueCount > 0 ? "warning" : "success",
+                issueCount > 0
+                    ? `Payroll calculated. ${issueCount} employee(s) need attention.`
                     : `Payroll calculated for ${periodLabel}.`
             );
         } catch (error) {
             console.error("Payroll generation failed:", error);
+
             notify(
                 "error",
                 error?.response?.data?.detail ||
-                    error?.response?.data?.message ||
-                    "Payroll calculation failed. Please try again."
+                error?.response?.data?.message ||
+                "Payroll calculation failed. Please try again."
             );
         } finally {
             setGenerating(false);
@@ -200,21 +558,19 @@ export default function ProcessPayroll() {
     };
 
     const totals = useMemo(() => {
-        const readyRows = rows.filter(
-            (row) =>
-                !["missing", "missing salary structure", "error", "exception", "failed", "blocked"]
-                    .some((status) => String(row.status || "").toLowerCase().includes(status))
-        );
+        const readyRows = rows.filter((row) => !isRowBlocked(row));
+        const blockedRows = rows.filter(isRowBlocked);
 
         return {
             employees: readyRows.length,
-            missing: rows.length - readyRows.length,
+            missing: blockedRows.length,
             gross: readyRows.reduce((sum, row) => sum + row.gross, 0),
             deductions: readyRows.reduce(
                 (sum, row) => sum + row.totalDeductions,
                 0
             ),
             net: readyRows.reduce((sum, row) => sum + row.net, 0),
+            lop: readyRows.reduce((sum, row) => sum + row.lop, 0),
         };
     }, [rows]);
 
@@ -225,65 +581,63 @@ export default function ProcessPayroll() {
         }
 
         if (totals.missing > 0) {
-            notify("error", "Resolve all payroll exceptions before saving the draft.");
+            notify(
+                "error",
+                "Resolve missing salary structures and payroll exceptions before saving the draft."
+            );
             return;
         }
 
-        if (existingRun && String(existingRun.status || "Draft").toLowerCase() !== "draft") {
-            notify("error", "A non-draft payroll run already exists for this month. It cannot be overwritten.");
+        const existingStatus = String(existingRun?.status || "DRAFT").toUpperCase();
+
+        if (existingRun && existingStatus !== "DRAFT") {
+            notify(
+                "error",
+                "A non-draft payroll run already exists for this month. It cannot be overwritten."
+            );
             return;
         }
 
         setSaving(true);
 
         try {
-            const payload = {
-                period,
-                period_label: periodLabel,
-                status: "Draft",
-                employee_count: totals.employees,
-                gross: totals.gross,
-                deductions: totals.deductions,
-                net: totals.net,
-                employees: rows.map((row) => ({
-                    employee_id: row.employeeId,
-                    employee_code: row.employeeCode,
-                    employee_name: row.employeeName,
-                    department: row.department,
-                    structure_id: row.structureId,
-                    effective_date: row.effectiveDate,
-                    basic: row.basic,
-                    hra: row.hra,
-                    other_allowances: row.otherAllowances,
-                    bonus: row.bonus,
-                    pf: row.pf,
-                    insurance: row.insurance,
-                    other_deductions: row.otherDeductions,
-                    gross: row.gross,
-                    total_deductions: row.totalDeductions,
-                    net: row.net,
-                    ...(row.status !== "—" ? { status: row.status } : {}),
-                    record_id: row.recordId,
-                })),
-            };
-
             if (existingRun?.id) {
-                await patchPayrollDraft(existingRun.id, payload);
+                await recalculatePayrollDraft(existingRun.id);
             } else {
-                await createPayrollDraft(payload);
+                await createPayrollDraft({ period });
             }
 
-            // Refresh drafts from backend
             const refreshedDrafts = await getPayrollDrafts();
             setExistingDrafts(unwrapList(refreshedDrafts));
 
-            notify("success", existingRun ? "Payroll draft updated successfully." : "Payroll draft saved successfully.");
+            notify(
+                "success",
+                existingRun
+                    ? "Payroll draft recalculated and saved successfully."
+                    : "Payroll draft created successfully."
+            );
         } catch (error) {
             console.error("Failed to save payroll draft:", error);
+
+            const responseData = error?.response?.data;
+
             const message =
-                error?.response?.data?.detail ||
-                error?.response?.data?.message ||
-                "Could not save the draft. Please try again.";
+                responseData?.detail ||
+                responseData?.message ||
+                (responseData
+                    ? Object.entries(responseData)
+                        .map(([key, value]) => {
+                            const readableValue = Array.isArray(value)
+                                ? value.join(" ")
+                                : typeof value === "object"
+                                    ? JSON.stringify(value)
+                                    : String(value);
+
+                            return `${key}: ${readableValue}`;
+                        })
+                        .join("; ")
+                    : "Could not save the draft. Please try again.");
+
             notify("error", message);
         } finally {
             setSaving(false);
@@ -296,24 +650,38 @@ export default function ProcessPayroll() {
             return;
         }
 
-        if (existingRun?.id) {
-            try {
-                const blob = await exportPayrollRun(existingRun.id);
-                triggerBlobDownload(blob, `ignite-payroll-${period}.csv`);
-                return;
-            } catch (error) {
-                console.error("Failed to export payroll:", error);
-                notify("error", "Unable to export this payroll run.");
-                return;
-            }
+        if (!existingRun?.id) {
+            notify("error", "Save a payroll draft before exporting it.");
+            return;
         }
-        notify("error", "Save a payroll draft before exporting it.");
+
+        setExporting(true);
+
+        try {
+            const blob = await exportPayrollRun(existingRun.id);
+            triggerBlobDownload(blob, `ignite-payroll-${period}.csv`);
+            notify("success", "Payroll CSV exported successfully.");
+        } catch (error) {
+            console.error("Failed to export payroll:", error);
+
+            notify(
+                "error",
+                error?.response?.data?.detail ||
+                error?.response?.data?.message ||
+                "Unable to export this payroll run."
+            );
+        } finally {
+            setExporting(false);
+        }
     };
+
+    const existingStatus = String(existingRun?.status || "DRAFT").toUpperCase();
+    const existingRunLocked = Boolean(existingRun && existingStatus !== "DRAFT");
 
     return (
         <div className="process-payroll-page">
             <PageHeader
-                eyebrow="ACCOUNT "
+                eyebrow="ACCOUNT"
                 title="Process Payroll"
                 description="Calculate, review, and prepare employee payroll for a selected month."
             />
@@ -327,6 +695,7 @@ export default function ProcessPayroll() {
                             <CalendarDays size={16} />
                             Payroll month
                         </label>
+
                         <input
                             id="payroll-period"
                             type="month"
@@ -343,12 +712,16 @@ export default function ProcessPayroll() {
                         <Button
                             variant="secondary"
                             onClick={loadData}
-                            disabled={loading}
+                            disabled={loading || generating}
                         >
                             <RefreshCw size={16} />
                             Refresh
                         </Button>
-                        <Button onClick={generatePayroll} disabled={loading || generating}>
+
+                        <Button
+                            onClick={generatePayroll}
+                            disabled={loading || generating || !period}
+                        >
                             <Calculator size={16} />
                             {generating ? "Calculating..." : "Generate Payroll"}
                         </Button>
@@ -356,7 +729,9 @@ export default function ProcessPayroll() {
                 </div>
 
                 {loading && (
-                    <p className="process-payroll-message">Loading payroll drafts...</p>
+                    <p className="process-payroll-message">
+                        Loading payroll drafts...
+                    </p>
                 )}
 
                 {loadError && (
@@ -370,8 +745,8 @@ export default function ProcessPayroll() {
 
                 {!loading && !loadError && (
                     <p className="process-payroll-helper">
-                        Payroll calculations use salary structures effective on or before{" "}
-                        {formatDate(periodEnd)}.
+                        Payroll calculations use salary structures effective on or
+                        before {formatDate(periodEnd)}.
                     </p>
                 )}
             </Card>
@@ -387,7 +762,9 @@ export default function ProcessPayroll() {
                                 <div>
                                     <span>Employees included</span>
                                     <strong>{totals.employees}</strong>
-                                    <small>{totals.missing} exception(s)</small>
+                                    <small>
+                                        {totals.missing} employee(s) need attention
+                                    </small>
                                 </div>
                             </div>
                         </Card>
@@ -413,7 +790,9 @@ export default function ProcessPayroll() {
                                 <div>
                                     <span>Total deductions</span>
                                     <strong>{money(totals.deductions)}</strong>
-                                    <small>PF, insurance and other deductions</small>
+                                    <small>
+                                        Includes LOP, PF, insurance and other deductions
+                                    </small>
                                 </div>
                             </div>
                         </Card>
@@ -436,11 +815,14 @@ export default function ProcessPayroll() {
                         <div className="process-payroll-warning">
                             <CircleAlert size={18} />
                             <div>
-                                <strong>{totals.missing} employee(s) need attention</strong>
+                                <strong>
+                                    {totals.missing} employee(s) need attention
+                                </strong>
                                 <p>
-                                    Add an applicable salary structure in Salary Structures,
-                                    then refresh and generate payroll again. Draft saving is
-                                    disabled until all active employees have a structure.
+                                    Review each employee's status and exceptions below.
+                                    Assign a salary structure to employees who are missing
+                                    one, and resolve the reported exceptions before saving
+                                    the payroll draft.
                                 </p>
                             </div>
                         </div>
@@ -454,17 +836,24 @@ export default function ProcessPayroll() {
                             </div>
 
                             <div className="process-payroll-actions">
-                                <Button variant="secondary" onClick={exportCSV}>
+                                <Button
+                                    variant="secondary"
+                                    onClick={exportCSV}
+                                    disabled={exporting || loading || !existingRun?.id}
+                                >
                                     <Download size={16} />
-                                    Export CSV
+                                    {exporting ? "Exporting..." : "Export CSV"}
                                 </Button>
+
                                 <Button
                                     onClick={saveDraft}
                                     disabled={
                                         saving ||
+                                        generating ||
+                                        loading ||
                                         totals.missing > 0 ||
                                         rows.length === 0 ||
-                                        (existingRun && String(existingRun.status || "Draft").toLowerCase() !== "draft")
+                                        existingRunLocked
                                     }
                                 >
                                     <Save size={16} />
@@ -475,8 +864,9 @@ export default function ProcessPayroll() {
 
                         {existingRun && (
                             <div className="process-payroll-existing-run">
-                                Existing run for this month: <strong>{existingRun.status}</strong>
-                                {String(existingRun.status || "Draft").toLowerCase() !== "draft" &&
+                                Existing run for this month:{" "}
+                                <strong>{existingRun.status || "Draft"}</strong>
+                                {existingRunLocked &&
                                     " — this run cannot be overwritten."}
                             </div>
                         )}
@@ -487,7 +877,7 @@ export default function ProcessPayroll() {
                                     <tr>
                                         <th>Employee</th>
                                         <th>Department</th>
-                                        <th>Structure effective</th>
+                                        <th>Salary structure</th>
                                         <th>Basic</th>
                                         <th>Gross</th>
                                         <th>Deductions</th>
@@ -495,39 +885,67 @@ export default function ProcessPayroll() {
                                         <th>Status</th>
                                     </tr>
                                 </thead>
+
                                 <tbody>
-                                    {rows.map((row) => (
-                                        <tr key={row.employeeId}>
-                                            <td>
-                                                <div className="process-payroll-employee">
-                                                    <strong>{row.employeeName}</strong>
-                                                    <span>{row.employeeCode}</span>
-                                                </div>
-                                            </td>
-                                            <td>{row.department}</td>
-                                            <td>{formatDate(row.effectiveDate)}</td>
-                                            <td>{money(row.basic)}</td>
-                                            <td>{money(row.gross)}</td>
-                                            <td>{money(row.totalDeductions)}</td>
-                                            <td className="process-payroll-net">{money(row.net)}</td>
-                                            <td>
-                                                <span
-                                                    className={`process-payroll-status ${row.status === "Ready"
-                                                        ? "is-ready"
-                                                        : "is-missing"
-                                                        }`}
-                                                >
-                                                    {row.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {rows.map((row) => {
+                                        const issues = getRowIssues(row);
+
+                                        return (
+                                            <tr key={`${row.employeeId}-${row.recordId ?? ""}`}>
+                                                <td>
+                                                    <div className="process-payroll-employee">
+                                                        <strong>{row.employeeName}</strong>
+                                                        <span>{row.employeeCode}</span>
+
+                                                        {issues.length > 0 && (
+                                                            <span className="process-payroll-row-issues">
+                                                                {issues.join(" • ")}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+
+                                                <td>{row.department}</td>
+                                                <td>
+                                                    {row.structureId
+                                                        ? row.effectiveDate
+                                                            ? formatDate(row.effectiveDate)
+                                                            : `Assigned (#${row.structureId})`
+                                                        : "Missing"}
+                                                </td>
+                                                <td>{money(row.basic)}</td>
+                                                <td>{money(row.gross)}</td>
+                                                <td>{money(row.totalDeductions)}</td>
+                                                <td className="process-payroll-net">
+                                                    {money(row.net)}
+                                                </td>
+
+                                                <td>
+                                                    <span
+                                                        className={`process-payroll-status ${isRowBlocked(row)
+                                                                ? "is-missing"
+                                                                : "is-ready"
+                                                            }`}
+                                                    >
+                                                        {row.status}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
-                                {rows.length > 0 && totals.missing === 0 && (
+
+                                {rows.length > 0 && (
                                     <tfoot>
                                         <tr>
-                                            <td colSpan={3}>Total</td>
-                                            <td>{money(rows.reduce((sum, row) => sum + row.basic, 0))}</td>
+                                            <td colSpan={3}>Included payroll total</td>
+                                            <td>
+                                                {money(
+                                                    rows
+                                                        .filter((row) => !isRowBlocked(row))
+                                                        .reduce((sum, row) => sum + row.basic, 0)
+                                                )}
+                                            </td>
                                             <td>{money(totals.gross)}</td>
                                             <td>{money(totals.deductions)}</td>
                                             <td>{money(totals.net)}</td>

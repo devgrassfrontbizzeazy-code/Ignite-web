@@ -84,6 +84,7 @@ const getEmployeeCode = (employee) =>
 
 const getGross = (run) =>
     run.gross ??
+    run.total_gross ??
     run.gross_payroll ??
     getRunEmployees(run).reduce(
         (sum, employee) => sum + (Number(employee.gross) || 0),
@@ -100,6 +101,7 @@ const getDeductions = (run) =>
 
 const getNet = (run) =>
     run.net ??
+    run.total_net ??
     run.net_payout ??
     getRunEmployees(run).reduce(
         (sum, employee) => sum + (Number(employee.net ?? employee.net_pay) || 0),

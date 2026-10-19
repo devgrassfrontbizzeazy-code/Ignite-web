@@ -12,7 +12,6 @@ import {
     Power,
     AlertCircle,
     RefreshCw,
-    Trash2,
 } from "lucide-react";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import Button from "../../../components/common/Button/Button";
@@ -25,7 +24,6 @@ import {
     getSalaryComponents,
     createSalaryComponent,
     patchSalaryComponent,
-    deleteSalaryComponent,
     unwrapList,
 } from "../../../services/api/accountAPI";
 import "./PayrollSettings.css";
@@ -85,38 +83,41 @@ const mapMethodFromBackend = (method) => {
     return "fixed";
 };
 
-const normalizeComponent = (item) => ({
-    id: item.id,
-    name: item.name || "",
-    code: item.code || "",
-    type: mapTypeFromBackend(item.component_type),
-    calculationMethod: mapMethodFromBackend(item.calculation_method),
-    calculationBasis: item.calculation_config?.salaryBasis || item.calculationBasis || "basic",
-    value: item.default_value != null ? Number(item.default_value) : item.value || 0,
-    calculationConfig: item.calculation_config || {},
-    includeInGross: item.include_in_gross ?? true,
-    includeInCtc: item.include_in_ctc ?? true,
-    effectiveFrom: item.effective_from || "",
-    effectiveTo: item.effective_to || "",
-    active: item.is_active ?? true,
-});
+const normalizeComponent = (item) => {
+    const config = item.calculation_config || {};
+    const legacyBasis = String(config.salaryBasis || item.calculationBasis || "BASIC").toUpperCase();
+    const configuredBases = Array.isArray(config.base_components) ? config.base_components : [];
+    const legacyToBackendBasis = legacyBasis === "GROSS" ? "GROSS" : legacyBasis === "CTC" ? "BASIC" : legacyBasis;
+
+    return {
+        id: item.id,
+        name: item.name || "",
+        code: item.code || "",
+        type: mapTypeFromBackend(item.component_type || item.type),
+        calculationMethod: mapMethodFromBackend(item.calculation_method || item.calculationMethod),
+        calculationBasis: configuredBases[0] || legacyToBackendBasis || "BASIC",
+        value: item.default_value != null ? Number(item.default_value) : item.value || 0,
+        calculationConfig: config,
+        includeInGross: item.include_in_gross ?? item.includeInGross ?? true,
+        includeInCtc: item.include_in_ctc ?? item.includeInCtc ?? true,
+        active: item.is_active ?? item.active ?? true,
+    };
+};
 
 const EMPTY_COMPONENT_FORM = {
     name: "",
     code: "",
     type: "earning",
     calculationMethod: "fixed",
-    calculationBasis: "basic",
+    calculationBasis: "BASIC",
     value: "0",
     calculationConfig: {
-        salaryBasis: "basic",
-        daysSource: "unpaid_leave_days",
+        base_components: ["BASIC"],
+        base_component: "GROSS",
         slabs: [],
     },
     includeInGross: true,
     includeInCtc: true,
-    effectiveFrom: "",
-    effectiveTo: "",
     active: true,
 };
 
@@ -142,7 +143,6 @@ export default function PayrollSettings() {
     const [componentTypeFilter, setComponentTypeFilter] = useState("all");
     const [componentError, setComponentError] = useState("");
     const [componentSaving, setComponentSaving] = useState(false);
-    const [deletingComponentId, setDeletingComponentId] = useState(null);
 
     // Fetch payroll settings from backend
     const loadSettings = useCallback(async () => {
@@ -153,9 +153,9 @@ export default function PayrollSettings() {
             const data = response?.data ?? response;
             if (data) {
                 setSettings({
-                    payrollCycle: data.payroll_cycle || "Monthly",
-                    payrollDay: data.payroll_day != null ? String(data.payroll_day) : "28",
-                    financialYear: data.financial_year || "April–March",
+                    payrollCycle: data.payroll_cycle || data.payrollCycle || "Monthly",
+                    payrollDay: (data.payroll_day ?? data.payrollDay) != null ? String(data.payroll_day ?? data.payrollDay) : "28",
+                    financialYear: data.financial_year || data.financialYear || "April–March",
                     currency: data.currency || "INR",
                 });
             } else {
@@ -225,6 +225,55 @@ export default function PayrollSettings() {
         setComponentError("");
     };
 
+    const updateCalculationConfig = (field, value) => {
+        setComponentForm((current) => ({
+            ...current,
+            calculationConfig: {
+                ...(current.calculationConfig || {}),
+                [field]: value,
+            },
+        }));
+        setComponentError("");
+    };
+
+    const updateSlab = (index, field, value) => {
+        setComponentForm((current) => ({
+            ...current,
+            calculationConfig: {
+                ...(current.calculationConfig || {}),
+                slabs: (current.calculationConfig?.slabs || []).map((slab, slabIndex) =>
+                    slabIndex === index ? { ...slab, [field]: value } : slab
+                ),
+            },
+        }));
+        setComponentError("");
+    };
+
+    const addSlab = () => {
+        setComponentForm((current) => ({
+            ...current,
+            calculationConfig: {
+                ...(current.calculationConfig || {}),
+                slabs: [
+                    ...(current.calculationConfig?.slabs || []),
+                    { min: "0", max: "", amount: "0" },
+                ],
+            },
+        }));
+        setComponentError("");
+    };
+
+    const removeSlab = (index) => {
+        setComponentForm((current) => ({
+            ...current,
+            calculationConfig: {
+                ...(current.calculationConfig || {}),
+                slabs: (current.calculationConfig?.slabs || []).filter((_, i) => i !== index),
+            },
+        }));
+        setComponentError("");
+    };
+
     const saveComponent = async (event) => {
         event.preventDefault();
         const name = componentForm.name.trim();
@@ -245,21 +294,72 @@ export default function PayrollSettings() {
             return;
         }
 
-        if (
-            componentForm.effectiveFrom &&
-            componentForm.effectiveTo &&
-            componentForm.effectiveTo < componentForm.effectiveFrom
-        ) {
-            setComponentError("The end date cannot be earlier than the start date.");
+        let calculationConfig = {};
+        if (componentForm.calculationMethod === "slab_based" && componentForm.type !== "employee_deduction") {
+            setComponentError("The current payroll engine supports slab-based calculations for employee deductions only.");
             return;
         }
+        if (componentForm.calculationMethod === "percentage") {
+            const baseCode = String(componentForm.calculationBasis || "BASIC").toUpperCase();
+            if (baseCode === "GROSS" && componentForm.type !== "employee_deduction") {
+                setComponentError("Gross earnings can only be used as the base for a deduction component.");
+                return;
+            }
+            calculationConfig = {
+                base_components: [baseCode],
+                // The backend reads the structure item's value first, so keep the
+                // percentage in default_value to allow employee-level overrides.
+                ...(value === 0 ? { percentage: 0 } : {}),
+            };
+        } else if (componentForm.calculationMethod === "slab_based") {
+            const rawSlabs = componentForm.calculationConfig?.slabs || [];
+            if (!rawSlabs.length) {
+                setComponentError("Add at least one slab before saving this component.");
+                return;
+            }
 
-        const generatedCode =
+            const slabs = rawSlabs.map((slab) => ({
+                min: Number(slab.min),
+                max: slab.max === "" || slab.max === null || slab.max === undefined ? null : Number(slab.max),
+                amount: Number(slab.amount),
+            }));
+            const invalidSlab = slabs.some((slab) =>
+                !Number.isFinite(slab.min) || slab.min < 0 ||
+                (slab.max !== null && (!Number.isFinite(slab.max) || slab.max <= slab.min)) ||
+                !Number.isFinite(slab.amount) || slab.amount < 0
+            );
+            if (invalidSlab) {
+                setComponentError("Check each slab: minimum must be non-negative, maximum must exceed minimum, and amount must be non-negative.");
+                return;
+            }
+            slabs.sort((a, b) => a.min - b.min);
+            for (let index = 1; index < slabs.length; index += 1) {
+                const previous = slabs[index - 1];
+                const current = slabs[index];
+                if (previous.max === null || current.min <= previous.max) {
+                    setComponentError("Slab ranges must not overlap, and a slab without a maximum must be the final range.");
+                    return;
+                }
+            }
+            calculationConfig = {
+                base_component: "GROSS",
+                slabs,
+            };
+        } else if (componentForm.calculationMethod === "per_day") {
+            const customRate = componentForm.calculationConfig?.custom_rate;
+            if (customRate !== undefined && customRate !== "" && (!Number.isFinite(Number(customRate)) || Number(customRate) < 0)) {
+                setComponentError("Per-day rate must be a non-negative number.");
+                return;
+            }
+            calculationConfig = customRate === undefined || customRate === ""
+                ? {}
+                : { custom_rate: Number(customRate) };
+        }
+
+        const generatedCode = (
             componentForm.code?.trim() ||
-            name
-                .toUpperCase()
-                .replace(/[^A-Z0-9]/g, "_")
-                .slice(0, 50);
+            name.toUpperCase().replace(/[^A-Z0-9]/g, "_").slice(0, 50)
+        ).toUpperCase();
 
         const payload = {
             name,
@@ -270,12 +370,7 @@ export default function PayrollSettings() {
             include_in_gross: componentForm.includeInGross,
             include_in_ctc: componentForm.includeInCtc,
             is_active: componentForm.active,
-            effective_from: componentForm.effectiveFrom || null,
-            effective_to: componentForm.effectiveTo || null,
-            calculation_config: {
-                salaryBasis: componentForm.calculationBasis || "basic",
-                ...(componentForm.calculationConfig || {}),
-            },
+            calculation_config: calculationConfig,
         };
 
         setComponentSaving(true);
@@ -308,8 +403,8 @@ export default function PayrollSettings() {
                 error?.response?.data?.message ||
                 (error?.response?.data
                     ? Object.entries(error.response.data)
-                          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
-                          .join("; ")
+                        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(" ") : v}`)
+                        .join("; ")
                     : null) ||
                 "Unable to save salary component to backend.";
             setComponentError(msg);
@@ -334,24 +429,6 @@ export default function PayrollSettings() {
         }
     };
 
-    const removeComponent = async (component) => {
-        if (!window.confirm(`Delete the ${component.name} salary component?`)) return;
-        setDeletingComponentId(component.id);
-        try {
-            await deleteSalaryComponent(component.id);
-            notify("success", "Salary component deleted.");
-            await loadComponents();
-        } catch (error) {
-            console.error("Failed to delete salary component:", error);
-            setComponentsError(
-                error?.response?.data?.detail ||
-                    error?.response?.data?.message ||
-                    "Unable to delete salary component."
-            );
-        } finally {
-            setDeletingComponentId(null);
-        }
-    };
 
     const filteredComponents = components.filter((component) => {
         const query = componentSearch.trim().toLowerCase();
@@ -535,10 +612,10 @@ export default function PayrollSettings() {
                                             {day === 1
                                                 ? "st"
                                                 : day === 2
-                                                ? "nd"
-                                                : day === 3
-                                                ? "rd"
-                                                : "th"}{" "}
+                                                    ? "nd"
+                                                    : day === 3
+                                                        ? "rd"
+                                                        : "th"}{" "}
                                             of the month
                                         </option>
                                     ))}
@@ -725,11 +802,9 @@ export default function PayrollSettings() {
                                                     {component.calculationMethod === "percentage" && (
                                                         <span>
                                                             of{" "}
-                                                            {{
-                                                                basic: "Basic salary",
-                                                                gross: "Gross earnings",
-                                                                ctc: "Monthly CTC",
-                                                            }[component.calculationBasis] || "Selected basis"}
+                                                            {component.calculationBasis === "GROSS"
+                                                                ? "Gross earnings"
+                                                                : components.find((item) => item.code.toUpperCase() === String(component.calculationBasis || "BASIC").toUpperCase())?.name || component.calculationBasis || "Basic salary"}
                                                         </span>
                                                     )}
                                                 </div>
@@ -746,9 +821,8 @@ export default function PayrollSettings() {
 
                                             <td>
                                                 <span
-                                                    className={`salary-component-status ${
-                                                        component.active ? "is-active" : "is-inactive"
-                                                    }`}
+                                                    className={`salary-component-status ${component.active ? "is-active" : "is-inactive"
+                                                        }`}
                                                 >
                                                     {component.active ? "Active" : "Inactive"}
                                                 </span>
@@ -770,9 +844,8 @@ export default function PayrollSettings() {
                                                         onClick={() =>
                                                             toggleComponentStatus(component.id)
                                                         }
-                                                        aria-label={`${
-                                                            component.active ? "Deactivate" : "Activate"
-                                                        } ${component.name}`}
+                                                        aria-label={`${component.active ? "Deactivate" : "Activate"
+                                                            } ${component.name}`}
                                                         title={
                                                             component.active
                                                                 ? "Deactivate component"
@@ -780,15 +853,6 @@ export default function PayrollSettings() {
                                                         }
                                                     >
                                                         <Power size={16} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeComponent(component)}
-                                                        disabled={deletingComponentId === component.id}
-                                                        aria-label={`Delete ${component.name}`}
-                                                        title="Delete component"
-                                                    >
-                                                        <Trash2 size={16} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -933,14 +997,11 @@ export default function PayrollSettings() {
                                         onChange={(event) => {
                                             const method = event.target.value;
                                             updateComponentField("calculationMethod", method);
-
-                                            if (method === "fixed" || method === "manual") {
-                                                updateComponentField("calculationBasis", "");
-                                            } else if (
-                                                method === "percentage" &&
-                                                !componentForm.calculationBasis
-                                            ) {
-                                                updateComponentField("calculationBasis", "basic");
+                                            if (method === "percentage" && !componentForm.calculationBasis) {
+                                                updateComponentField("calculationBasis", "BASIC");
+                                            }
+                                            if (method === "slab_based" && !(componentForm.calculationConfig?.slabs || []).length) {
+                                                updateCalculationConfig("slabs", [{ min: "0", max: "", amount: "0" }]);
                                             }
                                         }}
                                     >
@@ -959,80 +1020,87 @@ export default function PayrollSettings() {
                                         </label>
                                         <select
                                             id="calculationBasis"
-                                            value={componentForm.calculationBasis}
-                                            onChange={(event) =>
-                                                updateComponentField(
-                                                    "calculationBasis",
-                                                    event.target.value
-                                                )
-                                            }
+                                            value={componentForm.calculationBasis || "BASIC"}
+                                            onChange={(event) => updateComponentField("calculationBasis", event.target.value)}
                                         >
-                                            <option value="basic">Basic salary</option>
-                                            <option value="gross">Gross earnings</option>
-                                            <option value="ctc">Monthly CTC</option>
+                                            {componentForm.type === "employee_deduction" && (
+                                                <option value="GROSS">Gross earnings</option>
+                                            )}
+                                            {components
+                                                .filter((item) => item.active && item.type === "earning" && item.id !== editingComponentId)
+                                                .map((item) => (
+                                                    <option key={item.id || item.code} value={item.code.toUpperCase()}>
+                                                        {item.name} ({item.code})
+                                                    </option>
+                                                ))}
+                                            {!components.some((item) => item.active && item.type === "earning" && item.code.toUpperCase() === "BASIC" && item.id !== editingComponentId) && (
+                                                <option value="BASIC">Basic salary (BASIC)</option>
+                                            )}
                                         </select>
+                                        <small>Choose a component code that payroll can resolve. CTC is not a supported calculation base.</small>
                                     </div>
                                 )}
 
-                                <div className="payroll-settings-field">
-                                    <label htmlFor="componentValue">
-                                        {componentForm.calculationMethod === "percentage"
-                                            ? "Default percentage (%)"
-                                            : "Default amount (₹)"}
-                                    </label>
-                                    <input
-                                        id="componentValue"
-                                        type="number"
-                                        min="0"
-                                        max={
-                                            componentForm.calculationMethod === "percentage"
-                                                ? "100"
-                                                : undefined
-                                        }
-                                        step="0.01"
-                                        value={componentForm.value}
-                                        onChange={(event) =>
-                                            updateComponentField("value", event.target.value)
-                                        }
-                                        required
-                                    />
-                                </div>
+                                {componentForm.calculationMethod !== "slab_based" && (
+                                    <div className="payroll-settings-field">
+                                        <label htmlFor="componentValue">
+                                            {componentForm.calculationMethod === "percentage"
+                                                ? "Default percentage (%)"
+                                                : componentForm.calculationMethod === "per_day"
+                                                    ? "Monthly reference amount (₹)"
+                                                    : "Default amount (₹)"}
+                                        </label>
+                                        <input
+                                            id="componentValue"
+                                            type="number"
+                                            min="0"
+                                            max={componentForm.calculationMethod === "percentage" ? "100" : undefined}
+                                            step="0.01"
+                                            value={componentForm.value}
+                                            onChange={(event) => updateComponentField("value", event.target.value)}
+                                            required
+                                        />
+                                        {componentForm.calculationMethod === "per_day" && (
+                                            <small>Payroll uses this value divided by the calendar days in the payroll month, multiplied by payable days.</small>
+                                        )}
+                                    </div>
+                                )}
 
-                                <div className="payroll-settings-field">
-                                    <label htmlFor="componentEffectiveFrom">
-                                        Effective from
-                                    </label>
-                                    <input
-                                        id="componentEffectiveFrom"
-                                        type="date"
-                                        value={componentForm.effectiveFrom}
-                                        onChange={(event) =>
-                                            updateComponentField(
-                                                "effectiveFrom",
-                                                event.target.value
-                                            )
-                                        }
-                                    />
-                                </div>
-
-                                <div className="payroll-settings-field">
-                                    <label htmlFor="componentEffectiveTo">
-                                        Effective until
-                                    </label>
-                                    <input
-                                        id="componentEffectiveTo"
-                                        type="date"
-                                        min={componentForm.effectiveFrom || undefined}
-                                        value={componentForm.effectiveTo}
-                                        onChange={(event) =>
-                                            updateComponentField(
-                                                "effectiveTo",
-                                                event.target.value
-                                            )
-                                        }
-                                    />
-                                </div>
                             </div>
+
+                            {componentForm.calculationMethod === "slab_based" && (
+                                <div className="salary-component-slabs" style={{ marginTop: "1rem", padding: "1rem", border: "1px solid var(--border-color, #dbe2e8)", borderRadius: "8px" }}>
+                                    <div className="salary-component-slabs-heading" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.75rem" }}>
+                                        <div>
+                                            <strong>Slab rules</strong>
+                                            <p>Match gross earnings to a range; the first matching slab amount is applied.</p>
+                                        </div>
+                                        <button type="button" className="salary-component-add-btn" onClick={addSlab}>
+                                            <Plus size={15} /> Add slab
+                                        </button>
+                                    </div>
+                                    {(componentForm.calculationConfig?.slabs || []).map((slab, index) => (
+                                        <div className="salary-component-slab-row" key={`slab-${index}`} style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr)) auto", alignItems: "end", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                                            <label>
+                                                Minimum (₹)
+                                                <input type="number" min="0" step="0.01" value={slab.min ?? ""} onChange={(event) => updateSlab(index, "min", event.target.value)} required />
+                                            </label>
+                                            <label>
+                                                Maximum (₹)
+                                                <input type="number" min="0" step="0.01" value={slab.max ?? ""} placeholder="No upper limit" onChange={(event) => updateSlab(index, "max", event.target.value)} />
+                                            </label>
+                                            <label>
+                                                Deduction amount (₹)
+                                                <input type="number" min="0" step="0.01" value={slab.amount ?? ""} onChange={(event) => updateSlab(index, "amount", event.target.value)} required />
+                                            </label>
+                                            <button type="button" className="salary-component-slab-remove" onClick={() => removeSlab(index)} aria-label={`Remove slab ${index + 1}`} disabled={(componentForm.calculationConfig?.slabs || []).length <= 1}>
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <small style={{ color: "var(--text-muted, #64748b)" }}>Slab-based calculations are supported by the payroll engine for employee deductions. A blank maximum means there is no upper limit.</small>
+                                </div>
+                            )}
 
                             <div className="salary-component-checkboxes">
                                 <label>
@@ -1102,8 +1170,8 @@ export default function PayrollSettings() {
                                     {componentSaving
                                         ? "Saving..."
                                         : editingComponentId
-                                        ? "Save changes"
-                                        : "Add component"}
+                                            ? "Save changes"
+                                            : "Add component"}
                                 </button>
                             </div>
                         </form>

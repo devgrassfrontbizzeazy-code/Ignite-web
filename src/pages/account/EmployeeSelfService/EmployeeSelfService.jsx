@@ -42,12 +42,12 @@ const getEmployeeCode = (user) =>
     "";
 
 const getEmployeeName = (user) =>
-    user?.full_name ??
-    user?.name ??
-    user?.employee?.full_name ??
-    user?.employee?.name ??
-    [user?.first_name, user?.last_name].filter(Boolean).join(" ") ??
-    user?.employee?.first_name ??
+    user?.full_name ||
+    user?.name ||
+    user?.employee?.full_name ||
+    user?.employee?.name ||
+    [user?.first_name, user?.last_name].filter(Boolean).join(" ") ||
+    [user?.employee?.first_name, user?.employee?.last_name].filter(Boolean).join(" ") ||
     "Employee";
 
 const money = (value, currency = "INR") =>
@@ -90,10 +90,7 @@ export default function EmployeeSelfService() {
             setError("");
 
             try {
-                const [response, payslipsResponse] = await Promise.all([
-                    getCurrentUser(),
-                    getPayslips(),
-                ]);
+                const response = await getCurrentUser();
                 const currentUser = getUserObject(response);
 
                 if (!currentUser || typeof currentUser !== "object") {
@@ -104,9 +101,18 @@ export default function EmployeeSelfService() {
                     setUser(currentUser);
                 }
 
-                if (active) {
-                    setPayslipData(unwrapList(payslipsResponse));
+                // The payslips endpoint supports employee_id filtering. Avoid fetching
+                // company-wide payslips for the employee self-service screen.
+                const currentEmployeeId = getEmployeeId(currentUser);
+                if (currentEmployeeId != null) {
+                    const payslipsResponse = await getPayslips({
+                        employee_id: currentEmployeeId,
+                    });
+                    if (active) setPayslipData(unwrapList(payslipsResponse));
+                } else if (active) {
+                    setPayslipData([]);
                 }
+
                 try {
                     const structuresResponse = await getSalaryStructures();
                     if (active) setStructures(unwrapList(structuresResponse));
@@ -153,7 +159,8 @@ export default function EmployeeSelfService() {
                     slip.employee_id ??
                         slip.employeeId ??
                         slipEmployee.id ??
-                        (typeof slip.employee === "string" ? slip.employee : "")
+                        (typeof slip.employee === "object" ? "" : slip.employee) ??
+                        ""
                 );
                 const slipEmployeeCode = String(
                     slip.employee_code ??
@@ -315,7 +322,7 @@ export default function EmployeeSelfService() {
                         <span>Latest Net Salary</span>
                         <div className="ess-summary-icon"><Wallet size={19} /></div>
                     </div>
-                    <strong>{latest ? money(latest.net ?? latest.net_pay) : "—"}</strong>
+                    <strong>{latest ? money(latest.net ?? latest.net_salary ?? latest.net_pay) : "—"}</strong>
                     <p>{latest ? latest.periodLabel : "No released payroll yet"}</p>
                 </article>
 
@@ -324,7 +331,7 @@ export default function EmployeeSelfService() {
                         <span>Gross Earnings</span>
                         <div className="ess-summary-icon"><TrendingUp size={19} /></div>
                     </div>
-                    <strong>{latest ? money(latest.gross) : "—"}</strong>
+                    <strong>{latest ? money(latest.gross ?? latest.gross_salary) : "—"}</strong>
                     <p>Latest released period</p>
                 </article>
 

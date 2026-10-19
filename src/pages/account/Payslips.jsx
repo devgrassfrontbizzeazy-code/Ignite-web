@@ -57,6 +57,7 @@ const getEmployeeCode = (employee) =>
 const getGross = (employee) =>
     Number(
         employee.gross ??
+        employee.gross_salary ??
         (
             Number(employee.basic || 0) +
             Number(employee.hra || 0) +
@@ -76,7 +77,12 @@ const getDeductions = (employee) =>
     );
 
 const getNetSalary = (employee) =>
-    Number(employee.net ?? employee.net_pay ?? getGross(employee) - getDeductions(employee));
+    Number(
+        employee.net ??
+        employee.net_salary ??
+        employee.net_pay ??
+        getGross(employee) - getDeductions(employee)
+    );
 
 const getInitials = (name) =>
     String(name || "Employee")
@@ -166,8 +172,8 @@ const Payslips = () => {
                     setPayslipData([]);
                     setLoadError(
                         error?.response?.data?.detail ||
-                            error?.response?.data?.message ||
-                            "Could not load payslips from the server."
+                        error?.response?.data?.message ||
+                        "Could not load payslips from the server."
                     );
                 }
             } finally {
@@ -300,8 +306,8 @@ const Payslips = () => {
             notify(
                 "error",
                 error?.response?.data?.detail ||
-                    error?.response?.data?.message ||
-                    "Unable to download the payslip PDF."
+                error?.response?.data?.message ||
+                "Unable to download the payslip PDF."
             );
         } finally {
             setDownloading(false);
@@ -341,8 +347,8 @@ const Payslips = () => {
             notify(
                 "error",
                 error?.response?.data?.detail ||
-                    error?.response?.data?.message ||
-                    "Unable to load payslip details."
+                error?.response?.data?.message ||
+                "Unable to load payslip details."
             );
         } finally {
             setViewingPayslipId(null);
@@ -623,6 +629,7 @@ const Payslips = () => {
                 </div>
             </section>
 
+
             {selectedPayslip && (
                 <div
                     className="payslips-modal-backdrop"
@@ -643,7 +650,9 @@ const Payslips = () => {
                                 <span className="payslips-eyebrow">
                                     OFFICIAL PAYSLIP PREVIEW
                                 </span>
-                                <h2 id="payslip-modal-title">{monthLabel}</h2>
+                                <h2 id="payslip-modal-title">
+                                    {getPeriodLabel(selectedPayslip.period)}
+                                </h2>
                             </div>
                             <button
                                 type="button"
@@ -655,116 +664,315 @@ const Payslips = () => {
                             </button>
                         </div>
 
-                        <div className="payslips-document">
-                            <div className="payslips-document-brand">
-                                <div className="payslips-company-logo">
-                                    {company?.logo_url ? (
+                        <div className="payslips-document payslips-template">
+                            {/* Company identity comes from the company-level API */}
+                            <header className="payslip-template-header">
+                                <div className="payslip-template-brand">
+                                    {company?.logo_url && (
                                         <img
+                                            className="payslip-template-logo"
                                             src={company.logo_url}
                                             alt={`${company.name || "Company"} logo`}
                                             onError={(event) => {
                                                 event.currentTarget.style.display = "none";
                                             }}
                                         />
-                                    ) : (
-                                        <Building2 size={30} />
                                     )}
+                                    <div>
+                                        <h1>
+                                            {company?.name || "Company details unavailable"}
+                                        </h1>
+                                        {formatAddress(company) && (
+                                            <p>{formatAddress(company)}</p>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="payslips-company-details">
+
+                                <div className="payslip-template-title">
+                                    <h2>Salary Slip</h2>
+                                    <p>{getPeriodLabel(selectedPayslip.period)}</p>
+                                    <small>
+                                        Payslip No.: {selectedPayslip.payslip_number || "—"}
+                                    </small>
+                                </div>
+                            </header>
+
+                            {/* Employee and bank details */}
+                            <section className="payslip-template-section">
+                                <h3>Employee Details</h3>
+                                <div className="payslip-template-info-grid">
+                                    <div>
+                                        <span>Employee ID</span>
+                                        <strong>
+                                            {selectedPayslip.employee_code ||
+                                                selectedPayslip.employeeId ||
+                                                selectedPayslip.employee_id ||
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Bank A/C No.</span>
+                                        <strong>
+                                            {selectedPayslip.bank_account_number ||
+                                                selectedPayslip.account_number ||
+                                                selectedPayslip.bank_account ||
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Employee Name</span>
+                                        <strong>
+                                            {selectedPayslip.employee_name ||
+                                                selectedPayslip.name ||
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>IFSC Code</span>
+                                        <strong>
+                                            {selectedPayslip.ifsc_code ||
+                                                selectedPayslip.ifsc ||
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Designation</span>
+                                        <strong>
+                                            {selectedPayslip.designation || "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Bank Name</span>
+                                        <strong>
+                                            {selectedPayslip.bank_name || "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Department</span>
+                                        <strong>
+                                            {selectedPayslip.department || "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>UAN No.</span>
+                                        <strong>
+                                            {selectedPayslip.uan_number ||
+                                                selectedPayslip.uan ||
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Attendance information */}
+                            <section className="payslip-template-section">
+                                <h3>Attendance Summary</h3>
+                                <div className="payslip-template-info-grid">
+                                    <div>
+                                        <span>Total Working Days</span>
+                                        <strong>
+                                            {selectedPayslip.total_working_days ??
+                                                selectedPayslip.totalWorkingDays ??
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Absent Days</span>
+                                        <strong>
+                                            {selectedPayslip.absent_days ??
+                                                selectedPayslip.absentDays ??
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Paid Leave</span>
+                                        <strong>
+                                            {selectedPayslip.paid_leave ??
+                                                selectedPayslip.paidLeave ??
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>Present Days</span>
+                                        <strong>
+                                            {selectedPayslip.present_days ??
+                                                selectedPayslip.presentDays ??
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>LWOP Days</span>
+                                        <strong>
+                                            {selectedPayslip.lwop_days ??
+                                                selectedPayslip.lwopDays ??
+                                                "—"}
+                                        </strong>
+                                    </div>
+                                    <div>
+                                        <span>One Day Salary</span>
+                                        <strong>
+                                            {selectedPayslip.one_day_salary != null ||
+                                                selectedPayslip.oneDaySalary != null
+                                                ? formatCurrency(
+                                                    selectedPayslip.one_day_salary ??
+                                                    selectedPayslip.oneDaySalary,
+                                                    currency
+                                                )
+                                                : "—"}
+                                        </strong>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Earnings and deductions */}
+                            <div className="payslip-template-breakdown">
+                                <section className="payslip-template-section">
+                                    <h3>Additions</h3>
+                                    <table className="payslip-template-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Description</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                ["Basic Salary", selectedPayslip.basic ?? selectedPayslip.basic_salary],
+                                                ["HRA", selectedPayslip.hra],
+                                                [
+                                                    "Software Allowance",
+                                                    selectedPayslip.software_allowance ??
+                                                    selectedPayslip.softwareAllowance,
+                                                ],
+                                                [
+                                                    "Conveyance/Other Allowance",
+                                                    selectedPayslip.other_allowances ??
+                                                    selectedPayslip.otherAllowances,
+                                                ],
+                                                [
+                                                    "Incentive",
+                                                    selectedPayslip.incentive ??
+                                                    selectedPayslip.bonus,
+                                                ],
+                                            ]
+                                                .filter(([, value]) => value != null && value !== "")
+                                                .map(([label, value]) => (
+                                                    <tr key={label}>
+                                                        <td>{label}</td>
+                                                        <td>{formatCurrency(value, currency)}</td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th>Total Additions</th>
+                                                <th>
+                                                    {formatCurrency(
+                                                        selectedPayslip.total_additions ??
+                                                        selectedPayslip.totalAdditions ??
+                                                        selectedPayslip.gross_salary ??
+                                                        selectedPayslip.gross,
+                                                        currency
+                                                    )}
+                                                </th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </section>
+
+                                <section className="payslip-template-section">
+                                    <h3>Deductions</h3>
+                                    <table className="payslip-template-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Description</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {[
+                                                [
+                                                    "Provident Fund",
+                                                    selectedPayslip.pf ??
+                                                    selectedPayslip.provident_fund,
+                                                ],
+                                                [
+                                                    "Leave Deduction",
+                                                    selectedPayslip.leave_deduction ??
+                                                    selectedPayslip.leaveDeduction,
+                                                ],
+                                                [
+                                                    "Professional Tax",
+                                                    selectedPayslip.professional_tax ??
+                                                    selectedPayslip.professionalTax,
+                                                ],
+                                                [
+                                                    "Other Deduction",
+                                                    selectedPayslip.other_deductions ??
+                                                    selectedPayslip.otherDeductions,
+                                                ],
+                                            ]
+                                                .filter(([, value]) => value != null && value !== "")
+                                                .map(([label, value]) => (
+                                                    <tr key={label}>
+                                                        <td>{label}</td>
+                                                        <td>{formatCurrency(value, currency)}</td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th>Total Deductions</th>
+                                                <th>
+                                                    {formatCurrency(
+                                                        selectedPayslip.total_deductions ??
+                                                        selectedPayslip.totalDeductions ??
+                                                        selectedPayslip.deductions,
+                                                        currency
+                                                    )}
+                                                </th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </section>
+                            </div>
+
+                            {/* Net salary */}
+                            <section className="payslip-template-net">
+                                <span>Net Salary</span>
+                                <strong>
+                                    {formatCurrency(
+                                        selectedPayslip.net_salary ??
+                                        selectedPayslip.net ??
+                                        selectedPayslip.net_pay,
+                                        currency
+                                    )}
+                                </strong>
+                            </section>
+
+                            {/* Company footer and HR signature */}
+                            <footer className="payslip-template-footer">
+                                <div>
                                     <strong>
-                                        {company?.name || "Company name not configured"}
+                                        {company?.name || "Company details unavailable"}
                                     </strong>
-                                    {formatAddress(company) && (
-                                        <small>{formatAddress(company)}</small>
-                                    )}
-                                    {(company?.company_email || company?.phone) && (
-                                        <small>
-                                            {[company.company_email, company.phone]
-                                                .filter(Boolean)
-                                                .join(" · ")}
-                                        </small>
-                                    )}
-                                    {company?.website && (
-                                        <small>{company.website}</small>
-                                    )}
+                                    <span>Company Address</span>
+                                    <p>{formatAddress(company) || "—"}</p>
                                 </div>
-                            </div>
+                                <div className="payslip-template-signature">
+                                    <div />
+                                    <span>HR Signature</span>
+                                </div>
+                            </footer>
 
-                            <div className="payslips-document-title">
-                                <h3>Salary Slip</h3>
-                                <span>{getPeriodLabel(selectedPayslip.period)}</span>
-                            </div>
-
-                            <div className="payslips-document-employee">
-                                <div>
-                                    <small>EMPLOYEE NAME</small>
-                                    <strong>{selectedPayslip.name}</strong>
+                            {selectedPayslip.generated_at && (
+                                <div className="payslip-template-generated">
+                                    Generated on{" "}
+                                    {new Date(
+                                        selectedPayslip.generated_at
+                                    ).toLocaleDateString("en-IN")}
                                 </div>
-                                <div>
-                                    <small>EMPLOYEE ID</small>
-                                    <strong>{selectedPayslip.employeeId}</strong>
-                                </div>
-                                <div>
-                                    <small>DEPARTMENT</small>
-                                    <strong>{selectedPayslip.department}</strong>
-                                </div>
-                                <div>
-                                    <small>PAYROLL STATUS</small>
-                                    <strong>{selectedPayslip.payrollStatus}</strong>
-                                </div>
-                            </div>
-
-                            <h3 className="payslips-breakdown-title">Earnings</h3>
-                            {[
-                                ["Basic salary", selectedPayslip.basic],
-                                ["House rent allowance (HRA)", selectedPayslip.hra],
-                                ["Other allowances", selectedPayslip.otherAllowances],
-                                ["Bonus", selectedPayslip.bonus],
-                            ].map(([label, amount]) => (
-                                <div className="payslips-breakdown-row" key={label}>
-                                    <span>{label}</span>
-                                    <strong>{formatCurrency(amount, currency)}</strong>
-                                </div>
-                            ))}
-                            <div className="payslips-breakdown-row payslips-total-row">
-                                <span>Gross salary</span>
-                                <strong>
-                                    {formatCurrency(selectedPayslip.gross, currency)}
-                                </strong>
-                            </div>
-
-                            <h3 className="payslips-breakdown-title">Deductions</h3>
-                            {[
-                                ["Provident fund (PF)", selectedPayslip.pf],
-                                ["Insurance", selectedPayslip.insurance],
-                                ["Other deductions", selectedPayslip.otherDeductions],
-                            ].map(([label, amount]) => (
-                                <div
-                                    className="payslips-breakdown-row payslips-deduction"
-                                    key={label}
-                                >
-                                    <span>{label}</span>
-                                    <strong>{formatCurrency(amount, currency)}</strong>
-                                </div>
-                            ))}
-                            <div className="payslips-breakdown-row payslips-total-row">
-                                <span>Total deductions</span>
-                                <strong>
-                                    {formatCurrency(selectedPayslip.deductions, currency)}
-                                </strong>
-                            </div>
-
-                            <div className="payslips-net-total">
-                                <span>Net salary payable</span>
-                                <strong>
-                                    {formatCurrency(selectedPayslip.net, currency)}
-                                </strong>
-                            </div>
-
-                            <p className="payslips-demo-note">
-                                This payslip detail was retrieved from the backend.
-                                Please verify company details before distribution.
-                            </p>
+                            )}
                         </div>
 
                         <div className="payslips-modal-actions">
@@ -783,9 +991,7 @@ const Payslips = () => {
                                 <Download size={16} />
                                 {downloading ? "Downloading..." : "Download PDF"}
                             </Button>
-                            <Button
-                                onClick={() => window.print()}
-                            >
+                            <Button onClick={() => window.print()}>
                                 <FileText size={16} />
                                 Print / Save as PDF
                             </Button>
@@ -793,6 +999,7 @@ const Payslips = () => {
                     </section>
                 </div>
             )}
+
         </div>
     );
 };
