@@ -27,6 +27,7 @@ import { getRoles } from "../../services/api/roleAPI";
 import { getWorkSchedule } from "../../services/api/workScheduleAPI";
 import leavePolicyApi from "../../services/api/leavePolicyAPI";
 import holidayAPI from "../../services/api/holidayAPI";
+import { getFieldSalesStatus, toggleFieldSalesStatus } from "../../services/api/fieldSalesAPI";
 import { calculateOrganizationSetupProgress } from "../../utils/setupProgressUtils";
 import roleService from "../../services/roleService";
 
@@ -297,6 +298,7 @@ export default function OrganizationOverview() {
   const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
     return localStorage.getItem("ignite_field_sales_enabled") === "true";
   });
+  const [fieldSalesLoading, setFieldSalesLoading] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -321,6 +323,7 @@ export default function OrganizationOverview() {
         workScheduleResponse,
         leavePolicyResponse,
         holidayResponse,
+        fieldSalesStatusResponse,
       ] = await Promise.allSettled([
         getCompany(),
         getDepartments(),
@@ -330,6 +333,7 @@ export default function OrganizationOverview() {
         getWorkSchedule(),
         leavePolicyApi.getPolicies(),
         holidayAPI.getHolidays(),
+        getFieldSalesStatus(),
       ]);
 
       if (companyResponse.status === "fulfilled") {
@@ -368,6 +372,13 @@ export default function OrganizationOverview() {
 
       if (holidayResponse.status === "fulfilled") {
         setHolidays(extractList(holidayResponse.value));
+      }
+
+      if (fieldSalesStatusResponse.status === "fulfilled") {
+        const fsData = fieldSalesStatusResponse.value?.data || fieldSalesStatusResponse.value;
+        const isFsEnabled = Boolean(fsData?.field_sales_enabled ?? fsData?.fieldSalesEnabled);
+        setFieldSalesEnabled(isFsEnabled);
+        localStorage.setItem("ignite_field_sales_enabled", String(isFsEnabled));
       }
     } catch (err) {
       console.error("Organization overview error:", err);
@@ -766,25 +777,41 @@ export default function OrganizationOverview() {
             type="button"
             className={`organization-overview__field-sales-toggle ${
               fieldSalesEnabled ? "is-on" : ""
-            }`}
-            onClick={() => {
-              setFieldSalesEnabled((prev) => {
-                const next = !prev;
-
-                localStorage.setItem(
-                  "ignite_field_sales_enabled",
-                  String(next),
+            } ${fieldSalesLoading ? "is-loading" : ""}`}
+            disabled={fieldSalesLoading}
+            onClick={async () => {
+              const next = !fieldSalesEnabled;
+              setFieldSalesLoading(true);
+              try {
+                const res = await toggleFieldSalesStatus(next);
+                const resData = res?.data || res;
+                const updatedEnabled = Boolean(
+                  resData?.field_sales_enabled ?? resData?.fieldSalesEnabled ?? next
                 );
+                setFieldSalesEnabled(updatedEnabled);
+                localStorage.setItem("ignite_field_sales_enabled", String(updatedEnabled));
 
                 // Let other components know immediately.
                 window.dispatchEvent(
                   new CustomEvent("ignite:field-sales-updated", {
-                    detail: { enabled: next },
+                    detail: { enabled: updatedEnabled },
                   }),
                 );
 
-                return next;
-              });
+                // When activated, refresh departments & designations to show new Sales department
+                if (updatedEnabled) {
+                  const [deptRes, desigRes] = await Promise.allSettled([
+                    getDepartments(),
+                    getDesignations(),
+                  ]);
+                  if (deptRes.status === "fulfilled") setDepartments(extractList(deptRes.value));
+                  if (desigRes.status === "fulfilled") setDesignations(extractList(desigRes.value));
+                }
+              } catch (toggleErr) {
+                console.error("Failed to toggle Field Sales:", toggleErr);
+              } finally {
+                setFieldSalesLoading(false);
+              }
             }}
             aria-pressed={fieldSalesEnabled}
             aria-label={

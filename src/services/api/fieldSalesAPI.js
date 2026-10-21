@@ -242,4 +242,19 @@ export const getEmployeeTimelineHistory = async (employeeId, date = "") => {
   return response.data;
 };
 
+// -------------------------------------------------------------
+// Field Sales Module Status & Setup Toggle
+// -------------------------------------------------------------
+
+export const getFieldSalesStatus = async () => {
+  const response = await api.get("/field-sales/toggle/");
+  return response.data;
+};
+
+export const toggleFieldSalesStatus = async (enabled) => {
+  const response = await api.post("/field-sales/toggle/", { enabled });
+  return response.data;
+};
+
+
 

@@ -12,6 +12,7 @@ import {
     Power,
     AlertCircle,
     RefreshCw,
+    Clock,
 } from "lucide-react";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import Button from "../../../components/common/Button/Button";
@@ -33,6 +34,13 @@ const DEFAULT_SETTINGS = {
     payrollDay: "28",
     financialYear: "April–March",
     currency: "INR",
+    lwpCalculationBasis: "CALENDAR_DAYS",
+    lwpDeductionComponent: "GROSS",
+    includeUnexcusedAbsentAsLwp: true,
+    considerHalfDayAttendance: true,
+    sandwichRuleEnabled: false,
+    minHoursFullDay: "8.0",
+    minHoursHalfDay: "4.0",
 };
 
 const mapTypeToBackend = (type) => {
@@ -157,6 +165,13 @@ export default function PayrollSettings() {
                     payrollDay: (data.payroll_day ?? data.payrollDay) != null ? String(data.payroll_day ?? data.payrollDay) : "28",
                     financialYear: data.financial_year || data.financialYear || "April–March",
                     currency: data.currency || "INR",
+                    lwpCalculationBasis: data.lwp_calculation_basis || data.lwpCalculationBasis || "CALENDAR_DAYS",
+                    lwpDeductionComponent: data.lwp_deduction_component || data.lwpDeductionComponent || "GROSS",
+                    includeUnexcusedAbsentAsLwp: (data.include_unexcused_absent_as_lwp ?? data.includeUnexcusedAbsentAsLwp) ?? true,
+                    considerHalfDayAttendance: (data.consider_half_day_attendance ?? data.considerHalfDayAttendance) ?? true,
+                    sandwichRuleEnabled: (data.sandwich_rule_enabled ?? data.sandwichRuleEnabled) ?? false,
+                    minHoursFullDay: String((data.min_hours_full_day ?? data.minHoursFullDay) ?? "8.0"),
+                    minHoursHalfDay: String((data.min_hours_half_day ?? data.minHoursHalfDay) ?? "4.0"),
                 });
             } else {
                 setSettings({ ...DEFAULT_SETTINGS });
@@ -460,6 +475,13 @@ export default function PayrollSettings() {
             payroll_day: Number(settings.payrollDay) || 28,
             financial_year: settings.financialYear,
             currency: settings.currency,
+            lwp_calculation_basis: settings.lwpCalculationBasis,
+            lwp_deduction_component: settings.lwpDeductionComponent,
+            include_unexcused_absent_as_lwp: Boolean(settings.includeUnexcusedAbsentAsLwp),
+            consider_half_day_attendance: Boolean(settings.considerHalfDayAttendance),
+            sandwich_rule_enabled: Boolean(settings.sandwichRuleEnabled),
+            min_hours_full_day: parseFloat(settings.minHoursFullDay) || 8.0,
+            min_hours_half_day: parseFloat(settings.minHoursHalfDay) || 4.0,
         };
 
         try {
@@ -651,6 +673,137 @@ export default function PayrollSettings() {
                                     <option value="AED">AED – UAE Dirham (AED)</option>
                                 </select>
                                 <small>Company default payroll currency.</small>
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                <section className="payroll-settings-card lwp-settings-card">
+                    <div className="payroll-settings-card-heading">
+                        <div className="payroll-settings-icon">
+                            <Clock size={20} />
+                        </div>
+                        <div>
+                            <h2>Attendance & Leave Without Pay (LWP) Rules</h2>
+                            <p>Configure how unpaid absences, half-days, and attendance policies calculate deductions for this company.</p>
+                        </div>
+                    </div>
+
+                    {settingsLoading ? (
+                        <p style={{ padding: "1rem", color: "var(--text-muted, #64748b)" }}>
+                            Loading settings...
+                        </p>
+                    ) : (
+                        <div className="payroll-settings-fields">
+                            <div className="payroll-settings-field">
+                                <label htmlFor="lwpCalculationBasis">LWP Calculation Divisor Basis</label>
+                                <select
+                                    id="lwpCalculationBasis"
+                                    value={settings.lwpCalculationBasis}
+                                    onChange={(e) =>
+                                        updateSetting("lwpCalculationBasis", e.target.value)
+                                    }
+                                >
+                                    <option value="CALENDAR_DAYS">Calendar Days in Month (e.g. 28, 30, 31)</option>
+                                    <option value="WORKING_DAYS">Actual Working Days (Excluding Weekends & Holidays)</option>
+                                    <option value="FIXED_30">Fixed 30 Days Basis</option>
+                                    <option value="FIXED_26">Fixed 26 Days Basis (Standard Corporate 6-Day/26-Day)</option>
+                                </select>
+                                <small>Per-day salary rate divisor for calculating LWP deductions.</small>
+                            </div>
+
+                            <div className="payroll-settings-field">
+                                <label htmlFor="lwpDeductionComponent">LWP Deduction Salary Base</label>
+                                <select
+                                    id="lwpDeductionComponent"
+                                    value={settings.lwpDeductionComponent}
+                                    onChange={(e) =>
+                                        updateSetting("lwpDeductionComponent", e.target.value)
+                                    }
+                                >
+                                    <option value="GROSS">Gross Monthly Salary (All Earnings)</option>
+                                    <option value="BASIC_ONLY">Basic Salary Only</option>
+                                </select>
+                                <small>Base component used to determine the per-day deduction amount.</small>
+                            </div>
+
+                            <div className="payroll-settings-field">
+                                <label htmlFor="minHoursFullDay">Minimum Hours for Full Day</label>
+                                <input
+                                    id="minHoursFullDay"
+                                    type="number"
+                                    min="1"
+                                    max="24"
+                                    step="0.5"
+                                    value={settings.minHoursFullDay}
+                                    onChange={(e) =>
+                                        updateSetting("minHoursFullDay", e.target.value)
+                                    }
+                                />
+                                <small>Minimum work hours recorded to count as a full payable day.</small>
+                            </div>
+
+                            <div className="payroll-settings-field">
+                                <label htmlFor="minHoursHalfDay">Minimum Hours for Half Day</label>
+                                <input
+                                    id="minHoursHalfDay"
+                                    type="number"
+                                    min="0.5"
+                                    max="12"
+                                    step="0.5"
+                                    value={settings.minHoursHalfDay}
+                                    onChange={(e) =>
+                                        updateSetting("minHoursHalfDay", e.target.value)
+                                    }
+                                />
+                                <small>Minimum work hours recorded to count as 0.5 payable day.</small>
+                            </div>
+
+                            <div className="payroll-settings-field" style={{ gridColumn: "1 / -1" }}>
+                                <label style={{ marginBottom: "6px" }}>Attendance Policy & Deduction Toggles</label>
+                                <div className="lwp-toggles-container">
+                                    <label className="lwp-toggle-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.includeUnexcusedAbsentAsLwp}
+                                            onChange={(e) =>
+                                                updateSetting("includeUnexcusedAbsentAsLwp", e.target.checked)
+                                            }
+                                        />
+                                        <div>
+                                            <strong>Include Unexcused Absences as LWP</strong>
+                                            <span>Unapproved or missing attendance entries will automatically be treated as Leave Without Pay in payroll calculations.</span>
+                                        </div>
+                                    </label>
+
+                                    <label className="lwp-toggle-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.considerHalfDayAttendance}
+                                            onChange={(e) =>
+                                                updateSetting("considerHalfDayAttendance", e.target.checked)
+                                            }
+                                        />
+                                        <div>
+                                            <strong>Consider Half-Day Attendance</strong>
+                                            <span>When employee working hours meet half-day threshold, credit 0.5 payable days (and 0.5 LWP if unapproved).</span>
+                                        </div>
+                                    </label>
+
+                                    <label className="lwp-toggle-label">
+                                        <input
+                                            type="checkbox"
+                                            checked={settings.sandwichRuleEnabled}
+                                            onChange={(e) =>
+                                                updateSetting("sandwichRuleEnabled", e.target.checked)
+                                            }
+                                        />
+                                        <div>
+                                            <strong>Apply Sandwich Rule for Weekends & Holidays</strong>
+                                            <span>If an employee is absent on both sides of a weekend or public holiday, intervening off-days are deducted as unpaid leave.</span>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     )}

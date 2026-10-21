@@ -610,10 +610,14 @@ const SalaryStructures = () => {
             String(employee?.employment_status || "").toLowerCase() !== "terminated" &&
             employee?.is_active !== false
         )
-        .map((employee) => ({
-          value: String(employee.id),
-          label: `${getEmployeeName(employee)} (${getEmployeeCode(employee)})`,
-        }))
+        .map((employee) => {
+          const dept = getEmployeeDepartment(employee);
+          const isSales = String(dept).toLowerCase().includes("sales");
+          return {
+            value: String(employee.id),
+            label: `${getEmployeeName(employee)} (${getEmployeeCode(employee)})${isSales ? " [Sales]" : ""}`,
+          };
+        })
         .sort((a, b) => a.label.localeCompare(b.label)),
     [employees]
   );
@@ -732,10 +736,11 @@ const SalaryStructures = () => {
     });
   };
 
-  const openCreateDrawer = () => {
+  const openCreateDrawer = (defaultEmployeeId = null) => {
     setEditingId(null);
     setForm({
       ...EMPTY_FORM,
+      employeeId: defaultEmployeeId ? String(defaultEmployeeId) : "",
       effectiveDate: getLocalDate(),
       componentAmounts: Object.fromEntries(getActiveComponents(salaryComponents).map((component) => [getComponentId(component), String(component.default_value ?? 0)])),
     });
@@ -1466,7 +1471,7 @@ const SalaryStructures = () => {
       <Card
         className="salary-structures-card"
         title={`Field Sales Employees${fieldSalesEmployeesLoading ? " (loading…)" : ` (${fieldSalesEmployees.length})`}`}
-        description="Live records fetched from the Field Sales API. These records are shown for visibility and are not selectable for payroll until linked to an HRMS Employee record."
+        description="All Field Sales employees are automatically synchronized with HRMS under the Sales department and can be assigned individual or bulk salary structures."
       >
         {fieldSalesEmployeesLoading ? (
           <p>Loading Field Sales employees…</p>
@@ -1486,21 +1491,80 @@ const SalaryStructures = () => {
                 <tr>
                   <th>Employee</th>
                   <th>Employee Code</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Payroll Link</th>
+                  <th>Designation / Role</th>
+                  <th>HRMS Status</th>
+                  <th>Payroll Structure</th>
+                  <th style={{ textAlign: "right" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {fieldSalesEmployees.map((employee) => (
-                  <tr key={employee.id}>
-                    <td>{employee.full_name || getEmployeeName(employee)}</td>
-                    <td>{employee.employee_code || `FS-${employee.id}`}</td>
-                    <td>{employee.role || "—"}</td>
-                    <td>{employee.employment_status || (employee.is_active ? "Active" : "Inactive")}</td>
-                    <td>HRMS link required</td>
-                  </tr>
-                ))}
+                {fieldSalesEmployees.map((fsEmp) => {
+                  const linkedEmpId = fsEmp.employee_id || fsEmp.employee?.id || fsEmp.employee;
+                  const linkedHrms =
+                    (linkedEmpId ? employeeMap.get(String(linkedEmpId)) : null) ||
+                    employees.find(
+                      (e) =>
+                        e.email &&
+                        fsEmp.email &&
+                        e.email.trim().toLowerCase() === fsEmp.email.trim().toLowerCase()
+                    );
+                  const effectiveEmpId = linkedHrms?.id || linkedEmpId;
+                  const assignedStructure = effectiveEmpId
+                    ? structures.find((s) => String(s.employeeId) === String(effectiveEmpId))
+                    : null;
+
+                  return (
+                    <tr key={fsEmp.id}>
+                      <td>
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          <strong>{fsEmp.full_name || getEmployeeName(fsEmp)}</strong>
+                          <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #64748b)" }}>
+                            {fsEmp.email || "—"}
+                          </span>
+                        </div>
+                      </td>
+                      <td>{fsEmp.employee_code || (linkedHrms ? getEmployeeCode(linkedHrms) : `FS-${fsEmp.id}`)}</td>
+                      <td>{fsEmp.designation_name || (fsEmp.role === "manager" ? "Sales Manager" : "Sales Person")}</td>
+                      <td>
+                        <span className={`salary-badge ${linkedHrms ? "is-active" : "is-pending"}`}>
+                          {linkedHrms ? "Synced (Sales)" : "Sync Pending"}
+                        </span>
+                      </td>
+                      <td>
+                        {assignedStructure ? (
+                          <span className="salary-badge is-active">
+                            Assigned {assignedStructure.netPay ? `(₹${Number(assignedStructure.netPay).toLocaleString("en-IN")})` : ""}
+                          </span>
+                        ) : (
+                          <span className="salary-badge is-pending">Not Assigned</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {assignedStructure ? (
+                          <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() => openEditDrawer(assignedStructure)}
+                          >
+                            <Pencil size={14} /> Edit Structure
+                          </Button>
+                        ) : effectiveEmpId ? (
+                          <Button
+                            variant="primary"
+                            size="small"
+                            onClick={() => openCreateDrawer(effectiveEmpId)}
+                          >
+                            <Plus size={14} /> Assign Structure
+                          </Button>
+                        ) : (
+                          <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #64748b)" }}>
+                            Syncing...
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
