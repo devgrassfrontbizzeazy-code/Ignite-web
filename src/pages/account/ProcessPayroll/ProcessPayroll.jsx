@@ -5,6 +5,7 @@ import {
     CalendarDays,
     CircleAlert,
     Download,
+    Eye,
     FileCheck2,
     RefreshCw,
     Save,
@@ -16,12 +17,14 @@ import Card from "../../../components/common/Card/Card";
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import DatePicker from "../../../components/common/DatePicker/DatePicker";
 import PayrollWorkflowNav from "../../../components/account/PayrollWorkflowNav";
+import EmployeePayrollDetailDrawer from "../../../components/account/EmployeePayrollDetailDrawer/EmployeePayrollDetailDrawer";
 import { useNotification } from "../../../context/NotificationContext";
 import {
     calculatePayroll,
     createPayrollDraft,
     recalculatePayrollDraft,
     getPayrollDrafts,
+    getPayrollDraft,
     exportPayrollRun,
     unwrapList,
     triggerBlobDownload,
@@ -58,6 +61,48 @@ const formatDate = (date) => {
             month: "short",
             year: "numeric",
         });
+};
+
+const TruncatedDescription = ({
+    text,
+    maxWords = 5,
+    maxChars = 34,
+    type = "issue",
+}) => {
+    if (!text) return null;
+    const str = String(text).trim();
+    if (!str || str === "—") return <span>{str || "—"}</span>;
+
+    const words = str.split(/\s+/);
+    const isLong = words.length > maxWords || str.length > maxChars;
+
+    if (!isLong) {
+        return (
+            <span className={`process-payroll-inline-note type-${type}`}>
+                {str}
+            </span>
+        );
+    }
+
+    const shortText = words.slice(0, maxWords).join(" ") + "...";
+
+    return (
+        <div className={`process-payroll-popover-wrap type-${type}`}>
+            <span className="process-payroll-truncated-badge">
+                {shortText}
+            </span>
+            <div className="process-payroll-tooltip-popover" role="tooltip">
+                <div className="process-payroll-tooltip-arrow" />
+                <div className="process-payroll-tooltip-header">
+                    <CircleAlert size={12} />
+                    <span>Complete Details</span>
+                </div>
+                <div className="process-payroll-tooltip-body">
+                    {str}
+                </div>
+            </div>
+        </div>
+    );
 };
 
 const getEmployeeName = (employee) =>
@@ -448,6 +493,7 @@ export default function ProcessPayroll() {
     const [saving, setSaving] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [loadError, setLoadError] = useState("");
+    const [selectedRecord, setSelectedRecord] = useState(null);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -497,6 +543,60 @@ export default function ProcessPayroll() {
             ),
         [existingDrafts, period]
     );
+
+    const handleRecordUpdated = (updatedRecord, updatedRun) => {
+        setSelectedRecord(updatedRecord);
+        setRows((prev) =>
+            prev.map((r) => {
+                const isMatch =
+                    (updatedRecord.id && String(r.recordId) === String(updatedRecord.id)) ||
+                    String(r.employeeId) === String(updatedRecord.employee || updatedRecord.employeeId);
+                return isMatch ? normalizePayrollRow({ ...r, ...updatedRecord }) : r;
+            })
+        );
+        if (updatedRun) {
+            setExistingDrafts((prev) =>
+                prev.map((d) => (String(d.id) === String(updatedRun.id) ? { ...d, ...updatedRun } : d))
+            );
+        }
+    };
+
+    const handleRecalculateDraft = async () => {
+        if (!existingRun?.id) return;
+        const res = await recalculatePayrollDraft(existingRun.id);
+        const detail = res?.data ?? res;
+        if (detail?.records) {
+            setRows(detail.records.map(normalizePayrollRow));
+            if (selectedRecord) {
+                const fresh = detail.records.find(
+                    (r) =>
+                        (selectedRecord.recordId && String(r.id) === String(selectedRecord.recordId)) ||
+                        String(r.employee) === String(selectedRecord.employeeId)
+                );
+                if (fresh) setSelectedRecord(normalizePayrollRow(fresh));
+            }
+        }
+        const refreshedDrafts = await getPayrollDrafts();
+        setExistingDrafts(unwrapList(refreshedDrafts));
+    };
+
+    const loadExistingDraft = async () => {
+        if (!existingRun?.id) return;
+        setLoading(true);
+        try {
+            const res = await getPayrollDraft(existingRun.id);
+            const detail = res?.data ?? res;
+            const recs = detail?.records ?? detail?.employees ?? [];
+            setRows(recs.map(normalizePayrollRow));
+            setHasGenerated(true);
+            notify("success", `Loaded saved payroll draft for ${periodLabel}.`);
+        } catch (err) {
+            console.error("Failed to load existing draft:", err);
+            notify("error", "Failed to load saved draft records.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const generatePayroll = async () => {
         if (!periodEnd) {
@@ -602,14 +702,20 @@ export default function ProcessPayroll() {
         setSaving(true);
 
         try {
+            let savedResult;
             if (existingRun?.id) {
-                await recalculatePayrollDraft(existingRun.id);
+                savedResult = await recalculatePayrollDraft(existingRun.id);
             } else {
-                await createPayrollDraft({ period });
+                savedResult = await createPayrollDraft({ period });
             }
 
             const refreshedDrafts = await getPayrollDrafts();
             setExistingDrafts(unwrapList(refreshedDrafts));
+
+            const detail = savedResult?.data ?? savedResult;
+            if (detail?.records) {
+                setRows(detail.records.map(normalizePayrollRow));
+            }
 
             notify(
                 "success",
@@ -689,7 +795,7 @@ export default function ProcessPayroll() {
 
             <PayrollWorkflowNav />
 
-            <Card>
+            <Card className="process-payroll-period-card">
                 <div className="process-payroll-toolbar">
                     <div className="process-payroll-period">
                         <label>
@@ -720,6 +826,18 @@ export default function ProcessPayroll() {
                             <RefreshCw size={16} />
                             Refresh
                         </Button>
+
+                        {existingRun && (
+                            <Button
+                                variant="secondary"
+                                onClick={loadExistingDraft}
+                                disabled={loading || generating}
+                                title="Load saved draft from backend"
+                            >
+                                <FileCheck2 size={16} />
+                                Load Draft ({existingRun.status || "Draft"})
+                            </Button>
+                        )}
 
                         <Button
                             onClick={generatePayroll}
@@ -831,7 +949,7 @@ export default function ProcessPayroll() {
                         </div>
                     )}
 
-                    <Card>
+                    <Card className="process-payroll-table-card">
                         <div className="process-payroll-table-heading">
                             <div>
                                 <h2>Payroll review</h2>
@@ -886,6 +1004,7 @@ export default function ProcessPayroll() {
                                         <th>Deductions</th>
                                         <th>Net pay</th>
                                         <th>Status</th>
+                                        <th className="text-right">Action</th>
                                     </tr>
                                 </thead>
 
@@ -894,21 +1013,44 @@ export default function ProcessPayroll() {
                                         const issues = getRowIssues(row);
 
                                         return (
-                                            <tr key={`${row.employeeId}-${row.recordId ?? ""}`}>
+                                            <tr
+                                                key={`${row.employeeId}-${row.recordId ?? ""}`}
+                                                className="process-payroll-clickable-row"
+                                                onClick={() => setSelectedRecord(row)}
+                                                title="Click to view full salary calculation and adjustments"
+                                            >
                                                 <td>
                                                     <div className="process-payroll-employee">
                                                         <strong>{row.employeeName}</strong>
                                                         <span>{row.employeeCode}</span>
 
                                                         {issues.length > 0 && (
-                                                            <span className="process-payroll-row-issues">
-                                                                {issues.join(" • ")}
-                                                            </span>
+                                                            <TruncatedDescription
+                                                                text={issues.join(" • ")}
+                                                                maxWords={5}
+                                                                maxChars={32}
+                                                                type="issue"
+                                                            />
+                                                        )}
+                                                        {row.description && !issues.length && (
+                                                            <TruncatedDescription
+                                                                text={row.description}
+                                                                maxWords={5}
+                                                                maxChars={32}
+                                                                type="desc"
+                                                            />
                                                         )}
                                                     </div>
                                                 </td>
 
-                                                <td>{row.department}</td>
+                                                <td>
+                                                    <TruncatedDescription
+                                                        text={row.department}
+                                                        maxWords={4}
+                                                        maxChars={22}
+                                                        type="dept"
+                                                    />
+                                                </td>
                                                 <td>
                                                     {row.structureId
                                                         ? row.effectiveDate
@@ -934,6 +1076,18 @@ export default function ProcessPayroll() {
                                                         {row.status}
                                                     </span>
                                                 </td>
+
+                                                <td className="text-right process-payroll-action-cell" onClick={(e) => e.stopPropagation()}>
+                                                    <button
+                                                        type="button"
+                                                        className="process-payroll-view-btn"
+                                                        onClick={() => setSelectedRecord(row)}
+                                                        title="View detailed calculation & adjustments"
+                                                    >
+                                                        <Eye size={13} />
+                                                        <span>View</span>
+                                                    </button>
+                                                </td>
                                             </tr>
                                         );
                                     })}
@@ -954,6 +1108,7 @@ export default function ProcessPayroll() {
                                             <td>{money(totals.deductions)}</td>
                                             <td>{money(totals.net)}</td>
                                             <td />
+                                            <td />
                                         </tr>
                                     </tfoot>
                                 )}
@@ -966,6 +1121,19 @@ export default function ProcessPayroll() {
                             </div>
                         )}
                     </Card>
+
+                    {selectedRecord && (
+                        <EmployeePayrollDetailDrawer
+                            open={Boolean(selectedRecord)}
+                            onClose={() => setSelectedRecord(null)}
+                            record={selectedRecord}
+                            runId={existingRun?.id}
+                            runStatus={existingRun?.status || "DRAFT"}
+                            period={period}
+                            onRecordUpdated={handleRecordUpdated}
+                            onRecalculateDraft={handleRecalculateDraft}
+                        />
+                    )}
                 </>
             )}
         </div>

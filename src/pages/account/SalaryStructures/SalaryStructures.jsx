@@ -27,6 +27,7 @@ import FormField from "../../../components/common/FormField/FormField";
 import Select from "../../../components/common/Select/Select";
 import DatePicker from "../../../components/common/DatePicker/DatePicker";
 import PayrollWorkflowNav from "../../../components/account/PayrollWorkflowNav";
+import ConfirmModal from "../../../components/common/ConfirmModal/ConfirmModal";
 import employeeService from "../../../services/employeeService";
 import { getFieldSalesEmployees } from "../../../services/api/fieldSalesAPI";
 import { useNotification } from "../../../context/NotificationContext";
@@ -107,6 +108,19 @@ const normalizeStructure = (item, componentList = []) => {
       item.effectiveDate ??
       item.effective_date ??
       "",
+    effectiveTo:
+      item.effective_to ??
+      item.effectiveTo ??
+      item.effective_date_to ??
+      "",
+    status: String(item.status || "ACTIVE").toUpperCase(),
+    currency: item.currency || "INR",
+    paymentMethod: item.payment_method || item.paymentMethod || "BANK_TRANSFER",
+    bankName: item.bank_name || item.bankName || "",
+    accountNumber: item.account_number || item.accountNumber || "",
+    ifscCode: item.ifsc_code || item.ifscCode || "",
+    panNumber: item.pan_number || item.panNumber || "",
+    uanNumber: item.uan_number || item.uanNumber || "",
     basic: itemAmounts.basic ?? item.basic ?? 0,
     hra: itemAmounts.hra ?? item.hra ?? 0,
     otherAllowances:
@@ -160,7 +174,57 @@ const normalizeTemplate = (item, componentList = []) => {
   };
 };
 
-const EMPTY_FORM = { employeeId: "", effectiveDate: "", componentAmounts: {} };
+const EMPTY_FORM = {
+  employeeId: "",
+  templateId: "",
+  effectiveDate: "",
+  effectiveTo: "",
+  status: "ACTIVE",
+  currency: "INR",
+  paymentMethod: "BANK_TRANSFER",
+  bankName: "",
+  accountNumber: "",
+  ifscCode: "",
+  panNumber: "",
+  uanNumber: "",
+  componentAmounts: {},
+};
+
+const STATUS_OPTIONS = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "INACTIVE", label: "Inactive" },
+  { value: "SUPERSEDED", label: "Superseded" },
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "INR", label: "INR (₹) - Indian Rupee" },
+  { value: "USD", label: "USD ($) - US Dollar" },
+  { value: "EUR", label: "EUR (€) - Euro" },
+  { value: "GBP", label: "GBP (£) - British Pound" },
+  { value: "AED", label: "AED (د.إ) - UAE Dirham" },
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: "BANK_TRANSFER", label: "Bank Transfer" },
+  { value: "CASH", label: "Cash" },
+  { value: "CHEQUE", label: "Cheque" },
+];
+
+const getCurrencySymbol = (currency) => {
+  switch (currency) {
+    case "USD":
+      return "$";
+    case "EUR":
+      return "€";
+    case "GBP":
+      return "£";
+    case "AED":
+      return "د.إ";
+    case "INR":
+    default:
+      return "₹";
+  }
+};
 
 const getLocalDate = () => {
   const date = new Date();
@@ -492,6 +556,18 @@ const SalaryStructures = () => {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [deletingStructureId, setDeletingStructureId] = useState(null);
+  const [selectedStructureIds, setSelectedStructureIds] = useState([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    title: "",
+    description: "",
+    confirmText: "Delete",
+    variant: "danger",
+    loading: false,
+    onConfirm: null,
+  });
 
   const loadStructuresAndTemplates = useCallback(async () => {
     setDataLoading(true);
@@ -638,6 +714,15 @@ const SalaryStructures = () => {
       .map((department) => ({ value: department, label: department }));
   }, [employeeOptions, employeeMap]);
 
+  const templateOptions = useMemo(
+    () =>
+      templates.map((tpl) => ({
+        value: String(tpl.id),
+        label: tpl.name,
+      })),
+    [templates]
+  );
+
   const departmentEmployeeOptions = useMemo(() => {
     if (!bulkDepartment) return [];
 
@@ -736,13 +821,63 @@ const SalaryStructures = () => {
     });
   };
 
+  const handleEmployeeChange = (employeeId) => {
+    updateField("employeeId", employeeId);
+    if (!employeeId) return;
+
+    const employee = employeeMap.get(String(employeeId));
+    if (employee) {
+      setForm((prev) => ({
+        ...prev,
+        employeeId,
+        bankName: prev.bankName || employee.bank_name || employee.bankName || "",
+        accountNumber: prev.accountNumber || employee.account_number || employee.accountNumber || "",
+        ifscCode: prev.ifscCode || employee.ifsc_code || employee.ifscCode || "",
+        panNumber: prev.panNumber || employee.pan_number || employee.panNumber || employee.pan || "",
+        uanNumber: prev.uanNumber || employee.uan_number || employee.uanNumber || employee.uan || "",
+      }));
+    }
+  };
+
+  const handleTemplateChange = (templateId) => {
+    updateField("templateId", templateId);
+    if (!templateId) return;
+
+    const template = templates.find((t) => String(t.id) === String(templateId));
+    if (template) {
+      const newAmounts = { ...(form.componentAmounts || {}) };
+      (template.components || []).forEach((c) => {
+        const compId = c.component_id ?? c.component?.id ?? c.id;
+        if (compId) {
+          newAmounts[String(compId)] = String(c.default_value ?? c.value ?? 0);
+        }
+      });
+      setForm((prev) => ({
+        ...prev,
+        templateId,
+        componentAmounts: newAmounts,
+      }));
+    }
+  };
+
   const openCreateDrawer = (defaultEmployeeId = null) => {
     setEditingId(null);
+    const emp = defaultEmployeeId ? employeeMap.get(String(defaultEmployeeId)) : null;
     setForm({
       ...EMPTY_FORM,
       employeeId: defaultEmployeeId ? String(defaultEmployeeId) : "",
       effectiveDate: getLocalDate(),
-      componentAmounts: Object.fromEntries(getActiveComponents(salaryComponents).map((component) => [getComponentId(component), String(component.default_value ?? 0)])),
+      bankName: emp?.bank_name || emp?.bankName || "",
+      accountNumber: emp?.account_number || emp?.accountNumber || "",
+      ifscCode: emp?.ifsc_code || emp?.ifscCode || "",
+      panNumber: emp?.pan_number || emp?.panNumber || emp?.pan || "",
+      uanNumber: emp?.uan_number || emp?.uanNumber || emp?.uan || "",
+      componentAmounts: Object.fromEntries(
+        getActiveComponents(salaryComponents).map((component) => [
+          getComponentId(component),
+          String(component.default_value ?? 0),
+        ])
+      ),
     });
     setErrors({});
     setDrawerOpen(true);
@@ -753,7 +888,17 @@ const SalaryStructures = () => {
 
     setForm({
       employeeId: String(structure.employeeId),
-      effectiveDate: structure.effectiveDate,
+      templateId: structure.templateId ? String(structure.templateId) : "",
+      effectiveDate: structure.effectiveDate || "",
+      effectiveTo: structure.effectiveTo || "",
+      status: structure.status || "ACTIVE",
+      currency: structure.currency || "INR",
+      paymentMethod: structure.paymentMethod || "BANK_TRANSFER",
+      bankName: structure.bankName || "",
+      accountNumber: structure.accountNumber || "",
+      ifscCode: structure.ifscCode || "",
+      panNumber: structure.panNumber || "",
+      uanNumber: structure.uanNumber || "",
       componentAmounts: getDynamicAmounts(structure.items, "value"),
     });
 
@@ -769,8 +914,42 @@ const SalaryStructures = () => {
     }
 
     if (!form.effectiveDate) {
-      nextErrors.effectiveDate = "Please select an effective date.";
+      nextErrors.effectiveDate = "Please select an effective start date.";
     }
+
+    if (form.effectiveDate && form.effectiveTo) {
+      if (form.effectiveTo < form.effectiveDate) {
+        nextErrors.effectiveTo = "Effective To date must be on or after Effective From date.";
+      }
+    }
+
+    if (form.paymentMethod === "BANK_TRANSFER") {
+      if (form.accountNumber && form.accountNumber.length < 6) {
+        nextErrors.accountNumber = "Account number must be at least 6 characters.";
+      }
+    }
+
+    if (form.ifscCode) {
+      const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+      if (!ifscRegex.test(form.ifscCode.trim().toUpperCase())) {
+        nextErrors.ifscCode = "Invalid IFSC format (e.g. HDFC0001234). Must be 4 letters, 0, 6 characters.";
+      }
+    }
+
+    if (form.panNumber) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(form.panNumber.trim().toUpperCase())) {
+        nextErrors.panNumber = "Invalid PAN format (e.g. ABCDE1234F). Must be 5 letters, 4 digits, 1 letter.";
+      }
+    }
+
+    if (form.uanNumber) {
+      const uanRegex = /^\d{12}$/;
+      if (!uanRegex.test(form.uanNumber.trim())) {
+        nextErrors.uanNumber = "UAN must be exactly 12 digits.";
+      }
+    }
+
     if (getActiveComponents(salaryComponents).length === 0) {
       nextErrors.form = "No active salary components are configured. Add salary components before creating a structure.";
     }
@@ -814,19 +993,36 @@ const SalaryStructures = () => {
 
     if (saving || !validateForm()) return;
 
-    const salary = calculateSalary(form, salaryComponents);
-
-    const existingItems = structures.find((item) => item.id === editingId)?.items ?? [];
+    const existingStructure = structures.find((item) => item.id === editingId);
+    const existingItems = existingStructure?.items ?? [];
     const payload = {
       employee: Number(form.employeeId),
+      template: form.templateId ? Number(form.templateId) : null,
       effective_from: form.effectiveDate,
+      effective_to: form.effectiveTo || null,
+      status: form.status || "ACTIVE",
+      currency: form.currency || "INR",
+      payment_method: form.paymentMethod || "BANK_TRANSFER",
+      bank_name: form.bankName?.trim() || "",
+      account_number: form.accountNumber?.trim() || "",
+      ifsc_code: form.ifscCode?.trim()?.toUpperCase() || "",
+      pan_number: form.panNumber?.trim()?.toUpperCase() || "",
+      uan_number: form.uanNumber?.trim() || "",
       items: getActiveComponents(salaryComponents).map((component) => {
-        const existingItem = existingItems.find((item) => String(item.component_id ?? item.component?.id) === String(component.id));
-        const amount = form.componentAmounts?.[getComponentId(component)] ?? existingItem?.value ?? component.default_value ?? 0;
+        const existingItem = existingItems.find(
+          (item) => String(item.component_id ?? item.component?.id) === String(component.id)
+        );
+        const amount =
+          form.componentAmounts?.[getComponentId(component)] ??
+          existingItem?.value ??
+          component.default_value ??
+          0;
         return {
           component_id: Number(component.id),
           value: String(Number(amount) || 0),
-          ...(existingItem?.calculation_config_override ? { calculation_config_override: existingItem.calculation_config_override } : {}),
+          ...(existingItem?.calculation_config_override
+            ? { calculation_config_override: existingItem.calculation_config_override }
+            : {}),
         };
       }),
     };
@@ -842,7 +1038,16 @@ const SalaryStructures = () => {
       setDrawerOpen(false);
       setEditingId(null);
       setErrors({});
-      setForm({ ...EMPTY_FORM, effectiveDate: getLocalDate(), componentAmounts: Object.fromEntries(getActiveComponents(salaryComponents).map((component) => [getComponentId(component), String(component.default_value ?? 0)])) });
+      setForm({
+        ...EMPTY_FORM,
+        effectiveDate: getLocalDate(),
+        componentAmounts: Object.fromEntries(
+          getActiveComponents(salaryComponents).map((component) => [
+            getComponentId(component),
+            String(component.default_value ?? 0),
+          ])
+        ),
+      });
       notify("success", editingId ? "Salary structure updated." : "Salary structure created.");
       await loadStructuresAndTemplates();
     } catch (error) {
@@ -858,27 +1063,144 @@ const SalaryStructures = () => {
     }
   };
 
-  const deleteStructure = async (structure) => {
-    if (!window.confirm("Delete this salary structure? This action cannot be undone.")) {
-      return;
-    }
+  const deleteStructure = (structure) => {
+    const employee = employeeMap.get(String(structure.employeeId));
+    const empName = getEmployeeName(employee);
 
-    setDeletingStructureId(structure.id);
-    try {
-      await deleteSalaryStructure(structure.id);
-      notify("success", "Salary structure deleted.");
-      await loadStructuresAndTemplates();
-    } catch (error) {
-      console.error("Failed to delete salary structure:", error);
-      notify(
-        "error",
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        "Unable to delete the salary structure."
+    setConfirmModal({
+      open: true,
+      title: "Delete Salary Structure",
+      description: `Are you sure you want to delete the salary structure for "${empName}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "danger",
+      loading: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, loading: true }));
+        setDeletingStructureId(structure.id);
+        try {
+          await deleteSalaryStructure(structure.id);
+          notify("success", "Salary structure deleted.");
+          setConfirmModal({
+            open: false,
+            title: "",
+            description: "",
+            confirmText: "Delete",
+            variant: "danger",
+            loading: false,
+            onConfirm: null,
+          });
+          await loadStructuresAndTemplates();
+        } catch (error) {
+          console.error("Failed to delete salary structure:", error);
+          notify(
+            "error",
+            error?.response?.data?.detail ||
+            error?.response?.data?.message ||
+            "Unable to delete the salary structure."
+          );
+          setConfirmModal((prev) => ({ ...prev, loading: false }));
+        } finally {
+          setDeletingStructureId(null);
+        }
+      },
+    });
+  };
+
+  const isAllSelected = useMemo(() => {
+    return (
+      visibleStructures.length > 0 &&
+      visibleStructures.every((s) => selectedStructureIds.includes(s.id))
+    );
+  }, [visibleStructures, selectedStructureIds]);
+
+  const isSomeSelected = useMemo(() => {
+    return (
+      visibleStructures.some((s) => selectedStructureIds.includes(s.id)) &&
+      !isAllSelected
+    );
+  }, [visibleStructures, selectedStructureIds, isAllSelected]);
+
+  const handleToggleSelect = (id) => {
+    setSelectedStructureIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const visibleIds = visibleStructures.map((s) => s.id);
+    if (isAllSelected) {
+      setSelectedStructureIds((prev) =>
+        prev.filter((id) => !visibleIds.includes(id))
       );
-    } finally {
-      setDeletingStructureId(null);
+    } else {
+      setSelectedStructureIds((prev) =>
+        Array.from(new Set([...prev, ...visibleIds]))
+      );
     }
+  };
+
+  const deleteSelectedStructures = () => {
+    const count = selectedStructureIds.length;
+    if (count === 0) return;
+
+    const isAll = count === visibleStructures.length && visibleStructures.length === structures.length;
+    const title = isAll ? "Delete All Salary Structures" : "Delete Selected Salary Structures";
+    const description = isAll
+      ? `Are you sure you want to delete ALL ${count} salary structures? This action cannot be undone.`
+      : `Are you sure you want to delete the salary structures for ${count} selected employee${
+          count > 1 ? "s" : ""
+        }? This action cannot be undone.`;
+
+    setConfirmModal({
+      open: true,
+      title,
+      description,
+      confirmText: isAll ? `Delete All (${count})` : `Delete Selected (${count})`,
+      variant: "danger",
+      loading: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, loading: true }));
+        setBulkDeleting(true);
+        try {
+          const results = await Promise.allSettled(
+            selectedStructureIds.map((id) => deleteSalaryStructure(id))
+          );
+          const successful = results.filter((r) => r.status === "fulfilled").length;
+          const failed = results.filter((r) => r.status === "rejected").length;
+
+          if (successful > 0) {
+            notify(
+              "success",
+              `Successfully deleted ${successful} salary structure${successful > 1 ? "s" : ""}.`
+            );
+          }
+          if (failed > 0) {
+            notify(
+              "error",
+              `Failed to delete ${failed} salary structure${failed > 1 ? "s" : ""}.`
+            );
+          }
+
+          setSelectedStructureIds([]);
+          setConfirmModal({
+            open: false,
+            title: "",
+            description: "",
+            confirmText: "Delete",
+            variant: "danger",
+            loading: false,
+            onConfirm: null,
+          });
+          await loadStructuresAndTemplates();
+        } catch (error) {
+          console.error("Bulk delete failed:", error);
+          notify("error", "An unexpected error occurred while deleting salary structures.");
+          setConfirmModal((prev) => ({ ...prev, loading: false }));
+        } finally {
+          setBulkDeleting(false);
+        }
+      },
+    });
   };
 
   const openTemplateDrawer = (template = null) => {
@@ -988,6 +1310,7 @@ const SalaryStructures = () => {
   };
 
   const assignTemplate = async () => {
+    if (assigning) return;
     setBulkError("");
 
     const template = templates.find(
@@ -1030,6 +1353,7 @@ const SalaryStructures = () => {
       return;
     }
 
+    setAssigning(true);
     try {
       await bulkAssignSalaryTemplate({
         employee_ids: selectedEmployees.map(Number),
@@ -1048,12 +1372,14 @@ const SalaryStructures = () => {
         error?.response?.data?.message ||
         "Unable to assign the salary template."
       );
+    } finally {
+      setAssigning(false);
     }
   };
 
-  const deleteTemplate = async (templateId) => {
+  const deleteTemplate = (templateId) => {
     const inUse = structures.some(
-      (structure) => structure.templateId === templateId
+      (structure) => String(structure.templateId) === String(templateId)
     );
 
     if (inUse) {
@@ -1061,20 +1387,43 @@ const SalaryStructures = () => {
       return;
     }
 
-    if (!window.confirm("Delete this salary template?")) return;
-    try {
-      await deleteSalaryTemplate(templateId);
-      notify("success", "Salary template deleted.");
-      await loadStructuresAndTemplates();
-    } catch (error) {
-      console.error("Failed to delete salary template:", error);
-      notify(
-        "error",
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        "Unable to delete the salary template."
-      );
-    }
+    const template = templates.find((t) => String(t.id) === String(templateId));
+    const templateName = template?.name || "this template";
+
+    setConfirmModal({
+      open: true,
+      title: "Delete Salary Template",
+      description: `Are you sure you want to delete the salary template "${templateName}"? This action cannot be undone.`,
+      confirmText: "Delete",
+      variant: "danger",
+      loading: false,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, loading: true }));
+        try {
+          await deleteSalaryTemplate(templateId);
+          notify("success", "Salary template deleted.");
+          setConfirmModal({
+            open: false,
+            title: "",
+            description: "",
+            confirmText: "Delete",
+            variant: "danger",
+            loading: false,
+            onConfirm: null,
+          });
+          await loadStructuresAndTemplates();
+        } catch (error) {
+          console.error("Failed to delete salary template:", error);
+          notify(
+            "error",
+            error?.response?.data?.detail ||
+            error?.response?.data?.message ||
+            "Unable to delete the salary template."
+          );
+          setConfirmModal((prev) => ({ ...prev, loading: false }));
+        }
+      },
+    });
   };
 
 
@@ -1468,108 +1817,7 @@ const SalaryStructures = () => {
         </Card>
       </div>
 
-      <Card
-        className="salary-structures-card"
-        title={`Field Sales Employees${fieldSalesEmployeesLoading ? " (loading…)" : ` (${fieldSalesEmployees.length})`}`}
-        description="All Field Sales employees are automatically synchronized with HRMS under the Sales department and can be assigned individual or bulk salary structures."
-      >
-        {fieldSalesEmployeesLoading ? (
-          <p>Loading Field Sales employees…</p>
-        ) : fieldSalesEmployeesError ? (
-          <div className="salary-page-state" role="status">
-            <p>Could not fetch Field Sales employees. HRMS payroll data remains available.</p>
-            <Button variant="secondary" onClick={() => window.location.reload()}>
-              <RefreshCw size={16} /> Retry
-            </Button>
-          </div>
-        ) : fieldSalesEmployees.length === 0 ? (
-          <p>No Field Sales employee records were returned by the API.</p>
-        ) : (
-          <div className="salary-table-wrapper">
-            <table className="salary-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  <th>Employee Code</th>
-                  <th>Designation / Role</th>
-                  <th>HRMS Status</th>
-                  <th>Payroll Structure</th>
-                  <th style={{ textAlign: "right" }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fieldSalesEmployees.map((fsEmp) => {
-                  const linkedEmpId = fsEmp.employee_id || fsEmp.employee?.id || fsEmp.employee;
-                  const linkedHrms =
-                    (linkedEmpId ? employeeMap.get(String(linkedEmpId)) : null) ||
-                    employees.find(
-                      (e) =>
-                        e.email &&
-                        fsEmp.email &&
-                        e.email.trim().toLowerCase() === fsEmp.email.trim().toLowerCase()
-                    );
-                  const effectiveEmpId = linkedHrms?.id || linkedEmpId;
-                  const assignedStructure = effectiveEmpId
-                    ? structures.find((s) => String(s.employeeId) === String(effectiveEmpId))
-                    : null;
 
-                  return (
-                    <tr key={fsEmp.id}>
-                      <td>
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          <strong>{fsEmp.full_name || getEmployeeName(fsEmp)}</strong>
-                          <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted, #64748b)" }}>
-                            {fsEmp.email || "—"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>{fsEmp.employee_code || (linkedHrms ? getEmployeeCode(linkedHrms) : `FS-${fsEmp.id}`)}</td>
-                      <td>{fsEmp.designation_name || (fsEmp.role === "manager" ? "Sales Manager" : "Sales Person")}</td>
-                      <td>
-                        <span className={`salary-badge ${linkedHrms ? "is-active" : "is-pending"}`}>
-                          {linkedHrms ? "Synced (Sales)" : "Sync Pending"}
-                        </span>
-                      </td>
-                      <td>
-                        {assignedStructure ? (
-                          <span className="salary-badge is-active">
-                            Assigned {assignedStructure.netPay ? `(₹${Number(assignedStructure.netPay).toLocaleString("en-IN")})` : ""}
-                          </span>
-                        ) : (
-                          <span className="salary-badge is-pending">Not Assigned</span>
-                        )}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        {assignedStructure ? (
-                          <Button
-                            variant="secondary"
-                            size="small"
-                            onClick={() => openEditDrawer(assignedStructure)}
-                          >
-                            <Pencil size={14} /> Edit Structure
-                          </Button>
-                        ) : effectiveEmpId ? (
-                          <Button
-                            variant="primary"
-                            size="small"
-                            onClick={() => openCreateDrawer(effectiveEmpId)}
-                          >
-                            <Plus size={14} /> Assign Structure
-                          </Button>
-                        ) : (
-                          <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted, #64748b)" }}>
-                            Syncing...
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
 
       <div className="salary-module-tabs">
         <button
@@ -1742,18 +1990,37 @@ const SalaryStructures = () => {
               )}
             </div>
 
-            <Select
-              value={statusFilter}
-              onChange={setStatusFilter}
-              options={[
-                { value: "ALL", label: "All statuses" },
-                { value: "ACTIVE", label: "Active" },
-                { value: "UPCOMING", label: "Upcoming" },
-                { value: "INACTIVE", label: "Inactive" },
-                { value: "SUPERSEDED", label: "Superseded" },
-              ]}
-              placeholder="Filter status"
-            />
+            <div className="salary-table-toolbar__actions">
+              <Select
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "UPCOMING", label: "Upcoming" },
+                  { value: "INACTIVE", label: "Inactive" },
+                  { value: "SUPERSEDED", label: "Superseded" },
+                ]}
+                placeholder="Filter status"
+              />
+
+              {selectedStructureIds.length > 0 && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={deleteSelectedStructures}
+                  disabled={bulkDeleting}
+                  className="salary-bulk-delete-btn"
+                >
+                  <Trash2 size={14} />
+                  {bulkDeleting
+                    ? "Deleting..."
+                    : isAllSelected
+                    ? `Delete All (${selectedStructureIds.length})`
+                    : `Delete Selected (${selectedStructureIds.length})`}
+                </Button>
+              )}
+            </div>
           </div>
 
           {dataLoading ? (
@@ -1820,10 +2087,58 @@ const SalaryStructures = () => {
             </div>
           ) : (
             <>
+              {selectedStructureIds.length > 0 && (
+                <div className="salary-selection-banner">
+                  <div className="salary-selection-banner__info">
+                    <span className="salary-selection-badge">{selectedStructureIds.length}</span>
+                    <span>
+                      {selectedStructureIds.length === 1
+                        ? "1 employee salary structure selected"
+                        : `${selectedStructureIds.length} employee salary structures selected`}
+                    </span>
+                  </div>
+                  <div className="salary-selection-banner__actions">
+                    <button
+                      type="button"
+                      className="salary-selection-btn salary-selection-btn--clear"
+                      onClick={() => setSelectedStructureIds([])}
+                      disabled={bulkDeleting}
+                    >
+                      Deselect All
+                    </button>
+                    <button
+                      type="button"
+                      className="salary-selection-btn salary-selection-btn--delete"
+                      onClick={deleteSelectedStructures}
+                      disabled={bulkDeleting}
+                    >
+                      <Trash2 size={13} />
+                      {bulkDeleting
+                        ? "Deleting..."
+                        : isAllSelected
+                        ? `Delete All (${selectedStructureIds.length})`
+                        : `Delete Selected (${selectedStructureIds.length})`}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="salary-table-wrapper">
                 <table className="salary-table">
                   <thead>
                     <tr>
+                      <th className="salary-table__checkbox-col">
+                        <input
+                          type="checkbox"
+                          className="salary-table-checkbox"
+                          checked={isAllSelected}
+                          ref={(input) => {
+                            if (input) input.indeterminate = isSomeSelected;
+                          }}
+                          onChange={handleSelectAll}
+                          aria-label="Select all salary structures"
+                        />
+                      </th>
                       <th>Employee</th>
                       <th>Department</th>
                       <th>Effective From</th>
@@ -1833,7 +2148,7 @@ const SalaryStructures = () => {
                       <th className="salary-table__amount">Gross</th>
                       <th className="salary-table__amount">Net Salary</th>
                       <th>Status</th>
-                      <th className="salary-table__action-heading">Action</th>
+                      <th className="salary-table__action-heading">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1844,9 +2159,22 @@ const SalaryStructures = () => {
                       const salary = calculateSalary(structure, salaryComponents);
                       const structureItems = Array.isArray(structure.items) ? structure.items : [];
                       const status = getStructureStatus(structure);
+                      const isSelected = selectedStructureIds.includes(structure.id);
 
                       return (
-                        <tr key={structure.id}>
+                        <tr
+                          key={structure.id}
+                          className={isSelected ? "is-selected" : ""}
+                        >
+                          <td className="salary-table__checkbox-col">
+                            <input
+                              type="checkbox"
+                              className="salary-table-checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelect(structure.id)}
+                              aria-label={`Select salary structure for ${getEmployeeName(employee)}`}
+                            />
+                          </td>
                           <td>
                             <div className="salary-employee-cell">
                               <span className="salary-employee-avatar">
@@ -1885,25 +2213,29 @@ const SalaryStructures = () => {
                             </span>
                           </td>
                           <td className="salary-table__action-cell">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => openEditDrawer(structure)}
-                              aria-label={`Edit salary structure for ${getEmployeeName(employee)}`}
-                            >
-                              <Pencil size={14} />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              disabled={deletingStructureId === structure.id}
-                              onClick={() => deleteStructure(structure)}
-                              aria-label={`Delete salary structure for ${getEmployeeName(employee)}`}
-                            >
-                              <Trash2 size={14} />
-                              {deletingStructureId === structure.id ? "Deleting..." : "Delete"}
-                            </Button>
+                            <div className="salary-row-actions">
+                              <button
+                                type="button"
+                                className="salary-action-btn salary-action-btn--edit"
+                                onClick={() => openEditDrawer(structure)}
+                                title={`Edit salary structure for ${getEmployeeName(employee)}`}
+                                aria-label={`Edit salary structure for ${getEmployeeName(employee)}`}
+                              >
+                                <Pencil size={13} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="salary-action-btn salary-action-btn--delete"
+                                disabled={deletingStructureId === structure.id || bulkDeleting}
+                                onClick={() => deleteStructure(structure)}
+                                title={`Delete salary structure for ${getEmployeeName(employee)}`}
+                                aria-label={`Delete salary structure for ${getEmployeeName(employee)}`}
+                              >
+                                <Trash2 size={13} />
+                                <span>{deletingStructureId === structure.id ? "Deleting..." : "Delete"}</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1911,7 +2243,7 @@ const SalaryStructures = () => {
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan={3 + getActiveComponents(salaryComponents).length}>
+                      <td colSpan={4 + getActiveComponents(salaryComponents).length}>
                         Displayed totals ({visibleStructures.length} structures)
                       </td>
                       <td className="salary-table__amount">
@@ -2217,19 +2549,26 @@ const SalaryStructures = () => {
               <Button
                 variant="secondary"
                 onClick={() => setActiveTab("templates")}
+                disabled={assigning}
               >
                 Back to Templates
               </Button>
               <Button
                 onClick={assignTemplate}
                 disabled={
+                  assigning ||
                   employeesLoading ||
                   templates.length === 0 ||
                   selectedEmployees.length === 0
                 }
+                loading={assigning}
               >
-                <Copy size={16} /> Assign Salary to {selectedEmployees.length} Employee
-                {selectedEmployees.length === 1 ? "" : "s"}
+                <Copy size={16} />{" "}
+                {assigning
+                  ? "Assigning..."
+                  : `Assign Salary to ${selectedEmployees.length} Employee${
+                      selectedEmployees.length === 1 ? "" : "s"
+                    }`}
               </Button>
             </div>
           </div>
@@ -2244,8 +2583,8 @@ const SalaryStructures = () => {
           setErrors({});
         }}
         title={editingId ? "Edit Salary Structure" : "Add Salary Structure"}
-        description="Enter the employee's salary components and effective date."
-        width="600px"
+        description="Enter the employee's salary components, payment details, and effective dates."
+        width="660px"
         footer={
           <div className="salary-drawer-footer">
             <Button
@@ -2261,7 +2600,7 @@ const SalaryStructures = () => {
             <Button
               onClick={handleSave}
               loading={saving}
-              disabled={employeesLoading || employeeOptions.length === 0}
+              disabled={saving || employeesLoading || employeeOptions.length === 0}
             >
               {editingId ? "Save Changes" : "Create Structure"}
             </Button>
@@ -2273,61 +2612,246 @@ const SalaryStructures = () => {
           className="salary-structure-form"
           onSubmit={handleSave}
         >
+          {/* Section 1: Employee & Assignment */}
           <div className="salary-form-section">
-            <h3>Employee Details</h3>
-            <p>Select the employee and when this structure takes effect.</p>
+            <h3>Employee & Assignment</h3>
+            <p>Select employee, source template, and structure effective dates.</p>
 
-            <FormField
-              label="Employee"
-              required
-              error={errors.employeeId}
-            >
-              <Select
-                value={form.employeeId}
-                onChange={(value) => updateField("employeeId", value)}
-                options={employeeOptions}
-                placeholder={
-                  employeesLoading ? "Loading employees..." : "Select employee"
-                }
-                disabled={employeesLoading || Boolean(editingId)}
-              />
-            </FormField>
+            <div className="salary-form-grid">
+              <FormField
+                label="Employee"
+                required
+                error={errors.employeeId}
+              >
+                <Select
+                  value={form.employeeId}
+                  onChange={handleEmployeeChange}
+                  options={employeeOptions}
+                  placeholder={
+                    employeesLoading ? "Loading employees..." : "Select employee"
+                  }
+                  disabled={employeesLoading || Boolean(editingId)}
+                />
+              </FormField>
 
-            <FormField
-              label="Effective From"
-              required
-              error={errors.effectiveDate}
-              hint="Use a new effective date for a salary revision."
-            >
-              <DatePicker
-                value={form.effectiveDate}
-                onChange={(value) => updateField("effectiveDate", value)}
-                placeholder="Select effective date"
-              />
-            </FormField>
+              <FormField
+                label="Salary Template"
+                error={errors.templateId}
+                hint="Selecting a template auto-populates component amounts."
+              >
+                <Select
+                  value={form.templateId}
+                  onChange={handleTemplateChange}
+                  options={[
+                    { value: "", label: "No Template (Custom Structure)" },
+                    ...templateOptions,
+                  ]}
+                  placeholder="Select template (optional)"
+                />
+              </FormField>
+
+              <FormField
+                label="Effective From"
+                required
+                error={errors.effectiveDate}
+                hint="Start date for this salary structure."
+              >
+                <DatePicker
+                  value={form.effectiveDate}
+                  onChange={(value) => updateField("effectiveDate", value)}
+                  placeholder="Select start date"
+                />
+              </FormField>
+
+              <FormField
+                label="Effective To"
+                error={errors.effectiveTo}
+                hint="Optional. Leave blank for ongoing structure."
+              >
+                <DatePicker
+                  value={form.effectiveTo}
+                  onChange={(value) => updateField("effectiveTo", value)}
+                  placeholder="Ongoing"
+                />
+              </FormField>
+
+              <FormField
+                label="Status"
+                required
+                error={errors.status}
+              >
+                <Select
+                  value={form.status}
+                  onChange={(value) => updateField("status", value)}
+                  options={STATUS_OPTIONS}
+                />
+              </FormField>
+
+              <FormField
+                label="Currency"
+                required
+                error={errors.currency}
+              >
+                <Select
+                  value={form.currency}
+                  onChange={(value) => updateField("currency", value)}
+                  options={CURRENCY_OPTIONS}
+                />
+              </FormField>
+            </div>
           </div>
 
+          {/* Section 2: Payment & Bank Details */}
+          <div className="salary-form-section">
+            <h3>Payment & Bank Details</h3>
+            <p>Disbursement details for this employee's salary payout.</p>
+
+            <div className="salary-form-grid">
+              <FormField
+                label="Payment Method"
+                required
+                error={errors.paymentMethod}
+              >
+                <Select
+                  value={form.paymentMethod}
+                  onChange={(value) => updateField("paymentMethod", value)}
+                  options={PAYMENT_METHOD_OPTIONS}
+                />
+              </FormField>
+
+              <FormField
+                label="Bank Name"
+                error={errors.bankName}
+              >
+                <input
+                  type="text"
+                  className="salary-form-input"
+                  value={form.bankName}
+                  onChange={(e) => updateField("bankName", e.target.value)}
+                  placeholder="e.g. HDFC Bank, ICICI Bank"
+                />
+              </FormField>
+
+              <FormField
+                label="Account Number"
+                error={errors.accountNumber}
+              >
+                <input
+                  type="text"
+                  className="salary-form-input"
+                  value={form.accountNumber}
+                  onChange={(e) => updateField("accountNumber", e.target.value)}
+                  placeholder="e.g. 50100412345678"
+                  maxLength={34}
+                />
+              </FormField>
+
+              <FormField
+                label="IFSC Code"
+                error={errors.ifscCode}
+                hint="11 alphanumeric characters (e.g. HDFC0001234)"
+              >
+                <input
+                  type="text"
+                  className="salary-form-input"
+                  value={form.ifscCode}
+                  onChange={(e) => updateField("ifscCode", e.target.value.toUpperCase())}
+                  placeholder="e.g. HDFC0001234"
+                  maxLength={11}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          {/* Section 3: Tax & Statutory Identifiers */}
+          <div className="salary-form-section">
+            <h3>Tax & Statutory Identifiers</h3>
+            <p>Required for statutory deductions, PF compliance, and tax records.</p>
+
+            <div className="salary-form-grid">
+              <FormField
+                label="PAN Number"
+                error={errors.panNumber}
+                hint="10-character PAN (e.g. ABCDE1234F)"
+              >
+                <input
+                  type="text"
+                  className="salary-form-input"
+                  value={form.panNumber}
+                  onChange={(e) => updateField("panNumber", e.target.value.toUpperCase())}
+                  placeholder="e.g. ABCDE1234F"
+                  maxLength={10}
+                />
+              </FormField>
+
+              <FormField
+                label="UAN Number"
+                error={errors.uanNumber}
+                hint="Universal Account Number (12 digits)"
+              >
+                <input
+                  type="text"
+                  className="salary-form-input"
+                  value={form.uanNumber}
+                  onChange={(e) => updateField("uanNumber", e.target.value.replace(/\D/g, ""))}
+                  placeholder="e.g. 100123456789"
+                  maxLength={12}
+                />
+              </FormField>
+            </div>
+          </div>
+
+          {/* Section 4: Salary Components */}
           {salaryComponents.length === 0 ? (
-            <div className="salary-page-state"><p>No salary components are configured. Add active salary components in Account settings first.</p></div>
+            <div className="salary-page-state">
+              <p>No salary components are configured. Add active salary components in Account settings first.</p>
+            </div>
           ) : (
             <>
               {["EARNING", "DEDUCTION"].map((type) => {
-                const components = getActiveComponents(salaryComponents).filter((component) => getComponentType(component) === type);
+                const components = getActiveComponents(salaryComponents).filter(
+                  (component) => getComponentType(component) === type
+                );
                 if (!components.length) return null;
                 return (
                   <div className="salary-form-section" key={type}>
                     <h3>{type === "EARNING" ? "Earnings" : "Deductions"}</h3>
-                    <p>{type === "EARNING" ? "Monthly earning components configured for your company." : "Monthly deduction components configured for your company."}</p>
+                    <p>
+                      {type === "EARNING"
+                        ? "Monthly earning components configured for your company."
+                        : "Monthly deduction components configured for your company."}
+                    </p>
                     <div className="salary-form-grid">
                       {components.map((component) => {
                         const id = getComponentId(component);
                         return (
-                          <FormField label={getComponentName(component)} key={id} error={errors[`component_${id}`]}>
+                          <FormField
+                            label={getComponentName(component)}
+                            key={id}
+                            error={errors[`component_${id}`]}
+                          >
                             <div className="salary-input-with-prefix">
-                              <span>₹</span>
-                              <input type="number" min="0" step="0.01" value={form.componentAmounts?.[id] ?? component.default_value ?? "0"}
-                                onChange={(event) => setForm((current) => ({ ...current, componentAmounts: { ...(current.componentAmounts || {}), [id]: event.target.value } }))}
-                                placeholder="0.00" />
+                              <span>{getCurrencySymbol(form.currency)}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={
+                                  form.componentAmounts?.[id] ??
+                                  component.default_value ??
+                                  "0"
+                                }
+                                onChange={(event) =>
+                                  setForm((current) => ({
+                                    ...current,
+                                    componentAmounts: {
+                                      ...(current.componentAmounts || {}),
+                                      [id]: event.target.value,
+                                    },
+                                  }))
+                                }
+                                placeholder="0.00"
+                              />
                             </div>
                           </FormField>
                         );
@@ -2339,7 +2863,11 @@ const SalaryStructures = () => {
             </>
           )}
 
-          {errors.form && <p className="salary-bulk-error" role="alert">{errors.form}</p>}
+          {errors.form && (
+            <p className="salary-bulk-error" role="alert">
+              {errors.form}
+            </p>
+          )}
 
           <div className="salary-calculation-panel">
             <div>
@@ -2490,6 +3018,20 @@ const SalaryStructures = () => {
         </form>
       </Drawer>
 
+      <ConfirmModal
+        open={confirmModal.open}
+        onClose={() => {
+          if (!confirmModal.loading) {
+            setConfirmModal((prev) => ({ ...prev, open: false }));
+          }
+        }}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        description={confirmModal.description}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant || "danger"}
+        loading={confirmModal.loading}
+      />
     </div>
   );
 };

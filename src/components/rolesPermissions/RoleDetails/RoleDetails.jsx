@@ -28,29 +28,51 @@ const RoleDetails = ({
       let modKey = "hrms";
       let funcKey = "employees";
       let actKey = "view";
-      let scope = p.scope;
+      let scope = p?.scope;
 
       if (typeof p === "string") {
-        const parts = p.split(".");
-        if (parts.length === 3) {
-          [modKey, funcKey, actKey] = parts;
-        } else if (parts.length === 2) {
-          funcKey = parts[0];
-          actKey = parts[1];
+        if (p === "view_payroll") {
+          modKey = "account"; funcKey = "payroll"; actKey = "view";
+        } else if (p === "add_payroll") {
+          modKey = "account"; funcKey = "payroll"; actKey = "create";
+        } else if (p === "change_payroll") {
+          modKey = "account"; funcKey = "payroll"; actKey = "edit";
+        } else if (p === "approve_payroll") {
+          modKey = "account"; funcKey = "payroll"; actKey = "approve";
+        } else if (p === "delete_payroll") {
+          modKey = "account"; funcKey = "payroll"; actKey = "delete";
+        } else if (p === "export_payroll") {
+          modKey = "account"; funcKey = "payroll"; actKey = "export";
+        } else {
+          const parts = p.split(".");
+          if (parts.length === 3) {
+            [modKey, funcKey, actKey] = parts;
+          } else if (parts.length === 2) {
+            funcKey = parts[0];
+            actKey = parts[1];
+            if (funcKey === "payroll") modKey = "account";
+          }
         }
       } else if (p && typeof p === "object") {
-        modKey = p.module || "hrms";
+        modKey = p.module || (p.functionality === "payroll" ? "account" : "hrms");
         funcKey = p.functionality || p.resource || "employees";
         actKey = p.action || "view";
+        scope = p.scope;
       }
 
-      const modMeta = RBAC_MODULES.find((m) => m.key === modKey);
+      if (modKey === "accounts") modKey = "account";
+      if (funcKey === "payroll" && actKey === "update") actKey = "edit";
+
+      const modMeta = RBAC_MODULES.find(
+        (m) => m.key === modKey || (m.aliases && m.aliases.includes(modKey))
+      );
       const modName = modMeta?.name || modKey.toUpperCase();
 
       const funcMeta = modMeta?.functionalities.find((f) => f.key === funcKey);
       const funcName = funcMeta?.name || funcKey.charAt(0).toUpperCase() + funcKey.slice(1);
 
-      const actionLabel = actKey.charAt(0).toUpperCase() + actKey.slice(1);
+      const actionConfig = funcMeta?.actions?.[actKey];
+      const actionLabel = actionConfig?.label || (actKey.charAt(0).toUpperCase() + actKey.slice(1));
 
       if (!groups[modName]) {
         groups[modName] = {};
@@ -61,6 +83,8 @@ const RoleDetails = ({
 
       groups[modName][funcName].push({
         action: actionLabel,
+        dotNotation: actionConfig?.dotNotation || null,
+        codename: actionConfig?.codename || null,
         scope: scope || null,
       });
     });
@@ -169,6 +193,11 @@ const RoleDetails = ({
                               className={`role-details__action-chip ${
                                 act.scope ? "has-scope" : ""
                               }`}
+                              title={
+                                act.dotNotation
+                                  ? `${act.action} [${act.dotNotation}${act.codename ? ` | ${act.codename}` : ""}]`
+                                  : undefined
+                              }
                             >
                               <span className="role-details__chip-act">{act.action}</span>
                               {act.scope && (

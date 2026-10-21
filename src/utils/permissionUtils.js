@@ -446,3 +446,77 @@ export const canViewAllTracking = (user = null) => {
 export const canViewTeamOnMap = (user = null) => {
   return canViewTeamTracking(user) || canViewAllTracking(user);
 };
+
+// ==========================================
+// 10. ACCOUNT / PAYROLL
+// ==========================================
+export const canViewPayroll = (user = null) => {
+  return hasAnyPermission([
+    "view_payroll",
+    "payroll.view",
+    "payroll.manage",
+    "account.payroll.view",
+    "account.payroll.manage",
+  ], user);
+};
+
+export const canCreatePayroll = (user = null) => {
+  return hasAnyPermission([
+    "add_payroll",
+    "payroll.create",
+    "payroll.manage",
+    "account.payroll.create",
+    "account.payroll.manage",
+  ], user);
+};
+
+export const canUpdatePayroll = (user = null) => {
+  return hasAnyPermission([
+    "change_payroll",
+    "payroll.update",
+    "payroll.edit",
+    "payroll.manage",
+    "account.payroll.update",
+    "account.payroll.edit",
+    "account.payroll.manage",
+  ], user);
+};
+
+export const canApprovePayroll = (user = null) => {
+  return hasAnyPermission([
+    "approve_payroll",
+    "payroll.approve",
+    "payroll.manage",
+    "account.payroll.approve",
+    "account.payroll.manage",
+  ], user);
+};
+
+export const canDeletePayroll = (user = null) => {
+  return hasAnyPermission([
+    "delete_payroll",
+    "payroll.delete",
+    "payroll.manage",
+    "account.payroll.delete",
+    "account.payroll.manage",
+  ], user);
+};
+
+export const canExportPayroll = (user = null) => {
+  return hasAnyPermission([
+    "export_payroll",
+    "payroll.export",
+    "payroll.manage",
+    "account.payroll.export",
+    "account.payroll.manage",
+  ], user);
+};
+
+export const canManagePayroll = (user = null) => {
+  return hasAnyPermission([
+    "change_payroll",
+    "payroll.manage",
+    "account.payroll.manage",
+  ], user);
+};
+

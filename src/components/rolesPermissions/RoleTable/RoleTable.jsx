@@ -9,14 +9,30 @@ const getRoleModules = (role) => {
 
   role.permissions.forEach((p) => {
     if (typeof p === "string") {
-      const parts = p.split(".");
-      if (parts.length >= 2) moduleKeys.add(parts[0]);
+      if (p.endsWith("_payroll") || p.startsWith("payroll.")) {
+        moduleKeys.add("account");
+      } else {
+        const parts = p.split(".");
+        if (parts.length >= 2) {
+          const mod = parts[0] === "payroll" ? "account" : parts[0].toLowerCase();
+          moduleKeys.add(mod === "accounts" ? "account" : mod);
+        }
+      }
     } else if (p && typeof p === "object") {
-      if (p.module) moduleKeys.add(p.module.toLowerCase());
+      if (p.module) {
+        const mod = p.module.toLowerCase() === "accounts" ? "account" : p.module.toLowerCase();
+        moduleKeys.add(mod);
+      } else if (p.functionality === "payroll") {
+        moduleKeys.add("account");
+      }
     }
   });
 
-  return RBAC_MODULES.filter((m) => moduleKeys.has(m.key));
+  return RBAC_MODULES.filter(
+    (m) =>
+      moduleKeys.has(m.key) ||
+      (m.aliases && m.aliases.some((a) => moduleKeys.has(a)))
+  );
 };
 
 const RoleTable = ({

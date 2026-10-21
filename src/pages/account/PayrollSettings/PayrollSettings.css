@@ -97,6 +97,13 @@
    SETTINGS SECTION CARDS
    ========================================================================== */
 
+#payroll-settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+}
+
 .payroll-settings-card {
   min-width: 0;
   padding: 24px;
@@ -1009,7 +1016,8 @@
    ========================================================================== */
 
 .lwp-settings-card {
-  margin-top: 22px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .lwp-toggles-container {

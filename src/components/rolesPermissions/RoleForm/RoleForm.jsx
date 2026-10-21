@@ -24,37 +24,51 @@ const RoleForm = ({
     const map = {};
 
     initialData.permissions.forEach((p) => {
+      let mod = "hrms";
+      let func = "employees";
+      let act = "view";
+      let scope = "Department";
+
       if (typeof p === "string") {
-        // e.g. "hrms.employees.view" or "employee.view"
-        const parts = p.split(".");
-        let mod = "hrms";
-        let func = "employees";
-        let act = "view";
-        if (parts.length === 3) {
-          [mod, func, act] = parts;
-        } else if (parts.length === 2) {
-          func = parts[0];
-          act = parts[1];
+        if (p === "view_payroll") {
+          mod = "account"; func = "payroll"; act = "view";
+        } else if (p === "add_payroll") {
+          mod = "account"; func = "payroll"; act = "create";
+        } else if (p === "change_payroll") {
+          mod = "account"; func = "payroll"; act = "edit";
+        } else if (p === "approve_payroll") {
+          mod = "account"; func = "payroll"; act = "approve";
+        } else if (p === "delete_payroll") {
+          mod = "account"; func = "payroll"; act = "delete";
+        } else if (p === "export_payroll") {
+          mod = "account"; func = "payroll"; act = "export";
+        } else {
+          const parts = p.split(".");
+          if (parts.length === 3) {
+            [mod, func, act] = parts;
+          } else if (parts.length === 2) {
+            func = parts[0];
+            act = parts[1];
+            if (func === "payroll") mod = "account";
+          }
         }
-        const key = buildPermissionKey(mod, func, act);
-        map[key] = {
-          module: mod,
-          functionality: func,
-          action: act,
-          scope: "Department",
-        };
       } else if (p && typeof p === "object") {
-        const mod = p.module || "hrms";
-        const func = p.functionality || p.resource || "employees";
-        const act = p.action || "view";
-        const key = buildPermissionKey(mod, func, act);
-        map[key] = {
-          module: mod,
-          functionality: func,
-          action: act,
-          scope: p.scope || "Department",
-        };
+        mod = p.module || (p.functionality === "payroll" ? "account" : "hrms");
+        func = p.functionality || p.resource || "employees";
+        act = p.action || "view";
+        scope = p.scope || "Department";
       }
+
+      if (mod === "accounts") mod = "account";
+      if (func === "payroll" && act === "update") act = "edit";
+
+      const key = buildPermissionKey(mod, func, act);
+      map[key] = {
+        module: mod,
+        functionality: func,
+        action: act,
+        scope,
+      };
     });
 
     return map;
@@ -73,17 +87,28 @@ const RoleForm = ({
   // Active module object
   const activeModule = useMemo(() => {
     return (
-      RBAC_MODULES.find((m) => m.key === activeModuleKey) || RBAC_MODULES[0]
+      RBAC_MODULES.find(
+        (m) =>
+          m.key === activeModuleKey ||
+          (m.aliases && m.aliases.includes(activeModuleKey))
+      ) || RBAC_MODULES[0]
     );
   }, [activeModuleKey]);
 
   // Actions applicable to the active module
   const activeModuleActions = useMemo(() => {
-    const actionSet = new Set();
+    const actionMap = new Map();
     activeModule.functionalities.forEach((func) => {
-      Object.keys(func.actions || {}).forEach((actKey) => actionSet.add(actKey));
+      Object.entries(func.actions || {}).forEach(([actKey, config]) => {
+        if (!actionMap.has(actKey)) {
+          actionMap.set(actKey, config.label);
+        }
+      });
     });
-    return ALL_ACTIONS.filter((act) => actionSet.has(act.key));
+    return ALL_ACTIONS.filter((act) => actionMap.has(act.key)).map((act) => ({
+      ...act,
+      label: actionMap.get(act.key) || act.label,
+    }));
   }, [activeModule]);
 
   // Count of selected permissions per module
@@ -94,8 +119,9 @@ const RoleForm = ({
     });
 
     Object.values(selectedPermissions).forEach((p) => {
-      if (counts[p.module] !== undefined) {
-        counts[p.module]++;
+      const normalizedMod = p.module === "accounts" ? "account" : p.module;
+      if (counts[normalizedMod] !== undefined) {
+        counts[normalizedMod]++;
       }
     });
 
@@ -140,6 +166,9 @@ const RoleForm = ({
           module: moduleKey,
           functionality: func.key,
           action: actKey,
+          codename: actionConfig.codename || `${actKey}_${func.key}`,
+          dotNotation: actionConfig.dotNotation || `${func.key}.${actKey}`,
+          description: actionConfig.description || "",
           ...(actionConfig.supportsScope
             ? { scope: actionConfig.defaultScope || "Department" }
             : {}),
@@ -188,6 +217,9 @@ const RoleForm = ({
             module: moduleKey,
             functionality: func.key,
             action: actKey,
+            codename: actionConfig.codename || `${actKey}_${func.key}`,
+            dotNotation: actionConfig.dotNotation || `${func.key}.${actKey}`,
+            description: actionConfig.description || "",
             ...(actionConfig.supportsScope
               ? { scope: actionConfig.defaultScope || "Department" }
               : {}),
@@ -229,6 +261,9 @@ const RoleForm = ({
             module: p.module,
             functionality: p.functionality,
             action: p.action,
+            codename: p.actionConfig.codename || `${p.action}_${p.functionality}`,
+            dotNotation: p.actionConfig.dotNotation || `${p.functionality}.${p.action}`,
+            description: p.actionConfig.description || "",
             ...(p.actionConfig.supportsScope
               ? { scope: p.actionConfig.defaultScope || "Department" }
               : {}),
@@ -271,6 +306,9 @@ const RoleForm = ({
           module: p.module,
           functionality: p.functionality,
           action: p.action,
+          codename: p.actionConfig.codename || `${p.action}_${p.functionality}`,
+          dotNotation: p.actionConfig.dotNotation || `${p.functionality}.${p.action}`,
+          description: p.actionConfig.description || "",
           ...(p.actionConfig.supportsScope
             ? { scope: p.actionConfig.defaultScope || "Department" }
             : {}),
@@ -527,7 +565,14 @@ const RoleForm = ({
                               isChecked ? "is-checked" : ""
                             }`}
                           >
-                            <div className="rbac-action-cell">
+                            <div
+                              className="rbac-action-cell"
+                              title={
+                                actionConfig.description
+                                  ? `${actionConfig.label || act.label}: ${actionConfig.description}\nDot notation: ${actionConfig.dotNotation || ''}\nCodename: ${actionConfig.codename || ''}`
+                                  : undefined
+                              }
+                            >
                               <label className="rbac-action-checkbox-label">
                                 <input
                                   type="checkbox"
@@ -541,8 +586,17 @@ const RoleForm = ({
                                     )
                                   }
                                 />
-                                <span className="rbac-action-name">{act.label}</span>
+                                <span className="rbac-action-name">{actionConfig.label || act.label}</span>
                               </label>
+
+                              {actionConfig.dotNotation && (
+                                <span
+                                  className="rbac-action-dot-key"
+                                  title={`Dot notation: ${actionConfig.dotNotation} | Codename: ${actionConfig.codename || ''}`}
+                                >
+                                  {actionConfig.dotNotation}
+                                </span>
+                              )}
 
                               {/* Scope dropdown appears ONLY if checked AND supportsScope */}
                               {isChecked && actionConfig.supportsScope && (

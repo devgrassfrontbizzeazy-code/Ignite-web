@@ -41,11 +41,31 @@ const saveRoles = (roles) => {
   }
 };
 
+const DEMO_FUNCTIONALITIES = new Set(["invoices", "expenses", "payments", "financial_reports"]);
+
 /**
  * Normalizes backend role object to frontend structure.
  */
 const normalizeRole = (r) => {
   if (!r) return null;
+  const rawPerms = Array.isArray(r.permissions) ? r.permissions : [];
+  const cleanedPerms = rawPerms
+    .map((p) => {
+      if (typeof p === "string") {
+        for (const demo of DEMO_FUNCTIONALITIES) {
+          if (p.includes(`.${demo}.`) || p.startsWith(`${demo}.`)) return null;
+        }
+        return p;
+      }
+      if (p && typeof p === "object") {
+        if (DEMO_FUNCTIONALITIES.has(p.functionality || p.resource)) return null;
+        if (p.module === "accounts") return { ...p, module: "account" };
+        return p;
+      }
+      return p;
+    })
+    .filter(Boolean);
+
   return {
     id: r.id,
     roleName: r.role_name || r.roleName || "",
@@ -53,9 +73,9 @@ const normalizeRole = (r) => {
     description: r.description || "",
     status: (r.status || (r.is_active ? "active" : "inactive")).toLowerCase(),
     isSystem: Boolean(r.is_system),
-    permissionCount: r.permission_count ?? r.permissionCount ?? (Array.isArray(r.permissions) ? r.permissions.length : 0),
+    permissionCount: cleanedPerms.length,
     employeeCount: r.employee_count ?? r.employeeCount ?? 0,
-    permissions: Array.isArray(r.permissions) ? r.permissions : [],
+    permissions: cleanedPerms,
     createdAt: r.created_at || r.createdAt,
     updatedAt: r.updated_at || r.updatedAt,
     deletedAt: r.deleted_at || r.deletedAt || null,
@@ -121,9 +141,11 @@ export const createRole = async (roleData) => {
     description: (roleData?.description || "").trim(),
     status: roleData?.status || "active",
     permissions: permissions.map((p) => ({
-      module: p.module,
+      module: p.module === "accounts" ? "account" : p.module,
       functionality: p.functionality,
       action: p.action,
+      ...(p.codename ? { codename: p.codename } : {}),
+      ...(p.dotNotation ? { dotNotation: p.dotNotation } : {}),
       ...(p.scope ? { scope: p.scope } : {}),
     })),
   };
@@ -180,9 +202,11 @@ export const updateRole = async (id, roleData) => {
     description: roleData?.description !== undefined ? roleData.description : target.description,
     status: roleData?.status || target.status,
     permissions: permissions.map((p) => ({
-      module: p.module,
+      module: p.module === "accounts" ? "account" : p.module,
       functionality: p.functionality,
       action: p.action,
+      ...(p.codename ? { codename: p.codename } : {}),
+      ...(p.dotNotation ? { dotNotation: p.dotNotation } : {}),
       ...(p.scope ? { scope: p.scope } : {}),
     })),
   };
