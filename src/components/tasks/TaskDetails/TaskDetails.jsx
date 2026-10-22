@@ -14,7 +14,16 @@ const TaskDetails = ({ task, onClose, onEdit, onViewTeam, canEdit = false, onSta
     <div className="task-details">
       <p className="task-details__description">{task.description || "No description added."}</p>
       <dl className="task-details__facts">
-        <dt>Team</dt><dd><button type="button" className="task-details__team-link" onClick={() => onViewTeam?.(task)}>{task.teamName || "—"}</button></dd>
+        <dt>Team</dt>
+        <dd>
+          {task.teamId && task.teamName && task.teamName !== "Personal" ? (
+            <button type="button" className="task-details__team-link" onClick={() => onViewTeam?.(task)}>
+              {task.teamName}
+            </button>
+          ) : (
+            <span style={{ color: "#6b7280", fontStyle: "italic" }}>Personal Task (No Team)</span>
+          )}
+        </dd>
         <dt>Assigned To</dt><dd>{task.assignedToName || "—"}</dd>
         <dt>Priority</dt><dd>{task.priority || "—"}</dd>
         <dt>Status</dt><dd><Select value={task.status} options={STATUS_OPTIONS} onChange={(value) => onStatusChange?.(task, value)} disabled={!canEdit} /></dd>

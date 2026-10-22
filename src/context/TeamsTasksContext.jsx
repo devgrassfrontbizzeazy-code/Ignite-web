@@ -20,6 +20,17 @@ const getResponseData = (response) => {
   if (Array.isArray(data?.results)) return data.results;
   if (Array.isArray(data?.data)) return data.data;
 
+  // Single object wrapped inside response.data.data
+  if (
+    data &&
+    typeof data === "object" &&
+    "data" in data &&
+    data.data !== null &&
+    data.data !== undefined
+  ) {
+    return data.data;
+  }
+
   return data ?? [];
 };
 
@@ -69,108 +80,146 @@ const normalizeEmployee = (employee = {}) => ({
   profilePhotoUrl: employee.profile_photo_url || employee.profilePhotoUrl || "",
 });
 
-const normalizeTeam = (team = {}) => ({
-  ...team,
+const normalizeTeam = (rawTeam = {}) => {
+  if (!rawTeam || typeof rawTeam !== "object") return {};
+  const team =
+    rawTeam.data && typeof rawTeam.data === "object" && !Array.isArray(rawTeam.data)
+      ? rawTeam.data
+      : rawTeam;
 
-  id: team.id ?? team.team_id ?? team.teamId ?? null,
-
-  teamName: team.teamName || team.name || "",
-  name: team.name || team.teamName || "",
-
-  description: team.description || "",
-
-  teamLeadId:
+  const teamLeadId =
     team.teamLeadId ??
-    (typeof team.team_lead === "object" ? team.team_lead.id : team.team_lead) ??
+    (team.team_lead && typeof team.team_lead === "object"
+      ? team.team_lead.id
+      : team.team_lead) ??
     team.teamLead?.id ??
-    null,
+    null;
 
-  memberIds: Array.isArray(team.memberIds)
+  const memberIds = Array.isArray(team.memberIds)
     ? team.memberIds
     : Array.isArray(team.members)
-      ? team.members.map((member) =>
-          typeof member === "object" ? member.id : member,
-        )
+      ? team.members
+          .map((member) =>
+            member && typeof member === "object" ? member.id : member,
+          )
+          .filter((id) => id !== null && id !== undefined)
       : Array.isArray(team.employeeIds)
         ? team.employeeIds
-        : [],
+        : [];
 
-  memberNames: Array.isArray(team.members_details)
-    ? team.members_details
-        .map(
-          (member) =>
-            member.full_name ||
-            member.fullName ||
-            [member.first_name, member.last_name].filter(Boolean).join(" "),
-        )
-        .filter(Boolean)
-    : [],
+  return {
+    ...team,
 
-  memberCount:
-    team.memberCount ??
-    team.member_count ??
-    team.members_count ??
-    team.total_members ??
-    (Array.isArray(team.members) ? team.members.length : 0),
+    id: team.id ?? team.team_id ?? team.teamId ?? null,
 
-  teamLeadName:
-    team.teamLeadName ||
-    team.team_lead_name ||
-    team.teamLead?.name ||
-    team.teamLead?.full_name ||
-    team.team_lead_details?.full_name ||
-    team.team_lead_details?.fullName ||
-    "",
+    teamName: team.teamName || team.name || "",
+    name: team.name || team.teamName || "",
 
-  // Backend returns this as `user_context`.
-  // Keep both camelCase and original response available.
-  userContext: team.userContext || team.user_context || null,
+    description: team.description || "",
 
-  status:
-    team.status === "Inactive" ||
-    team.status === "inactive" ||
-    team.is_active === false
-      ? "inactive"
-      : "active",
+    teamLeadId,
 
-  isActive: team.isActive ?? team.is_active ?? true,
+    memberIds,
 
-  createdAt: team.createdAt || team.created_at || "",
+    memberNames: Array.isArray(team.members_details)
+      ? team.members_details
+          .map(
+            (member) =>
+              member?.full_name ||
+              member?.fullName ||
+              [member?.first_name, member?.last_name].filter(Boolean).join(" "),
+          )
+          .filter(Boolean)
+      : [],
 
-  updatedAt: team.updatedAt || team.updated_at || "",
-});
+    memberCount:
+      team.memberCount ??
+      team.member_count ??
+      team.members_count ??
+      team.total_members ??
+      (Array.isArray(team.members) ? team.members.length : 0),
 
-const normalizeTask = (task = {}) => ({
-  ...task,
-  id: task.id ?? task.task_id ?? task.taskId ?? null,
+    teamLeadName:
+      team.teamLeadName ||
+      team.team_lead_name ||
+      team.teamLead?.name ||
+      team.teamLead?.full_name ||
+      team.team_lead_details?.full_name ||
+      team.team_lead_details?.fullName ||
+      "",
 
-  teamId:
+    // Backend returns this as `user_context`.
+    // Keep both camelCase and original response available.
+    userContext: team.userContext || team.user_context || null,
+
+    status:
+      team.status === "Inactive" ||
+      team.status === "inactive" ||
+      team.is_active === false
+        ? "inactive"
+        : "active",
+
+    isActive: team.isActive ?? team.is_active ?? true,
+
+    createdAt: team.createdAt || team.created_at || "",
+
+    updatedAt: team.updatedAt || team.updated_at || "",
+  };
+};
+
+const normalizeTask = (rawTask = {}) => {
+  if (!rawTask || typeof rawTask !== "object") return {};
+  const task =
+    rawTask.data && typeof rawTask.data === "object" && !Array.isArray(rawTask.data)
+      ? rawTask.data
+      : rawTask;
+
+  const teamId =
     task.teamId ??
     task.team_id ??
-    (typeof task.team === "object" ? task.team.id : task.team) ??
-    null,
+    (task.team && typeof task.team === "object" ? task.team.id : task.team) ??
+    null;
 
-  teamName: task.teamName || task.team_name || task.team?.name || "",
+  const assignedTo =
+    task.assignedTo ??
+    task.assigned_to ??
+    (task.assignee && typeof task.assignee === "object"
+      ? task.assignee.id
+      : task.assignee) ??
+    null;
 
-  assignedTo: task.assignedTo ?? task.assigned_to ?? task.assignee?.id ?? null,
+  return {
+    ...task,
+    id: task.id ?? task.task_id ?? task.taskId ?? null,
 
-  assignedToName:
-    task.assignedToName ||
-    task.assigned_to_name ||
-    task.assignee?.full_name ||
-    task.assignee?.name ||
-    task.assigned_to_details?.full_name ||
-    task.assigned_to_details?.fullName ||
-    "",
+    teamId,
 
-  dueDate: task.dueDate || task.due_date || "",
+    teamName:
+      task.teamName ||
+      task.team_name ||
+      task.team?.name ||
+      (teamId ? "" : "Personal"),
 
-  priority: task.priority || "Medium",
+    assignedTo,
 
-  status: task.status || "To Do",
+    assignedToName:
+      task.assignedToName ||
+      task.assigned_to_name ||
+      task.assignee?.full_name ||
+      task.assignee?.name ||
+      task.assigned_to_details?.full_name ||
+      task.assigned_to_details?.fullName ||
+      "",
 
-  isActive: task.isActive ?? task.is_active ?? true,
-});
+    dueDate: task.dueDate || task.due_date || "",
+
+    priority: task.priority || "Medium",
+
+    status: task.status || "To Do",
+
+    isActive: task.isActive ?? task.is_active ?? true,
+  };
+};
 
 export const TeamsTasksProvider = ({ children }) => {
   const [employees, setEmployees] = useState([]);
@@ -244,6 +293,10 @@ export const TeamsTasksProvider = ({ children }) => {
   }, []);
 
   const fetchTeam = useCallback(async (id) => {
+    if (!id || id === "null" || id === "undefined") {
+      throw new Error("Invalid team ID");
+    }
+
     const response = await teamAPI.getTeam(id);
 
     return normalizeTeam(getResponseData(response));
@@ -288,6 +341,10 @@ export const TeamsTasksProvider = ({ children }) => {
   }, []);
 
   const fetchTask = useCallback(async (id) => {
+    if (!id || id === "null" || id === "undefined") {
+      throw new Error("Invalid task ID");
+    }
+
     const response = await taskAPI.getTask(id);
 
     return normalizeTask(getResponseData(response));
@@ -335,14 +392,18 @@ export const TeamsTasksProvider = ({ children }) => {
        * three settle independently regardless of individual
        * failures.
        */
-      await Promise.allSettled([
-        fetchTeams(),
-        fetchTasks(),
-        fetchEmployees(),
-      ]);
-
-      if (mounted) {
-        setLoading(false);
+      try {
+        await Promise.allSettled([
+          fetchTeams(),
+          fetchTasks(),
+          fetchEmployees(),
+        ]);
+      } catch (err) {
+        console.error("Failed to load initial teams/tasks data:", err);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -373,39 +434,51 @@ export const TeamsTasksProvider = ({ children }) => {
    */
 
   const workManagementAccess = useMemo(() => {
-  const contexts = teams
-    .map((team) => team.userContext || team.user_context)
-    .filter(Boolean);
+    let currentUser = {};
+    try {
+      currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      currentUser = {};
+    }
+    const rawRole = String(currentUser?.role || currentUser?.user_type || "").toUpperCase();
+    const isGlobalAdminOrHr =
+      currentUser?.is_superuser === true ||
+      ["OWNER", "ADMIN", "ADMINISTRATOR", "HR"].includes(rawRole);
 
-  const isAdminOrHr = contexts.some(
-    (context) => context.is_admin_or_hr === true,
-  );
+    const contexts = teams
+      .map((team) => team.userContext || team.user_context)
+      .filter(Boolean);
 
-  const isMember = contexts.some(
-    (context) => context.is_member === true,
-  );
+    const isAdminOrHr =
+      isGlobalAdminOrHr ||
+      contexts.some((context) => context.is_admin_or_hr === true);
 
-  const isLead = contexts.some(
-    (context) => context.is_lead === true,
-  );
+    const isMember = contexts.some(
+      (context) => context.is_member === true,
+    );
 
-  const canCreateTask = contexts.some(
-    (context) => context.can_create_task === true,
-  );
+    const isLead = contexts.some(
+      (context) => context.is_lead === true,
+    );
 
-  const canAssignToOthers = contexts.some(
-    (context) => context.can_assign_to_others === true,
-  );
+    const canAssignToOthers =
+      isAdminOrHr ||
+      isLead ||
+      contexts.some((context) => context.can_assign_to_others === true);
 
-  return {
-    hasAccess: isAdminOrHr || isMember || isLead,
-    isAdminOrHr,
-    isMember,
-    isLead,
-    canCreateTask,
-    canAssignToOthers,
-  };
-}, [teams]);
+    const canViewTeams =
+      isAdminOrHr || isMember || isLead || teams.length > 0;
+
+    return {
+      hasAccess: true, // Universal access to Work Management (Tasks)
+      canViewTeams,
+      isAdminOrHr,
+      isMember,
+      isLead,
+      canCreateTask: true, // Every employee can create their own tasks
+      canAssignToOthers,
+    };
+  }, [teams]);
 
   /*
    * ==========================================

@@ -163,17 +163,24 @@ const TaskForm = ({
     ? teamMembers
     : fallbackTeamMembers;
 
+  const availableAssignees = useMemo(() => {
+    if (formData.teamId) {
+      return availableTeamMembers;
+    }
+    return employees;
+  }, [formData.teamId, availableTeamMembers, employees]);
+
   /*
-   * Search within selected team members only.
+   * Search within selected team members or all employees for personal tasks.
    */
   const filteredMembers = useMemo(() => {
     const searchValue = memberSearch.trim().toLowerCase();
 
     if (!searchValue) {
-      return availableTeamMembers.slice(0, 8);
+      return availableAssignees.slice(0, 8);
     }
 
-    return availableTeamMembers
+    return availableAssignees
       .filter((employee) => {
         const name = getEmployeeName(employee).toLowerCase();
         const email = employee?.email?.toLowerCase() || "";
@@ -190,13 +197,18 @@ const TaskForm = ({
         );
       })
       .slice(0, 8);
-  }, [availableTeamMembers, memberSearch]);
+  }, [availableAssignees, memberSearch]);
 
   const selectedEmployee = useMemo(() => {
-    return availableTeamMembers.find(
-      (employee) => String(employee.id) === String(formData.assignedTo),
+    return (
+      availableAssignees.find(
+        (employee) => String(employee.id) === String(formData.assignedTo),
+      ) ||
+      employees.find(
+        (employee) => String(employee.id) === String(formData.assignedTo),
+      )
     );
-  }, [availableTeamMembers, formData.assignedTo]);
+  }, [availableAssignees, employees, formData.assignedTo]);
 
   const handleChange = (field, value) => {
     setFormData((current) => ({
@@ -256,12 +268,11 @@ const TaskForm = ({
       nextErrors.title = "Task title is required.";
     }
 
-    if (!formData.teamId) {
-      nextErrors.teamId = "Please select a team.";
-    }
+    const assignedToFinal =
+      formData.assignedTo || (restrictAssignee ? currentEmployeeId : "");
 
-    if (!formData.assignedTo) {
-      nextErrors.assignedTo = "Please select a team member.";
+    if (!assignedToFinal) {
+      nextErrors.assignedTo = "Please select an assignee.";
     }
 
     if (!formData.priority) {
@@ -282,21 +293,33 @@ const TaskForm = ({
 
     if (!validate()) return;
 
+    const assignedToFinal =
+      formData.assignedTo || (restrictAssignee ? currentEmployeeId : "");
+
     onSubmit?.({
       ...formData,
+      teamId: formData.teamId || null,
+      assignedTo: assignedToFinal,
       title: formData.title.trim(),
       description: formData.description.trim(),
-      teamName: selectedTeam ? getTeamName(selectedTeam) : "",
-      assignedToName: selectedEmployee ? getEmployeeName(selectedEmployee) : "",
+      teamName: selectedTeam ? getTeamName(selectedTeam) : "Personal",
+      assignedToName: selectedEmployee
+        ? getEmployeeName(selectedEmployee)
+        : (String(assignedToFinal) === String(currentEmployeeId) ? "You" : ""),
     });
   };
 
-  const teamOptions = teams
-    .filter((team) => !fixedTeamId || String(team.id) === String(fixedTeamId))
-    .map((team) => ({
-      value: team.id,
-      label: getTeamName(team),
-    }));
+  const teamOptions = useMemo(() => {
+    return [
+      { value: "", label: "Personal Task (No Team)" },
+      ...teams
+        .filter((team) => !fixedTeamId || String(team.id) === String(fixedTeamId))
+        .map((team) => ({
+          value: team.id,
+          label: getTeamName(team),
+        })),
+    ];
+  }, [teams, fixedTeamId]);
 
   return (
     <form className="task-form" onSubmit={handleSubmit}>
@@ -340,17 +363,40 @@ const TaskForm = ({
         <FormField
           label="Team"
           htmlFor="task-team"
-          required
           error={errors.teamId}
+          hint={
+            teams.length === 0
+              ? "You do not belong to any team. This will be created as a Personal Task."
+              : "Optional: Select a team or leave as Personal Task."
+          }
         >
-          <Select
-            id="task-team"
-            value={formData.teamId}
-            onChange={handleTeamChange}
-            options={teamOptions}
-            placeholder="Select a team"
-            disabled={loading || Boolean(fixedTeamId)}
-          />
+          {teams.length === 0 ? (
+            <div
+              style={{
+                padding: "10px 14px",
+                background: "#f9fafb",
+                border: "1px solid #e5e7eb",
+                borderRadius: "10px",
+                color: "#374151",
+                fontSize: "14px",
+                fontWeight: 500,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <span>📌 Personal Task (No Team)</span>
+            </div>
+          ) : (
+            <Select
+              id="task-team"
+              value={formData.teamId}
+              onChange={handleTeamChange}
+              options={teamOptions}
+              placeholder="Select a team (or Personal)"
+              disabled={loading || Boolean(fixedTeamId)}
+            />
+          )}
         </FormField>
 
         {/* Assignee */}
@@ -360,121 +406,119 @@ const TaskForm = ({
           required
           error={errors.assignedTo}
           hint={
-            formData.teamId
-              ? "Only members of the selected team are available."
-              : "Select a team first."
+            !formData.teamId
+              ? (restrictAssignee
+                ? "Personal tasks are assigned to yourself."
+                : "Assign to yourself or choose an employee.")
+              : "Only members of the selected team are available."
           }
         >
-          {!formData.teamId ? (
-            <div className="task-form__disabled-message">
-              Select a team to choose a team member.
+          {restrictAssignee ? (
+            <div className="task-form__selected-member">
+              <div className="task-form__member-avatar">
+                {(selectedEmployee ? getEmployeeName(selectedEmployee) : "You").charAt(0).toUpperCase()}
+              </div>
+              <div className="task-form__member-info">
+                <strong>
+                  {selectedEmployee
+                    ? getEmployeeName(selectedEmployee)
+                    : "You"}
+                </strong>
+                <span>
+                  {!formData.teamId ? "Assigned to you (Personal)" : "Assigned to you"}
+                </span>
+              </div>
+            </div>
+          ) : selectedEmployee ? (
+            <div className="task-form__selected-member">
+              <div className="task-form__member-avatar">
+                {getEmployeeName(selectedEmployee).charAt(0).toUpperCase()}
+              </div>
+
+              <div className="task-form__member-info">
+                <strong>{getEmployeeName(selectedEmployee)}</strong>
+
+                <span>
+                  {selectedEmployee.email ||
+                    selectedEmployee.employee_code ||
+                    (!formData.teamId ? "Employee" : "Team Member")}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="task-form__remove-member"
+                onClick={removeAssignee}
+                aria-label="Remove assignee"
+              >
+                <X size={16} />
+              </button>
             </div>
           ) : (
-            <>
-              {restrictAssignee ? (
-                <div className="task-form__selected-member">
-                  <div className="task-form__member-avatar">
-                    {getEmployeeName(selectedEmployee || {})
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-                  <div className="task-form__member-info">
-                    <strong>
-                      {selectedEmployee
-                        ? getEmployeeName(selectedEmployee)
-                        : "You"}
-                    </strong>
-                    <span>Assigned to you</span>
-                  </div>
+            <div className="task-form__member-picker">
+              <div className="task-form__member-search">
+                <Search size={16} />
+
+                <input
+                  id="task-assignee-search"
+                  type="text"
+                  placeholder={
+                    formData.teamId
+                      ? "Search team members..."
+                      : "Search employees..."
+                  }
+                  value={memberSearch}
+                  onChange={(event) => setMemberSearch(event.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              {membersLoading ? (
+                <div className="task-form__member-empty">
+                  <span>Loading members...</span>
                 </div>
-              ) : selectedEmployee ? (
-                <div className="task-form__selected-member">
-                  <div className="task-form__member-avatar">
-                    {getEmployeeName(selectedEmployee).charAt(0).toUpperCase()}
-                  </div>
+              ) : availableAssignees.length === 0 ? (
+                <div className="task-form__member-empty">
+                  <UserRound size={18} />
 
-                  <div className="task-form__member-info">
-                    <strong>{getEmployeeName(selectedEmployee)}</strong>
-
-                    <span>
-                      {selectedEmployee.email ||
-                        selectedEmployee.employee_code ||
-                        "Team Member"}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="task-form__remove-member"
-                    onClick={removeAssignee}
-                    aria-label="Remove assignee"
-                  >
-                    <X size={16} />
-                  </button>
+                  <span>No members available.</span>
                 </div>
               ) : (
-                <div className="task-form__member-picker">
-                  <div className="task-form__member-search">
-                    <Search size={16} />
+                <div className="task-form__member-results">
+                  {filteredMembers.map((employee) => (
+                    <button
+                      key={employee.id}
+                      type="button"
+                      className="task-form__member-option"
+                      onClick={() => handleMemberSelect(employee)}
+                    >
+                      <div className="task-form__member-avatar">
+                        {getEmployeeName(employee).charAt(0).toUpperCase()}
+                      </div>
 
-                    <input
-                      id="task-assignee-search"
-                      type="text"
-                      placeholder="Search team members..."
-                      value={memberSearch}
-                      onChange={(event) => setMemberSearch(event.target.value)}
-                      disabled={loading}
-                    />
-                  </div>
+                      <div className="task-form__member-info">
+                        <strong>{getEmployeeName(employee)}</strong>
 
-                  {membersLoading ? (
+                        <span>
+                          {employee.email ||
+                            employee.employee_code ||
+                            employee.employeeCode ||
+                            "Employee"}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+
+                  {filteredMembers.length === 0 && (
                     <div className="task-form__member-empty">
-                      <span>Loading team members...</span>
-                    </div>
-                  ) : availableTeamMembers.length === 0 ? (
-                    <div className="task-form__member-empty">
-                      <UserRound size={18} />
+                      <Search size={17} />
 
-                      <span>No members found in this team.</span>
-                    </div>
-                  ) : (
-                    <div className="task-form__member-results">
-                      {filteredMembers.map((employee) => (
-                        <button
-                          key={employee.id}
-                          type="button"
-                          className="task-form__member-option"
-                          onClick={() => handleMemberSelect(employee)}
-                        >
-                          <div className="task-form__member-avatar">
-                            {getEmployeeName(employee).charAt(0).toUpperCase()}
-                          </div>
-
-                          <div className="task-form__member-info">
-                            <strong>{getEmployeeName(employee)}</strong>
-
-                            <span>
-                              {employee.email ||
-                                employee.employee_code ||
-                                employee.employeeCode ||
-                                "Team Member"}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-
-                      {filteredMembers.length === 0 && (
-                        <div className="task-form__member-empty">
-                          <Search size={17} />
-
-                          <span>No team member matches your search.</span>
-                        </div>
-                      )}
+                      <span>No member matches your search.</span>
                     </div>
                   )}
                 </div>
               )}
-            </>
+            </div>
           )}
         </FormField>
 
