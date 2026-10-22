@@ -317,6 +317,9 @@ export const TeamsTasksProvider = ({ children }) => {
 
       if (!token) {
         if (mounted) {
+          setTeams([]);
+          setTasks([]);
+          setEmployees([]);
           setLoading(false);
         }
         return;

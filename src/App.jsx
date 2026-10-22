@@ -9,7 +9,7 @@ import {
 
 import { OrganizationProvider } from "./context/OrganizationContext/OrganizationContext";
 import { NotificationProvider } from "./context/NotificationContext";
-import { isFieldSalesManager } from "./utils/permissionUtils";
+import { isFieldSalesManager, canViewWorkManagement, canViewTeams } from "./utils/permissionUtils";
 
 /* Website */
 import HomePage from "./pages/landingPage/HomePage";
@@ -139,11 +139,23 @@ function WorkManagementGuard() {
     rawRole === "HR" ||
     user?.is_superuser === true;
 
+  const userPermissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  const hasWorkManagementPermission =
+    canViewWorkManagement(user) ||
+    canViewTeams(user) ||
+    userPermissions.includes("view_team") ||
+    userPermissions.includes("teams.view") ||
+    userPermissions.includes("teams.view_team") ||
+    userPermissions.includes("view_task") ||
+    userPermissions.includes("tasks.view");
+
+  const hasExplicitAccess = isAdminOrOwner || hasWorkManagementPermission;
+
   /*
    * TeamsTasksProvider needs to finish its initial team request
-   * before we can determine team membership.
+   * before we can determine team membership, unless user already has explicit permission or is admin.
    */
-  if (loading) {
+  if (loading && !hasExplicitAccess) {
     return (
       <div
         style={{
@@ -160,7 +172,7 @@ function WorkManagementGuard() {
     );
   }
 
-  const hasAccess = isAdminOrOwner || workManagementAccess?.hasAccess === true;
+  const hasAccess = hasExplicitAccess || workManagementAccess?.hasAccess === true;
 
   if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;

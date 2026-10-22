@@ -278,6 +278,52 @@ export const canDeleteTeams = (user = null) => {
 };
 
 // ==========================================
+// 4B. TASKS & WORK MANAGEMENT
+// ==========================================
+export const canViewTasks = (user = null) => {
+  return hasAnyPermission([
+    "view_task",
+    "tasks.view",
+    "tasks.view_all",
+    "tasks.view_department",
+    "tasks.view_team",
+    "tasks.view_own",
+    "task.view",
+  ], user);
+};
+
+export const canCreateTasks = (user = null) => {
+  return hasAnyPermission([
+    "add_task",
+    "tasks.create",
+    "tasks.create_all",
+    "task.create",
+  ], user);
+};
+
+export const canUpdateTasks = (user = null) => {
+  return hasAnyPermission([
+    "change_task",
+    "tasks.update",
+    "tasks.update_all",
+    "task.update",
+  ], user);
+};
+
+export const canDeleteTasks = (user = null) => {
+  return hasAnyPermission([
+    "delete_task",
+    "tasks.delete",
+    "tasks.delete_all",
+    "task.delete",
+  ], user);
+};
+
+export const canViewWorkManagement = (user = null) => {
+  return canViewTeams(user) || canViewTasks(user);
+};
+
+// ==========================================
 // 5. ATTENDANCE
 // ==========================================
 export const canViewAttendance = (user = null) => {

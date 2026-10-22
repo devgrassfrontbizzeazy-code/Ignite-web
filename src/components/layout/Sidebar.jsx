@@ -6,6 +6,7 @@ import darkLogo from "../../assets/dark_logo-removebg.png";
 import { getCurrentUser } from "../../services/api/authAPI";
 import { getEmployees } from "../../services/api/employeeAPI";
 import { useTeamsTasks } from "../../context/TeamsTasksContext";
+import { canViewWorkManagement, canViewTeams } from "../../utils/permissionUtils";
 
 /* ==========================================================================
    Icons
@@ -752,8 +753,18 @@ export default function Sidebar({
      Work Management access
      ------------------------------------------------------------------------ */
 
+  const hasWorkManagementPermission =
+    canViewWorkManagement(user) ||
+    canViewTeams(user) ||
+    userPermissions.includes("view_team") ||
+    userPermissions.includes("teams.view") ||
+    userPermissions.includes("teams.view_team") ||
+    userPermissions.includes("view_task") ||
+    userPermissions.includes("tasks.view");
+
   const hasWorkManagementAccess =
     isAdminOrOwner ||
+    hasWorkManagementPermission ||
     (!teamsLoading && workManagementAccess?.hasAccess === true);
 
   /* ------------------------------------------------------------------------
@@ -897,6 +908,12 @@ export default function Sidebar({
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
+
+    window.dispatchEvent(
+      new CustomEvent("ignite:user-updated", {
+        detail: { user: null, token: null },
+      })
+    );
 
     setProfileOpen(false);
 

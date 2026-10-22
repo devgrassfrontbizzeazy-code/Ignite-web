@@ -312,6 +312,12 @@ const AcceptInvite = () => {
       if (res?.user) {
         localStorage.setItem("user", JSON.stringify(res.user));
         localStorage.setItem("ignite_authenticated", "true");
+
+        window.dispatchEvent(
+          new CustomEvent("ignite:user-updated", {
+            detail: { user: res.user, token: res?.tokens?.access },
+          })
+        );
       }
 
       setStep("success");

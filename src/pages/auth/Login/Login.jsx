@@ -101,6 +101,13 @@ const Login = () => {
 
       localStorage.setItem("ignite_authenticated", "true");
 
+      // Dispatch global user update event to synchronize contexts (TeamsTasksContext, Sidebar, etc.)
+      window.dispatchEvent(
+        new CustomEvent("ignite:user-updated", {
+          detail: { user, token: tokens.access },
+        })
+      );
+
       // ------------------------------------------
       // CHECK ROLE & COMPANY SETUP
       // ------------------------------------------
