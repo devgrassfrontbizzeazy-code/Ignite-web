@@ -261,72 +261,327 @@
   gap: 20px;
 }
 
-.my-payslips-net-hero {
+.my-payslips-details-warning {
+  padding: 11px 14px;
+  border: 1px solid #f2d28b;
+  border-radius: 10px;
+  background: #fff9e9;
+  color: #785610;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.my-payslips-document-details {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg-surface);
+}
+
+.my-payslips-document-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 20px 24px;
-  background: linear-gradient(135deg, #0f3d3e 0%, #165b5d 100%);
-  border-radius: 14px;
-  color: #ffffff;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
+}
+
+.my-payslips-company-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--ignite-teal-050);
+  color: var(--ignite-deep-teal);
+}
+
+.my-payslips-company-mark img {
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  border-radius: inherit;
+  object-fit: contain;
+}
+
+.my-payslips-document-heading h3 {
+  margin: 0;
+  color: var(--ignite-deep-teal);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.my-payslips-document-heading p {
+  margin: 4px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.my-payslips-detail-grid,
+.my-payslips-payment-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--color-border);
+}
+
+.my-payslips-detail-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 16px;
+  border-right: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.my-payslips-detail-item:nth-child(3n) {
+  border-right: 0;
+}
+
+.my-payslips-detail-item span,
+.my-payslips-attendance-grid span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.035em;
+}
+
+.my-payslips-detail-item strong,
+.my-payslips-attendance-grid strong {
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.my-payslips-attendance-details {
+  padding: 14px 16px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.my-payslips-attendance-details h4 {
+  margin: 0 0 12px;
+  color: var(--ignite-deep-teal);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.my-payslips-attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.my-payslips-attendance-grid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.my-payslips-payment-details {
+  border-bottom: 0;
+}
+
+.my-payslips-breakdown-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+
+/* Take-Home Salary — Clean Light Payslip Preview */
+.my-payslips-net-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--color-border, #e6eaee);
+  border-radius: 16px;
+  background: var(--color-bg-surface, #ffffff);
+  color: var(--color-text-primary, #1a1f24);
+  box-shadow: 0 2px 8px rgba(26, 31, 36, 0.04);
+}
+
+.my-payslips-net-hero::after {
+  display: none;
 }
 
 .my-payslips-net-hero__main {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.my-payslips-net-hero__topline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .my-payslips-net-hero__label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 10px;
+  font-weight: 500;
   letter-spacing: 0.08em;
-  color: #c1ebde;
+  text-transform: uppercase;
+}
+
+.my-payslips-net-hero__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #166534;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.my-payslips-net-hero__amount-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.my-payslips-net-hero__currency-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+  background: #ecfdf5;
+  color: var(--ignite-emerald, #0ba37f);
 }
 
 .my-payslips-net-hero__amount {
-  font-size: clamp(24px, 3vw, 32px);
+  min-width: 0;
+  color: var(--ignite-deep-teal, #0f3d3e);
+  font-size: clamp(22px, 2.5vw, 30px);
   font-weight: 700;
   line-height: 1.2;
-  color: #ffffff;
+  letter-spacing: -0.035em;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .my-payslips-net-hero__period {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 54px;
+  color: var(--color-text-secondary, #64748b);
   font-size: 12px;
-  color: #e7eeee;
+  font-weight: 500;
 }
 
+/* Gross earnings and deductions */
 .my-payslips-net-hero__stats {
-  display: flex;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(125px, 1fr));
+  align-items: stretch;
+  gap: 10px;
 }
 
 .my-payslips-net-hero__stat {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  backdrop-filter: blur(4px);
-  text-align: right;
+  justify-content: center;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid var(--color-border, #e6eaee);
+  border-radius: 12px;
+  background: var(--color-bg-page, #f8fafb);
+  text-align: left;
 }
 
 .my-payslips-net-hero__stat span {
-  font-size: 11px;
-  color: #c1ebde;
+  color: var(--color-text-secondary, #64748b);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.045em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .my-payslips-net-hero__stat strong {
-  font-size: 14px;
+  color: var(--color-text-primary, #1a1f24);
+  font-size: clamp(13px, 1.4vw, 16px);
   font-weight: 700;
-  color: #ffffff;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .my-payslips-text-danger {
-  color: #f87171 !important;
+  color: #dc2626 !important;
+}
+
+/* Tablet and narrow modal layouts */
+@media (max-width: 760px) {
+  .my-payslips-net-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .my-payslips-net-hero__stats {
+    width: 100%;
+  }
+}
+
+/* Small screens */
+@media (max-width: 420px) {
+  .my-payslips-net-hero {
+    gap: 16px;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .my-payslips-net-hero__amount-row {
+    gap: 9px;
+  }
+
+  .my-payslips-net-hero__currency-mark {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .my-payslips-net-hero__amount {
+    font-size: clamp(23px, 7vw, 30px);
+  }
+
+  .my-payslips-net-hero__period {
+    margin-left: 45px;
+    font-size: 11px;
+  }
+
+  .my-payslips-net-hero__stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-payslips-net-hero__stat {
+    padding: 12px;
+  }
 }
 
 /* Breakdown columns */
@@ -456,14 +711,118 @@
   .my-payslips-net-hero {
     flex-direction: column;
     align-items: flex-start;
+    gap: 18px;
+    padding: 20px;
   }
 
   .my-payslips-net-hero__stats {
     width: 100%;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .my-payslips-breakdown-grid {
     grid-template-columns: 1fr;
+  }
+
+  .my-payslips-detail-grid,
+  .my-payslips-payment-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .my-payslips-detail-item:nth-child(3n) {
+    border-right: 1px solid var(--color-border);
+  }
+
+  .my-payslips-detail-item:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .my-payslips-attendance-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .my-payslips-detail-grid,
+  .my-payslips-payment-details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-payslips-detail-item,
+  .my-payslips-detail-item:nth-child(2n),
+  .my-payslips-detail-item:nth-child(3n) {
+    border-right: 0;
+  }
+
+  .my-payslips-attendance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Payslip breakdown: prevent clipped headings and overlapping amounts */
+.my-payslips-breakdown-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.my-payslips-breakdown-col {
+  min-width: 0;
+  padding: 16px;
+}
+
+.my-payslips-breakdown-title {
+  min-width: 0;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.my-payslips-breakdown-item,
+.my-payslips-breakdown-total {
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.my-payslips-breakdown-item span,
+.my-payslips-breakdown-total span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.my-payslips-breakdown-item strong,
+.my-payslips-breakdown-total strong {
+  flex: 0 0 auto;
+  max-width: 55%;
+  text-align: right;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .my-payslips-breakdown-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .my-payslips-net-hero__stats {
+    flex-direction: column;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .my-payslips-net-hero__stat {
+    width: 100%;
+    text-align: left;
+  }
+
+  .my-payslips-net-hero__amount {
+    font-size: clamp(24px, 8vw, 32px);
+  }
+
+  .my-payslips-breakdown-col {
+    padding: 12px;
   }
 }

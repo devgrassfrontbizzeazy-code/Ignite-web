@@ -100,10 +100,9 @@
 ========================================================= */
 
 .company-logo-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 
   margin-top: 28px;
   padding-top: 24px;
@@ -111,71 +110,163 @@
   border-top: 1px solid #e7ecee;
 }
 
-.company-logo-section > div {
-  min-width: 0;
+.company-logo-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.company-logo-section label {
-  display: block;
-  margin-bottom: 5px;
-
+.company-logo-header label {
   color: #273139;
   font-family: "Montserrat", sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 
-.company-logo-section p {
+.company-logo-hint {
   margin: 0;
-
-  color: #7a858c;
+  color: #55626b;
   font-family: "Montserrat", sans-serif;
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
+.company-logo-guidelines {
+  display: block;
+  margin-top: 4px;
+  color: #7a8891;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+}
 
 /* =========================================================
    FILE INPUT
 ========================================================= */
 
-.company-logo-section input[type="file"] {
-  width: 250px;
-  max-width: 100%;
+.company-logo-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.company-logo-input-wrapper input[type="file"] {
+  max-width: 380px;
+  width: 100%;
   box-sizing: border-box;
 
-  padding: 9px;
+  padding: 10px 12px;
 
-  border: 1px dashed #cbd6d8;
+  border: 1px dashed #b9c8cc;
   border-radius: 8px;
 
   background: #f8fafb;
-  color: #59666d;
+  color: #3b474e;
 
   font-family: "Montserrat", sans-serif;
-  font-size: 11px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
+.company-logo-input-wrapper input[type="file"]:hover {
+  border-color: #0ba37f;
+  background: #f0fdf9;
+}
 
 /* =========================================================
-   LOGO PREVIEW
+   LOGO ERROR
 ========================================================= */
 
-.company-logo-preview {
-  grid-column: 1 / -1;
+.company-logo-error {
+  padding: 10px 14px;
+  border: 1px solid #f5c2c7;
+  border-radius: 6px;
+  background-color: #f8d7da;
+  color: #842029;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
 
-  width: 92px;
-  height: 92px;
+/* =========================================================
+   LOGO PREVIEW CARD
+========================================================= */
 
-  padding: 8px;
-  box-sizing: border-box;
-
-  object-fit: contain;
-
-  border: 1px solid #dfe6e8;
+.company-logo-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 18px;
+  border: 1px solid #e1e8eb;
   border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
 
-  background: #f8fafb;
+.company-logo-preview-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 64px;
+  padding: 6px;
+  border: 1px solid #dfe6e9;
+  border-radius: 6px;
+  background: repeating-conic-gradient(#f0f3f5 0% 25%, #ffffff 0% 50%) 50% / 12px 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.company-logo-preview {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.company-logo-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.company-logo-name {
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #273139;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.company-logo-meta {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  color: #6c7a84;
+}
+
+.company-logo-remove-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border: 1px solid #e2b0b0;
+  border-radius: 5px;
+  background: #fffafa;
+  color: #c92a2a;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.company-logo-remove-btn:hover {
+  background: #ffe3e3;
+  border-color: #fa5252;
 }
 
 

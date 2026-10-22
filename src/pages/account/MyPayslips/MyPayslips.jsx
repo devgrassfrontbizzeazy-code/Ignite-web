@@ -11,13 +11,14 @@ import {
     Building2,
     CheckCircle2,
     AlertCircle,
-    User,
 } from "lucide-react";
 
 import { useNotification } from "../../../context/NotificationContext";
 import {
     getPayslips,
     getPayslip,
+    getPayrollDrafts,
+    getPayrollDraft,
     downloadPayslip,
     unwrapList,
     triggerBlobDownload,
@@ -54,12 +55,18 @@ const getPeriodLabel = (period) => {
 
 const getSlipId = (slip) => slip.id ?? slip.payslip_id;
 
-const getAmount = (...values) => {
-    const value = values.find(
-        (item) => item !== undefined && item !== null && item !== ""
-    );
+const firstValue = (...values) =>
+    values.find((value) => value !== undefined && value !== null && value !== "");
 
-    return Number(value ?? 0);
+const toNumber = (value) => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value !== "string" || !value.trim()) return null;
+    const parsed = Number(value.trim().replace(/,/g, "").replace(/^[^\d.-]+/, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getAmount = (...values) => {
+    return toNumber(firstValue(...values)) ?? 0;
 };
 
 const getGross = (slip) =>
@@ -101,6 +108,221 @@ const getErrorMessage = (error, fallback) =>
     error?.response?.data?.detail ||
     error?.response?.data?.message ||
     fallback;
+
+const flattenPayslip = (record) => {
+    if (!record || typeof record !== "object" || Array.isArray(record)) return {};
+    const nestedKeys = [
+        "payslip", "data", "employee", "employee_snapshot", "employeeSnapshot",
+        "employee_details", "employeeDetails", "bank_details", "bankDetails", "bank",
+        "salary_details", "salaryDetails", "attendance_summary", "attendanceSummary",
+        "attendance", "attendance_details", "attendanceDetails", "payroll_record",
+        "payrollRecord",
+    ];
+    const nested = nestedKeys
+        .map((key) => record[key])
+        .filter((value) => value && typeof value === "object" && !Array.isArray(value))
+        .reduce((result, value) => ({ ...result, ...flattenPayslip(value) }), {});
+    return { ...nested, ...record };
+};
+
+const getEmployeeCode = (record) =>
+    firstValue(
+        record?.employee_code,
+        record?.employeeCode,
+        typeof record?.employee_id === "string" ? record.employee_id : undefined,
+        typeof record?.employeeId === "string" ? record.employeeId : undefined
+    );
+
+const getComponentLabel = (component) =>
+    firstValue(
+        component.component_name,
+        component.componentName,
+        component.salary_component_name,
+        component.earning_name,
+        component.deduction_name,
+        typeof component.component === "string" ? component.component : component.component?.name,
+        component.name,
+        component.label,
+        component.title,
+        component.code
+    ) || "Salary component";
+
+const getComponentAmount = (component) =>
+    toNumber(firstValue(
+        component.amount,
+        component.value,
+        component.calculated_amount,
+        component.calculatedAmount,
+        component.calculated_value,
+        component.computed_amount,
+        component.earning_amount,
+        component.deduction_amount,
+        component.salary_amount,
+        component.payable_amount,
+        component.total
+    ));
+
+const getBreakdown = (record, category) => {
+    const arrayKeys = category === "earning"
+        ? ["earnings_breakdown", "earningsBreakdown", "earning_breakdown", "earnings", "additions", "earning_components", "earningComponents"]
+        : ["deductions_breakdown", "deductionsBreakdown", "deduction_breakdown", "deductions", "withholdings", "deduction_components", "deductionComponents"];
+    const nestedKeys = category === "earning"
+        ? ["earnings", "earning", "additions", "addition", "earning_components", "earning_breakdown"]
+        : ["deductions", "deduction", "withholdings", "deduction_components", "deduction_breakdown"];
+    const scalarPattern = category === "earning"
+        ? /^(basic(?:_salary)?|hra|.*(?:earning|allowance|bonus|incentive|commission|reimbursement|overtime|gratuity|benefit).*)$/i
+        : /.*(?:deduct|provident|\bpf\b|insurance|\besi\b|tax|\btds\b|professional|\blop\b|\blwop\b|withhold|leave_deduction).*/i;
+    const ignored = /^(total|gross|gross_salary|gross_pay|total_earnings|total_additions|total_deductions|deductions|deduction_amount|net|net_salary|net_pay|salary|salary_amount)$/i;
+    const mapComponents = (value) => {
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+            const nested = firstValue(value.items, value.components, value.breakdown, value.results);
+            if (nested) return mapComponents(nested);
+        }
+        const entries = Array.isArray(value)
+            ? value
+            : value && typeof value === "object"
+                ? Object.entries(value).map(([name, item]) =>
+                    item && typeof item === "object" ? { name, ...item } : { name, amount: item }
+                )
+                : [];
+        return entries
+            .filter((item) => item && typeof item === "object")
+            .map((item) => ({ label: getComponentLabel(item), amount: getComponentAmount(item) }))
+            .filter((item) => item.amount !== null && !/^(total|gross|net)(\b|\s)/i.test(item.label));
+    };
+    let components = [];
+
+    for (const key of arrayKeys) {
+        components = mapComponents(record?.[key]);
+        if (components.length) break;
+    }
+
+    const breakdownContainers = [
+        record?.breakdown,
+        record?.salary_breakdown,
+        record?.salaryBreakdown,
+        record?.payroll_breakdown,
+        record?.payrollBreakdown,
+    ];
+    if (!components.length) {
+        for (const container of breakdownContainers) {
+            if (!container || typeof container !== "object" || Array.isArray(container)) continue;
+            for (const key of nestedKeys) {
+                components = mapComponents(container[key]);
+                if (components.length) break;
+            }
+            if (components.length) break;
+        }
+    }
+
+    if (!components.length) {
+        const combined = firstValue(
+            record?.salary_components,
+            record?.salaryComponents,
+            record?.components,
+            ...breakdownContainers
+        );
+        const combinedEntries = Array.isArray(combined)
+            ? combined
+            : combined && typeof combined === "object"
+                ? Object.entries(combined).map(([name, item]) =>
+                    item && typeof item === "object" ? { name, ...item } : { name, amount: item }
+                )
+                : [];
+        components = combinedEntries
+            .filter((component) => {
+                const type = String(firstValue(
+                    component.component_type,
+                    component.componentType,
+                    component.type,
+                    component.category,
+                    component.is_deduction === true ? "deduction" : ""
+                ) || "").toLowerCase();
+                return category === "deduction"
+                    ? type.includes("deduct") || type.includes("withhold")
+                    : !type.includes("deduct") && !type.includes("withhold");
+            })
+            .map((component) => ({
+                label: getComponentLabel(component),
+                amount: getComponentAmount(component),
+            }))
+            .filter((item) => item.amount !== null && !/^(total|gross|net)(\b|\s)/i.test(item.label));
+    }
+
+    const scalarComponents = Object.entries(record || {})
+        .filter(([key]) => scalarPattern.test(key) && !ignored.test(key))
+        .map(([key, amount]) => ({
+            label: key
+                .replace(/([a-z])([A-Z])/g, "$1 $2")
+                .replace(/[_-]+/g, " ")
+                .replace(/\b\w/g, (letter) => letter.toUpperCase()),
+            amount: toNumber(amount),
+        }))
+        .filter((item) => item.amount !== null);
+    const normalizeLabel = (label) => {
+        const normalized = label.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (normalized === "basicsalary") return "basic";
+        if (normalized === "houserentallowance") return "hra";
+        return normalized;
+    };
+    const knownLabels = new Set(components.map((item) => normalizeLabel(item.label)));
+    scalarComponents.forEach((item) => {
+        const normalizedLabel = normalizeLabel(item.label);
+        if (!knownLabels.has(normalizedLabel)) {
+            components.push(item);
+            knownLabels.add(normalizedLabel);
+        }
+    });
+    return components;
+};
+
+const getPayrollRecordForPayslip = async (payslip) => {
+    const period = getPeriod(payslip);
+    if (!period) return null;
+
+    const runs = await getPayrollDrafts();
+    const matchingRuns = runs
+        .filter((run) => String(run.period ?? run.payroll_period) === String(period))
+        .sort((left, right) => {
+            const statusOrder = Number(/final|lock|approv|complete|paid/i.test(String(right.status || ""))) -
+                Number(/final|lock|approv|complete|paid/i.test(String(left.status || "")));
+            if (statusOrder) return statusOrder;
+            return (Date.parse(right.finalized_at || right.updated_at || right.created_at || "") || 0) -
+                (Date.parse(left.finalized_at || left.updated_at || left.created_at || "") || 0);
+        });
+    const employeeCode = getEmployeeCode(payslip);
+    const employeeId = payslip.employee ?? payslip.employee_id;
+
+    for (const run of matchingRuns) {
+        let detail = flattenPayslip(run);
+        let records = detail.records ?? detail.employees ?? detail.payroll_records ?? detail.employee_records;
+        if ((!Array.isArray(records) || records.length === 0) && run.id != null) {
+            detail = flattenPayslip(await getPayrollDraft(run.id));
+            records = detail.records ?? detail.employees ?? detail.payroll_records ?? detail.employee_records;
+        }
+        if (!Array.isArray(records)) continue;
+        const matched = records.find((rawRecord) => {
+            const record = flattenPayslip(rawRecord);
+            const recordCode = getEmployeeCode(record);
+            const recordEmployee = record.employee;
+            const recordId = recordEmployee && typeof recordEmployee === "object"
+                ? recordEmployee.id ?? recordEmployee.employee_id
+                : recordEmployee ?? record.employee_id;
+            return (employeeCode && recordCode && String(employeeCode) === String(recordCode)) ||
+                (employeeId != null && recordId != null && String(employeeId) === String(recordId));
+        });
+        if (matched) return flattenPayslip(matched);
+    }
+    return null;
+};
+
+const getDisplayValue = (record, keys) => {
+    const value = firstValue(...keys.map((key) => record?.[key]));
+    if (value && typeof value === "object") {
+        return firstValue(value.name, value.full_name, value.label, value.title, value.code) || "—";
+    }
+    return value;
+};
 
 const normalizeStatusKey = (status) => {
     const norm = String(status || "").toLowerCase();
@@ -213,16 +435,35 @@ const MyPayslips = () => {
 
         try {
             const response = await getPayslip(id);
-            const detail =
-                response?.payslip ??
-                response?.data ??
-                response;
+            const detail = flattenPayslip(response);
+            let payrollRecord = null;
+            let payrollLookupFailed = false;
+            try {
+                payrollRecord = await getPayrollRecordForPayslip({
+                    ...flattenPayslip(slip),
+                    ...detail,
+                });
+            } catch (payrollError) {
+                console.error("Failed to load complete payroll details:", payrollError);
+                payrollLookupFailed = true;
+            }
+            const hasCompleteDetail = Boolean(
+                detail.employee_snapshot ||
+                detail.employeeSnapshot ||
+                detail.earnings_breakdown ||
+                detail.earningsBreakdown ||
+                detail.deductions_breakdown ||
+                detail.deductionsBreakdown ||
+                detail.attendance_summary
+            );
 
             setSelectedPayslip({
-                ...slip,
+                ...flattenPayslip(slip),
                 ...detail,
-                period: getPeriod(detail) || getPeriod(slip),
+                ...(payrollRecord || {}),
+                period: getPeriod(payrollRecord || {}) || getPeriod(detail) || getPeriod(slip),
                 _payslipId: id,
+                _payrollDetailsUnavailable: payrollLookupFailed || (!payrollRecord && !hasCompleteDetail),
             });
         } catch (err) {
             console.error("Failed to load payslip details:", err);
@@ -264,6 +505,65 @@ const MyPayslips = () => {
     };
 
     const currency = selectedPayslip?.currency || "INR";
+    const earnings = selectedPayslip ? getBreakdown(selectedPayslip, "earning") : [];
+    const deductions = selectedPayslip ? getBreakdown(selectedPayslip, "deduction") : [];
+    const attendance = selectedPayslip
+        ? selectedPayslip.attendance_summary ||
+            selectedPayslip.attendanceSummary ||
+            selectedPayslip.attendance_details ||
+            selectedPayslip.attendanceDetails ||
+            selectedPayslip.attendance ||
+            {}
+        : {};
+    const attendanceFields = [
+        ["Calendar Days", ["total_calendar_days", "calendar_days", "calendarDays"]],
+        ["Working Days", ["working_days", "total_working_days", "workingDays"]],
+        ["Days Present", ["present_days", "days_present", "days_worked"]],
+        ["Paid Leaves", ["approved_paid_leave_days", "paid_leave_days", "paid_leaves"]],
+        ["Unpaid Leave / LWOP", ["unpaid_leave_days", "total_unpaid_days", "unpaid_days", "lwop_days", "lop_days"]],
+        ["Payable Days", ["payable_days", "paid_days", "days_paid"]],
+    ].map(([label, keys]) => [
+        label,
+        getDisplayValue({ ...selectedPayslip, ...attendance }, keys),
+    ]).filter(([, value]) => value !== undefined && value !== null && value !== "");
+    const employeeDetails = selectedPayslip ? [
+        ["Employee ID", getDisplayValue(selectedPayslip, ["employee_code", "employeeCode", "employee_id", "employeeId"])],
+        ["Department", getDisplayValue(selectedPayslip, ["department", "department_name"])],
+        ["Designation", getDisplayValue(selectedPayslip, ["designation", "designation_name"])],
+        ["Date of Joining", getDisplayValue(selectedPayslip, ["date_of_joining", "dateOfJoining", "joining_date"])],
+        ["Bank Name", getDisplayValue(selectedPayslip, ["bank_name", "bankName"])],
+        ["Account Number", getDisplayValue(selectedPayslip, ["account_number", "accountNumber", "bank_account_number", "bank_account"])],
+        ["IFSC Code", getDisplayValue(selectedPayslip, ["ifsc_code", "ifscCode", "ifsc"])],
+        ["PAN Number", getDisplayValue(selectedPayslip, ["pan_number", "panNumber", "pan"])],
+        ["UAN Number", getDisplayValue(selectedPayslip, ["uan_number", "uanNumber", "uan"])],
+    ].filter(([, value]) => value !== undefined && value !== null && value !== "") : [];
+    const paymentDetails = selectedPayslip ? [
+        ["Payment Date", getDisplayValue(selectedPayslip, ["payment_date", "paid_at", "processed_at"])],
+        ["Payment Method", getDisplayValue(selectedPayslip, ["payment_method", "payment_mode"])],
+        ["Payroll Status", getDisplayValue(selectedPayslip, ["payroll_status", "payrollStatus", "status"])],
+    ].filter(([, value]) => value !== undefined && value !== null && value !== "") : [];
+    const logoValue = selectedPayslip
+        ? firstValue(
+            selectedPayslip.company_logo_url,
+            selectedPayslip.company_logo,
+            selectedPayslip.company?.logo_url,
+            selectedPayslip.company?.logo
+        )
+        : null;
+    const companyLogo = typeof logoValue === "string"
+        ? logoValue
+        : firstValue(logoValue?.url, logoValue?.href);
+    const companyRecord = selectedPayslip?.company &&
+        typeof selectedPayslip.company === "object"
+        ? selectedPayslip.company
+        : selectedPayslip;
+    const companyAddress = selectedPayslip
+        ? getDisplayValue(companyRecord, [
+            "full_address",
+            "address",
+            "registered_address",
+        ])
+        : null;
 
     return (
         <div className="attendance-page my-payslips-page">
@@ -627,16 +927,35 @@ const MyPayslips = () => {
                         {/* Net Pay Hero Card */}
                         <div className="my-payslips-net-hero">
                             <div className="my-payslips-net-hero__main">
-                                <span className="my-payslips-net-hero__label">
-                                    Take-Home Salary
-                                </span>
-                                <strong className="my-payslips-net-hero__amount">
-                                    {formatCurrency(
-                                        getNet(selectedPayslip),
-                                        currency
+                                <div className="my-payslips-net-hero__topline">
+                                    <span className="my-payslips-net-hero__label">
+                                        Net pay · Take-home salary
+                                    </span>
+                                    {getDisplayValue(selectedPayslip, [
+                                        "payroll_status",
+                                        "payrollStatus",
+                                        "status",
+                                    ]) && (
+                                        <span className="my-payslips-net-hero__status">
+                                            <CheckCircle2 size={13} />
+                                            {getDisplayValue(selectedPayslip, [
+                                                "payroll_status",
+                                                "payrollStatus",
+                                                "status",
+                                            ])}
+                                        </span>
                                     )}
-                                </strong>
+                                </div>
+                                <div className="my-payslips-net-hero__amount-row">
+                                    <span className="my-payslips-net-hero__currency-mark" aria-hidden="true">
+                                        <IndianRupee size={23} />
+                                    </span>
+                                    <strong className="my-payslips-net-hero__amount">
+                                        {formatCurrency(getNet(selectedPayslip), currency)}
+                                    </strong>
+                                </div>
                                 <span className="my-payslips-net-hero__period">
+                                    <CalendarDays size={14} />
                                     {getPeriodLabel(getPeriod(selectedPayslip))}
                                 </span>
                             </div>
@@ -664,6 +983,89 @@ const MyPayslips = () => {
                             </div>
                         </div>
 
+                        {selectedPayslip._payrollDetailsUnavailable && (
+                            <div className="my-payslips-details-warning" role="status">
+                                The payslip summary loaded, but the complete payroll breakdown could not be retrieved.
+                                The amounts below reflect only the available payslip data.
+                            </div>
+                        )}
+
+                        <section className="my-payslips-document-details">
+                            <div className="my-payslips-document-heading">
+                                <div className="my-payslips-company-mark" aria-hidden="true">
+                                    {companyLogo
+                                        ? <img src={companyLogo} alt="" />
+                                        : <Building2 size={20} />}
+                                </div>
+                                <div>
+                                    <h3>
+                                        {getDisplayValue(selectedPayslip, [
+                                            "company_name",
+                                            "business_name",
+                                        ]) || selectedPayslip.company?.name || "Payslip"}
+                                    </h3>
+                                    <p>
+                                        {selectedPayslip.payslip_number || `Payslip #${getSlipId(selectedPayslip)}`}
+                                        {" · "}
+                                        {getPeriodLabel(getPeriod(selectedPayslip))}
+                                        {selectedPayslip.generated_at
+                                            ? ` · Generated ${new Date(selectedPayslip.generated_at).toLocaleDateString("en-IN")}`
+                                            : ""}
+                                    </p>
+                                    {companyAddress && <p>{companyAddress}</p>}
+                                </div>
+                            </div>
+                            {(employeeDetails.length > 0 ||
+                                selectedPayslip.employee_name ||
+                                selectedPayslip.name ||
+                                selectedPayslip.full_name ||
+                                selectedPayslip.fullName) && (
+                                <div className="my-payslips-detail-grid">
+                                    <div className="my-payslips-detail-item">
+                                        <span>Employee Name</span>
+                                        <strong>
+                                            {getDisplayValue(selectedPayslip, ["employee_name", "employeeName", "name", "full_name", "fullName"]) || "—"}
+                                        </strong>
+                                    </div>
+                                    {employeeDetails.map(([label, value]) => (
+                                        <div className="my-payslips-detail-item" key={label}>
+                                            <span>{label}</span>
+                                            <strong>{value}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {attendanceFields.length > 0 && (
+                                <div className="my-payslips-attendance-details">
+                                    <h4>Attendance & Payable Days</h4>
+                                    <div className="my-payslips-attendance-grid">
+                                        {attendanceFields.map(([label, value]) => (
+                                            <div key={label}>
+                                                <span>{label}</span>
+                                                <strong>{value}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {paymentDetails.length > 0 && (
+                                <div className="my-payslips-payment-details">
+                                    {paymentDetails.map(([label, value]) => (
+                                        <div className="my-payslips-detail-item" key={label}>
+                                            <span>{label}</span>
+                                            <strong>{value}</strong>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                        {/* {componentTotalsMismatch && (
+                            <div className="my-payslips-details-warning" role="status">
+                                One or more component breakdowns do not add up to the backend payroll totals.
+                                Gross, deduction, and net summary values remain the authoritative payroll amounts.
+                            </div>
+                        )} */}
+
                         {/* Breakdown 2-Column Grid */}
                         <div className="my-payslips-breakdown-grid">
                             {/* Earnings column */}
@@ -674,23 +1076,16 @@ const MyPayslips = () => {
                                 </h3>
 
                                 <div className="my-payslips-breakdown-list">
-                                    {[
-                                        ["Basic Salary", selectedPayslip.basic_salary ?? selectedPayslip.basic],
-                                        ["House Rent Allowance (HRA)", selectedPayslip.hra],
-                                        ["Other Allowances", selectedPayslip.other_allowances ?? selectedPayslip.otherAllowances],
-                                        ["Bonus / Incentives", selectedPayslip.bonus ?? selectedPayslip.incentive],
-                                    ].map(([label, val]) =>
-                                        val != null && val !== "" ? (
-                                            <div
-                                                className="my-payslips-breakdown-item"
-                                                key={label}
-                                            >
-                                                <span>{label}</span>
-                                                <strong>
-                                                    {formatCurrency(val, currency)}
-                                                </strong>
-                                            </div>
-                                        ) : null
+                                    {earnings.map(({ label, amount }) => (
+                                        <div className="my-payslips-breakdown-item" key={label}>
+                                            <span>{label}</span>
+                                            <strong>{formatCurrency(amount, currency)}</strong>
+                                        </div>
+                                    ))}
+                                    {earnings.length === 0 && (
+                                        <p className="my-payslips-breakdown-empty">
+                                            No earning components were returned for this payslip.
+                                        </p>
                                     )}
 
                                     <div className="my-payslips-breakdown-total">
@@ -713,24 +1108,18 @@ const MyPayslips = () => {
                                 </h3>
 
                                 <div className="my-payslips-breakdown-list">
-                                    {[
-                                        ["Provident Fund (PF)", selectedPayslip.pf ?? selectedPayslip.provident_fund],
-                                        ["Professional Tax (PT)", selectedPayslip.professional_tax ?? selectedPayslip.professionalTax],
-                                        ["Insurance", selectedPayslip.insurance],
-                                        ["Leave / LOP Deduction", selectedPayslip.leave_deduction ?? selectedPayslip.leaveDeduction ?? selectedPayslip.lop],
-                                        ["Other Deductions", selectedPayslip.other_deductions ?? selectedPayslip.otherDeductions],
-                                    ].map(([label, val]) =>
-                                        val != null && val !== "" ? (
-                                            <div
-                                                className="my-payslips-breakdown-item"
-                                                key={label}
-                                            >
-                                                <span>{label}</span>
-                                                <strong className="my-payslips-text-danger">
-                                                    {formatCurrency(val, currency)}
-                                                </strong>
-                                            </div>
-                                        ) : null
+                                    {deductions.map(({ label, amount }) => (
+                                        <div className="my-payslips-breakdown-item" key={label}>
+                                            <span>{label}</span>
+                                            <strong className="my-payslips-text-danger">
+                                                {formatCurrency(amount, currency)}
+                                            </strong>
+                                        </div>
+                                    ))}
+                                    {deductions.length === 0 && (
+                                        <p className="my-payslips-breakdown-empty">
+                                            No deduction components were returned for this payslip.
+                                        </p>
                                     )}
 
                                     <div className="my-payslips-breakdown-total">

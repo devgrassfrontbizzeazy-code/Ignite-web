@@ -5,7 +5,6 @@ import {
     AlertCircle,
     Banknote,
     Building2,
-    CalendarDays,
     CheckCircle2,
     Download,
     Eye,
@@ -21,6 +20,8 @@ import { useNotification } from "../../context/NotificationContext";
 import {
     getPayslips,
     getPayslip,
+    getPayrollDrafts,
+    getPayrollDraft,
     downloadPayslip,
     unwrapList,
     triggerBlobDownload,
@@ -32,58 +33,282 @@ import PayrollWorkflowNav from "../../components/account/PayrollWorkflowNav";
 import "./Payslips.css";
 
 const getPeriodLabel = (period) => {
-    if (!period || !/^\d{4}-\d{2}$/.test(period)) {
-        return "Payroll period";
-    }
-
-    const [year, month] = period.split("-");
-    return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(
+    if (!period) return "Payroll period";
+    const match = String(period).match(/^(\d{4})-(\d{2})/);
+    if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) return String(period);
+    return new Date(Number(match[1]), Number(match[2]) - 1, 1).toLocaleDateString(
         "en-IN",
         { month: "long", year: "numeric" }
     );
 };
 
+const flattenPayslip = (response) => {
+    const layers = [];
+    const visited = new Set();
+    const nestedKeys = [
+        "payslip",
+        "data",
+        "employee",
+        "employee_snapshot",
+        "employeeSnapshot",
+        "employee_details",
+        "employeeDetails",
+        "employee_profile",
+        "employeeProfile",
+        "bank_details",
+        "bankDetails",
+        "bank",
+        "salary_details",
+        "salaryDetails",
+        "attendance_summary",
+        "attendanceSummary",
+        "attendance",
+        "attendance_details",
+        "attendanceDetails",
+        "payroll_record",
+        "payrollRecord",
+        "company",
+    ];
+
+    const visit = (value) => {
+        if (!value || typeof value !== "object" || Array.isArray(value) || visited.has(value)) {
+            return;
+        }
+        visited.add(value);
+        nestedKeys.forEach((key) => visit(value[key]));
+        layers.push(value);
+    };
+
+    visit(response);
+    return Object.assign({}, ...layers);
+};
+
+const firstValue = (...values) =>
+    values.find((value) => value !== undefined && value !== null && value !== "");
+
+const toNumber = (value) => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value !== "string" || !value.trim()) return null;
+    const normalized = value.trim().replace(/,/g, "").replace(/^[^\d.-]+/, "");
+    const number = Number(normalized);
+    return Number.isFinite(number) ? number : null;
+};
+
+const getNumber = (record, keys) => {
+    let zeroValue = null;
+    for (const key of keys) {
+        const value = toNumber(record?.[key]);
+        if (value === null) continue;
+        if (value !== 0) return value;
+        zeroValue = value;
+    }
+    return zeroValue;
+};
+
 const getEmployeeName = (employee) =>
-    employee.employeeName ||
-    employee.employee_name ||
-    employee.name ||
+    firstValue(
+        employee.employee_name,
+        employee.employeeName,
+        employee.name,
+        employee.full_name,
+        employee.fullName,
+        employee.employee?.full_name,
+        employee.employee_snapshot?.full_name,
+        employee.employeeSnapshot?.full_name
+    ) ||
     [employee.first_name, employee.middle_name, employee.last_name]
         .filter(Boolean)
         .join(" ") ||
     "Employee";
 
 const getEmployeeCode = (employee) =>
-    employee.employeeCode || employee.employee_code || employee.employeeId || employee.employee_id || "—";
+    firstValue(
+        employee.employee_code,
+        employee.employeeCode,
+        employee.employee_id,
+        employee.employeeId,
+        employee.employee_snapshot?.employee_code,
+        employee.employee_snapshot?.employee_id,
+        employee.employeeSnapshot?.employee_code,
+        employee.employeeSnapshot?.employee_id
+    ) || "—";
 
-const getGross = (employee) =>
-    Number(
-        employee.gross ??
-        employee.gross_salary ??
-        (
-            Number(employee.basic || 0) +
-            Number(employee.hra || 0) +
-            Number(employee.otherAllowances ?? employee.other_allowances ?? 0) +
-            Number(employee.bonus || 0)
-        )
+const toComponentList = (value) => {
+    if (Array.isArray(value)) return value.filter((item) => item && typeof item === "object");
+    if (value && typeof value === "object") {
+        const nested = firstValue(value.items, value.components, value.breakdown, value.results);
+        if (nested) return toComponentList(nested);
+        return Object.entries(value).map(([name, item]) =>
+            item && typeof item === "object"
+                ? { name, ...item }
+                : { name, amount: item }
+        );
+    }
+    return [];
+};
+
+const componentAmount = (component) =>
+    getNumber(component, [
+        "amount",
+        "value",
+        "calculated_amount",
+        "calculatedAmount",
+        "calculated_value",
+        "computed_amount",
+        "earning_amount",
+        "deduction_amount",
+        "salary_amount",
+        "total",
+        "payable_amount",
+        "payableAmount",
+    ]);
+
+const componentLabel = (component) =>
+    firstValue(
+        component.component_name,
+        component.componentName,
+        component.salary_component_name,
+        component.earning_name,
+        component.deduction_name,
+        typeof component.component === "string" ? component.component : component.component?.name,
+        component.name,
+        component.label,
+        component.title,
+        component.code
+    ) || "Salary component";
+
+const isComponentTotal = (label) =>
+    /^(total|gross(?: salary)?|gross earnings|total earnings|total additions|total deductions|net(?: salary| payable)?)$/i.test(
+        String(label).trim()
     );
 
-const getDeductions = (employee) =>
-    Number(
-        employee.totalDeductions ?? employee.total_deductions ??
-        (
-            Number(employee.pf || 0) +
-            Number(employee.insurance || 0) +
-            Number(employee.otherDeductions ?? employee.other_deductions ?? 0)
-        )
-    );
+const getScalarBreakdown = (record, category) => {
+    const earningPattern = /^(basic(?:_salary)?|hra|.*(?:earning|allowance|bonus|incentive|commission|reimbursement|overtime|gratuity|benefit).*)$/i;
+    const deductionPattern = /.*(?:deduct|provident|\\bpf\\b|insurance|\\besi\\b|tax|\\btds\\b|professional|\\blop\\b|\\blwop\\b|withhold|leave_deduction).*/i;
+    const pattern = category === "earning" ? earningPattern : deductionPattern;
+    const ignored = /^(total|gross|gross_salary|gross_pay|total_earnings|total_additions|total_deductions|net|net_salary|net_pay|salary|salary_amount)$/i;
 
-const getNetSalary = (employee) =>
-    Number(
-        employee.net ??
-        employee.net_salary ??
-        employee.net_pay ??
-        getGross(employee) - getDeductions(employee)
+    return Object.entries(record || {})
+        .filter(([key]) => pattern.test(key) && !ignored.test(key))
+        .map(([key, value]) => ({
+            label: formatFieldLabel(key),
+            amount: toNumber(value),
+        }))
+        .filter((component) => component.amount !== null);
+};
+
+const getBreakdown = (record, category) => {
+    const keys = category === "earning"
+        ? ["earnings_breakdown", "earningsBreakdown", "earning_breakdown", "earnings", "additions", "earning_components", "earningComponents"]
+        : ["deductions_breakdown", "deductionsBreakdown", "deduction_breakdown", "deductions", "deduction_components", "deductionComponents"];
+    const nestedKeys = category === "earning"
+        ? ["earnings", "earning", "additions", "addition", "earning_components", "earning_breakdown"]
+        : ["deductions", "deduction", "withholdings", "deduction_components", "deduction_breakdown"];
+
+    for (const key of keys) {
+        if (record?.[key] !== undefined && record?.[key] !== null) {
+            const components = toComponentList(record[key])
+                .map((component) => ({
+                    label: componentLabel(component),
+                    amount: componentAmount(component),
+                }))
+                .filter((component) => component.amount !== null && !isComponentTotal(component.label));
+            if (components.length) return components;
+        }
+    }
+
+    const containers = [
+        record?.breakdown,
+        record?.salary_breakdown,
+        record?.salaryBreakdown,
+        record?.payroll_breakdown,
+        record?.payrollBreakdown,
+    ];
+    for (const container of containers) {
+        if (!container || typeof container !== "object" || Array.isArray(container)) continue;
+        for (const key of nestedKeys) {
+            const components = toComponentList(container[key])
+                .map((component) => ({
+                    label: componentLabel(component),
+                    amount: componentAmount(component),
+                }))
+                .filter((component) => component.amount !== null && !isComponentTotal(component.label));
+            if (components.length) return components;
+        }
+    }
+
+    const combined = firstValue(
+        record?.salary_components,
+        record?.salaryComponents,
+        record?.components,
+        ...containers
     );
+    const combinedItems = toComponentList(combined)
+        .filter((component) => {
+            const type = String(
+                firstValue(
+                    component.component_type,
+                    component.componentType,
+                    component.type,
+                    component.category,
+                    component.is_deduction === true ? "deduction" : ""
+                ) || ""
+            ).toLowerCase();
+            return category === "deduction"
+                ? type.includes("deduct") || type.includes("withhold")
+                : !type.includes("deduct") && !type.includes("withhold");
+        })
+        .map((component) => ({
+            label: componentLabel(component),
+            amount: componentAmount(component),
+        }))
+        .filter((component) => component.amount !== null && !isComponentTotal(component.label));
+    return combinedItems.length ? combinedItems : getScalarBreakdown(record, category);
+};
+
+const sumComponents = (components) =>
+    components.length
+        ? components.reduce((sum, component) => sum + component.amount, 0)
+        : null;
+
+const getGross = (record) =>
+    getNumber(record, [
+        "gross_salary",
+        "gross",
+        "gross_pay",
+        "gross_amount",
+        "total_gross",
+        "total_additions",
+        "totalAdditions",
+        "total_earnings",
+        "totalEarnings",
+    ]) ?? sumComponents(getBreakdown(record, "earning"));
+
+const getDeductions = (record) =>
+    getNumber(record, [
+        "total_deductions",
+        "totalDeductions",
+        "total_deductions_amount",
+        "deductions_total",
+        "deduction_amount",
+        "deductions",
+    ]) ?? sumComponents(getBreakdown(record, "deduction"));
+
+const getNetSalary = (record) => {
+    const authoritative = getNumber(record, ["net_salary", "net_pay", "net", "take_home_pay", "take_home_salary"]);
+    if (authoritative !== null) return authoritative;
+    const gross = getGross(record);
+    const deductions = getDeductions(record);
+    return gross !== null && deductions !== null ? gross - deductions : null;
+};
+
+const sumAmounts = (records, getAmount) => {
+    if (!records.length) return null;
+    const amounts = records.map(getAmount);
+    return amounts.every((amount) => amount !== null)
+        ? amounts.reduce((sum, amount) => sum + amount, 0)
+        : null;
+};
 
 const getInitials = (name) =>
     String(name || "Employee")
@@ -100,20 +325,73 @@ const getCurrencyCode = (currency) => {
 };
 
 const formatCurrency = (amount, currency = "INR") => {
+    const numericAmount = toNumber(amount);
+    if (numericAmount === null) return "—";
     try {
         return new Intl.NumberFormat("en-IN", {
             style: "currency",
             currency,
             maximumFractionDigits: 2,
-        }).format(Number(amount || 0));
+        }).format(numericAmount);
     } catch {
-        return `₹${Number(amount || 0).toLocaleString("en-IN")}`;
+        return `₹${numericAmount.toLocaleString("en-IN")}`;
     }
 };
 
-const formatAddress = (company) =>
-    company?.full_address ||
-    [
+const amountInIndianWords = (amount) => {
+    const number = toNumber(amount);
+    if (number === null || number < 0) return "";
+
+    const belowTwenty = [
+        "Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+        "Seventeen", "Eighteen", "Nineteen",
+    ];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    const underThousand = (value) => {
+        const words = [];
+        if (value >= 100) {
+            words.push(`${belowTwenty[Math.floor(value / 100)]} Hundred`);
+            value %= 100;
+        }
+        if (value >= 20) {
+            words.push(tens[Math.floor(value / 10)]);
+            value %= 10;
+        }
+        if (value > 0) words.push(belowTwenty[value]);
+        return words.join(" ");
+    };
+
+    let remaining = Math.round(number);
+    const groups = [
+        [10000000, "Crore"],
+        [100000, "Lakh"],
+        [1000, "Thousand"],
+        [1, ""],
+    ];
+    const words = [];
+    groups.forEach(([size, label]) => {
+        const value = Math.floor(remaining / size);
+        if (value > 0) words.push(`${underThousand(value)}${label ? ` ${label}` : ""}`);
+        remaining %= size;
+    });
+    return `Rupees ${words.join(" ") || "Zero"} Only`;
+};
+
+const formatAddress = (company) => {
+    const address = firstValue(company?.full_address, company?.address, company?.registered_address);
+    if (typeof address === "string") return address;
+    return [
+        address?.address_line_1,
+        address?.address_line_2,
+        address?.street,
+        address?.city,
+        address?.state,
+        address?.pincode,
+        address?.country,
+        company?.address_line_1,
+        company?.address_line_2,
+        company?.street,
         company?.city,
         company?.state,
         company?.pincode,
@@ -121,6 +399,282 @@ const formatAddress = (company) =>
     ]
         .filter(Boolean)
         .join(", ");
+};
+
+const getDisplayValue = (record, keys) => {
+    const value = firstValue(...keys.map((key) => record?.[key]));
+    if (!value || typeof value !== "object") return value;
+    return firstValue(value.name, value.full_name, value.label, value.title, value.code) || "—";
+};
+
+const formatFieldLabel = (key) =>
+    key
+        .replace(/([a-z])([A-Z])/g, "$1 $2")
+        .replace(/[_-]+/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const formatDocumentDate = (value) => {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+};
+
+const getCompanyDetails = (response) => {
+    const company = flattenPayslip(response);
+    const logo = firstValue(company.logo_url, company.logo, company.company_logo);
+    return {
+        ...company,
+        name: firstValue(company.name, company.company_name, company.business_name),
+        logo_url: typeof logo === "string" ? logo : firstValue(logo?.url, logo?.href),
+    };
+};
+
+const getPayrollRecordForPayslip = async (payslip) => {
+    const period = payslip.period ?? payslip.payroll_period ?? payslip.payroll_month;
+    if (!period) return null;
+
+    const runs = await getPayrollDrafts();
+    const matchingRuns = runs
+        .filter((run) => String(run.period) === String(period))
+        .sort((left, right) => {
+            const finalizedStatus = (run) =>
+                /final|lock|approv|complete|paid/i.test(String(run.status || ""));
+            const statusOrder = Number(finalizedStatus(right)) - Number(finalizedStatus(left));
+            if (statusOrder) return statusOrder;
+            const leftDate = Date.parse(left.finalized_at || left.updated_at || left.created_at || "") || 0;
+            const rightDate = Date.parse(right.finalized_at || right.updated_at || right.created_at || "") || 0;
+            return rightDate - leftDate;
+        });
+
+    const payslipEmployeeId = payslip.employee ?? payslip.employee_id;
+    const payslipEmployeeCode = getEmployeeCode(payslip);
+    for (const run of matchingRuns) {
+        const response = await getPayrollDraft(run.id);
+        const payrollRun = response?.data ?? response;
+        const records = payrollRun.records ?? payrollRun.employees ?? payrollRun.payroll_records ?? [];
+        if (!Array.isArray(records)) continue;
+        const record = records.find((item) =>
+            (payslipEmployeeCode !== "—" && getEmployeeCode(item) === payslipEmployeeCode) ||
+            (payslipEmployeeId != null && String(item.employee ?? item.employeeId) === String(payslipEmployeeId))
+        );
+        if (record) return flattenPayslip(record);
+    }
+    return null;
+};
+
+const PayslipDocument = ({ payslip, company, currency }) => {
+    const earnings = getBreakdown(payslip, "earning");
+    const deductions = getBreakdown(payslip, "deduction");
+    const companyLogo = firstValue(company?.logo_url, company?.logo, company?.company_logo);
+    const employeeFields = [
+        ["Employee Code", getDisplayValue(payslip, ["employee_code", "employeeCode", "employee_id", "employeeId"])],
+        ["Employee Name", getEmployeeName(payslip)],
+        ["Department", getDisplayValue(payslip, ["department", "department_name"])],
+        ["Designation", getDisplayValue(payslip, ["designation", "designation_name"])],
+        ["Date of Joining", getDisplayValue(payslip, ["date_of_joining", "dateOfJoining", "joining_date", "date_joined"])],
+    ];
+    const bankFields = [
+        ["Bank Name", getDisplayValue(payslip, ["bank_name", "bankName"])],
+        ["Account No.", getDisplayValue(payslip, ["account_number", "accountNumber", "bank_account_number", "bank_account"])],
+        ["IFSC Code", getDisplayValue(payslip, ["ifsc_code", "ifscCode", "ifsc"])],
+        ["PAN Number", getDisplayValue(payslip, ["pan_number", "panNumber", "pan"])],
+        ["UAN Number", getDisplayValue(payslip, ["uan_number", "uanNumber", "uan"])],
+    ];
+    const attendanceSummary = payslip.attendance_summary || payslip.attendanceSummary ||
+        payslip.attendance_details || payslip.attendanceDetails || payslip.attendance;
+    const attendanceFieldDefinitions = [
+        ["Calendar Days", ["total_calendar_days", "calendar_days", "calendarDays"]],
+        ["Working Days", ["working_days", "total_working_days", "workingDays"]],
+        ["Days Present", ["present_days", "days_present", "days_worked"]],
+        ["Paid Leaves", ["approved_paid_leave_days", "paid_leave_days", "paid_leaves", "paid_leave"]],
+        ["Unpaid (LWOP)", ["unpaid_leave_days", "total_unpaid_days", "unpaid_days", "lwop_days", "lop_days"]],
+        ["Payable Days", ["payable_days", "paid_days", "days_paid"]],
+    ];
+    const attendanceFields = attendanceFieldDefinitions.map(([label, keys]) => [
+        label,
+        getDisplayValue({ ...payslip, ...(attendanceSummary || {}) }, keys),
+    ]);
+    const showAttendance = attendanceFields.some(([, value]) => value !== undefined && value !== null && value !== "");
+    
+    const amountInWords = getDisplayValue(payslip, [
+        "amount_in_words",
+        "net_salary_in_words",
+        "net_pay_in_words",
+        "net_salary_words",
+        "net_payable_in_words",
+    ]) || amountInIndianWords(getNetSalary(payslip));
+    const companyContact = [
+        getDisplayValue(company, ["company_email", "email"]),
+        getDisplayValue(company, ["phone", "phone_number", "contact_number"]),
+        getDisplayValue(company, ["website"]),
+    ].filter(Boolean).join(" · ");
+    const gross = getGross(payslip);
+    const totalDeductions = getDeductions(payslip);
+    const net = getNetSalary(payslip);
+    const earningsSum = sumComponents(earnings);
+    const deductionsSum = sumComponents(deductions);
+    const discrepancies = [
+        ["gross_salary", earningsSum, gross],
+        ["total_deductions", deductionsSum, totalDeductions],
+    ].filter(([, sum, total]) =>
+        sum !== null && total !== null && Math.abs(sum - total) > 0.01
+    );
+    if (
+        gross !== null &&
+        totalDeductions !== null &&
+        net !== null &&
+        Math.abs(gross - totalDeductions - net) > 0.01
+    ) {
+        discrepancies.push(["net_salary", gross - totalDeductions, net]);
+    }
+    
+
+    return (
+        <div className="payslips-document payslips-template">
+            <header className="payslip-template-header">
+                <div className="payslip-template-brand">
+                    {companyLogo && (
+                        <img
+                            className="payslip-template-logo"
+                            src={companyLogo}
+                            alt={`${company.name || "Company"} logo`}
+                            onError={(event) => {
+                                event.currentTarget.style.display = "none";
+                                const fallback = event.currentTarget.nextElementSibling;
+                                if (fallback) fallback.style.display = "flex";
+                            }}
+                        />
+                    )}
+                    <div
+                        className="payslip-template-logo-fallback"
+                        aria-hidden="true"
+                        style={{ display: companyLogo ? "none" : "flex" }}
+                    >
+                        <Building2 size={30} />
+                    </div>
+                    <div>
+                        <h1>{company?.name || "Company name not configured"}</h1>
+                        {formatAddress(company) && <p>{formatAddress(company)}</p>}
+                    </div>
+                </div>
+            </header>
+
+            <div className="payslip-template-title">
+                <h2>
+                    Payslip for the month of{" "}
+                    {getPeriodLabel(payslip.period ?? payslip.payroll_period ?? payslip.payroll_month)}
+                </h2>
+                <p>
+                    Payslip : {getDisplayValue(payslip, ["payslip_number", "payslipNumber", "reference_number", "payslip_reference"]) || "—"}
+                    {" · "}
+                    Generated on: {formatDocumentDate(getDisplayValue(payslip, ["generated_at", "created_at"]))}
+                </p>
+            </div>
+
+            <section className="payslip-template-section">
+                <div className="payslip-template-info-grid payslip-template-info-grid--reference">
+                    {employeeFields.map(([label, value], index) => {
+                        const [bankLabel, bankValue] = bankFields[index];
+                        return (
+                            <div className="payslip-template-info-row" key={label}>
+                                <strong>{label}:</strong>
+                                <span>{value ?? "—"}</span>
+                                <strong>{bankLabel}:</strong>
+                                <span>{bankValue ?? "—"}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </section>
+
+            {showAttendance && (
+                <section className="payslip-template-attendance">
+                    <table className="payslip-template-attendance-table">
+                        <thead>
+                            <tr>{attendanceFields.map(([label]) => <th key={label}>{label}</th>)}</tr>
+                        </thead>
+                        <tbody>
+                            <tr>{attendanceFields.map(([label, value]) => <td key={label}>{value ?? "—"}</td>)}</tr>
+                        </tbody>
+                    </table>
+                </section>
+            )}
+
+            
+
+            <section className="payslip-template-section payslip-template-breakdown">
+                <table className="payslip-template-table payslip-template-combined-table">
+                    <thead>
+                        <tr>
+                            <th>Earnings</th>
+                            <th>Amount ({currency})</th>
+                            <th>Deductions</th>
+                            <th>Amount ({currency})</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Array.from({ length: Math.max(earnings.length, deductions.length, 1) }, (_, index) => (
+                            <tr key={index}>
+                                <td>{earnings[index]?.label || ""}</td>
+                                <td>{earnings[index] ? formatCurrency(earnings[index].amount, currency) : ""}</td>
+                                <td>{deductions[index]?.label || ""}</td>
+                                <td>{deductions[index] ? formatCurrency(deductions[index].amount, currency) : ""}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th>Gross Earnings</th>
+                            <th>{formatCurrency(gross, currency)}</th>
+                            <th>Total Deductions</th>
+                            <th>{formatCurrency(totalDeductions, currency)}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </section>
+            {discrepancies.length > 0 && (
+                <p className="payslip-template-data-warning" role="status">
+                    Backend payroll totals do not reconcile with the returned component breakdown
+                    ({discrepancies.map(([field]) => field).join(", ")}). The displayed totals use
+                    the authoritative payroll values.
+                </p>
+            )}
+
+            <div className="payslip-template-net">
+                <div>
+                    <span>Net Salary Payable:</span>
+                    {amountInWords && <small>Amount in Words: {amountInWords}</small>}
+                </div>
+                <strong>{formatCurrency(net, currency)}</strong>
+            </div>
+
+            {/* <footer className="payslip-template-footer payslip-template-signatures">
+                <div className="payslip-template-signature">
+                    <div />
+                    <strong>{getDisplayValue(payslip, ["authorized_signatory", "authorised_signatory", "employer_name"]) || "Employer Signature / Authorized Signatory"}</strong>
+                    {payslip.signature_url && <img src={payslip.signature_url} alt="Authorised signature" />}
+                </div>
+                <div className="payslip-template-signature payslip-template-employee-signature">
+                    <div />
+                    <strong>Employee Signature</strong>
+                </div>
+            </footer> */}
+            <p className="payslip-template-system-note">
+                {getDisplayValue(payslip, ["document_note", "system_generated_note"]) ||
+                    "This is a system-generated document from Ignite HRMS and does not require a physical signature."}
+            </p>
+            <div className="payslip-template-generated">
+                {getDisplayValue(payslip, ["declaration", "payslip_declaration"]) || ""}
+            </div>
+        </div>
+    );
+};
+
 
 const Payslips = () => {
     const { showNotification } = useNotification();
@@ -129,6 +683,7 @@ const Payslips = () => {
     const [company, setCompany] = useState(null);
     const [companyError, setCompanyError] = useState(false);
     const [payslipData, setPayslipData] = useState([]);
+    const [payrollRuns, setPayrollRuns] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState("");
     const [search, setSearch] = useState("");
     const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -143,7 +698,7 @@ const Payslips = () => {
         const loadCompany = async () => {
             try {
                 const response = await getCompany();
-                const companyDetails = response?.data;
+                const companyDetails = getCompanyDetails(response);
 
                 if (!companyDetails || !companyDetails.name) {
                     throw new Error("Company details are missing from the API response.");
@@ -184,8 +739,19 @@ const Payslips = () => {
             }
         };
 
+        const loadPayrollRuns = async () => {
+            try {
+                const response = await getPayrollDrafts();
+                if (mounted) setPayrollRuns(unwrapList(response));
+            } catch (error) {
+                console.error("Failed to load payroll run statuses:", error);
+                if (mounted) setPayrollRuns([]);
+            }
+        };
+
         loadCompany();
         loadPayslipData();
+        loadPayrollRuns();
 
         return () => {
             mounted = false;
@@ -196,7 +762,7 @@ const Payslips = () => {
         () =>
             [...new Set(
                 payslipData
-                    .map((slip) => slip.period ?? slip.payroll_period)
+                    .map((slip) => getDisplayValue(flattenPayslip(slip), ["period", "payroll_period", "payroll_month"]))
                     .filter(Boolean)
             )].sort((a, b) => String(b).localeCompare(String(a))),
         [payslipData]
@@ -211,17 +777,35 @@ const Payslips = () => {
     const selectedRun = useMemo(
         () => {
             const slips = payslipData.filter(
-                (slip) => String(slip.period ?? slip.payroll_period) === String(activeMonth)
+                (slip) => String(getDisplayValue(flattenPayslip(slip), ["period", "payroll_period", "payroll_month"])) === String(activeMonth)
             );
+            const firstSlip = slips.length ? flattenPayslip(slips[0]) : {};
+            const payrollRun = payrollRuns
+                .filter((run) =>
+                    String(getDisplayValue(run, ["period", "payroll_period", "payroll_month"])) === String(activeMonth)
+                )
+                .sort((left, right) => {
+                    const finalizedStatus = (run) =>
+                        /final|lock|approv|complete|paid/i.test(
+                            String(getDisplayValue(run, ["status", "payroll_status", "payrollStatus"]) || "")
+                        );
+                    const statusOrder = Number(finalizedStatus(right)) - Number(finalizedStatus(left));
+                    if (statusOrder) return statusOrder;
+                    const leftDate = Date.parse(left.finalized_at || left.updated_at || left.created_at || "") || 0;
+                    const rightDate = Date.parse(right.finalized_at || right.updated_at || right.created_at || "") || 0;
+                    return rightDate - leftDate;
+                })[0];
             return slips.length
                 ? {
                     period: activeMonth,
-                    status: slips[0].payroll_status ?? slips[0].status ?? "—",
+                    status: getDisplayValue(payrollRun, ["status", "payroll_status", "payrollStatus"]) ??
+                        getDisplayValue(firstSlip, ["payroll_status", "payslip_status", "status"]) ??
+                        "Unavailable",
                     payslips: slips,
                 }
                 : null;
         },
-        [payslipData, activeMonth]
+        [payslipData, payrollRuns, activeMonth]
     );
 
     const monthLabel = getPeriodLabel(activeMonth);
@@ -231,29 +815,22 @@ const Payslips = () => {
 
         return selectedRun.payslips
             .map((slip, index) => {
-                const employee =
-                    slip.employee && typeof slip.employee === "object"
-                        ? slip.employee
-                        : slip;
+                const normalized = flattenPayslip(slip);
+                const employee = flattenPayslip(normalized.employee || normalized.employee_snapshot || normalized);
+                const record = { ...employee, ...normalized };
                 return {
-                    ...slip,
-                    _rowId: String(slip.id ?? slip.payslip_id ?? `${selectedRun.period}-${index}`),
-                    _payslipId: slip.id ?? slip.payslip_id,
-                    employeeId: getEmployeeCode({ ...employee, ...slip }),
-                    name: getEmployeeName({ ...employee, ...slip }),
-                    department: slip.department ?? slip.department_name ?? employee.department_name ?? "—",
-                    basic: Number(slip.basic || 0),
-                    hra: Number(slip.hra || 0),
-                    otherAllowances: Number(slip.other_allowances ?? slip.otherAllowances ?? 0),
-                    bonus: Number(slip.bonus || 0),
-                    pf: Number(slip.pf || 0),
-                    insurance: Number(slip.insurance || 0),
-                    otherDeductions: Number(slip.other_deductions ?? slip.otherDeductions ?? 0),
-                    gross: getGross(slip),
-                    deductions: getDeductions(slip),
-                    net: getNetSalary(slip),
-                    payrollStatus: slip.payroll_status ?? slip.status ?? selectedRun.status,
-                    period: slip.period ?? slip.payroll_period ?? selectedRun.period,
+                    ...record,
+                    _rowId: String(record.id ?? record.payslip_id ?? `${selectedRun.period}-${index}`),
+                    _payslipId: record.id ?? record.payslip_id,
+                    employeeId: getEmployeeCode(record),
+                    name: getEmployeeName(record),
+                    department: getDisplayValue(record, ["department", "department_name"]) ??
+                        record.employee_snapshot?.department_name ?? "—",
+                    gross: getGross(record),
+                    deductions: getDeductions(record),
+                    net: getNetSalary(record),
+                    payrollStatus: record.payroll_status ?? record.status ?? selectedRun.status,
+                    period: record.period ?? record.payroll_period ?? record.payroll_month ?? selectedRun.period,
                 };
             });
     }, [selectedRun]);
@@ -277,12 +854,9 @@ const Payslips = () => {
     const stats = useMemo(
         () => ({
             employees: payslips.length,
-            payroll: payslips.reduce((sum, employee) => sum + employee.net, 0),
-            gross: payslips.reduce((sum, employee) => sum + employee.gross, 0),
-            deductions: payslips.reduce(
-                (sum, employee) => sum + employee.deductions,
-                0
-            ),
+            payroll: sumAmounts(payslips, (employee) => employee.net),
+            gross: sumAmounts(payslips, (employee) => employee.gross),
+            deductions: sumAmounts(payslips, (employee) => employee.deductions),
         }),
         [payslips]
     );
@@ -323,25 +897,50 @@ const Payslips = () => {
         setViewingPayslipId(employee._payslipId);
         try {
             const response = await getPayslip(employee._payslipId);
-            const detail = response?.payslip ?? response?.data ?? response;
-            setSelectedPayslip({
-                ...employee,
+            const detail = flattenPayslip(response);
+            let payrollRecord = null;
+            try {
+                payrollRecord = await getPayrollRecordForPayslip({ ...employee, ...detail });
+            } catch (error) {
+                console.error("Failed to load full payroll record for payslip:", error);
+                notify(
+                    "error",
+                    error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Payslip summary loaded, but complete payroll details could not be retrieved."
+                );
+            }
+            const listFallback = { ...employee };
+            delete listFallback.gross;
+            delete listFallback.deductions;
+            delete listFallback.net;
+            const hasCompleteDetails = Boolean(
+                detail.employee_snapshot ||
+                detail.earnings_breakdown ||
+                detail.deductions_breakdown ||
+                detail.attendance_summary
+            );
+            if (!payrollRecord && !hasCompleteDetails) {
+                notify(
+                    "error",
+                    "The payslip detail response does not include the full payroll breakdown or employee snapshot."
+                );
+            }
+            const normalized = {
+                ...listFallback,
                 ...detail,
-                employeeId: getEmployeeCode({ ...employee, ...detail }),
-                name: getEmployeeName({ ...employee, ...detail }),
-                department:
-                    detail.department ??
-                    detail.department_name ??
-                    employee.department,
-                otherAllowances:
-                    detail.other_allowances ?? detail.otherAllowances ?? employee.otherAllowances,
-                otherDeductions:
-                    detail.other_deductions ?? detail.otherDeductions ?? employee.otherDeductions,
-                deductions: getDeductions(detail),
-                gross: getGross(detail),
-                net: getNetSalary(detail),
+                ...(payrollRecord || {}),
+            };
+            setSelectedPayslip({
+                ...normalized,
+                employeeId: getEmployeeCode(normalized),
+                name: getEmployeeName(normalized),
+                department: getDisplayValue(normalized, ["department", "department_name"]) ?? employee.department,
+                deductions: getDeductions(normalized),
+                gross: getGross(normalized),
+                net: getNetSalary(normalized),
                 _payslipId: employee._payslipId,
-                period: detail.period ?? detail.payroll_period ?? employee.period,
+                period: normalized.period ?? normalized.payroll_period ?? normalized.payroll_month ?? employee.period,
             });
         } catch (error) {
             console.error("Failed to load payslip details:", error);
@@ -359,26 +958,39 @@ const Payslips = () => {
     const exportPayslipCsv = (employee) => {
         const target = employee || selectedPayslip;
         if (!target) return;
+        const earnings = getBreakdown(target, "earning");
+        const deductions = getBreakdown(target, "deduction");
+        const attendance = target.attendance_summary || target.attendanceSummary || {};
 
         const rows = [
             [company?.name || "Company", ""],
             ["Payslip period", getPeriodLabel(target.period)],
-            ["Payroll status", target.payrollStatus],
+            ["Payslip number", target.payslip_number ?? target.payslipNumber],
+            ["Generated date", target.generated_at ?? target.created_at],
+            ["Payroll status", target.payrollStatus ?? target.payroll_status ?? target.status],
             ["Employee name", target.name],
             ["Employee ID", target.employeeId],
             ["Department", target.department],
+            ["Designation", target.designation_name ?? target.designation],
+            ["Date of joining", target.date_of_joining ?? target.dateOfJoining],
+            ["Bank name", target.bank_name ?? target.bankName],
+            ["Bank account", target.account_number ?? target.accountNumber],
+            ["IFSC", target.ifsc_code ?? target.ifscCode],
+            ["PAN", target.pan_number ?? target.panNumber],
+            ["UAN", target.uan_number ?? target.uanNumber],
+            ["Calendar days", attendance.total_calendar_days ?? attendance.calendar_days],
+            ["Working days", attendance.working_days],
+            ["Days present", attendance.present_days],
+            ["Paid leaves", attendance.approved_paid_leave_days],
+            ["Unpaid leave / LWOP", attendance.unpaid_leave_days ?? attendance.total_unpaid_days],
+            ["Payable days", attendance.payable_days],
             ["", ""],
             ["Earnings", "Amount"],
-            ["Basic salary", target.basic],
-            ["HRA", target.hra],
-            ["Other allowances", target.otherAllowances],
-            ["Bonus", target.bonus],
+            ...earnings.map((item) => [item.label, item.amount]),
             ["Gross salary", target.gross],
             ["", ""],
             ["Deductions", "Amount"],
-            ["PF", target.pf],
-            ["Insurance", target.insurance],
-            ["Other deductions", target.otherDeductions],
+            ...deductions.map((item) => [item.label, item.amount]),
             ["Total deductions", target.deductions],
             ["Net salary payable", target.net],
         ];
@@ -669,316 +1281,11 @@ const Payslips = () => {
                             </button>
                         </div>
 
-                        <div className="payslips-document payslips-template">
-                            {/* Company identity comes from the company-level API */}
-                            <header className="payslip-template-header">
-                                <div className="payslip-template-brand">
-                                    {company?.logo_url && (
-                                        <img
-                                            className="payslip-template-logo"
-                                            src={company.logo_url}
-                                            alt={`${company.name || "Company"} logo`}
-                                            onError={(event) => {
-                                                event.currentTarget.style.display = "none";
-                                            }}
-                                        />
-                                    )}
-                                    <div>
-                                        <h1>
-                                            {company?.name || "Company details unavailable"}
-                                        </h1>
-                                        {formatAddress(company) && (
-                                            <p>{formatAddress(company)}</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="payslip-template-title">
-                                    <h2>Salary Slip</h2>
-                                    <p>{getPeriodLabel(selectedPayslip.period)}</p>
-                                    <small>
-                                        Payslip No.: {selectedPayslip.payslip_number || "—"}
-                                    </small>
-                                </div>
-                            </header>
-
-                            {/* Employee and bank details */}
-                            <section className="payslip-template-section">
-                                <h3>Employee Details</h3>
-                                <div className="payslip-template-info-grid">
-                                    <div>
-                                        <span>Employee ID</span>
-                                        <strong>
-                                            {selectedPayslip.employee_code ||
-                                                selectedPayslip.employeeId ||
-                                                selectedPayslip.employee_id ||
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Bank A/C No.</span>
-                                        <strong>
-                                            {selectedPayslip.bank_account_number ||
-                                                selectedPayslip.account_number ||
-                                                selectedPayslip.bank_account ||
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Employee Name</span>
-                                        <strong>
-                                            {selectedPayslip.employee_name ||
-                                                selectedPayslip.name ||
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>IFSC Code</span>
-                                        <strong>
-                                            {selectedPayslip.ifsc_code ||
-                                                selectedPayslip.ifsc ||
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Designation</span>
-                                        <strong>
-                                            {selectedPayslip.designation || "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Bank Name</span>
-                                        <strong>
-                                            {selectedPayslip.bank_name || "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Department</span>
-                                        <strong>
-                                            {selectedPayslip.department || "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>UAN No.</span>
-                                        <strong>
-                                            {selectedPayslip.uan_number ||
-                                                selectedPayslip.uan ||
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                </div>
-                            </section>
-
-                            {/* Attendance information */}
-                            <section className="payslip-template-section">
-                                <h3>Attendance Summary</h3>
-                                <div className="payslip-template-info-grid">
-                                    <div>
-                                        <span>Total Working Days</span>
-                                        <strong>
-                                            {selectedPayslip.total_working_days ??
-                                                selectedPayslip.totalWorkingDays ??
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Absent Days</span>
-                                        <strong>
-                                            {selectedPayslip.absent_days ??
-                                                selectedPayslip.absentDays ??
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Paid Leave</span>
-                                        <strong>
-                                            {selectedPayslip.paid_leave ??
-                                                selectedPayslip.paidLeave ??
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>Present Days</span>
-                                        <strong>
-                                            {selectedPayslip.present_days ??
-                                                selectedPayslip.presentDays ??
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>LWOP Days</span>
-                                        <strong>
-                                            {selectedPayslip.lwop_days ??
-                                                selectedPayslip.lwopDays ??
-                                                "—"}
-                                        </strong>
-                                    </div>
-                                    <div>
-                                        <span>One Day Salary</span>
-                                        <strong>
-                                            {selectedPayslip.one_day_salary != null ||
-                                                selectedPayslip.oneDaySalary != null
-                                                ? formatCurrency(
-                                                    selectedPayslip.one_day_salary ??
-                                                    selectedPayslip.oneDaySalary,
-                                                    currency
-                                                )
-                                                : "—"}
-                                        </strong>
-                                    </div>
-                                </div>
-                            </section>
-
-                            {/* Earnings and deductions */}
-                            <div className="payslip-template-breakdown">
-                                <section className="payslip-template-section">
-                                    <h3>Additions</h3>
-                                    <table className="payslip-template-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Description</th>
-                                                <th>Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                ["Basic Salary", selectedPayslip.basic ?? selectedPayslip.basic_salary],
-                                                ["HRA", selectedPayslip.hra],
-                                                [
-                                                    "Software Allowance",
-                                                    selectedPayslip.software_allowance ??
-                                                    selectedPayslip.softwareAllowance,
-                                                ],
-                                                [
-                                                    "Conveyance/Other Allowance",
-                                                    selectedPayslip.other_allowances ??
-                                                    selectedPayslip.otherAllowances,
-                                                ],
-                                                [
-                                                    "Incentive",
-                                                    selectedPayslip.incentive ??
-                                                    selectedPayslip.bonus,
-                                                ],
-                                            ]
-                                                .filter(([, value]) => value != null && value !== "")
-                                                .map(([label, value]) => (
-                                                    <tr key={label}>
-                                                        <td>{label}</td>
-                                                        <td>{formatCurrency(value, currency)}</td>
-                                                    </tr>
-                                                ))}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <th>Total Additions</th>
-                                                <th>
-                                                    {formatCurrency(
-                                                        selectedPayslip.total_additions ??
-                                                        selectedPayslip.totalAdditions ??
-                                                        selectedPayslip.gross_salary ??
-                                                        selectedPayslip.gross,
-                                                        currency
-                                                    )}
-                                                </th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </section>
-
-                                <section className="payslip-template-section">
-                                    <h3>Deductions</h3>
-                                    <table className="payslip-template-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Description</th>
-                                                <th>Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {[
-                                                [
-                                                    "Provident Fund",
-                                                    selectedPayslip.pf ??
-                                                    selectedPayslip.provident_fund,
-                                                ],
-                                                [
-                                                    "Leave Deduction",
-                                                    selectedPayslip.leave_deduction ??
-                                                    selectedPayslip.leaveDeduction,
-                                                ],
-                                                [
-                                                    "Professional Tax",
-                                                    selectedPayslip.professional_tax ??
-                                                    selectedPayslip.professionalTax,
-                                                ],
-                                                [
-                                                    "Other Deduction",
-                                                    selectedPayslip.other_deductions ??
-                                                    selectedPayslip.otherDeductions,
-                                                ],
-                                            ]
-                                                .filter(([, value]) => value != null && value !== "")
-                                                .map(([label, value]) => (
-                                                    <tr key={label}>
-                                                        <td>{label}</td>
-                                                        <td>{formatCurrency(value, currency)}</td>
-                                                    </tr>
-                                                ))}
-                                        </tbody>
-                                        <tfoot>
-                                            <tr>
-                                                <th>Total Deductions</th>
-                                                <th>
-                                                    {formatCurrency(
-                                                        selectedPayslip.total_deductions ??
-                                                        selectedPayslip.totalDeductions ??
-                                                        selectedPayslip.deductions,
-                                                        currency
-                                                    )}
-                                                </th>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </section>
-                            </div>
-
-                            {/* Net salary */}
-                            <section className="payslip-template-net">
-                                <span>Net Salary</span>
-                                <strong>
-                                    {formatCurrency(
-                                        selectedPayslip.net_salary ??
-                                        selectedPayslip.net ??
-                                        selectedPayslip.net_pay,
-                                        currency
-                                    )}
-                                </strong>
-                            </section>
-
-                            {/* Company footer and HR signature */}
-                            <footer className="payslip-template-footer">
-                                <div>
-                                    <strong>
-                                        {company?.name || "Company details unavailable"}
-                                    </strong>
-                                    <span>Company Address</span>
-                                    <p>{formatAddress(company) || "—"}</p>
-                                </div>
-                                <div className="payslip-template-signature">
-                                    <div />
-                                    <span>HR Signature</span>
-                                </div>
-                            </footer>
-
-                            {selectedPayslip.generated_at && (
-                                <div className="payslip-template-generated">
-                                    Generated on{" "}
-                                    {new Date(
-                                        selectedPayslip.generated_at
-                                    ).toLocaleDateString("en-IN")}
-                                </div>
-                            )}
-                        </div>
+                        <PayslipDocument
+                            payslip={selectedPayslip}
+                            company={company}
+                            currency={currency}
+                        />
 
                         <div className="payslips-modal-actions">
                             <Button

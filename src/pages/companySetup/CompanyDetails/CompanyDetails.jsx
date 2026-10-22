@@ -5,7 +5,7 @@ import CompanySetupLayout from "../CompanySetupLayout/CompanySetupLayout";
 import CompanyEditLayout from "../CompanyEditLayout/CompanyEditLayout";
 import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 
-import { useCompanySetup } from "../CompanySetupContext";
+import { useCompanySetup, validateLogoFileAsync } from "../CompanySetupContext";
 import { getCompany, updateCompany } from "../../../services/api/companyAPI";
 
 import "./CompanyDetails.css";
@@ -41,6 +41,8 @@ export default function CompanyDetails({ mode = "setup" }) {
   const [loading, setLoading] = useState(mode === "edit");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [logoError, setLogoError] = useState("");
+  const [logoMeta, setLogoMeta] = useState(null);
 
   useEffect(() => {
     if (mode !== "edit") return;
@@ -100,13 +102,20 @@ export default function CompanyDetails({ mode = "setup" }) {
     }));
   };
 
-  const handleLogoChange = (event) => {
+  const handleLogoChange = async (event) => {
     const file = event.target.files?.[0];
-
     if (!file) return;
 
-    const reader = new FileReader();
+    setLogoError("");
+    const validation = await validateLogoFileAsync(file);
 
+    if (!validation.valid) {
+      setLogoError(validation.message);
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
     reader.onloadend = () => {
       setForm((prev) => ({
         ...prev,
@@ -114,10 +123,28 @@ export default function CompanyDetails({ mode = "setup" }) {
         companyLogoDataUrl: reader.result,
         companyLogoFile: file,
       }));
+      setLogoMeta({
+        width: validation.width,
+        height: validation.height,
+        aspectRatio: validation.aspectRatio,
+        sizeFormatted: validation.sizeFormatted,
+        isSvg: validation.isSvg,
+      });
     };
-
     reader.readAsDataURL(file);
   };
+
+  const handleRemoveLogo = () => {
+    setForm((prev) => ({
+      ...prev,
+      companyLogoName: "",
+      companyLogoDataUrl: "",
+      companyLogoFile: null,
+    }));
+    setLogoError("");
+    setLogoMeta(null);
+  };
+
 
   const validateForm = () => {
     if (!form.companyName.trim()) {
@@ -172,6 +199,8 @@ export default function CompanyDetails({ mode = "setup" }) {
 
       if (form.companyLogoFile) {
         payload.logo = form.companyLogoFile;
+      } else if (form.companyLogoDataUrl === "") {
+        payload.logo = null;
       }
 
       const updatedCompanyRes = await updateCompany(payload);
@@ -203,6 +232,12 @@ export default function CompanyDetails({ mode = "setup" }) {
 
       if (typeof backendError === "string") {
         setError(backendError);
+      } else if (backendError?.logo) {
+        const logoMsg = Array.isArray(backendError.logo)
+          ? backendError.logo.join(" ")
+          : backendError.logo;
+        setLogoError(logoMsg);
+        setError(logoMsg);
       } else if (backendError?.detail) {
         setError(backendError.detail);
       } else {
@@ -320,23 +355,56 @@ export default function CompanyDetails({ mode = "setup" }) {
         </div>
 
         <div className="company-logo-section">
-          <div>
+          <div className="company-logo-header">
             <label>Company Logo</label>
-            <p>Upload a logo for your organization.</p>
+            <p className="company-logo-hint">
+              Upload a logo for your organization. Displayed on payslip headers, PDF exports, and official documents.
+            </p>
+            <span className="company-logo-guidelines">
+              Recommended: Transparent PNG or SVG (crisp JPG/WebP also supported) • Max 2MB • Min 60×30px, Max 2500×2500px • Horizontal or balanced aspect ratio (1:2 to 5:1).
+            </span>
           </div>
 
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/jpg,image/webp"
-            onChange={handleLogoChange}
-          />
+          <div className="company-logo-input-wrapper">
+            <input
+              id="company-logo-edit-input"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+              onChange={handleLogoChange}
+            />
+          </div>
+
+          {logoError && (
+            <div className="company-logo-error" role="alert">
+              {logoError}
+            </div>
+          )}
 
           {form.companyLogoDataUrl && (
-            <img
-              src={form.companyLogoDataUrl}
-              alt="Company logo preview"
-              className="company-logo-preview"
-            />
+            <div className="company-logo-preview-card">
+              <div className="company-logo-preview-frame">
+                <img
+                  src={form.companyLogoDataUrl}
+                  alt="Company logo preview"
+                  className="company-logo-preview"
+                />
+              </div>
+              <div className="company-logo-details">
+                <span className="company-logo-name">{form.companyLogoName || "Company Logo"}</span>
+                {logoMeta && (
+                  <span className="company-logo-meta">
+                    {logoMeta.isSvg ? "SVG Vector" : `${logoMeta.width} × ${logoMeta.height} px (Ratio ${logoMeta.aspectRatio?.toFixed?.(2) || logoMeta.aspectRatio}:1)`} • {logoMeta.sizeFormatted}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="company-logo-remove-btn"
+                  onClick={handleRemoveLogo}
+                >
+                  Remove logo
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </CompanyEditLayout>
@@ -445,23 +513,56 @@ export default function CompanyDetails({ mode = "setup" }) {
       </div>
 
       <div className="company-logo-section">
-        <div>
+        <div className="company-logo-header">
           <label>Company Logo</label>
-          <p>Upload a logo for your organization.</p>
+          <p className="company-logo-hint">
+            Upload a logo for your organization. Displayed on payslip headers, PDF exports, and official documents.
+          </p>
+          <span className="company-logo-guidelines">
+            Recommended: Transparent PNG or SVG (crisp JPG/WebP also supported) • Max 2MB • Min 60×30px, Max 2500×2500px • Horizontal or balanced aspect ratio (1:2 to 5:1).
+          </span>
         </div>
 
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/jpg,image/webp"
-          onChange={handleLogoChange}
-        />
+        <div className="company-logo-input-wrapper">
+          <input
+            id="company-logo-setup-input"
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+            onChange={handleLogoChange}
+          />
+        </div>
+
+        {logoError && (
+          <div className="company-logo-error" role="alert">
+            {logoError}
+          </div>
+        )}
 
         {form.companyLogoDataUrl && (
-          <img
-            src={form.companyLogoDataUrl}
-            alt="Company logo preview"
-            className="company-logo-preview"
-          />
+          <div className="company-logo-preview-card">
+            <div className="company-logo-preview-frame">
+              <img
+                src={form.companyLogoDataUrl}
+                alt="Company logo preview"
+                className="company-logo-preview"
+              />
+            </div>
+            <div className="company-logo-details">
+              <span className="company-logo-name">{form.companyLogoName || "Company Logo"}</span>
+              {logoMeta && (
+                <span className="company-logo-meta">
+                  {logoMeta.isSvg ? "SVG Vector" : `${logoMeta.width} × ${logoMeta.height} px (Ratio ${logoMeta.aspectRatio?.toFixed?.(2) || logoMeta.aspectRatio}:1)`} • {logoMeta.sizeFormatted}
+                </span>
+              )}
+              <button
+                type="button"
+                className="company-logo-remove-btn"
+                onClick={handleRemoveLogo}
+              >
+                Remove logo
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </CompanySetupLayout>
