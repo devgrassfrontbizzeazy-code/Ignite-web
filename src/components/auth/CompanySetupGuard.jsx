@@ -33,11 +33,20 @@ const CompanySetupGuard = () => {
       })();
 
       const role = String(storedUser.role || "").toUpperCase();
-      const isEmployee =
-        role === "MEMBER" ||
-        role === "EMPLOYEE" ||
-        role.includes("MEMBER") ||
-        role.includes("EMPLOYEE");
+      const isOwnerOrAdmin =
+        role === "OWNER" ||
+        role === "ADMIN" ||
+        role === "ADMINISTRATOR";
+      const isEmployee = !isOwnerOrAdmin || Boolean(storedUser.employee_id || storedUser.employeeId || storedUser.is_field_sales);
+      const hasCompany = Boolean(storedUser.company_id || storedUser.companyId || storedUser.company);
+
+      // If user already has an established company or is an employee/manager, unblock UI immediately
+      if (hasCompany || isEmployee) {
+        if (mounted) {
+          setCompanyExists(true);
+          setLoading(false);
+        }
+      }
 
       try {
         const response = await getCompany();

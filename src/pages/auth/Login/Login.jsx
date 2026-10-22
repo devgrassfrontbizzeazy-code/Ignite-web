@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import BackButton from "../../../components/common/BackButton/BackButton";
 import logo from "../../../assets/logo.png";
 import "./Login.css";
 
+import api from "../../../services/api/axios";
 import { loginUser } from "../../../services/api/authAPI";
 import { getCompany } from "../../../services/api/companyAPI";
 
@@ -22,6 +23,11 @@ const Login = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Non-blocking pre-warm ping to wake up cloud backend (Render) while user types credentials
+    api.get("/health/").catch(() => {});
+  }, []);
 
   const getErrorMessage = (err) => {
     const data = err?.response?.data;
@@ -100,11 +106,10 @@ const Login = () => {
       // ------------------------------------------
 
       const role = String(user?.role || "").toUpperCase();
-      const isEmployee =
-        role === "MEMBER" ||
-        role === "EMPLOYEE" ||
-        role.includes("MEMBER") ||
-        role.includes("EMPLOYEE");
+      const isOwnerOrAdmin =
+        role === "OWNER" ||
+        role === "ADMIN" ||
+        role === "ADMINISTRATOR";
 
       // Field Sales employees go directly to Field Sales
       if (user?.is_field_sales === true) {
@@ -114,69 +119,35 @@ const Login = () => {
         return;
       }
 
-      if (isEmployee) {
-        const from = location.state?.from;
+      const hasCompany = Boolean(user?.company_id || user?.companyId || user?.company);
+      const from = location.state?.from;
 
+      // Non-owners (employees, managers, members) or users with an established company navigate directly
+      if (!isOwnerOrAdmin || hasCompany) {
         navigate(from || "/dashboard", {
           replace: true,
         });
         return;
       }
 
+      // If user is owner/admin without a company, check or navigate to company setup
       try {
         const companyResponse = await getCompany();
-
-        /*
-         * Company exists.
-         * User has already completed company setup,
-         * so take them directly to the application.
-         */
-
-        const from = location.state?.from;
-
         navigate(from || "/dashboard", {
           replace: true,
         });
       } catch (companyError) {
         const status = companyError?.response?.status;
-
-        /*
-         * 404 means the authenticated organization admin
-         * has not configured their company profile yet.
-         */
-
         if (status === 404) {
           navigate("/company-setup/company-details", {
             replace: true,
           });
-
           return;
         }
 
-        /*
-         * 403 means the user belongs to an existing company
-         * but lacks company management permissions (e.g. employee / manager).
-         */
-        if (status === 403) {
-          const from = location.state?.from;
-          navigate(from || "/dashboard", {
-            replace: true,
-          });
-          return;
-        }
-
-        /*
-         * Do NOT assume that every error means
-         * company setup is incomplete.
-         *
-         * A 500 / network error is a backend problem.
-         */
-
-        console.error("Company setup check failed:", companyError);
-
-        throw new Error(
-          "Unable to verify your company setup. Please try again.",
-        );
+        navigate(from || "/dashboard", {
+          replace: true,
+        });
       }
     } catch (err) {
       console.error("Login error:", err);
