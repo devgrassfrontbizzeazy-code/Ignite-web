@@ -753,25 +753,43 @@ export default function Sidebar({
      Work Management access
      ------------------------------------------------------------------------ */
 
-  const hasWorkManagementPermission =
-    canViewWorkManagement(user) ||
-    canViewTeams(user) ||
+  const canSeeTeams =
+    isAdminOrOwner ||
+    userPermissions.includes("*") ||
     userPermissions.includes("view_team") ||
     userPermissions.includes("teams.view") ||
     userPermissions.includes("teams.view_team") ||
-    userPermissions.includes("view_task") ||
-    userPermissions.includes("tasks.view");
+    canViewTeams(user) ||
+    workManagementAccess?.canViewTeams === true;
 
   const hasWorkManagementAccess =
     isAdminOrOwner ||
-    hasWorkManagementPermission ||
-    (!teamsLoading && workManagementAccess?.hasAccess === true);
+    userPermissions.includes("*") ||
+    canViewWorkManagement(user) ||
+    userPermissions.includes("view_task") ||
+    userPermissions.includes("tasks.view") ||
+    workManagementAccess?.hasAccess === true ||
+    true; // Universal access to Tasks for all employees
 
   /* ------------------------------------------------------------------------
      HRMS RBAC
      ------------------------------------------------------------------------ */
 
-  const filteredNavItems = NAV_ITEMS.filter((item) => {
+  const filteredNavItems = NAV_ITEMS.map((item) => {
+    if (item.id === "work-management") {
+      const filteredChildren = (item.children || []).filter((child) => {
+        if (child.path === "/teams") {
+          return canSeeTeams;
+        }
+        return true;
+      });
+      return {
+        ...item,
+        children: filteredChildren,
+      };
+    }
+    return item;
+  }).filter((item) => {
     if (item.id === "work-management") {
       return hasWorkManagementAccess;
     }

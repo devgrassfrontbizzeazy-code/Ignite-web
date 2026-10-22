@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ListTodo, Plus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Button from "../../components/common/Button/Button";
 import BackButton from "../../components/common/BackButton/BackButton";
@@ -29,6 +29,7 @@ const getCurrentEmployeeId = () => {
 
 const Tasks = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { notify } = useNotification();
   const { employees, teams, tasks, fetchTasks, fetchTeamMembers, createTask, updateTask, updateTaskStatus, deleteTask } = useTeamsTasks();
 
@@ -40,8 +41,8 @@ const Tasks = () => {
       return {};
     }
   }, []);
-  const rawRole = String(currentUser.role || currentUser.user_type || "").toUpperCase();
-  const isAdmin = currentUser.is_superuser === true || ["OWNER", "ADMIN", "ADMINISTRATOR"].includes(rawRole);
+  const rawRole = String(currentUser?.role || currentUser?.user_type || "").toUpperCase();
+  const isAdmin = currentUser?.is_superuser === true || ["OWNER", "ADMIN", "ADMINISTRATOR"].includes(rawRole);
   const [scope, setScope] = useState("team");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
@@ -54,25 +55,54 @@ const Tasks = () => {
     fetchTasks();
   }, [fetchTasks]);
 
+  useEffect(() => {
+    if (location.state?.editTaskId && tasks.length > 0) {
+      const target = tasks.find((t) => String(t.id) === String(location.state.editTaskId));
+      if (target) {
+        setSelectedTask(target);
+        setDrawerOpen(true);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [location.state, tasks, navigate, location.pathname]);
+
   const accessibleTeams = teams;
 
   const canAssign = isAdmin || teams.some((team) => String(team.teamLeadId ?? "") === String(currentEmployeeId));
 
   const canEdit = (task) => {
     if (!task) return false;
-    return isAdmin || String(task.assignedTo ?? "") === String(currentEmployeeId) || teams.some((team) => String(team.teamLeadId ?? "") === String(currentEmployeeId) && String(team.id) === String(task.teamId));
+    const isAssignedToMe = String(task.assignedTo ?? "") === String(currentEmployeeId);
+    const isCreatedByMe =
+      String(task.createdByEmployeeId ?? task.created_by_employee_id ?? "") === String(currentEmployeeId);
+    const isLeadOfTeam = teams.some(
+      (team) =>
+        String(team.teamLeadId ?? "") === String(currentEmployeeId) &&
+        String(team.id) === String(task.teamId)
+    );
+    return isAdmin || isAssignedToMe || isCreatedByMe || isLeadOfTeam;
   };
 
   const visibleTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return tasks.filter((task) => {
-      const teamMatches = isAdmin || accessibleTeams.some((team) => String(team.id) === String(task.teamId));
-      const scopeMatch = scope === "mine"
-        ? String(task.assignedTo ?? "") === String(currentEmployeeId)
-        : scope === "team"
-          ? accessibleTeams.some((team) => String(team.id) === String(task.teamId))
-          : isAdmin;
+      const isPersonal = !task.teamId;
+      const isAssignedToMe = String(task.assignedTo ?? "") === String(currentEmployeeId);
+      const isCreatedByMe =
+        String(task.createdByEmployeeId ?? task.created_by_employee_id ?? "") === String(currentEmployeeId);
+
+      const teamMatches =
+        isAdmin ||
+        isPersonal ||
+        accessibleTeams.some((team) => String(team.id) === String(task.teamId));
+
+      const scopeMatch =
+        scope === "mine"
+          ? (isAssignedToMe || isCreatedByMe)
+          : scope === "team"
+            ? (accessibleTeams.some((team) => String(team.id) === String(task.teamId)) || isPersonal)
+            : isAdmin;
 
       const searchMatch =
         !query ||
@@ -81,27 +111,44 @@ const Tasks = () => {
         );
 
       const statusMatch = status === "All" || task.status === status;
-      const teamFilterMatch = teamId === "all" || String(task.teamId) === String(teamId);
+
+      let teamFilterMatch = true;
+      if (teamId === "all") {
+        teamFilterMatch = true;
+      } else if (teamId === "personal") {
+        teamFilterMatch = isPersonal;
+      } else {
+        teamFilterMatch = String(task.teamId) === String(teamId);
+      }
 
       return teamMatches && scopeMatch && searchMatch && statusMatch && teamFilterMatch;
     });
   }, [tasks, accessibleTeams, currentEmployeeId, isAdmin, scope, search, status, teamId]);
 
+  const teamFilterOptions = useMemo(() => {
+    return [
+      { value: "all", label: "All tasks" },
+      { value: "personal", label: "Personal Tasks" },
+      ...accessibleTeams.map((team) => ({
+        value: team.id,
+        label: team.teamName || team.name,
+      })),
+    ];
+  }, [accessibleTeams]);
+
   const submitTask = async (data) => {
     try {
+      const payload = {
+        ...data,
+        teamId: data.teamId ? Number(data.teamId) : null,
+        assignedTo: canAssign ? (data.assignedTo || currentEmployeeId) : currentEmployeeId,
+      };
+
       if (selectedTask) {
-        await updateTask(selectedTask.id, {
-          ...data,
-          teamId: data.teamId,
-          assignedTo: data.assignedTo,
-        });
+        await updateTask(selectedTask.id, payload);
         notify.success("Task updated successfully.");
       } else {
-        await createTask({
-          ...data,
-          teamId: data.teamId,
-          assignedTo: canAssign ? data.assignedTo : currentEmployeeId,
-        });
+        await createTask(payload);
         notify.success("Task created successfully.");
       }
 
@@ -148,7 +195,7 @@ const Tasks = () => {
       <PageHeader
         eyebrow="Work Management"
         title="Tasks"
-        description="Manage team work, assignments and progress."
+        description="Manage work, personal tasks, assignments and progress."
         action={
           <Button variant="primary" onClick={() => { setSelectedTask(null); setDrawerOpen(true); }}>
             <Plus size={16} /> Create Task
@@ -165,8 +212,8 @@ const Tasks = () => {
         <Select
           value={teamId}
           onChange={setTeamId}
-          options={[{ value: "all", label: "All teams" }, ...accessibleTeams.map((team) => ({ value: team.id, label: team.teamName || team.name }))]}
-          placeholder="Team"
+          options={teamFilterOptions}
+          placeholder="Filter by Team"
         />
 
         <div className="tasks-page__filters">

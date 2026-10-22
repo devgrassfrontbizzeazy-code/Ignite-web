@@ -123,9 +123,28 @@ const TaskTable = ({
 
                   {/* Team */}
                   <td>
-                    <span className="task-table__team">
-                      {task.teamName || "—"}
-                    </span>
+                    {task.teamName && task.teamName !== "Personal" ? (
+                      <span className="task-table__team">
+                        {task.teamName}
+                      </span>
+                    ) : (
+                      <span
+                        className="task-table__team task-table__team--personal"
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "2px 8px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          backgroundColor: "#f3f4f6",
+                          color: "#4b5563",
+                        }}
+                      >
+                        Personal
+                      </span>
+                    )}
                   </td>
 
                   {/* Assignee */}
