@@ -280,8 +280,8 @@ const updatedCompany = response?.data || {};
   return (
     <CompanySetupLayout
       title="Company Address"
-      description="Add your company's registered address."
-      currentStep={2}
+      subtitle="Add your company's registered address."
+      currentStep="address"
       onBack={() => navigate("/company-setup/company-details")}
       onNext={handleSubmit}
       nextLabel="Continue"

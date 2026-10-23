@@ -414,8 +414,8 @@ export default function CompanyDetails({ mode = "setup" }) {
   return (
     <CompanySetupLayout
       title="Company Details"
-      description="Tell us about your company."
-      currentStep={1}
+      subtitle="Tell us about your company."
+      currentStep="company-details"
       onNext={handleSubmit}
       nextLabel="Continue"
     >

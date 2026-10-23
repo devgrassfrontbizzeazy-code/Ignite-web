@@ -22,6 +22,7 @@ import ChartWidget from "./widgets/generic/ChartWidget/ChartWidget";
 
 import {
   canViewEmployees,
+  canViewAllEmployees,
   canViewDepartments,
   canViewDesignations,
   isSuperOrAdmin,
@@ -549,7 +550,7 @@ export const dashboardWidgets = [
     enabled: true,
     component: SummaryWidget,
 
-    canShow: () => canViewEmployees(),
+    canShow: () => canViewAllEmployees(),
 
     config: {
       width: 4,

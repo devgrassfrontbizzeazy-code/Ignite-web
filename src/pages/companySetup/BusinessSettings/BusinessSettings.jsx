@@ -345,8 +345,8 @@ export default function BusinessSettings({ mode = "setup" }) {
   return (
     <CompanySetupLayout
       title="Business Settings"
-      description="Configure your organization's basic business preferences."
-      currentStep={3}
+      subtitle="Configure your organization's basic business preferences."
+      currentStep="business-settings"
       onBack={() => navigate("/company-setup/address")}
       onNext={handleSubmit}
       nextLabel="Continue"

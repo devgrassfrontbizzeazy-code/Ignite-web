@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   FiClock,
   FiLogIn,
@@ -8,6 +8,7 @@ import {
 } from "react-icons/fi";
 
 import "./AttendanceActionCard.css";
+import useLiveAttendanceClock from "../useLiveAttendanceClock";
 
 const STATUS_CONFIG = {
   NOT_STARTED: {
@@ -45,7 +46,7 @@ const formatTime = (date) => {
       minute: "2-digit",
       hour12: true,
     }).format(new Date(date));
-  } catch (e) {
+  } catch {
     return "--:--";
   }
 };
@@ -78,26 +79,12 @@ const AttendanceActionCard = ({
   disabled = false,
   loading = false,
 }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Compute live worked seconds from authoritative timestamps
-  const liveWorkedSeconds = useMemo(() => {
-    if (status === "WORKING" && checkInTime) {
-      const elapsed = Math.floor(
-        (currentTime.getTime() - new Date(checkInTime).getTime()) / 1000
-      );
-      return Math.max(elapsed - breakSeconds, 0);
-    }
-    return Math.max(workedSeconds, 0);
-  }, [currentTime, status, checkInTime, breakSeconds, workedSeconds]);
+  const { workingSeconds: liveWorkedSeconds, currentTime } =
+    useLiveAttendanceClock({
+      workingDuration: workedSeconds,
+      checkInAt: checkInTime,
+      status,
+    });
 
   // Compute live break seconds when on break
   const liveBreakSeconds = useMemo(() => {

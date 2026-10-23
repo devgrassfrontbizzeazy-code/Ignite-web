@@ -83,6 +83,37 @@ export const canViewEmployees = (user = null) => {
   ], user);
 };
 
+export const canViewAllEmployees = (user = null) => {
+  const targetUser = user || getCurrentUser();
+  if (isSuperOrAdmin(targetUser)) return true;
+
+  return getUserPermissions(targetUser).some((permission) => {
+    if (typeof permission === "string") {
+      return ["employees.view_all", "hrms.employees.view_all"].includes(
+        permission.toLowerCase(),
+      );
+    }
+
+    if (!permission || typeof permission !== "object") {
+      return false;
+    }
+
+    const module = String(permission.module || "").toLowerCase();
+    const functionality = String(
+      permission.functionality || permission.resource || "",
+    ).toLowerCase();
+    const action = String(permission.action || "").toLowerCase();
+    const scope = String(permission.scope || "").toLowerCase();
+
+    return (
+      (module === "hrms" || module === "employees") &&
+      functionality === "employees" &&
+      action === "view" &&
+      (scope === "all" || scope === "company")
+    );
+  });
+};
+
 export const canCreateEmployees = (user = null) => {
   return hasAnyPermission([
     "add_user",
@@ -565,4 +596,3 @@ export const canManagePayroll = (user = null) => {
     "account.payroll.manage",
   ], user);
 };
-

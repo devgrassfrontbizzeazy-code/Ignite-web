@@ -385,7 +385,7 @@ const TaskForm = ({
                 gap: "8px",
               }}
             >
-              <span>📌 Personal Task (No Team)</span>
+              <span> Personal Task (No Team)</span>
             </div>
           ) : (
             <Select

@@ -1,5 +1,6 @@
 import { FiEye, FiEdit2, FiTrash2, FiChevronDown } from "react-icons/fi";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import RowActions from "../../common/RowActions/RowActions";
 import "./TaskTable.css";
 
@@ -15,6 +16,93 @@ const TaskTable = ({
   canDelete = () => true,
 }) => {
   const [openStatusId, setOpenStatusId] = useState(null);
+  const [statusMenuPosition, setStatusMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    maxHeight: null,
+  });
+  const statusButtonRef = useRef(null);
+  const statusMenuRef = useRef(null);
+  const openStatusTask = tasks.find((task) => task.id === openStatusId);
+
+  const calculateStatusMenuPosition = () => {
+    const button = statusButtonRef.current;
+    if (!button) return;
+
+    const buttonRect = button.getBoundingClientRect();
+    const menu = statusMenuRef.current;
+    const menuWidth = menu?.offsetWidth || 145;
+    const menuHeight = menu?.offsetHeight || STATUS_OPTIONS.length * 32 + 12;
+    const gap = 6;
+    const viewportPadding = 8;
+    const spaceAbove = buttonRect.top - viewportPadding;
+    const spaceBelow = window.innerHeight - buttonRect.bottom - viewportPadding;
+    const opensAbove =
+      spaceBelow < menuHeight && spaceAbove > spaceBelow;
+    const availableHeight = Math.max(
+      (opensAbove ? spaceAbove : spaceBelow) - gap,
+      0,
+    );
+
+    const top = opensAbove
+      ? Math.max(viewportPadding, buttonRect.top - Math.min(menuHeight, availableHeight) - gap)
+      : Math.min(
+          buttonRect.bottom + gap,
+          window.innerHeight - viewportPadding - Math.min(menuHeight, availableHeight),
+        );
+    const maxLeft = Math.max(
+      viewportPadding,
+      window.innerWidth - menuWidth - viewportPadding,
+    );
+    const left = Math.min(Math.max(buttonRect.left, viewportPadding), maxLeft);
+
+    setStatusMenuPosition({
+      top: Math.round(top),
+      left: Math.round(left),
+      maxHeight: Math.floor(availableHeight),
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (openStatusId === null) return undefined;
+
+    calculateStatusMenuPosition();
+    const frame = requestAnimationFrame(calculateStatusMenuPosition);
+    window.addEventListener("resize", calculateStatusMenuPosition);
+    window.addEventListener("scroll", calculateStatusMenuPosition, true);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", calculateStatusMenuPosition);
+      window.removeEventListener("scroll", calculateStatusMenuPosition, true);
+    };
+  }, [openStatusId]);
+
+  useEffect(() => {
+    if (openStatusId === null) return undefined;
+
+    const handleOutsideClick = (event) => {
+      const clickedButton = statusButtonRef.current?.contains(event.target);
+      const clickedMenu = statusMenuRef.current?.contains(event.target);
+
+      if (!clickedButton && !clickedMenu) {
+        setOpenStatusId(null);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setOpenStatusId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openStatusId]);
 
   const formatDate = (date) => {
     if (!date) return "—";
@@ -185,6 +273,7 @@ const TaskTable = ({
                     {statusEditable ? (
                       <div className="task-table__status-control">
                         <button
+                          ref={openStatusId === task.id ? statusButtonRef : null}
                           type="button"
                           className={`task-table__status-button task-table__status--${getStatusClass(
                             status
@@ -200,36 +289,6 @@ const TaskTable = ({
                           <span>{status}</span>
                           <FiChevronDown size={13} />
                         </button>
-
-                        {openStatusId === task.id && (
-                          <div
-                            className="task-table__status-menu"
-                            role="listbox"
-                          >
-                            {STATUS_OPTIONS.map((option) => (
-                              <button
-                                type="button"
-                                key={option}
-                                className={
-                                  option === status
-                                    ? "is-selected"
-                                    : ""
-                                }
-                                onClick={() =>
-                                  handleStatusChange(task, option)
-                                }
-                              >
-                                <span>{option}</span>
-
-                                {option === status && (
-                                  <span className="task-table__status-check">
-                                    ✓
-                                  </span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     ) : (
                       <span
@@ -279,6 +338,45 @@ const TaskTable = ({
           </tbody>
         </table>
       </div>
+      {openStatusId !== null &&
+        createPortal(
+          <div
+            ref={statusMenuRef}
+            className="task-table__status-menu"
+            role="listbox"
+            style={{
+              top: `${statusMenuPosition.top}px`,
+              left: `${statusMenuPosition.left}px`,
+              maxHeight:
+                statusMenuPosition.maxHeight === null
+                  ? undefined
+                  : `${statusMenuPosition.maxHeight}px`,
+            }}
+          >
+            {openStatusTask &&
+              STATUS_OPTIONS.map((option) => (
+                  <button
+                    type="button"
+                    key={option}
+                    className={
+                      option === (openStatusTask.status || "To Do")
+                        ? "is-selected"
+                        : ""
+                    }
+                    onClick={() =>
+                      handleStatusChange(openStatusTask, option)
+                    }
+                  >
+                    <span>{option}</span>
+
+                    {option === (openStatusTask.status || "To Do") && (
+                      <span className="task-table__status-check">✓</span>
+                    )}
+                  </button>
+                ))}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

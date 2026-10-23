@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
-
 import { Clock3, CircleCheck, LogIn, LogOut } from "lucide-react";
 
 import DashboardWidget from "../../../DashboardWidget/DashboardWidget";
+import useLiveAttendanceClock from "../../../../attendance/useLiveAttendanceClock";
 import "./AttendanceActionWidget.css";
 
 const formatWorkingTime = (seconds = 0) => {
@@ -90,31 +89,16 @@ const getAttendanceState = (attendance) => {
 
 const AttendanceActionWidget = ({ data, loading }) => {
   const attendance = data?.attendance;
-  const [liveWorkingDuration, setLiveWorkingDuration] = useState(0);
-
-  useEffect(() => {
-    const backendDuration = Number(attendance?.workingDuration || 0);
-
-    setLiveWorkingDuration(backendDuration);
-
-    if (!attendance?.checkInAt || attendance?.checkOutAt) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setLiveWorkingDuration((current) => current + 1);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [
-    attendance?.workingDuration,
-    attendance?.checkInAt,
-    attendance?.checkOutAt,
-  ]);
+  const { workingSeconds } = useLiveAttendanceClock({
+    workingDuration: attendance?.workingDuration,
+    checkInAt: attendance?.checkInAt,
+    checkOutAt: attendance?.checkOutAt,
+    status: attendance?.status,
+  });
 
   const { punchIn, punchOut, attendanceActionLoading } = data || {};
 
- const workingDuration = liveWorkingDuration;
+  const workingDuration = workingSeconds;
 
   const shiftDuration = getShiftDurationSeconds(attendance?.shift);
 
@@ -124,8 +108,6 @@ const AttendanceActionWidget = ({ data, loading }) => {
   );
 
   const attendanceState = getAttendanceState(attendance);
-
-  const isNotStarted = attendanceState === "not-started";
 
   const isWorking = attendanceState === "working";
 

@@ -1,8 +1,7 @@
-import React from 'react';
 import logo from '../../../assets/logo.png';
 import './CompanySetupLayout.css';
 
-export const SETUP_STEPS = [
+const SETUP_STEPS = [
   { id: 'company-details', label: 'Company Details' },
   { id: 'address', label: 'Address' },
   { id: 'business-settings', label: 'Business Settings' },
@@ -37,8 +36,19 @@ function CheckIcon() {
  * children: page-specific content (form, review sections, success state...)
  * cardClassName: optional extra class for the card (e.g. to widen the Review page)
  */
-function CompanySetupLayout({ currentStep, title, subtitle, children, cardClassName = '' }) {
+function CompanySetupLayout({
+  currentStep,
+  title,
+  subtitle,
+  description,
+  children,
+  cardClassName = '',
+  onBack,
+  onNext,
+  nextLabel = 'Continue',
+}) {
   const currentIndex = SETUP_STEPS.findIndex((step) => step.id === currentStep);
+  const pageDescription = subtitle || description;
 
   return (
     <div className="setup-page">
@@ -79,13 +89,38 @@ function CompanySetupLayout({ currentStep, title, subtitle, children, cardClassN
 
       <main className="setup-content">
         <div className={`setup-card ${cardClassName}`.trim()}>
-          {(title || subtitle) && (
+          {(title || pageDescription) && (
             <div className="setup-card-header">
               {title && <h1>{title}</h1>}
-              {subtitle && <p>{subtitle}</p>}
+              {pageDescription && <p>{pageDescription}</p>}
             </div>
           )}
-          {children}
+          {onNext ? (
+            <form onSubmit={onNext}>
+              {children}
+              <div className="setup-actions">
+                {onBack ? (
+                  <button
+                    type="button"
+                    className="setup-btn setup-btn-secondary"
+                    onClick={onBack}
+                  >
+                    Back
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <button
+                  type="submit"
+                  className="setup-btn setup-btn-primary"
+                >
+                  {nextLabel}
+                </button>
+              </div>
+            </form>
+          ) : (
+            children
+          )}
         </div>
       </main>
     </div>
