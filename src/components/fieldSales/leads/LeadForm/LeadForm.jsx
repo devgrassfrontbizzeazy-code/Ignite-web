@@ -4,17 +4,31 @@ import {
   AlertCircle,
   Briefcase,
   Calendar,
+  Check,
+  ChevronDown,
   Clock,
   Compass,
+  Globe,
   Mail,
   MapPin,
   Navigation,
   Phone,
   Save,
+  Search,
   ShieldAlert,
   User,
   Users,
+  X,
 } from "lucide-react";
+import {
+  INDIAN_STATES,
+  STATE_CITIES,
+  getSectorsForCity,
+  searchGooglePlaces,
+  getGooglePlaceDetails,
+  reverseGeocodeGoogle,
+  forwardGeocodeGoogle,
+} from "../../../../utils/locationData";
 
 import Button from "../../../common/Button/Button";
 import BackButton from "../../../common/BackButton/BackButton";
@@ -28,6 +42,7 @@ import {
   updateFieldSalesLead,
   getFieldSalesCurrentEmployee,
   checkFieldSalesLeadDuplicate,
+  pingFieldSalesLocation,
 } from "../../../../services/api/fieldSalesAPI";
 import { useNotification } from "../../../../context/NotificationContext";
 
@@ -44,6 +59,13 @@ const defaultFormData = {
   email: "",
   phone: "",
   company_name: "",
+  house_number: "",
+  street: "",
+  sector: "",
+  city: "Gurugram",
+  state: "Haryana",
+  country: "India",
+  pincode: "",
   address: "",
   latitude: "",
   longitude: "",
@@ -80,8 +102,17 @@ const LeadForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  // Location detection state
+  // Location detection state & Google Places
   const [isLocating, setIsLocating] = useState(false);
+  const [addressSearch, setAddressSearch] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+  const [showSectorPicker, setShowSectorPicker] = useState(false);
+  const [sectorFilter, setSectorFilter] = useState("");
+
+  const googleApiKey =
+    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
+    "AIzaSyDzLPU1X8UqB7F_3jyZmGg-9o1VnWEWBv8";
 
   // Duplicate Lead detection state (Case 13)
   const [duplicateInfo, setDuplicateInfo] = useState(null);
@@ -151,6 +182,13 @@ const LeadForm = ({
             email: lead.email || "",
             phone: lead.phone || "",
             company_name: lead.company_name || "",
+            house_number: lead.house_number || "",
+            street: lead.street || "",
+            sector: lead.sector || "",
+            city: lead.city || "Gurugram",
+            state: lead.state || "Haryana",
+            country: lead.country || "India",
+            pincode: lead.pincode || "",
             address: lead.address || "",
             latitude: lead.latitude != null ? String(lead.latitude) : "",
             longitude: lead.longitude != null ? String(lead.longitude) : "",
@@ -269,12 +307,42 @@ const LeadForm = ({
     }));
   };
 
-  // "Use My Current Location" Handler
+  const getFullAddress = (data = formData) => {
+    const parts = [
+      data.house_number?.trim(),
+      data.street?.trim(),
+      data.sector?.trim(),
+      data.city?.trim(),
+      data.state?.trim(),
+      data.country?.trim() && data.pincode?.trim()
+        ? `${data.country.trim()} - ${data.pincode.trim()}`
+        : data.country?.trim() || data.pincode?.trim(),
+    ].filter(Boolean);
+    return parts.join(", ");
+  };
+
+  const availableSectors = getSectorsForCity(formData.city);
+  const filteredSectors = sectorFilter.trim()
+    ? availableSectors.filter((s) =>
+        s.toLowerCase().includes(sectorFilter.trim().toLowerCase())
+      )
+    : availableSectors;
+
+  const availableCities = STATE_CITIES[formData.state] || [
+    "Gurugram",
+    "Faridabad",
+    "Noida",
+    "Greater Noida",
+    "Delhi",
+    "Chandigarh",
+  ];
+
+  // "Use My Current Location" Handler (Google Reverse Geocoding)
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
       showNotification({
         type: "error",
-        message: "Geolocation is not supported by your browser.",
+        message: "Geolocation is not supported by your browser. Please enter location manually.",
       });
       return;
     }
@@ -284,6 +352,7 @@ const LeadForm = ({
       async (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        const accuracy = Math.round(position.coords.accuracy || 10);
 
         setFormData((prev) => ({
           ...prev,
@@ -297,43 +366,126 @@ const LeadForm = ({
           longitude: "",
         }));
 
-        // Reverse-geocoding via OpenStreetMap Nominatim
         try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-          );
-          const data = await res.json();
-          if (data && data.display_name) {
+          const geo = await reverseGeocodeGoogle(lat, lng, googleApiKey);
+          if (geo) {
             setFormData((prev) => ({
               ...prev,
-              address: prev.address ? prev.address : data.display_name,
+              house_number: geo.houseNumber || prev.house_number,
+              street: geo.street || prev.street,
+              sector: geo.sector || prev.sector,
+              city: geo.city || prev.city,
+              state: geo.state || prev.state,
+              country: geo.country || prev.country,
+              pincode: geo.pincode || prev.pincode,
+              address: geo.formattedAddress || prev.address,
             }));
-            setErrors((prev) => ({ ...prev, address: "" }));
+            setAddressSearch(geo.formattedAddress || "");
+            setErrors((prev) => ({
+              ...prev,
+              city: "",
+              state: "",
+              sector: "",
+              pincode: "",
+              address: "",
+            }));
           }
-        } catch {
-          // Address can still be typed manually if reverse geocode fails
+        } catch (err) {
+          console.error("Reverse geocode error:", err);
+        }
+
+        if (currentUserInfo?.is_sales_person) {
+          pingFieldSalesLocation({ latitude: lat, longitude: lng, accuracy }).catch(() => {});
         }
 
         showNotification({
           type: "success",
-          message: `Current location detected: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+          message: `Location detected via Google Maps (±${accuracy}m)`,
         });
         setIsLocating(false);
       },
       (err) => {
         console.error("GPS location error:", err);
-        let msg = "Could not retrieve your GPS location. Please ensure location access is enabled.";
-        if (err.code === 1) {
-          msg = "Location permission denied. Please allow location access in your browser settings.";
-        }
         showNotification({
           type: "error",
-          message: msg,
+          message: "Could not retrieve GPS location. Please enter address manually.",
         });
         setIsLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
+  };
+
+  // Google Places Search
+  const handleAddressSearchChange = async (e) => {
+    const val = e.target.value;
+    setAddressSearch(val);
+    if (!val || val.trim().length < 2) {
+      setSearchSuggestions([]);
+      return;
+    }
+    setIsSearchingPlaces(true);
+    const results = await searchGooglePlaces(val, googleApiKey);
+    setSearchSuggestions(results);
+    setIsSearchingPlaces(false);
+  };
+
+  const handleSelectPlace = async (item) => {
+    setAddressSearch(item.fullText || item.primaryText);
+    setSearchSuggestions([]);
+    const details = await getGooglePlaceDetails(item.placeId, googleApiKey);
+    if (details) {
+      setFormData((prev) => ({
+        ...prev,
+        house_number: details.houseNumber || prev.house_number,
+        street: details.street || prev.street,
+        sector: details.sector || prev.sector,
+        city: details.city || prev.city,
+        state: details.state || prev.state,
+        country: details.country || prev.country,
+        pincode: details.pincode || prev.pincode,
+        address: details.formattedAddress || prev.address,
+        latitude: details.latitude != null ? String(details.latitude) : prev.latitude,
+        longitude: details.longitude != null ? String(details.longitude) : prev.longitude,
+      }));
+      setErrors((prev) => ({
+        ...prev,
+        city: "",
+        state: "",
+        sector: "",
+        pincode: "",
+        address: "",
+      }));
+    }
+  };
+
+  const autoDetectPincode = async (sectorName, cityName, stateName) => {
+    if (formData.pincode && formData.pincode.trim().length === 6) return;
+    const targetSector = sectorName || formData.sector;
+    const targetCity = cityName || formData.city;
+    const targetState = stateName || formData.state;
+    if (!targetSector && !targetCity) return;
+
+    try {
+      const query = [targetSector, targetCity, targetState, "India"]
+        .filter(Boolean)
+        .join(", ");
+      const geo = await forwardGeocodeGoogle(query, googleApiKey);
+      if (geo?.pincode) {
+        setFormData((prev) => {
+          if (prev.pincode && prev.pincode.trim().length === 6) return prev;
+          return {
+            ...prev,
+            pincode: geo.pincode,
+            latitude: geo.latitude != null ? String(geo.latitude) : prev.latitude,
+            longitude: geo.longitude != null ? String(geo.longitude) : prev.longitude,
+          };
+        });
+        setErrors((prev) => ({ ...prev, pincode: "" }));
+      }
+    } catch (e) {
+      console.warn("Auto detect pincode error:", e);
+    }
   };
 
   const validate = () => {
@@ -355,16 +507,20 @@ const LeadForm = ({
       newErrors.phone = "Phone number is required.";
     }
 
-    if (!formData.address.trim()) {
-      newErrors.address = "Address is required.";
+    if (!formData.city.trim()) {
+      newErrors.city = "City is required.";
     }
 
-    if (!formData.latitude) {
-      newErrors.latitude = "Latitude is required.";
+    if (!formData.state.trim()) {
+      newErrors.state = "State is required.";
     }
 
-    if (!formData.longitude) {
-      newErrors.longitude = "Longitude is required.";
+    if (!formData.sector.trim()) {
+      newErrors.sector = "Sector / Area is required.";
+    }
+
+    if (!formData.pincode.trim()) {
+      newErrors.pincode = "Pincode is required.";
     }
 
     if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -407,15 +563,39 @@ const LeadForm = ({
         return `${String(h).padStart(2, "0")}:${minutes}`;
       };
 
+      const fullAddress = getFullAddress(formData) || formData.address.trim();
+
+      let finalLat = formData.latitude ? parseFloat(formData.latitude) : null;
+      let finalLng = formData.longitude ? parseFloat(formData.longitude) : null;
+
+      // Automatically forward-geocode address via Google Maps if coordinates not yet obtained
+      if ((finalLat == null || finalLng == null) && fullAddress) {
+        const geo = await forwardGeocodeGoogle(fullAddress, googleApiKey);
+        if (geo?.latitude && geo?.longitude) {
+          finalLat = parseFloat(geo.latitude);
+          finalLng = parseFloat(geo.longitude);
+        }
+      }
+
       const payload = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         company_name: formData.company_name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
-        address: formData.address.trim(),
-        latitude: !isNaN(parseFloat(formData.latitude)) ? parseFloat(formData.latitude) : null,
-        longitude: !isNaN(parseFloat(formData.longitude)) ? parseFloat(formData.longitude) : null,
+
+        address: fullAddress,
+        house_number: formData.house_number?.trim() || "",
+        street: formData.street?.trim() || "",
+        sector: formData.sector?.trim() || "",
+        city: formData.city?.trim() || "",
+        state: formData.state?.trim() || "",
+        country: formData.country?.trim() || "India",
+        pincode: formData.pincode?.trim() || "",
+
+        latitude: finalLat,
+        longitude: finalLng,
+
         assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
         priority: formData.priority || "High",
         visit_date: formData.visit_date || getToday(),
@@ -676,7 +856,7 @@ const LeadForm = ({
         </section>
 
         {/* ================================================================
-            SECTION 2 — LEAD LOCATION & "USE CURRENT LOCATION"
+            SECTION 2 — LEAD LOCATION & GOOGLE MAPS ADDRESS
         ================================================================= */}
         <section className="lead-form__section lead-form__section--purple">
           <div className="lead-form__section-heading lead-form__section-heading--split">
@@ -688,7 +868,7 @@ const LeadForm = ({
               <div>
                 <h2>Lead Location</h2>
                 <p>
-                  Location used to validate field visit check-in within allowed GPS radius.
+                  Verified with Google Maps API. Coordinates are automatically resolved.
                 </p>
               </div>
             </div>
@@ -699,7 +879,7 @@ const LeadForm = ({
               className="lead-form__locate-btn"
               onClick={handleUseCurrentLocation}
               disabled={isLocating}
-              title="Auto-fill device GPS coordinates and address"
+              title="Auto-fill device GPS coordinates and address via Google Maps"
             >
               <Navigation size={15} className={isLocating ? "lead-form__spin" : ""} />
               <span>{isLocating ? "Acquiring GPS..." : "Use My Current Location"}</span>
@@ -716,75 +896,292 @@ const LeadForm = ({
           )}
 
           <div className="lead-form__grid">
-            <div
-              className={`${getFieldClass("address")} lead-form__field--full`}
-            >
-              <label htmlFor="address">
-                Address <span>*</span>
+            {/* Google Places Search Box */}
+            <div className="lead-form__search-wrap">
+              <label htmlFor="address_search">
+                Search Address with Google Maps
               </label>
-
-              <div className="lead-form__input-wrap lead-form__input-wrap--textarea">
-                <MapPin size={16} />
-                <textarea
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="Enter complete client office address"
-                  rows={3}
+              <div className="lead-form__search-input-wrap">
+                <Search size={16} />
+                <input
+                  id="address_search"
+                  type="text"
+                  value={addressSearch}
+                  onChange={handleAddressSearchChange}
+                  placeholder="Type building, landmark or area (Google Maps Autocomplete)..."
                 />
+                {addressSearch && (
+                  <button
+                    type="button"
+                    className="lead-form__search-clear"
+                    onClick={() => {
+                      setAddressSearch("");
+                      setSearchSuggestions([]);
+                    }}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
               </div>
 
-              {errors.address && <small>{errors.address}</small>}
-
-              {isOutsideArea && (
-                <span className="lead-form__field-hint lead-form__field-hint--warn">
-                  ⚠️ This address appears outside your primary assigned territory ({currentEmpArea}). The lead will be submitted with an outside territory flag for Manager visibility.
-                </span>
+              {/* Suggestions */}
+              {searchSuggestions.length > 0 && (
+                <div className="lead-form__search-suggestions">
+                  {searchSuggestions.map((item, idx) => (
+                    <div
+                      key={item.placeId || idx}
+                      className="lead-form__search-item"
+                      onClick={() => handleSelectPlace(item)}
+                    >
+                      <MapPin size={16} />
+                      <div>
+                        <div className="lead-form__search-primary">{item.primaryText}</div>
+                        {item.secondaryText && (
+                          <div className="lead-form__search-secondary">
+                            {item.secondaryText}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
 
-            <div className={getFieldClass("latitude")}>
-              <label htmlFor="latitude">
-                Latitude <span>*</span>
+            {/* Country */}
+            <div className={getFieldClass("country")}>
+              <label htmlFor="country">
+                Country <span>*</span>
               </label>
+              <div className="lead-form__input-wrap">
+                <Globe size={16} />
+                <input
+                  id="country"
+                  name="country"
+                  type="text"
+                  value={formData.country}
+                  onChange={handleChange}
+                  placeholder="India"
+                />
+              </div>
+              {errors.country && <small>{errors.country}</small>}
+            </div>
 
+            {/* State */}
+            <div className={getFieldClass("state")}>
+              <label htmlFor="state">
+                State <span>*</span>
+              </label>
+              <div className="lead-form__input-wrap">
+                <Compass size={16} />
+                <select
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={(e) => {
+                    const st = e.target.value;
+                    const cities = STATE_CITIES[st] || [];
+                    setFormData((prev) => ({
+                      ...prev,
+                      state: st,
+                      city: cities[0] || prev.city,
+                    }));
+                  }}
+                >
+                  {INDIAN_STATES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {errors.state && <small>{errors.state}</small>}
+            </div>
+
+            {/* City */}
+            <div className={getFieldClass("city")}>
+              <label htmlFor="city">
+                City <span>*</span>
+              </label>
               <div className="lead-form__input-wrap">
                 <MapPin size={16} />
                 <input
-                  id="latitude"
-                  name="latitude"
-                  type="number"
-                  step="any"
-                  value={formData.latitude}
+                  id="city"
+                  name="city"
+                  type="text"
+                  value={formData.city}
                   onChange={handleChange}
-                  placeholder="e.g. 28.459500"
+                  placeholder="e.g. Gurugram, Noida, Delhi"
+                  list="city-suggestions"
                 />
+                <datalist id="city-suggestions">
+                  {availableCities.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
               </div>
-
-              {errors.latitude && <small>{errors.latitude}</small>}
+              {errors.city && <small>{errors.city}</small>}
             </div>
 
-            <div className={getFieldClass("longitude")}>
-              <label htmlFor="longitude">
-                Longitude <span>*</span>
-              </label>
-
+            {/* Sector / Area / Locality */}
+            <div className={getFieldClass("sector")}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                <label htmlFor="sector" style={{ margin: 0 }}>
+                  Sector / Area / Locality <span>*</span>
+                </label>
+                {availableSectors.length > 0 && (
+                  <button
+                    type="button"
+                    className="lead-form__toggle-btn"
+                    onClick={() => setShowSectorPicker(!showSectorPicker)}
+                  >
+                    {showSectorPicker
+                      ? "Hide Sectors"
+                      : `View ${availableSectors.length} Sectors in ${formData.city}`}
+                  </button>
+                )}
+              </div>
               <div className="lead-form__input-wrap">
                 <MapPin size={16} />
                 <input
-                  id="longitude"
-                  name="longitude"
-                  type="number"
-                  step="any"
-                  value={formData.longitude}
+                  id="sector"
+                  name="sector"
+                  type="text"
+                  value={formData.sector}
                   onChange={handleChange}
-                  placeholder="e.g. 77.026600"
+                  onBlur={() => autoDetectPincode()}
+                  placeholder="e.g. Sector 57, DLF Cyber City, Sector 24"
                 />
               </div>
-
-              {errors.longitude && <small>{errors.longitude}</small>}
+              {errors.sector && <small>{errors.sector}</small>}
             </div>
+
+            {/* Sectors Browser Box for selected City */}
+            {showSectorPicker && availableSectors.length > 0 && (
+              <div className="lead-form__sectors-box">
+                <div className="lead-form__sectors-filter-wrap">
+                  <Search size={14} />
+                  <input
+                    type="text"
+                    value={sectorFilter}
+                    onChange={(e) => setSectorFilter(e.target.value)}
+                    placeholder={`Filter sectors in ${formData.city}...`}
+                  />
+                  {sectorFilter && (
+                    <button
+                      type="button"
+                      className="lead-form__search-clear"
+                      onClick={() => setSectorFilter("")}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="lead-form__sectors-chips">
+                  {filteredSectors.map((sec) => {
+                    const isSelected =
+                      formData.sector.toLowerCase() === sec.toLowerCase();
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        className={`lead-form__sector-chip ${
+                          isSelected ? "lead-form__sector-chip--active" : ""
+                        }`}
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, sector: sec }));
+                          setShowSectorPicker(false);
+                          setErrors((prev) => ({ ...prev, sector: "" }));
+                          autoDetectPincode(sec, formData.city, formData.state);
+                        }}
+                      >
+                        {sec}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Street / Road / Landmark (Optional) */}
+            <div className={getFieldClass("street")}>
+              <label htmlFor="street">Street / Road / Landmark (Optional)</label>
+              <div className="lead-form__input-wrap">
+                <MapPin size={16} />
+                <input
+                  id="street"
+                  name="street"
+                  type="text"
+                  value={formData.street}
+                  onChange={handleChange}
+                  placeholder="e.g. Golf Course Road"
+                />
+              </div>
+            </div>
+
+            {/* House / Flat / Building No (Optional) */}
+            <div className={getFieldClass("house_number")}>
+              <label htmlFor="house_number">House / Flat / Building No (Optional)</label>
+              <div className="lead-form__input-wrap">
+                <MapPin size={16} />
+                <input
+                  id="house_number"
+                  name="house_number"
+                  type="text"
+                  value={formData.house_number}
+                  onChange={handleChange}
+                  placeholder="e.g. Plot 42, 3rd Floor"
+                />
+              </div>
+            </div>
+
+            {/* Pincode */}
+            <div className={getFieldClass("pincode")}>
+              <label htmlFor="pincode">
+                Pincode / Postal Code <span>*</span>
+              </label>
+              <div className="lead-form__input-wrap">
+                <MapPin size={16} />
+                <input
+                  id="pincode"
+                  name="pincode"
+                  type="text"
+                  maxLength={6}
+                  value={formData.pincode}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setFormData((prev) => ({ ...prev, pincode: val }));
+                    setErrors((prev) => ({ ...prev, pincode: "" }));
+                  }}
+                  placeholder="e.g. 122001"
+                />
+              </div>
+              {errors.pincode && <small>{errors.pincode}</small>}
+            </div>
+
+            {/* Formatted Address Preview */}
+            {getFullAddress() && (
+              <div className="lead-form__address-preview">
+                <div className="lead-form__address-preview-header">
+                  <span className="lead-form__address-preview-title">
+                    Formatted Lead Address:
+                  </span>
+                  <span className="lead-form__address-preview-badge">
+                    <Check size={13} /> Google Maps Ready
+                  </span>
+                </div>
+                <p className="lead-form__address-preview-text">{getFullAddress()}</p>
+              </div>
+            )}
+
+            {isOutsideArea && (
+              <div style={{ gridColumn: "1 / -1" }}>
+                <span className="lead-form__field-hint lead-form__field-hint--warn">
+                  ⚠️ This address appears outside your primary assigned territory ({currentEmpArea}). The lead will be submitted with an outside territory flag for Manager visibility.
+                </span>
+              </div>
+            )}
           </div>
         </section>
 

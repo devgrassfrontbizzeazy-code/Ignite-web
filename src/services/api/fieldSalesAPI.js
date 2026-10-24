@@ -167,6 +167,8 @@ export const getTodayFieldSalesVisits = async () => {
   return response.data;
 };
 
+export const getTodayVisits = getTodayFieldSalesVisits;
+
 export const createFieldSalesVisit = async (data) => {
   const response = await api.post("/field-sales/visits/", data);
   return response.data;
@@ -236,9 +238,17 @@ export const getTeamLiveLocations = async () => {
   return response.data;
 };
 
-export const getEmployeeTimelineHistory = async (employeeId, date = "") => {
-  const params = date ? { date } : {};
+export const getEmployeeTimelineHistory = async (employeeId, date = "", month = "", year = "") => {
+  const params = {};
+  if (date) params.date = date;
+  if (month) params.month = month;
+  if (year) params.year = year;
   const response = await api.get(`/field-sales/location/history/${employeeId}/`, { params });
+  return response.data;
+};
+
+export const checkoutFieldSalesDay = async () => {
+  const response = await api.post("/field-sales/location/checkout/");
   return response.data;
 };
 

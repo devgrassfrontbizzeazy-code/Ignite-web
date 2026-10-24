@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
+import useFieldSalesWebTracker from "../../hooks/useFieldSalesWebTracker";
 import "./AppLayout.css";
 
 /* ==========================================================================
@@ -17,6 +18,9 @@ export default function AppLayout({
   userRole,
   companyName,
 }) {
+  // Automatically activate live web location tracking for logged-in field sales reps
+  useFieldSalesWebTracker();
+
   const storedUser = (() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "{}");

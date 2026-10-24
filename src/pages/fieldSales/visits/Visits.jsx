@@ -11,6 +11,8 @@ import VisitStats from "../../../components/fieldSales/visits/visitStats/VisitSt
 import VisitFilters from "../../../components/fieldSales/visits/visitFilters/VisitFilters";
 import VisitTable from "../../../components/fieldSales/visits/visitTable/VisitTable";
 import VisitMap from "../../../components/fieldSales/visits/visitMap/VisitMap";
+import LiveFleetCommandMap, { formatPingTimestamp, formatLastSeenAgo } from "../../../components/fieldSales/visits/visitMap/LiveFleetCommandMap";
+import { useSmartPolling } from "../../../hooks/useSmartPolling";
 import VisitDetails from "../../../components/fieldSales/visits/visitDetails/VisitDetails";
 import VisitCheckIn from "../../../components/fieldSales/visits/visitCheckIn/VisitCheckIn";
 import VisitCheckOut from "../../../components/fieldSales/visits/visitCheckOut/VisitCheckOut";
@@ -94,6 +96,11 @@ const Visits = () => {
   const [employees, setEmployees] = useState([]);
   const [liveLocations, setLiveLocations] = useState([]);
   const [timelinePoints, setTimelinePoints] = useState([]);
+  const [availableRouteDays, setAvailableRouteDays] = useState([]);
+  const [selectedRouteDate, setSelectedRouteDate] = useState("");
+  const [selectedRouteMonth, setSelectedRouteMonth] = useState("");
+  const [selectedRouteYear, setSelectedRouteYear] = useState("");
+  const [routeSummaryData, setRouteSummaryData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -111,11 +118,7 @@ const Visits = () => {
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
 
-  const [currentUserLocation, setCurrentUserLocation] = useState({
-    latitude: 28.4595,
-    longitude: 77.0266,
-    accuracy: 8,
-  });
+  const [currentUserLocation, setCurrentUserLocation] = useState(null);
   const [gpsStatus, setGpsStatus] = useState("loading");
   const lastPingTimeRef = useRef(0);
 
@@ -131,50 +134,57 @@ const Visits = () => {
       if (visitsRes.status === "fulfilled") {
         const data = visitsRes.value?.data || visitsRes.value?.results || visitsRes.value || [];
         if (Array.isArray(data)) {
-          const mapped = data.map((v) => ({
-            id: String(v.id),
-            leadId: v.lead ? String(v.lead) : String(v.customer || v.id),
-            leadName: v.lead_name || v.customer_name || "Lead Client",
-            companyName: v.company_name || v.customer_company || "Client Company",
-            employeeId: String(v.assigned_to || v.employee_id || ""),
-            employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
-            employeeRole: v.assigned_to_role || "Sales Person",
-            scheduledDate: v.visit_date || getToday(),
-            scheduledTime: v.visit_time || "11:00 AM",
-            location: v.location || v.lead_address || "Client Location",
-            purpose: v.purpose || v.visit_purpose || "Product Demo & Pricing",
-            visitStatus: normalizeVisitStatus(v.status),
-            rawStatus: v.status,
-            priority: v.priority || "High",
-            instructions: v.instructions || "",
-            contactPhone: v.contact_phone || "",
-            outcome: v.outcome || null,
-            leadLatitude: Number(v.latitude || v.lead_latitude || 28.4597),
-            leadLongitude: Number(v.longitude || v.lead_longitude || 77.0264),
-            currentLatitude: currentUserLocation?.latitude || 28.4595,
-            currentLongitude: currentUserLocation?.longitude || 77.0266,
-            distance: calculateDistance(
-              currentUserLocation?.latitude || 28.4595,
-              currentUserLocation?.longitude || 77.0266,
-              Number(v.latitude || 28.4597),
-              Number(v.longitude || 77.0264)
-            ),
-            gpsAccuracy: currentUserLocation?.accuracy || 8,
-            checkInTime: v.check_in_time || null,
-            checkOutTime: v.check_out_time || null,
-            isLocationOverridden: Boolean(v.is_location_overridden),
-            overrideReason: v.check_in_override_reason || "",
-            overrideNotes: v.check_in_override_notes || "",
-            checkInLatitude: v.check_in_latitude ? Number(v.check_in_latitude) : null,
-            checkInLongitude: v.check_in_longitude ? Number(v.check_in_longitude) : null,
-            checkInDistanceMeters: v.check_in_distance_meters != null ? Number(v.check_in_distance_meters) : null,
-            clientResponse: v.client_response || "",
-            feedback: v.feedback || "",
-            meetingNotes: v.meeting_notes || "",
-            outcomeDescription: v.notes || v.outcome_description || "",
-            photos: v.photos || [],
-            meetingPhoto: null,
-          }));
+          const mapped = data.map((v) => {
+            const vLat = v.latitude != null ? Number(v.latitude) : (v.lead_latitude != null ? Number(v.lead_latitude) : null);
+            const vLng = v.longitude != null ? Number(v.longitude) : (v.lead_longitude != null ? Number(v.lead_longitude) : null);
+
+            return {
+              id: String(v.id),
+              leadId: v.lead ? String(v.lead) : String(v.customer || v.id),
+              leadName: v.lead_name || v.customer_name || "Lead Client",
+              companyName: v.company_name || v.customer_company || "Client Company",
+              employeeId: String(v.assigned_to || v.employee_id || ""),
+              employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
+              employeeRole: v.assigned_to_role || "Sales Person",
+              scheduledDate: v.visit_date || getToday(),
+              scheduledTime: v.visit_time || "11:00 AM",
+              location: v.location || v.lead_address || "Client Location",
+              purpose: v.purpose || v.visit_purpose || "Product Demo & Pricing",
+              visitStatus: normalizeVisitStatus(v.status),
+              rawStatus: v.status,
+              priority: v.priority || "High",
+              instructions: v.instructions || "",
+              contactPhone: v.contact_phone || "",
+              outcome: v.outcome || null,
+              leadLatitude: vLat,
+              leadLongitude: vLng,
+              currentLatitude: currentUserLocation?.latitude ?? null,
+              currentLongitude: currentUserLocation?.longitude ?? null,
+              distance: currentUserLocation && vLat != null
+                ? calculateDistance(
+                    currentUserLocation.latitude,
+                    currentUserLocation.longitude,
+                    vLat,
+                    vLng
+                  )
+                : null,
+              gpsAccuracy: currentUserLocation?.accuracy ?? null,
+              checkInTime: v.check_in_time || null,
+              checkOutTime: v.check_out_time || null,
+              isLocationOverridden: Boolean(v.is_location_overridden),
+              overrideReason: v.check_in_override_reason || "",
+              overrideNotes: v.check_in_override_notes || "",
+              checkInLatitude: v.check_in_latitude ? Number(v.check_in_latitude) : null,
+              checkInLongitude: v.check_in_longitude ? Number(v.check_in_longitude) : null,
+              checkInDistanceMeters: v.check_in_distance_meters != null ? Number(v.check_in_distance_meters) : null,
+              clientResponse: v.client_response || "",
+              feedback: v.feedback || "",
+              meetingNotes: v.meeting_notes || "",
+              outcomeDescription: v.notes || v.outcome_description || "",
+              photos: v.photos || [],
+              meetingPhoto: null,
+            };
+          });
           setVisits(mapped);
         }
       }
@@ -297,89 +307,127 @@ const Visits = () => {
     };
   }, [isSales]);
 
+  const userLocRef = useRef(currentUserLocation);
+  userLocRef.current = currentUserLocation;
+
   /* ---------------------------------------------------------------------- */
-  /* Sales Person Live GPS Heartbeat Ping (Every 12 seconds)                */
-  /* Overwrites 1 single row per employee in backend + logs 1hr trail       */
+  /* Sales Person Live GPS Heartbeat Ping (Every 15s)                       */
+  /* Decoupled from location state to prevent re-render interval loop       */
   /* ---------------------------------------------------------------------- */
   useEffect(() => {
-    if (!isSales || gpsStatus !== "success" || !currentUserLocation) return;
+    if (!isSales || gpsStatus !== "success") return;
 
+    let mounted = true;
     const doPing = async () => {
+      const loc = userLocRef.current;
+      if (!loc || !mounted) return;
       try {
         await pingFieldSalesLocation({
-          latitude: currentUserLocation.latitude,
-          longitude: currentUserLocation.longitude,
-          accuracy: currentUserLocation.accuracy,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          accuracy: loc.accuracy || 10,
         });
       } catch (err) {
         console.warn("Location ping error:", err);
       }
     };
 
-    // Immediate ping
-    doPing();
-
-    // 5-second interval
-    const interval = setInterval(doPing, 5000);
-
-    return () => clearInterval(interval);
-  }, [isSales, gpsStatus, currentUserLocation?.latitude, currentUserLocation?.longitude]);
-
-  /* ---------------------------------------------------------------------- */
-  /* Manager Live Team Locations Polling (Every 12 seconds)                  */
-  /* Fetches real-time lat/lng & active tracking status of all sales team   */
-  /* ---------------------------------------------------------------------- */
-  useEffect(() => {
-    if (!isManager) return;
-
-    let isMounted = true;
-    const fetchTeamLive = async () => {
-      try {
-        const res = await getTeamLiveLocations();
-        const data = res?.data || res?.results || res || [];
-        if (isMounted && Array.isArray(data)) {
-          setLiveLocations(data);
-        }
-      } catch (err) {
-        console.warn("Team live location fetch error:", err);
-      }
-    };
-
-    fetchTeamLive();
-    const interval = setInterval(fetchTeamLive, 6000);
+    void doPing();
+    const interval = setInterval(doPing, 15000);
 
     return () => {
-      isMounted = false;
+      mounted = false;
       clearInterval(interval);
     };
-  }, [isManager]);
+  }, [isSales, gpsStatus]);
+
+  /* ---------------------------------------------------------------------- */
+  /* Manager Live Team Locations Polling (Every 15s)                        */
+  /* In-flight locked & pauses when tab is hidden (Zero loop & zero waste)  */
+  /* ---------------------------------------------------------------------- */
+  const fetchTeamLive = useCallback(async () => {
+    try {
+      const res = await getTeamLiveLocations();
+      const data = res?.data || res?.results || res || [];
+      if (Array.isArray(data)) {
+        setLiveLocations(data);
+      }
+    } catch (err) {
+      console.warn("Team live location fetch error:", err);
+    }
+  }, []);
+
+  useSmartPolling(fetchTeamLive, 15000, { enabled: isManager });
 
   /* ---------------------------------------------------------------------- */
   /* Fetch Employee Timeline Journey Trail when Sales Person selected       */
   /* ---------------------------------------------------------------------- */
+  const handleSelectEntity = useCallback((entity) => {
+    if (entity?.type === "employee" && entity?.id !== selectedEntity?.id) {
+      setSelectedRouteDate("");
+      setSelectedRouteMonth("");
+      setSelectedRouteYear("");
+    }
+    setSelectedEntity(entity);
+  }, [selectedEntity?.id]);
+
+  const handleChangeRouteMonth = useCallback((m, y) => {
+    setSelectedRouteMonth(m);
+    setSelectedRouteYear(y);
+    setSelectedRouteDate("");
+  }, []);
+
   useEffect(() => {
     if (!selectedEntity || selectedEntity.type !== "employee") {
       setTimelinePoints([]);
+      setAvailableRouteDays([]);
+      setRouteSummaryData(null);
       return;
     }
 
     let isMounted = true;
     const loadTimeline = async () => {
       try {
-        const res = await getEmployeeTimelineHistory(selectedEntity.id);
-        const points = res?.timeline || res?.data || res || [];
-        if (isMounted && Array.isArray(points)) {
-          setTimelinePoints(points);
+        const res = await getEmployeeTimelineHistory(
+          selectedEntity.id,
+          selectedRouteDate,
+          selectedRouteMonth,
+          selectedRouteYear
+        );
+        if (isMounted && res) {
+          const points = res.timeline || res.route_points || res.data || [];
+          setTimelinePoints(Array.isArray(points) ? points : []);
+          setAvailableRouteDays(res.available_days || []);
+          setRouteSummaryData({
+            date: res.date || res.selected_date,
+            selected_date: res.selected_date,
+            selected_date_label: res.selected_date_label,
+            month: res.month,
+            year: res.year,
+            month_label: res.month_label,
+            month_total_distance_km: res.month_total_distance_km,
+            month_active_days: res.month_active_days,
+            total_distance_km: res.total_distance_km,
+            check_in_time: res.check_in_time,
+            check_out_time: res.check_out_time,
+            start_location_name: res.start_location_name || res.start_location,
+            end_location_name: res.end_location_name || res.end_location,
+            is_finalized: res.is_finalized,
+          });
         }
       } catch (err) {
         console.warn("Timeline history fetch error:", err);
-        if (isMounted) setTimelinePoints([]);
+        if (isMounted) {
+          setTimelinePoints([]);
+          setAvailableRouteDays([]);
+          setRouteSummaryData(null);
+        }
       }
     };
 
     loadTimeline();
     return () => { isMounted = false; };
-  }, [selectedEntity?.id, selectedEntity?.type]);
+  }, [selectedEntity?.id, selectedEntity?.type, selectedRouteDate, selectedRouteMonth, selectedRouteYear]);
 
   /* ---------------------------------------------------------------------- */
   /* Keep visit distance synced with current GPS                             */
@@ -413,9 +461,9 @@ const Visits = () => {
       })
     );
   }, [
-    currentUserLocation.latitude,
-    currentUserLocation.longitude,
-    currentUserLocation.accuracy,
+    currentUserLocation?.latitude,
+    currentUserLocation?.longitude,
+    currentUserLocation?.accuracy,
   ]);
 
   /* ---------------------------------------------------------------------- */
@@ -551,30 +599,53 @@ const Visits = () => {
         existing.currentVisit = v;
       }
 
-      // If no GPS yet, default to lead coordinate
-      if (existing.latitude == null && v.leadLatitude != null) {
-        existing.latitude = v.leadLatitude;
-        existing.longitude = v.leadLongitude;
+      // Rep location remains null until real GPS is received
+      if (existing.latitude == null) {
+        existing.latitude = null;
+        existing.longitude = null;
       }
 
       map.set(empId, existing);
     });
 
-    // 3. Overlay real-time GPS from liveLocations (from team-live API)
+    // 3. Overlay real-time GPS and telemetry from liveLocations (from team-live API)
     liveLocations.forEach((loc) => {
       const empId = String(loc.id || loc.employee_id || loc.employee);
       const existing = map.get(empId);
+      const isLive = Boolean(loc.is_active_tracking);
+      const pingFormatted = formatPingTimestamp(loc.last_ping_at || loc.last_ping_formatted);
+      const timeAgo = formatLastSeenAgo(loc.last_ping_at, loc.last_seen_human);
+      const lastSeenText = isLive
+        ? "Live Now"
+        : (loc.last_ping_at || loc.last_ping_formatted)
+        ? `Last seen: ${pingFormatted} (${timeAgo})`
+        : "Location Inactive";
+
       if (existing) {
         if (loc.latitude != null) {
           existing.latitude = Number(loc.latitude);
           existing.hasLiveGps = true;
         }
         if (loc.longitude != null) existing.longitude = Number(loc.longitude);
-        if (loc.accuracy != null) existing.accuracy = Number(loc.accuracy || 8);
-        existing.isActiveTracking = Boolean(loc.is_active_tracking);
-        existing.batteryLevel = loc.battery_level;
-        existing.updatedAt = loc.last_ping_at || loc.updated_at;
-        existing.lastUpdated = loc.is_active_tracking ? "Live Now" : "Location Inactive";
+        if (loc.accuracy != null) existing.accuracy = Number(loc.accuracy || 10);
+        existing.isActiveTracking = isLive;
+        existing.is_stale_location = Boolean(loc.is_stale_location);
+        existing.last_ping_at = loc.last_ping_at;
+        existing.last_ping_formatted = loc.last_ping_formatted;
+        existing.last_seen_human = loc.last_seen_human;
+        existing.last_seen_seconds = loc.last_seen_seconds;
+        existing.today_distance_km = loc.today_distance_km;
+        existing.today_distance_meters = loc.today_distance_meters;
+        existing.battery_level = loc.battery_level;
+        existing.today_visits_count = loc.today_visits_count;
+        existing.completed_visits_count = loc.completed_visits_count;
+        existing.visit_stage = loc.visit_stage;
+        existing.status_label = loc.status_label;
+        existing.active_visit_client = loc.active_visit_client;
+        existing.check_in_time_formatted = loc.check_in_time_formatted;
+        existing.check_out_time_formatted = loc.check_out_time_formatted;
+        existing.last_visit_client = loc.last_visit_client;
+        existing.lastUpdated = lastSeenText;
       } else if (loc.name || loc.employee_name) {
         map.set(empId, {
           id: empId,
@@ -583,10 +654,26 @@ const Visits = () => {
           hasLiveGps: loc.latitude != null,
           latitude: loc.latitude != null ? Number(loc.latitude) : null,
           longitude: loc.longitude != null ? Number(loc.longitude) : null,
-          accuracy: Number(loc.accuracy || 8),
-          isActiveTracking: Boolean(loc.is_active_tracking),
-          batteryLevel: loc.battery_level,
-          lastUpdated: loc.is_active_tracking ? "Live Now" : "Location Inactive",
+          accuracy: Number(loc.accuracy || 10),
+          isActiveTracking: isLive,
+          is_stale_location: Boolean(loc.is_stale_location),
+          visit_stage: loc.visit_stage,
+          status_label: loc.status_label,
+          active_visit_client: loc.active_visit_client,
+          check_in_time_formatted: loc.check_in_time_formatted,
+          check_out_time_formatted: loc.check_out_time_formatted,
+          last_visit_client: loc.last_visit_client,
+          last_ping_at: loc.last_ping_at,
+          last_ping_formatted: loc.last_ping_formatted,
+          last_seen_human: loc.last_seen_human,
+          last_seen_seconds: loc.last_seen_seconds,
+          today_distance_km: loc.today_distance_km,
+          today_distance_meters: loc.today_distance_meters,
+          battery_level: loc.battery_level,
+          today_visits_count: loc.today_visits_count,
+          completed_visits_count: loc.completed_visits_count,
+          pending_visits_count: loc.pending_visits_count,
+          lastUpdated: lastSeenText,
           status: "SCHEDULED",
           currentVisit: null,
         });
@@ -630,10 +717,18 @@ const Visits = () => {
       return;
     }
 
+    if (!currentUserLocation) {
+      showNotification({
+        type: "error",
+        message: "Waiting for GPS coordinates. Please ensure location access is enabled and try again.",
+      });
+      return;
+    }
+
     const now = new Date();
     const liveDist = calculateDistance(
-      currentUserLocation.latitude,
-      currentUserLocation.longitude,
+      currentUserLocation?.latitude,
+      currentUserLocation?.longitude,
       selectedVisit.leadLatitude,
       selectedVisit.leadLongitude
     ) || selectedVisit.distance || 0;
@@ -643,9 +738,9 @@ const Visits = () => {
     let checkInRes = null;
     try {
       checkInRes = await checkInFieldSalesVisit(selectedVisit.id, {
-        latitude: currentUserLocation.latitude,
-        longitude: currentUserLocation.longitude,
-        accuracy: currentUserLocation.accuracy,
+        latitude: currentUserLocation?.latitude,
+        longitude: currentUserLocation?.longitude,
+        accuracy: currentUserLocation?.accuracy || 10,
         distance_meters: liveDist,
         is_location_overridden: Boolean(overrideData?.is_location_overridden),
         override_reason: overrideData?.override_reason || "",
@@ -674,12 +769,12 @@ const Visits = () => {
               ...visit,
               visitStatus: "CHECKED_IN",
               checkInTime: formatTime(now),
-              currentLatitude: currentUserLocation.latitude,
-              currentLongitude: currentUserLocation.longitude,
-              gpsAccuracy: currentUserLocation.accuracy,
+              currentLatitude: currentUserLocation?.latitude ?? null,
+              currentLongitude: currentUserLocation?.longitude ?? null,
+              gpsAccuracy: currentUserLocation?.accuracy ?? null,
               distance: liveDist,
-              checkInLatitude: currentUserLocation.latitude,
-              checkInLongitude: currentUserLocation.longitude,
+              checkInLatitude: currentUserLocation?.latitude ?? null,
+              checkInLongitude: currentUserLocation?.longitude ?? null,
               checkInDistanceMeters: liveDist,
               isLocationOverridden: Boolean(overrideData?.is_location_overridden),
               overrideReason: overrideData?.override_reason || "",
@@ -693,12 +788,12 @@ const Visits = () => {
         ...current,
         visitStatus: "CHECKED_IN",
         checkInTime: formatTime(now),
-        currentLatitude: currentUserLocation.latitude,
-        currentLongitude: currentUserLocation.longitude,
-        gpsAccuracy: currentUserLocation.accuracy,
+        currentLatitude: currentUserLocation?.latitude ?? null,
+        currentLongitude: currentUserLocation?.longitude ?? null,
+        gpsAccuracy: currentUserLocation?.accuracy ?? null,
         distance: liveDist,
-        checkInLatitude: currentUserLocation.latitude,
-        checkInLongitude: currentUserLocation.longitude,
+        checkInLatitude: currentUserLocation?.latitude ?? null,
+        checkInLongitude: currentUserLocation?.longitude ?? null,
         checkInDistanceMeters: liveDist,
         isLocationOverridden: Boolean(overrideData?.is_location_overridden),
         overrideReason: overrideData?.override_reason || "",
@@ -889,18 +984,24 @@ const Visits = () => {
         />
 
         {viewMode === "map" ? (
-          <VisitMap
+          <LiveFleetCommandMap
             visits={filteredVisits}
             leads={filteredMapLeads}
             employees={filteredMapEmployees}
             currentUserLocation={currentUserLocation}
             selectedEntity={selectedEntity}
-            onSelectEntity={setSelectedEntity}
+            onSelectEntity={handleSelectEntity}
             onSelectVisit={openVisit}
             gpsStatus={gpsStatus}
-            onLocateRequest={requestLocation}
-            showTeamActivity={isManager}
             timelinePoints={timelinePoints}
+            availableDays={availableRouteDays}
+            selectedRouteDate={selectedRouteDate}
+            onSelectRouteDate={setSelectedRouteDate}
+            selectedRouteMonth={selectedRouteMonth}
+            selectedRouteYear={selectedRouteYear}
+            onChangeRouteMonth={handleChangeRouteMonth}
+            routeSummary={routeSummaryData}
+            isManager={isManager}
           />
         ) : (
           <VisitTable

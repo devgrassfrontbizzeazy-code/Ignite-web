@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useSmartPolling } from "../../hooks/useSmartPolling";
 import {
   Play,
   Calendar,
@@ -142,11 +143,7 @@ const SalesDashboard = () => {
 
   // GPS Tracking State for Field Duty
   const [isFieldDutyActive, setIsFieldDutyActive] = useState(true);
-  const [currentUserLocation, setCurrentUserLocation] = useState({
-    latitude: 28.4595,
-    longitude: 77.0266,
-    accuracy: 8,
-  });
+  const [currentUserLocation, setCurrentUserLocation] = useState(null);
   const [gpsStatus, setGpsStatus] = useState("loading");
 
   // Modals & Drawers state
@@ -268,14 +265,13 @@ const SalesDashboard = () => {
     }
   }, [isManager]);
 
+  // Initial load
   useEffect(() => {
     fetchDashboardData(false);
-
-    const interval = setInterval(() => {
-      fetchDashboardData(true);
-    }, 6000);
-    return () => clearInterval(interval);
   }, [fetchDashboardData]);
+
+  // Tab-aware, in-flight guarded dashboard sync (every 30s)
+  useSmartPolling(() => fetchDashboardData(true), 30000);
 
   // Browser Geolocation Setup
   const requestLocation = useCallback(() => {
@@ -324,14 +320,19 @@ const SalesDashboard = () => {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [requestLocation]);
 
-  // Periodic Location Ping (Every 15s) when field duty active
+  const userLocRef = useRef(currentUserLocation);
+  userLocRef.current = currentUserLocation;
+
+  // Periodic Location Ping (Every 15s) when field duty active - decoupled from coords state
   useEffect(() => {
     if (isManager || !isFieldDutyActive || gpsStatus !== "success") return;
     const interval = setInterval(() => {
-      pingFieldSalesLocation(currentUserLocation).catch(() => {});
+      if (userLocRef.current) {
+        pingFieldSalesLocation(userLocRef.current).catch(() => {});
+      }
     }, 15000);
     return () => clearInterval(interval);
-  }, [isManager, isFieldDutyActive, gpsStatus, currentUserLocation]);
+  }, [isManager, isFieldDutyActive, gpsStatus]);
 
   const toggleFieldDuty = () => {
     const nextState = !isFieldDutyActive;
@@ -350,12 +351,21 @@ const SalesDashboard = () => {
   // Actions: Visit Check-In
   const handleCheckIn = async (overrideData = {}) => {
     if (!selectedVisit) return;
+    if (!currentUserLocation) {
+      if (showNotification) {
+        showNotification({
+          type: "error",
+          message: "Waiting for GPS coordinates. Please ensure location access is enabled and try again.",
+        });
+      }
+      return;
+    }
     try {
       setSubmittingAction(true);
       await checkInFieldSalesVisit(selectedVisit.id, {
-        latitude: currentUserLocation.latitude,
-        longitude: currentUserLocation.longitude,
-        accuracy: currentUserLocation.accuracy,
+        latitude: currentUserLocation?.latitude,
+        longitude: currentUserLocation?.longitude,
+        accuracy: currentUserLocation?.accuracy || 10,
         distance_meters: selectedVisit.distance || 0,
         is_location_overridden: Boolean(overrideData?.is_location_overridden),
         override_reason: overrideData?.override_reason || "",

@@ -648,4 +648,225 @@
 .lead-form__field-hint--warn {
   color: #d97706;
   font-weight: 500;
+}
+
+/* ==========================================================================
+   GOOGLE PLACES AUTOCOMPLETE & SECTORS SYSTEM
+   ========================================================================== */
+
+.lead-form__search-wrap {
+  position: relative;
+  grid-column: 1 / -1;
+  margin-bottom: 6px;
+}
+
+.lead-form__search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lead-form__search-input-wrap > svg:first-child {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #0ba37f;
+  pointer-events: none;
+}
+
+.lead-form__search-input-wrap input {
+  width: 100%;
+  padding-left: 36px;
+  padding-right: 36px;
+  min-height: 42px;
+  background: #f8fafc;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.lead-form__search-input-wrap input:focus {
+  border-color: #0ba37f;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.15);
+}
+
+.lead-form__search-clear {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.lead-form__search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 50;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.lead-form__search-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.lead-form__search-item:hover {
+  background: #f0fdf4;
+}
+
+.lead-form__search-item svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #0ba37f;
+}
+
+.lead-form__search-primary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.lead-form__search-secondary {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.lead-form__sectors-box {
+  grid-column: 1 / -1;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: -6px;
+}
+
+.lead-form__sectors-filter-wrap {
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.lead-form__sectors-filter-wrap > svg {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.lead-form__sectors-filter-wrap input {
+  width: 100%;
+  padding-left: 32px;
+  min-height: 34px;
+  font-size: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.lead-form__sectors-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.lead-form__sector-chip {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lead-form__sector-chip:hover {
+  border-color: #0ba37f;
+  color: #0ba37f;
+  background: #f0fdf4;
+}
+
+.lead-form__sector-chip--active {
+  background: #0ba37f;
+  border-color: #0ba37f;
+  color: #ffffff !important;
+}
+
+.lead-form__toggle-btn {
+  background: none;
+  border: none;
+  color: #0ba37f;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.lead-form__address-preview {
+  grid-column: 1 / -1;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 8px;
+}
+
+.lead-form__address-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.lead-form__address-preview-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.lead-form__address-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.lead-form__address-preview-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #1e293b;
+  margin: 0;
 }
