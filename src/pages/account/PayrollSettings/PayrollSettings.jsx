@@ -496,6 +496,11 @@ export default function PayrollSettings() {
             }
 
             setSaved(true);
+            window.dispatchEvent(
+                new CustomEvent("ignite:payroll-settings-updated", {
+                    detail: settings,
+                })
+            );
             notify("success", "Payroll settings saved.");
             setLastSaved(
                 new Date().toLocaleString("en-IN", {

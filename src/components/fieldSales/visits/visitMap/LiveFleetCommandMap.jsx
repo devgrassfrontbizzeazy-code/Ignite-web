@@ -2136,7 +2136,7 @@ export default function LiveFleetCommandMap({
                       >
                         <div className="fleet-distance-item">
                           <span className="fleet-distance-label">
-                            {isFocused && routeStats ? "🛣️ Road Dist:" : "Distance:"}
+                            {isFocused && routeStats ? " Road Dist:" : "Distance:"}
                           </span>
                           <strong className="fleet-distance-val">
                             {isFocused
@@ -2147,7 +2147,7 @@ export default function LiveFleetCommandMap({
                         </div>
                         <div className="fleet-distance-item">
                           <span className="fleet-distance-label">
-                            {isFocused && routeStats ? "⏱️ Drive Time:" : "ETA:"}
+                            {isFocused && routeStats ? "⏱ Drive Time:" : "ETA:"}
                           </span>
                           <strong className="fleet-distance-val">
                             {isFocused
