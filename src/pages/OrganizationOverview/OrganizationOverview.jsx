@@ -28,6 +28,7 @@ import { getWorkSchedule } from "../../services/api/workScheduleAPI";
 import leavePolicyApi from "../../services/api/leavePolicyAPI";
 import holidayAPI from "../../services/api/holidayAPI";
 import { getFieldSalesStatus, toggleFieldSalesStatus } from "../../services/api/fieldSalesAPI";
+import { getPayrollSettings } from "../../services/api/accountAPI";
 import { calculateOrganizationSetupProgress } from "../../utils/setupProgressUtils";
 import roleService from "../../services/roleService";
 
@@ -48,14 +49,6 @@ const extractList = (response) => {
   }
 
   return [];
-};
-
-const readPayrollSettings = () => {
-  try {
-    return JSON.parse(localStorage.getItem("ignite_payroll_settings") || "null");
-  } catch {
-    return null;
-  }
 };
 
 const normalizeCompany = (raw) => {
@@ -294,7 +287,7 @@ export default function OrganizationOverview() {
   const [workSchedule, setWorkSchedule] = useState(null);
   const [leavePolicies, setLeavePolicies] = useState([]);
   const [holidays, setHolidays] = useState([]);
-  const [payrollSettings, setPayrollSettings] = useState(readPayrollSettings);
+  const [payrollSettings, setPayrollSettings] = useState(null);
   const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
     return localStorage.getItem("ignite_field_sales_enabled") === "true";
   });
@@ -324,6 +317,7 @@ export default function OrganizationOverview() {
         leavePolicyResponse,
         holidayResponse,
         fieldSalesStatusResponse,
+        payrollSettingsResponse,
       ] = await Promise.allSettled([
         getCompany(),
         getDepartments(),
@@ -334,6 +328,7 @@ export default function OrganizationOverview() {
         leavePolicyApi.getPolicies(),
         holidayAPI.getHolidays(),
         getFieldSalesStatus(),
+        getPayrollSettings(),
       ]);
 
       if (companyResponse.status === "fulfilled") {
@@ -374,6 +369,12 @@ export default function OrganizationOverview() {
         setHolidays(extractList(holidayResponse.value));
       }
 
+      setPayrollSettings(
+        payrollSettingsResponse.status === "fulfilled"
+          ? payrollSettingsResponse.value
+          : null,
+      );
+
       if (fieldSalesStatusResponse.status === "fulfilled") {
         const fsData = fieldSalesStatusResponse.value?.data || fieldSalesStatusResponse.value;
         const isFsEnabled = Boolean(fsData?.field_sales_enabled ?? fsData?.fieldSalesEnabled);
@@ -396,26 +397,19 @@ export default function OrganizationOverview() {
 
   useEffect(() => {
     const handlePayrollSettingsUpdate = (event) => {
-      const nextSettings = event.detail ?? readPayrollSettings();
+      const nextSettings = event.detail ?? null;
       setPayrollSettings(nextSettings);
-    };
-    const handleStorage = (event) => {
-      if (event.key === "ignite_payroll_settings") {
-        setPayrollSettings(readPayrollSettings());
-      }
     };
 
     window.addEventListener(
       "ignite:payroll-settings-updated",
       handlePayrollSettingsUpdate,
     );
-    window.addEventListener("storage", handleStorage);
     return () => {
       window.removeEventListener(
         "ignite:payroll-settings-updated",
         handlePayrollSettingsUpdate,
       );
-      window.removeEventListener("storage", handleStorage);
     };
   }, []);
 

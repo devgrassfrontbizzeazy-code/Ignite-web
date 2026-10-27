@@ -54,15 +54,21 @@ export const isPayrollSettingsConfigured = (settings) => {
     return false;
   }
 
-  const payrollDay = Number(settings.payrollDay);
+  const data = settings.data ?? settings;
+  const payrollCycle = data.payrollCycle ?? data.payroll_cycle;
+  const payrollDay = Number(data.payrollDay ?? data.payroll_day);
+  const financialYear = String(
+    data.financialYear ?? data.financial_year ?? "",
+  ).replace(/[\s–—-]/g, "");
+  const currency = String(data.currency ?? "").trim().toUpperCase();
 
   return (
-    settings.payrollCycle === "Monthly" &&
+    String(payrollCycle ?? "").toLowerCase() === "monthly" &&
     Number.isInteger(payrollDay) &&
     payrollDay >= 1 &&
     payrollDay <= 28 &&
-    ["April–March", "January–December"].includes(settings.financialYear) &&
-    ["INR", "USD", "GBP", "EUR"].includes(settings.currency)
+    ["AprilMarch", "JanuaryDecember"].includes(financialYear) &&
+    ["INR", "USD", "GBP", "EUR"].includes(currency)
   );
 };
 
