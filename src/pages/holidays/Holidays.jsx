@@ -19,6 +19,7 @@ import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 
 import { canCreateHolidays } from "../../utils/permissionUtils";
 import holidayAPI from "../../services/api/holidayAPI";
+import { getCachedApiData, hasCachedApiData } from "../../services/api/axios";
 import { useNotification } from "../../context/NotificationContext";
 
 import "../../styles/variables.css";
@@ -69,8 +70,15 @@ const normalizeHoliday = (holiday) => ({
 
 const Holidays = () => {
   const { notify } = useNotification();
-  const [holidays, setHolidays] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [holidays, setHolidays] = useState(() => {
+    const cached = getCachedApiData("/holidays/", { year: 2026 });
+    if (cached) {
+      const holidayData = Array.isArray(cached) ? cached : (Array.isArray(cached?.data) ? cached.data : []);
+      return holidayData.map(normalizeHoliday);
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => !hasCachedApiData("/holidays/", { year: 2026 }));
 
   const [selectedYear, setSelectedYear] = useState(2026);
   const [selectedType, setSelectedType] = useState("All Types");
@@ -93,9 +101,11 @@ const Holidays = () => {
     return [currentYear - 1, currentYear, currentYear + 1];
   }, []);
 
-  const fetchHolidays = async () => {
+  const fetchHolidays = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh || holidays.length === 0) {
+        setLoading(true);
+      }
 
       const response = await holidayAPI.getHolidays({
         year: selectedYear,

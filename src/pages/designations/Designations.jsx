@@ -22,6 +22,7 @@ import {
 } from "../../services/api/designationAPI";
 
 import roleService from "../../services/roleService";
+import { getCachedApiData, hasCachedApiData } from "../../services/api/axios";
 import { useNotification } from "../../context/NotificationContext";
 
 import "./Designations.css";
@@ -214,9 +215,23 @@ const extractApiError = (error, fallbackContext = {}) => {
 
 const Designations = () => {
   const { notify } = useNotification();
-  const [designations, setDesignations] = useState([]);
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [designations, setDesignations] = useState(() => {
+    const cached = getCachedApiData("/designation/");
+    if (cached) {
+      const list = extractDataList(cached);
+      return list.map(normalizeDesignation).filter(Boolean);
+    }
+    return [];
+  });
+  const [departments, setDepartments] = useState(() => {
+    const cached = getCachedApiData("/department/");
+    if (cached) {
+      const list = extractDataList(cached);
+      return list.map(normalizeDepartmentOption).filter(Boolean);
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => !hasCachedApiData("/designation/"));
 
   const [search, setSearch] = useState("");
   const [department, setDepartment] = useState("all");

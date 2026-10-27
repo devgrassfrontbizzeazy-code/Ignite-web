@@ -52,8 +52,11 @@ const Employees = () => {
   /*
    * EMPLOYEE DATA
    */
-  const [employees, setEmployees] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState(() => {
+    const cached = employeeService.getCached();
+    return Array.isArray(cached) ? cached : [];
+  });
+  const [loading, setLoading] = useState(() => !Boolean(employeeService.getCached()));
 
   /*
    * SEARCH & FILTERS
@@ -88,9 +91,11 @@ const Employees = () => {
   /*
    * LOAD EMPLOYEES FROM API
    */
-  const loadEmployees = async () => {
+  const loadEmployees = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh || employees.length === 0) {
+        setLoading(true);
+      }
 
       const data = await employeeService.getAll();
 

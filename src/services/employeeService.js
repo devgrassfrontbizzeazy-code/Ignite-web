@@ -1,3 +1,4 @@
+import { getCachedApiData } from "./api/axios";
 import {
   getEmployees,
   getEmployee,
@@ -108,6 +109,16 @@ const normalizeEmployee = (emp) => {
 };
 
 const employeeService = {
+  /*
+   * GET CACHED EMPLOYEES (SYNC)
+   */
+  getCached(params = {}) {
+    const cached = getCachedApiData("/employees/", params);
+    if (!cached) return null;
+    const list = extractData(cached);
+    return Array.isArray(list) ? list.map(normalizeEmployee) : null;
+  },
+
   /*
    * GET ALL EMPLOYEES
    */

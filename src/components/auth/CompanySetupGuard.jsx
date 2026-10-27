@@ -13,9 +13,24 @@ const CompanySetupGuard = () => {
   const location = useLocation();
   const { setCompany } = useOrganization();
 
-  const [loading, setLoading] = useState(true);
-  const [companyExists, setCompanyExists] =
-    useState(false);
+  const syncUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
+    }
+  })();
+  const syncRole = String(syncUser.role || "").toUpperCase();
+  const syncIsOwnerOrAdmin =
+    syncRole === "OWNER" ||
+    syncRole === "ADMIN" ||
+    syncRole === "ADMINISTRATOR";
+  const syncIsEmployee = !syncIsOwnerOrAdmin || Boolean(syncUser.employee_id || syncUser.employeeId || syncUser.is_field_sales);
+  const syncHasCompany = Boolean(syncUser.company_id || syncUser.companyId || syncUser.company);
+  const isSynchronouslyKnown = syncHasCompany || syncIsEmployee;
+
+  const [loading, setLoading] = useState(!isSynchronouslyKnown);
+  const [companyExists, setCompanyExists] = useState(isSynchronouslyKnown);
 
   const [error, setError] = useState(false);
 

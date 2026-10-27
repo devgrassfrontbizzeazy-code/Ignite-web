@@ -15,6 +15,7 @@ export const clearAuthSession = () => {
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("user");
   localStorage.removeItem("ignite_authenticated");
+  clearApiCache();
 };
 
 api.interceptors.request.use(
@@ -184,5 +185,227 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+
+/* ==========================================================================
+   Ultra-Fast In-Memory & Session API Cache with Instant SWR & Deduplication
+   ========================================================================== */
+
+const apiCache = new Map();
+const inFlightRequests = new Map();
+
+// Restore fresh cache from sessionStorage
+try {
+  const saved = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ignite_api_cache") : null;
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    const now = Date.now();
+    for (const [k, v] of Object.entries(parsed)) {
+      if (now - v.timestamp < 180000) {
+        apiCache.set(k, v);
+      }
+    }
+  }
+} catch (e) {
+  // Ignore sessionStorage parse errors
+}
+
+let persistTimeout = null;
+const persistCache = () => {
+  if (persistTimeout) return;
+  persistTimeout = setTimeout(() => {
+    persistTimeout = null;
+    try {
+      if (typeof sessionStorage === "undefined") return;
+      const obj = {};
+      const now = Date.now();
+      for (const [k, v] of apiCache.entries()) {
+        if (now - v.timestamp < 180000) {
+          obj[k] = v;
+        }
+      }
+      sessionStorage.setItem("ignite_api_cache", JSON.stringify(obj));
+    } catch (e) {
+      // Ignore quota errors
+    }
+  }, 400);
+};
+
+export const clearApiCache = () => {
+  apiCache.clear();
+  inFlightRequests.clear();
+  try {
+    if (typeof sessionStorage !== "undefined") {
+      sessionStorage.removeItem("ignite_api_cache");
+    }
+  } catch (e) {}
+};
+
+// Patterns that MUST NOT be cached
+const NO_CACHE_PATTERNS = [
+  "/auth/login",
+  "/auth/register",
+  "/auth/token/refresh",
+  "/auth/signup",
+  "/auth/forgot-password",
+  "/auth/me",
+  "/health",
+  "/location",
+  "/ping",
+  "/punch",
+];
+
+const shouldCacheUrl = (url) => {
+  if (!url) return false;
+  return !NO_CACHE_PATTERNS.some((pattern) => url.includes(pattern));
+};
+
+const getCacheKey = (url, params) => {
+  const cleanUrl = url.split("?")[0].replace(/\/+$/, "") || "/";
+  const paramsKey = params ? JSON.stringify(params) : "";
+  return `${cleanUrl}?${paramsKey}`;
+};
+
+export const getCachedApiData = (url, params) => {
+  const key = getCacheKey(url, params);
+  const entry = apiCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > 180000) {
+    apiCache.delete(key);
+    return null;
+  }
+  return cloneData(entry.data);
+};
+
+export const hasCachedApiData = (url, params) => {
+  const key = getCacheKey(url, params);
+  const entry = apiCache.get(key);
+  if (!entry) return false;
+  return Date.now() - entry.timestamp <= 180000;
+};
+
+const invalidateCacheOnMutation = (url) => {
+  if (!url) return;
+  const clean = url.replace(/^\/?api\//, "").replace(/^\/+/, "");
+  const resource = clean.split("/")[0];
+  if (!resource) return;
+
+  for (const k of apiCache.keys()) {
+    if (k.includes(resource)) {
+      apiCache.delete(k);
+    }
+  }
+  persistCache();
+};
+
+const cloneData = (data) => {
+  if (data === undefined || data === null) return data;
+  try {
+    if (typeof structuredClone === "function") {
+      return structuredClone(data);
+    }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(data));
+};
+
+const rawGet = api.get.bind(api);
+const rawPost = api.post.bind(api);
+const rawPut = api.put.bind(api);
+const rawPatch = api.patch.bind(api);
+const rawDelete = api.delete.bind(api);
+
+api.get = function (url, config = {}) {
+  const canCache = !config.skipCache && shouldCacheUrl(url);
+
+  if (!canCache) {
+    return rawGet(url, config);
+  }
+
+  const cacheKey = getCacheKey(url, config.params);
+  const now = Date.now();
+  const cached = apiCache.get(cacheKey);
+
+  // If valid in-memory cache exists (< 2 minutes old):
+  if (cached && now - cached.timestamp < 120000) {
+    // SWR (Stale-While-Revalidate): if older than 10 seconds, quietly revalidate in background
+    if (now - cached.timestamp > 10000 && !inFlightRequests.has(cacheKey)) {
+      const bgPromise = rawGet(url, config)
+        .then((res) => {
+          apiCache.set(cacheKey, {
+            data: res.data,
+            status: res.status,
+            statusText: res.statusText,
+            headers: res.headers,
+            timestamp: Date.now(),
+          });
+          persistCache();
+          inFlightRequests.delete(cacheKey);
+        })
+        .catch(() => {
+          inFlightRequests.delete(cacheKey);
+        });
+      inFlightRequests.set(cacheKey, bgPromise);
+    }
+
+    // Instant 0ms return from cache
+    return Promise.resolve({
+      data: cloneData(cached.data),
+      status: cached.status || 200,
+      statusText: cached.statusText || "OK",
+      headers: cached.headers || {},
+      config,
+    });
+  }
+
+  // Deduplicate simultaneous identical network requests
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey);
+  }
+
+  const requestPromise = rawGet(url, config)
+    .then((response) => {
+      apiCache.set(cacheKey, {
+        data: response.data,
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        timestamp: Date.now(),
+      });
+      persistCache();
+      inFlightRequests.delete(cacheKey);
+      return response;
+    })
+    .catch((err) => {
+      inFlightRequests.delete(cacheKey);
+      throw err;
+    });
+
+  inFlightRequests.set(cacheKey, requestPromise);
+  return requestPromise;
+};
+
+api.post = function (url, data, config) {
+  invalidateCacheOnMutation(url);
+  return rawPost(url, data, config);
+};
+
+api.put = function (url, data, config) {
+  invalidateCacheOnMutation(url);
+  return rawPut(url, data, config);
+};
+
+api.patch = function (url, data, config) {
+  invalidateCacheOnMutation(url);
+  return rawPatch(url, data, config);
+};
+
+api.delete = function (url, config) {
+  invalidateCacheOnMutation(url);
+  return rawDelete(url, config);
+};
+
+export const prefetchApi = (url, params = {}) => {
+  return api.get(url, { params }).catch(() => {});
+};
 
 export default api;

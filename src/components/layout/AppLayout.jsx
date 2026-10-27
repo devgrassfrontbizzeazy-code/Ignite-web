@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
 import useFieldSalesWebTracker from "../../hooks/useFieldSalesWebTracker";
+import api from "../../services/api/axios";
 import "./AppLayout.css";
 
 /* ==========================================================================
@@ -20,6 +22,19 @@ export default function AppLayout({
 }) {
   // Automatically activate live web location tracking for logged-in field sales reps
   useFieldSalesWebTracker();
+
+  // Warm up primary navigation endpoints in background for instant 0ms switching
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      api.get("/department/").catch(() => {});
+      api.get("/designation/").catch(() => {});
+      api.get("/roles/").catch(() => {});
+      api.get("/holidays/").catch(() => {});
+      api.get("/employees/").catch(() => {});
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const storedUser = (() => {
     try {

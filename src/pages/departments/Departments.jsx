@@ -21,6 +21,7 @@ import {
 } from "../../services/api/departmentAPI";
 
 import roleService from "../../services/roleService";
+import { getCachedApiData, hasCachedApiData } from "../../services/api/axios";
 import { canCreateDepartments } from "../../utils/permissionUtils";
 import { useNotification } from "../../context/NotificationContext";
 
@@ -161,8 +162,15 @@ const extractApiError = (error, fallbackContext = {}) => {
 
 const Departments = () => {
   const { notify } = useNotification();
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [departments, setDepartments] = useState(() => {
+    const cached = getCachedApiData("/department/");
+    if (cached) {
+      const list = extractDepartmentList(cached);
+      return list.map(normalizeDepartment).filter(Boolean);
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => !hasCachedApiData("/department/"));
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -180,9 +188,11 @@ const Departments = () => {
     loading: false,
   });
 
-  const loadDepartments = async () => {
+  const loadDepartments = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
+      if (isManualRefresh || departments.length === 0) {
+        setLoading(true);
+      }
 
       const response = await getDepartments();
       const departmentList = extractDepartmentList(response);

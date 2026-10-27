@@ -1,5 +1,25 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import api from "../../services/api/axios";
+
+const ROUTE_PREFETCH_MAP = {
+  "/departments": () => api.get("/department/"),
+  "/designations": () => api.get("/designation/"),
+  "/roles-permissions": () => api.get("/roles/"),
+  "/employees": () => api.get("/employees/"),
+  "/holidays": () => api.get("/holidays/"),
+  "/attendance": () => api.get("/attendance/today/"),
+  "/leaves": () => api.get("/leave-applications/my/"),
+  "/work-schedule": () => api.get("/work-schedule/"),
+  "/leave-policies": () => api.get("/leave-policies/"),
+  "/account/payslips": () => api.get("/account/payslips/"),
+  "/my-payslips": () => api.get("/account/my-payroll/"),
+};
+
+const prefetchRoute = (path) => {
+  const fn = ROUTE_PREFETCH_MAP[path];
+  if (fn) fn().catch(() => {});
+};
 import "../../styles/global.css";
 import "./Sidebar.css";
 import darkLogo from "../../assets/dark_logo-removebg.png";
@@ -1079,6 +1099,7 @@ export default function Sidebar({
                   <NavLink
                     to={path}
                     end
+                    onMouseEnter={() => prefetchRoute(path)}
                     className={({ isActive }) =>
                       `sidebar__nav-item${isActive ? " is-active" : ""
                       }`
@@ -1105,6 +1126,7 @@ export default function Sidebar({
                           <NavLink
                             key={childPath}
                             to={childPath}
+                            onMouseEnter={() => prefetchRoute(childPath)}
                             className={({ isActive }) =>
                               `sidebar__nav-item sidebar__nav-item--child${isActive
                                 ? " is-active"
