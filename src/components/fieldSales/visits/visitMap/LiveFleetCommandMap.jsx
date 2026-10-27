@@ -6,17 +6,15 @@ import {
   Navigation,
   CheckCircle2,
   Clock,
-  Layers,
-  Crosshair,
   AlertTriangle,
   ChevronRight,
   Battery,
   Footprints,
-  Phone,
-  ExternalLink,
   Calendar,
   ChevronLeft,
   TrendingUp,
+  RefreshCw,
+  UserRound,
 } from "lucide-react";
 import {
   useJsApiLoader,
@@ -36,6 +34,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import DatePicker from "../../../common/DatePicker/DatePicker";
 
 import "./LiveFleetCommandMap.css";
 
@@ -113,6 +112,102 @@ export function formatLastSeenAgo(isoString, fallbackHuman) {
   return fallbackHuman || "offline";
 }
 
+const isValidCoordinatePair = (latitude, longitude) => {
+  const latValue = typeof latitude === "string" ? latitude.trim() : latitude;
+  const lngValue = typeof longitude === "string" ? longitude.trim() : longitude;
+  if (
+    latValue == null ||
+    latValue === "" ||
+    lngValue == null ||
+    lngValue === ""
+  ) {
+    return null;
+  }
+
+  const lat = Number(latValue);
+  const lng = Number(lngValue);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+  return { lat, lng };
+};
+
+const isEmployeeOnShift = (employee) =>
+  employee?.shiftStatus === "WORKING" || employee?.shiftStatus === "ON_BREAK";
+
+const isCompletedVisit = (visit) =>
+  ["CHECKED_OUT", "COMPLETED"].includes(
+    String(visit?.visitStatus || visit?.rawStatus || "").toUpperCase()
+  );
+
+const isActiveVisit = (visit) =>
+  ["NOT_STARTED", "ASSIGNED", "PENDING", "SCHEDULED", "CHECKED_IN", "IN_PROGRESS"].includes(
+    String(visit?.visitStatus || "").toUpperCase()
+  );
+
+const VISIT_MARKER_CLUSTER_RADIUS_METERS = 25;
+
+const getVisitStatusLabel = (visit) => {
+  const status = String(visit?.visitStatus || "").toUpperCase();
+  if (["NOT_STARTED", "ASSIGNED", "PENDING", "SCHEDULED"].includes(status)) {
+    return "Assigned";
+  }
+  if (status === "CHECKED_IN" || status === "IN_PROGRESS") return "In progress";
+  if (isCompletedVisit(visit)) return "Completed";
+  return visit?.rawStatus || status || "Status unavailable";
+};
+
+const getVisitMarkerColor = (visit) => {
+  if (isCompletedVisit(visit)) return "#73777A";
+  if (["CHECKED_IN", "IN_PROGRESS"].includes(
+    String(visit?.visitStatus || "").toUpperCase()
+  )) return "#D4AF37";
+  return "#2563EB";
+};
+
+const svgDataUri = (svg) =>
+  `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
+const createEmployeeMarkerIcon = (selected = false) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="48" viewBox="0 0 42 48">
+    <path d="M21 2C10.5 2 2 10.4 2 20.8 2 34.5 21 46 21 46s19-11.5 19-25.2C40 10.4 31.5 2 21 2Z" fill="#0BA37F" stroke="${selected ? "#D4AF37" : "#FFFFFF"}" stroke-width="${selected ? 4 : 3}"/>
+    <circle cx="21" cy="16" r="5" fill="#FFFFFF"/>
+    <path d="M11.5 31c.8-5 4.5-8 9.5-8s8.7 3 9.5 8" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+  return svgDataUri(svg);
+};
+
+const createVisitMarkerIcon = (visit, selected = false) => {
+  const color = getVisitMarkerColor(visit);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">
+    <path d="M19 2C9.6 2 2 9.5 2 18.8 2 31.1 19 44 19 44s17-12.9 17-25.2C36 9.5 28.4 2 19 2Z" fill="${color}" stroke="${selected ? "#0F3D3E" : "#FFFFFF"}" stroke-width="${selected ? 3.5 : 2.5}"/>
+    <rect x="11" y="11" width="16" height="14" rx="2" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M14 9v4m10-4v4M11 16h16m-12 4h2m3 0h2" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>`;
+  return svgDataUri(svg);
+};
+
+const createVisitGroupMarkerIcon = (group, selected = false) => {
+  const colors = [...new Set(group.visits.map(getVisitMarkerColor))];
+  const fill = colors.length === 1 ? colors[0] : "#0F3D3E";
+  const count = group.visits.length;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="48" viewBox="0 0 42 48">
+    <path d="M21 2C10.5 2 2 10.4 2 20.8 2 34.5 21 46 21 46s19-11.5 19-25.2C40 10.4 31.5 2 21 2Z" fill="${fill}" stroke="${selected ? "#D4AF37" : "#FFFFFF"}" stroke-width="${selected ? 4 : 3}"/>
+    <rect x="12" y="12" width="18" height="16" rx="2" fill="none" stroke="#FFFFFF" stroke-width="2"/>
+    <path d="M15 10v4m12-4v4M12 17h18" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+    ${colors.length > 1 ? colors.slice(0, 3).map((color, index) => `<circle cx="${16 + index * 5}" cy="23" r="1.7" fill="${color}"/>`).join("") : ""}
+    <circle cx="33" cy="10" r="8" fill="#FFFFFF" stroke="#0F3D3E" stroke-width="1.5"/>
+    <text x="33" y="13" text-anchor="middle" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="#0F3D3E">${count}</text>
+  </svg>`;
+  return svgDataUri(svg);
+};
+
+const getDisplayTime = (value) => {
+  if (value == null) return null;
+  const text = String(value).trim();
+  return text && !["—", "-", "N/A"].includes(text.toUpperCase()) ? text : null;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Real Road Routing Fallback via OSRM (100% Free Road Geometry)              */
 /* -------------------------------------------------------------------------- */
@@ -150,41 +245,13 @@ function LeafletMapController({ center, zoom }) {
   return null;
 }
 
-// Custom Leaflet Icons
-const createLeafletRepIcon = (initials, isActive) => {
-  return L.divIcon({
-    className: "fleet-custom-icon",
-    html: `
-      <div class="fleet-marker-rep ${isActive ? "active" : "inactive"}">
-        <span class="fleet-marker-rep__badge">${initials}</span>
-        ${isActive ? '<span class="fleet-marker-rep__pulse"></span>' : ""}
-      </div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -20],
+const createLeafletIcon = (url, visit = false, grouped = false) =>
+  L.icon({
+    iconUrl: url,
+    iconSize: grouped ? [42, 48] : visit ? [38, 46] : [42, 48],
+    iconAnchor: grouped ? [21, 46] : visit ? [19, 44] : [21, 46],
+    popupAnchor: [0, grouped ? -44 : visit ? -42 : -44],
   });
-};
-
-const createLeafletLeadIcon = (isCompleted, isSelected) => {
-  return L.divIcon({
-    className: "fleet-custom-icon",
-    html: `
-      <div class="fleet-marker-lead ${isCompleted ? "completed" : "pending"} ${isSelected ? "selected" : ""}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          ${
-            isCompleted
-              ? '<polyline points="20 6 9 17 4 12"></polyline>'
-              : '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle>'
-          }
-        </svg>
-      </div>
-    `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -16],
-  });
-};
 
 function createLeafletCheckpointIcon(label, isFinalized = false) {
   const bg = label === "IN" ? "#10b981" : isFinalized ? "#ef4444" : "#3b82f6";
@@ -207,22 +274,26 @@ const defaultCenter = { lat: 18.5204, lng: 73.8567 }; // Pune default
 
 export default function LiveFleetCommandMap({
   visits = [],
-  leads = [],
   employees = [],
   currentUserLocation,
   selectedEntity,
   onSelectEntity,
   onSelectVisit,
-  gpsStatus = "success",
   timelinePoints = [],
   availableDays = [],
   selectedRouteDate = "",
   onSelectRouteDate = () => {},
-  selectedRouteMonth = "",
-  selectedRouteYear = "",
   onChangeRouteMonth = () => {},
   routeSummary = null,
-  isManager = true,
+  isLoading = false,
+  attendanceUnavailable = false,
+  attendanceStatusAvailable = false,
+  visitsUnavailable = false,
+  employeesUnavailable = false,
+  locationsUnavailable = false,
+  timelineLoading = false,
+  timelineError = false,
+  onRefresh,
 }) {
   const googleApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "";
   const { isLoaded: isGoogleLoaded } = useJsApiLoader({
@@ -233,6 +304,8 @@ export default function LiveFleetCommandMap({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState("all"); // 'all' | 'active'
+  const [visitMapFilter, setVisitMapFilter] = useState("all");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRepId, setSelectedRepId] = useState(null);
   const [focusedLead, setFocusedLead] = useState(null);
   const [infoWindowTarget, setInfoWindowTarget] = useState(null); // { type, data, lat, lng }
@@ -288,12 +361,10 @@ export default function LiveFleetCommandMap({
     if (!timelinePoints || !timelinePoints.length) return [];
     return timelinePoints
       .map((pt, idx) => {
-        const lat = Number(pt.latitude);
-        const lng = Number(pt.longitude);
-        if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return null;
+        const coords = isValidCoordinatePair(pt.latitude, pt.longitude);
+        if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
         return {
-          lat,
-          lng,
+          ...coords,
           timestamp: pt.timestamp,
           speed: pt.speed,
           battery: pt.battery_percentage,
@@ -340,23 +411,25 @@ export default function LiveFleetCommandMap({
       return;
     }
 
-    const originLat = Number(selectedEmployee.latitude);
-    const originLng = Number(selectedEmployee.longitude);
-    const destLat = Number(focusedLead.leadLatitude ?? focusedLead.latitude);
-    const destLng = Number(focusedLead.leadLongitude ?? focusedLead.longitude);
+    const origin = isValidCoordinatePair(
+      selectedEmployee.latitude,
+      selectedEmployee.longitude
+    );
+    const destination = isValidCoordinatePair(
+      focusedLead.leadLatitude ?? focusedLead.latitude,
+      focusedLead.leadLongitude ?? focusedLead.longitude
+    );
 
-    if (
-      isNaN(originLat) ||
-      isNaN(originLng) ||
-      isNaN(destLat) ||
-      isNaN(destLng)
-    ) {
+    if (!origin || !destination) {
       setDirectionsResult(null);
       setOsrmRoadCoords(null);
       setRouteStats(null);
       setIsCalculatingRoute(false);
       return;
     }
+
+    const { lat: originLat, lng: originLng } = origin;
+    const { lat: destLat, lng: destLng } = destination;
 
     // Stable route key (rounds to 4 decimals ~11m to prevent re-calculating on micro-jitter)
     const routeKey = `${selectedEmployee.id}_${originLat.toFixed(4)}_${originLng.toFixed(4)}_to_${focusedLead.id}_${destLat.toFixed(4)}_${destLng.toFixed(4)}`;
@@ -465,43 +538,137 @@ export default function LiveFleetCommandMap({
   // Selected Employee's visits
   const selectedRepVisits = useMemo(() => {
     if (!selectedEmployee) return [];
-    return visits.filter(
-      (v) =>
-        String(v.employeeId || v.assigned_to_id || v.assigned_to?.id) ===
-        String(selectedEmployee.id)
-    );
+    return visits.filter((visit) => {
+      const assignedEmployee =
+        visit.employeeId ??
+        visit.assigned_to_id ??
+        visit.assigned_to?.id ??
+        visit.assigned_to;
+      const assignedEmployeeId =
+        assignedEmployee && typeof assignedEmployee === "object"
+          ? assignedEmployee.id
+          : assignedEmployee;
+      return String(assignedEmployeeId ?? "") === String(selectedEmployee.id);
+    });
   }, [visits, selectedEmployee]);
 
+  const selectedRepMapVisits = useMemo(
+    () =>
+      visitMapFilter === "active"
+        ? selectedRepVisits.filter(isActiveVisit)
+        : selectedRepVisits,
+    [selectedRepVisits, visitMapFilter]
+  );
+
+  const selectedRepMapVisitGroups = useMemo(() => {
+    const groups = new Map();
+    selectedRepMapVisits.forEach((visit) => {
+      const coords = isValidCoordinatePair(
+        visit.leadLatitude ?? visit.latitude,
+        visit.leadLongitude ?? visit.longitude
+      );
+      if (!coords) return;
+      const nearbyGroup = Array.from(groups.values()).find((group) => {
+        const distance = calculateDistance(
+          group.coords.lat,
+          group.coords.lng,
+          coords.lat,
+          coords.lng
+        );
+        return distance != null && distance <= VISIT_MARKER_CLUSTER_RADIUS_METERS;
+      });
+      const key = nearbyGroup?.key || `${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}`;
+      const group = nearbyGroup || { key, coords, visits: [] };
+      group.visits.push(visit);
+      groups.set(key, group);
+    });
+    return Array.from(groups.values());
+  }, [selectedRepMapVisits]);
+
   const pendingVisits = useMemo(() => {
-    return selectedRepVisits.filter(
-      (v) => v.visitStatus !== "COMPLETED" && v.status !== "Completed"
-    );
+    return selectedRepVisits.filter(isActiveVisit);
   }, [selectedRepVisits]);
 
   const completedVisits = useMemo(() => {
-    return selectedRepVisits.filter(
-      (v) => v.visitStatus === "COMPLETED" || v.status === "Completed"
-    );
+    return selectedRepVisits.filter(isCompletedVisit);
   }, [selectedRepVisits]);
+
+  const selectedRepInProgressVisit = useMemo(
+    () =>
+      selectedRepVisits.find((visit) =>
+        ["CHECKED_IN", "IN_PROGRESS"].includes(
+          String(visit.visitStatus || "").toUpperCase()
+        )
+      ) || null,
+    [selectedRepVisits]
+  );
+
+  const infoWindowData = useMemo(() => {
+    if (!infoWindowTarget) return null;
+    if (infoWindowTarget.type === "employee") {
+      return (
+        employees.find(
+          (employee) => String(employee.id) === String(infoWindowTarget.data?.id)
+        ) || null
+      );
+    }
+    if (infoWindowTarget.type === "lead") {
+      return (
+        selectedRepVisits.find(
+          (visit) => String(visit.id) === String(infoWindowTarget.data?.id)
+        ) || null
+      );
+    }
+    if (infoWindowTarget.type === "visit-group") {
+      return infoWindowTarget.data
+        .map((visit) =>
+          selectedRepVisits.find(
+            (currentVisit) => String(currentVisit.id) === String(visit.id)
+          )
+        )
+        .filter(Boolean);
+    }
+    return infoWindowTarget.data;
+  }, [employees, infoWindowTarget, selectedRepVisits]);
 
   // Filtered employees for left sidebar
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
       const matchSearch =
         !searchQuery.trim() ||
-        emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(emp.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
         (emp.email && emp.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchFilter =
-        filterTab === "all" || (filterTab === "active" && Boolean(emp.isActiveTracking));
+        filterTab === "all" ||
+        (filterTab === "on_shift" &&
+          attendanceStatusAvailable && isEmployeeOnShift(emp)) ||
+        (filterTab === "active" && Boolean(emp.isActiveTracking));
 
       return matchSearch && matchFilter;
     });
-  }, [employees, searchQuery, filterTab]);
+  }, [employees, searchQuery, filterTab, attendanceStatusAvailable]);
 
   const activeCount = useMemo(() => {
     return employees.filter((e) => Boolean(e.isActiveTracking)).length;
   }, [employees]);
+
+  const onShiftCount = useMemo(
+    () => employees.filter(isEmployeeOnShift).length,
+    [employees]
+  );
+
+  const activeVisitCount = useMemo(
+    () => visits.filter(isActiveVisit).length,
+    [visits]
+  );
+
+  const trackingDataErrors = [
+    visitsUnavailable && "visit assignments",
+    employeesUnavailable && "employee roster",
+    attendanceUnavailable && "shift attendance",
+    locationsUnavailable && "GPS locations",
+  ].filter(Boolean);
 
   // Smooth pan to rep or lead
   const panToCoords = useCallback((lat, lng, zoom = 15) => {
@@ -515,12 +682,14 @@ export default function LiveFleetCommandMap({
   const handleSelectRep = (emp) => {
     setSelectedRepId(String(emp.id));
     setFocusedLead(null);
+    setInfoWindowTarget(null);
     setDirectionsResult(null);
     setOsrmRoadCoords(null);
     setRouteStats(null);
     onSelectEntity?.({ type: "employee", id: emp.id });
-    if (emp.latitude != null && emp.longitude != null) {
-      panToCoords(Number(emp.latitude), Number(emp.longitude), 15);
+    const coords = isValidCoordinatePair(emp.latitude, emp.longitude);
+    if (coords) {
+      panToCoords(coords.lat, coords.lng, 15);
     }
   };
 
@@ -528,27 +697,24 @@ export default function LiveFleetCommandMap({
     setFocusedLead(visit);
     const vLat = visit.leadLatitude ?? visit.latitude;
     const vLng = visit.leadLongitude ?? visit.longitude;
-    if (vLat != null && vLng != null) {
+    const coords = isValidCoordinatePair(vLat, vLng);
+    if (coords) {
       setInfoWindowTarget({
         type: "lead",
         data: visit,
-        lat: Number(vLat),
-        lng: Number(vLng),
+        lat: coords.lat,
+        lng: coords.lng,
       });
 
       // Fit bounds if both rep and lead positions exist
-      if (
-        selectedEmployee?.latitude != null &&
-        selectedEmployee?.longitude != null &&
-        googleMapRef.current &&
-        window.google?.maps?.LatLngBounds
-      ) {
+      const employeeCoords = isValidCoordinatePair(
+        selectedEmployee?.latitude,
+        selectedEmployee?.longitude
+      );
+      if (employeeCoords && googleMapRef.current && window.google?.maps?.LatLngBounds) {
         const bounds = new window.google.maps.LatLngBounds();
-        bounds.extend({
-          lat: Number(selectedEmployee.latitude),
-          lng: Number(selectedEmployee.longitude),
-        });
-        bounds.extend({ lat: Number(vLat), lng: Number(vLng) });
+        bounds.extend(employeeCoords);
+        bounds.extend(coords);
         googleMapRef.current.fitBounds(bounds, {
           top: 60,
           right: 60,
@@ -556,9 +722,23 @@ export default function LiveFleetCommandMap({
           left: 60,
         });
       } else {
-        panToCoords(Number(vLat), Number(vLng), 15);
+        panToCoords(coords.lat, coords.lng, 15);
       }
     }
+  };
+
+  const handleVisitGroupClick = (group) => {
+    setFocusedLead(null);
+    setDirectionsResult(null);
+    setOsrmRoadCoords(null);
+    setRouteStats(null);
+    setInfoWindowTarget({
+      type: "visit-group",
+      data: group.visits,
+      lat: group.coords.lat,
+      lng: group.coords.lng,
+    });
+    panToCoords(group.coords.lat, group.coords.lng, 15);
   };
 
   // Compute map center
@@ -566,40 +746,80 @@ export default function LiveFleetCommandMap({
     if (focusedLead) {
       const lat = focusedLead.leadLatitude ?? focusedLead.latitude;
       const lng = focusedLead.leadLongitude ?? focusedLead.longitude;
-      if (lat != null && lng != null) return { lat: Number(lat), lng: Number(lng) };
+      const coords = isValidCoordinatePair(lat, lng);
+      if (coords) return coords;
     }
-    if (selectedEmployee && selectedEmployee.latitude != null) {
-      return {
-        lat: Number(selectedEmployee.latitude),
-        lng: Number(selectedEmployee.longitude),
-      };
+    const selectedCoords = isValidCoordinatePair(
+      selectedEmployee?.latitude,
+      selectedEmployee?.longitude
+    );
+    if (selectedCoords) {
+      return selectedCoords;
     }
-    const firstActive = employees.find((e) => e.latitude != null);
+    const firstActive = employees.find((e) =>
+      isValidCoordinatePair(e.latitude, e.longitude)
+    );
     if (firstActive) {
-      return { lat: Number(firstActive.latitude), lng: Number(firstActive.longitude) };
+      return isValidCoordinatePair(firstActive.latitude, firstActive.longitude);
     }
-    if (currentUserLocation?.latitude != null) {
-      return {
-        lat: Number(currentUserLocation.latitude),
-        lng: Number(currentUserLocation.longitude),
-      };
+    const userCoords = isValidCoordinatePair(
+      currentUserLocation?.latitude,
+      currentUserLocation?.longitude
+    );
+    if (userCoords) {
+      return userCoords;
     }
     return defaultCenter;
   }, [focusedLead, selectedEmployee, employees, currentUserLocation]);
 
+  const refresh = async () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <div className="live-fleet-command">
       {/* ==================================================================== */}
-      {/* LEFT SIDEBAR: Sales Reps & Team Telemetry                           */}
+      {/* Team controls and employee selection */}
       {/* ==================================================================== */}
       <aside className="fleet-col fleet-col--left">
         <div className="fleet-col__header">
           <div className="fleet-col__title-row">
             <h3 className="fleet-col__title">Sales Fleet</h3>
-            <span className="fleet-live-pill">
-              <span className="fleet-live-pill__dot" />
-              {activeCount} Live
-            </span>
+            <button
+              type="button"
+              className="fleet-refresh-button"
+              onClick={() => void refresh()}
+              disabled={isRefreshing || !onRefresh}
+              aria-label="Refresh employee tracking data"
+            >
+              <RefreshCw size={14} className={isRefreshing ? "is-spinning" : ""} />
+              {isRefreshing ? "Refreshing" : "Refresh"}
+            </button>
+          </div>
+
+          <div className="fleet-summary-grid" aria-label="Team tracking summary">
+            <div className="fleet-summary-card">
+              <span>Employees</span>
+              <strong>{employees.length}</strong>
+            </div>
+            <div className="fleet-summary-card">
+              <span>On shift</span>
+              <strong>{attendanceStatusAvailable ? onShiftCount : "—"}</strong>
+            </div>
+            <div className="fleet-summary-card">
+              <span>Live GPS</span>
+              <strong>{activeCount}</strong>
+            </div>
+            <div className="fleet-summary-card">
+              <span>Active visits</span>
+              <strong>{activeVisitCount}</strong>
+            </div>
           </div>
 
           <div className="fleet-search-box">
@@ -618,35 +838,72 @@ export default function LiveFleetCommandMap({
               type="button"
               className={`fleet-tab ${filterTab === "all" ? "fleet-tab--active" : ""}`}
               onClick={() => setFilterTab("all")}
+              aria-pressed={filterTab === "all"}
             >
               All ({employees.length})
             </button>
+            {attendanceStatusAvailable && (
+              <button
+                type="button"
+                className={`fleet-tab ${filterTab === "on_shift" ? "fleet-tab--active" : ""}`}
+                onClick={() => setFilterTab("on_shift")}
+                aria-pressed={filterTab === "on_shift"}
+              >
+                On shift ({onShiftCount})
+              </button>
+            )}
             <button
               type="button"
               className={`fleet-tab ${filterTab === "active" ? "fleet-tab--active" : ""}`}
               onClick={() => setFilterTab("active")}
+              aria-pressed={filterTab === "active"}
             >
-              Active Live ({activeCount})
+              Live GPS ({activeCount})
             </button>
           </div>
         </div>
+
+        {trackingDataErrors.length > 0 && (
+          <div className="fleet-data-warning" role="alert">
+            <strong>Some tracking data is unavailable:</strong>{" "}
+            {trackingDataErrors.join(", ")}. Refresh or try again later.
+          </div>
+        )}
+
+        {isLoading && employees.length === 0 && visits.length === 0 && (
+          <div className="fleet-data-loading" role="status">
+            Loading team tracking data…
+          </div>
+        )}
 
         <div className="fleet-emp-list">
           {filteredEmployees.length > 0 ? (
             filteredEmployees.map((emp) => {
               const isSelected = String(selectedRepId) === String(emp.id);
-              const isLive = Boolean(emp.isActiveTracking);
-              const initials = emp.name
+              const coords = isValidCoordinatePair(emp.latitude, emp.longitude);
+              const isLive = Boolean(emp.isActiveTracking && coords);
+              const isStale = Boolean(emp.is_stale_location && coords);
+              const isOnShift = isEmployeeOnShift(emp);
+              const shiftLabel = isOnShift
+                ? "On shift"
+                : emp.shiftStatus
+                  ? String(emp.shiftStatus).replaceAll("_", " ")
+                  : attendanceUnavailable
+                    ? "Shift status unavailable"
+                    : "Shift status unknown";
+              const initials = String(emp.name || "")
                 .split(" ")
                 .map((n) => n[0])
                 .slice(0, 2)
                 .join("");
 
               return (
-                <div
+                <button
+                  type="button"
                   key={emp.id}
                   className={`fleet-emp-card ${isSelected ? "fleet-emp-card--selected" : ""}`}
                   onClick={() => handleSelectRep(emp)}
+                  aria-pressed={isSelected}
                 >
                   <div className="fleet-emp-card__avatar-col">
                     <div className={`fleet-avatar ${isLive ? "fleet-avatar--live" : ""}`}>
@@ -660,7 +917,7 @@ export default function LiveFleetCommandMap({
 
                   <div className="fleet-emp-card__body">
                     <div className="fleet-emp-card__top">
-                      <strong className="fleet-emp-card__name">{emp.name}</strong>
+                      <strong className="fleet-emp-card__name">{emp.name || "Unnamed employee"}</strong>
                       {emp.battery_level != null && (
                         <span className="fleet-emp-card__battery">
                           <Battery size={11} /> {emp.battery_level}%
@@ -679,34 +936,42 @@ export default function LiveFleetCommandMap({
 
                     <div className="fleet-emp-card__last-seen">
                       {isLive ? (
-                        <span className="text-emerald" style={{ color: "#059669", fontWeight: 600 }}>
-                          🟢 Live ({emp.active_visit_client || "In Visit"})
+                        <span className="text-emerald">
+                          Live GPS · {shiftLabel}
                         </span>
-                      ) : emp.visit_stage === "CHECKED_OUT" ? (
-                        <span
-                          className="fleet-last-seen-checked-out"
-                          style={{ color: "#d97706", fontWeight: 600 }}
-                          title={`Checked out at ${emp.check_out_time_formatted || "today"} (Visit completed)`}
-                        >
-                          🟡 Checked Out {emp.check_out_time_formatted ? `(${emp.check_out_time_formatted})` : ""}
-                        </span>
-                      ) : emp.visit_stage === "NOT_CHECKED_IN" ? (
-                        <span className="text-muted" style={{ color: "#64748b" }}>
-                          ⚪ Scheduled (Not Checked In)
-                        </span>
-                      ) : emp.latitude != null ? (
+                      ) : isStale ? (
                         <span
                           className="fleet-last-seen-stale"
                           title={`Recorded at ${formatPingTimestamp(emp.last_ping_at || emp.last_ping_formatted)}`}
                         >
-                          ⚠️ Last Known: {formatLastSeenAgo(emp.last_ping_at, emp.last_seen_human)}
+                          Stale GPS · {formatLastSeenAgo(emp.last_ping_at, emp.last_seen_human)} · {shiftLabel}
+                        </span>
+                      ) : isOnShift ? (
+                        coords ? (
+                          <span className="fleet-last-seen-stale">
+                            Last known GPS · {formatLastSeenAgo(emp.last_ping_at, emp.last_seen_human)} · On shift
+                          </span>
+                        ) : (
+                          <span className="text-shift">On shift · Location unavailable</span>
+                        )
+                      ) : emp.shiftStatus === "NOT_STARTED" ||
+                        emp.shiftStatus === "ABSENT" ? (
+                        <span className="text-muted">Off shift</span>
+                      ) : coords ? (
+                        <span
+                          className="fleet-last-seen-stale"
+                          title={`Recorded at ${formatPingTimestamp(emp.last_ping_at || emp.last_ping_formatted)}`}
+                        >
+                          Last known GPS · {formatLastSeenAgo(emp.last_ping_at, emp.last_seen_human)} · {shiftLabel}
                         </span>
                       ) : (
-                        <span className="text-muted">⚪ Offline (No GPS)</span>
+                        <span className="text-muted">
+                          Location unavailable · {shiftLabel}
+                        </span>
                       )}
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })
           ) : (
@@ -731,15 +996,18 @@ export default function LiveFleetCommandMap({
                     {routeSummary?.selected_date_label || (routeSummary?.date ? `Route on ${routeSummary.date}` : "Daily Travel Graph")}
                   </span>
                 </div>
-                {routeSummary?.is_finalized ? (
-                  <span className="fleet-badge finalized" title="Route completed & raw logs compacted (Lifetime stored)">
-                    ✓ Finalized
-                  </span>
-                ) : (
-                  <span className="fleet-badge active" title="Active workday session in progress">
-                    ● Active Today
-                  </span>
-                )}
+                <span
+                  className={`fleet-badge ${isEmployeeOnShift(selectedEmployee) ? "active" : "finalized"}`}
+                  title="Shift status comes from employee attendance"
+                >
+                  {isEmployeeOnShift(selectedEmployee)
+                    ? "On shift"
+                    : selectedEmployee.shiftCheckOut
+                    ? "Shift ended"
+                    : attendanceUnavailable
+                    ? "Shift unavailable"
+                    : "Shift status unknown"}
+                </span>
               </div>
 
               {/* Day Metrics */}
@@ -747,28 +1015,30 @@ export default function LiveFleetCommandMap({
                 <div className="fleet-metric-item">
                   <span className="fleet-metric-label">Day Distance</span>
                   <strong className="fleet-metric-val">
-                    {routeSummary?.total_distance_km != null ? `${routeSummary.total_distance_km} KM` : "0.0 KM"}
+                    {routeSummary?.total_distance_km != null
+                      ? `${routeSummary.total_distance_km} KM`
+                      : "—"}
                   </strong>
                 </div>
-                {routeSummary?.check_in_time && (
+                {getDisplayTime(selectedEmployee.shiftCheckIn) && (
                   <div className="fleet-metric-item">
-                    <span className="fleet-metric-label">Check-In</span>
+                    <span className="fleet-metric-label">Shift punch-in</span>
                     <strong className="fleet-metric-val">
-                      {routeSummary.check_in_time}
+                      {getDisplayTime(selectedEmployee.shiftCheckIn)}
                     </strong>
                   </div>
                 )}
-                {routeSummary?.check_out_time ? (
+                {getDisplayTime(selectedEmployee.shiftCheckOut) ? (
                   <div className="fleet-metric-item">
-                    <span className="fleet-metric-label">Check-Out</span>
+                    <span className="fleet-metric-label">Shift punch-out</span>
                     <strong className="fleet-metric-val">
-                      {routeSummary.check_out_time}
+                      {getDisplayTime(selectedEmployee.shiftCheckOut)}
                     </strong>
                   </div>
-                ) : (
+                ) : isEmployeeOnShift(selectedEmployee) && (
                   <div className="fleet-metric-item">
-                    <span className="fleet-metric-label">Check-Out</span>
-                    <span className="fleet-metric-val in-progress">In Progress</span>
+                    <span className="fleet-metric-label">Shift punch-out</span>
+                    <span className="fleet-metric-val in-progress">Not yet recorded</span>
                   </div>
                 )}
                 <div className="fleet-metric-item">
@@ -813,13 +1083,41 @@ export default function LiveFleetCommandMap({
 
               <div className="fleet-datepicker-wrap" title="Jump to any lifetime date">
                 <span className="fleet-datepicker-label">Jump to Date:</span>
-                <input
-                  type="date"
-                  value={selectedRouteDate || (routeSummary?.selected_date || "")}
-                  onChange={(e) => onSelectRouteDate(e.target.value)}
-                  className="fleet-datepicker-input"
+                <DatePicker
+                  value={selectedRouteDate || routeSummary?.selected_date || ""}
+                  onChange={onSelectRouteDate}
+                  className="fleet-history-date-picker"
+                  placeholder="Select date"
                 />
               </div>
+              <div className="fleet-visit-map-filter" role="group" aria-label="Visit marker filter">
+                <button
+                  type="button"
+                  className={`fleet-tab ${visitMapFilter === "all" ? "fleet-tab--active" : ""}`}
+                  onClick={() => setVisitMapFilter("all")}
+                  aria-pressed={visitMapFilter === "all"}
+                >
+                  All Visits
+                </button>
+                <button
+                  type="button"
+                  className={`fleet-tab ${visitMapFilter === "active" ? "fleet-tab--active" : ""}`}
+                  onClick={() => setVisitMapFilter("active")}
+                  aria-pressed={visitMapFilter === "active"}
+                >
+                  Active Visits
+                </button>
+              </div>
+            </div>
+
+            <div className="fleet-history-state" role="status">
+              {timelineLoading
+                ? "Loading location history…"
+                : timelineError
+                  ? "Location history could not be loaded for this date."
+                  : historyRouteCoords.length === 0
+                    ? "No location history recorded for this date."
+                    : `${historyRouteCoords.length} historical GPS points`}
             </div>
 
             {/* Scrollable Month Days Ribbon */}
@@ -827,7 +1125,8 @@ export default function LiveFleetCommandMap({
               <div className="fleet-days-ribbon">
                 <div className="fleet-ribbon-scroll">
                   {availableDays.map((d) => {
-                    const isSelectedDate = (selectedRouteDate || availableDays[0]?.date) === d.date;
+                    const isSelectedDate =
+                      (selectedRouteDate || routeSummary?.selected_date || availableDays[0]?.date) === d.date;
                     const hasTravel = d.distance_km > 0;
                     return (
                       <button
@@ -878,64 +1177,74 @@ export default function LiveFleetCommandMap({
           >
             {/* Sales Rep Markers */}
             {employees.map((emp) => {
-              if (emp.latitude == null || emp.longitude == null) return null;
+              const coords = isValidCoordinatePair(emp.latitude, emp.longitude);
+              if (!coords) return null;
               const isSelected = String(selectedRepId) === String(emp.id);
-              const isLive = Boolean(emp.isActiveTracking);
 
               return (
                 <MarkerF
                   key={`google-rep-${emp.id}`}
-                  position={{ lat: Number(emp.latitude), lng: Number(emp.longitude) }}
+                  position={coords}
                   onClick={() => {
                     handleSelectRep(emp);
                     setInfoWindowTarget({
                       type: "employee",
                       data: emp,
-                      lat: Number(emp.latitude),
-                      lng: Number(emp.longitude),
+                      ...coords,
                     });
                   }}
+                  title={`${emp.name || "Employee"} · ${
+                    emp.is_stale_location
+                      ? "Stale GPS"
+                      : emp.isActiveTracking
+                        ? "Live GPS"
+                        : "Last known GPS"
+                  }`}
                   icon={{
-                    path: window.google.maps.SymbolPath.CIRCLE,
-                    scale: isSelected ? 12 : 9,
-                    fillColor: isLive ? "#0ba37f" : "#d97706",
-                    fillOpacity: 1,
-                    strokeColor: "#ffffff",
-                    strokeWeight: 2.5,
+                    url: createEmployeeMarkerIcon(isSelected),
+                    scaledSize: new window.google.maps.Size(42, 48),
+                    anchor: new window.google.maps.Point(21, 46),
                   }}
                 />
               );
             })}
 
-            {/* Leads / Visits Markers for Selected Rep */}
-            {selectedRepVisits.map((v) => {
-              const vLat = v.leadLatitude ?? v.latitude;
-              const vLng = v.leadLongitude ?? v.longitude;
-              if (vLat == null || vLng == null) return null;
-              const isCompleted =
-                v.visitStatus === "COMPLETED" || v.status === "Completed";
-              const isFocused = focusedLead && focusedLead.id === v.id;
+            {/* Selected employee's assigned visit markers */}
+            {selectedRepMapVisitGroups.map((group) => {
+              const isGrouped = group.visits.length > 1;
+              const isFocused = group.visits.some(
+                (visit) => focusedLead?.id === visit.id
+              );
+              const firstVisit = group.visits[0];
+              const markerIcon = isGrouped
+                ? createVisitGroupMarkerIcon(group, isFocused)
+                : createVisitMarkerIcon(firstVisit, isFocused);
+              const markerTitle = isGrouped
+                ? `${group.visits.length} visits near this location`
+                : `${firstVisit.companyName || firstVisit.leadName || "Visit"} · ${getVisitStatusLabel(firstVisit)}`;
 
               return (
                 <MarkerF
-                  key={`google-lead-${v.id}`}
-                  position={{ lat: Number(vLat), lng: Number(vLng) }}
+                  key={`google-visit-group-${group.key}`}
+                  position={group.coords}
                   onClick={() => {
-                    setFocusedLead(v);
-                    setInfoWindowTarget({
-                      type: "lead",
-                      data: v,
-                      lat: Number(vLat),
-                      lng: Number(vLng),
-                    });
+                    if (isGrouped) {
+                      handleVisitGroupClick(group);
+                    } else {
+                      handleFocusLead(firstVisit);
+                    }
                   }}
+                  title={markerTitle}
                   icon={{
-                    path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
-                    scale: isFocused ? 7 : 5,
-                    fillColor: isCompleted ? "#0ba37f" : "#d97706",
-                    fillOpacity: 1,
-                    strokeColor: "#ffffff",
-                    strokeWeight: 2,
+                    url: markerIcon,
+                    scaledSize: new window.google.maps.Size(
+                      isGrouped ? 42 : 38,
+                      isGrouped ? 48 : 46
+                    ),
+                    anchor: new window.google.maps.Point(
+                      isGrouped ? 21 : 19,
+                      isGrouped ? 46 : 44
+                    ),
                   }}
                 />
               );
@@ -1000,12 +1309,12 @@ export default function LiveFleetCommandMap({
               <MarkerF
                 key={`route-start-${historyRouteCoords[0].timestamp || 0}`}
                 position={{ lat: historyRouteCoords[0].lat, lng: historyRouteCoords[0].lng }}
-                title={`Start / Check-in: ${formatPingTimestamp(historyRouteCoords[0].timestamp)}`}
+                title={`First recorded location: ${formatPingTimestamp(historyRouteCoords[0].timestamp)}`}
                 onClick={() => {
                   setInfoWindowTarget({
                     type: "checkpoint",
                     data: {
-                      title: "🟢 Check-In / Workday Start",
+                      title: "First recorded location",
                       time: formatPingTimestamp(historyRouteCoords[0].timestamp),
                       battery: historyRouteCoords[0].battery,
                       speed: historyRouteCoords[0].speed,
@@ -1033,14 +1342,12 @@ export default function LiveFleetCommandMap({
                   lat: historyRouteCoords[historyRouteCoords.length - 1].lat,
                   lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
                 }}
-                title={`${routeSummary?.is_finalized ? "Check-Out" : "Latest Location"}: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`}
+                title={`Last recorded location: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`}
                 onClick={() => {
                   setInfoWindowTarget({
                     type: "checkpoint",
                     data: {
-                      title: routeSummary?.is_finalized
-                        ? "🔴 Check-Out / Workday End"
-                        : "🔵 Latest Recorded Location",
+                      title: "Last recorded location",
                       time: formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp),
                       battery: historyRouteCoords[historyRouteCoords.length - 1].battery,
                       speed: historyRouteCoords[historyRouteCoords.length - 1].speed,
@@ -1091,89 +1398,127 @@ export default function LiveFleetCommandMap({
             ))}
 
             {/* InfoWindow */}
-            {infoWindowTarget && (
-              <InfoWindowF
-                position={{ lat: infoWindowTarget.lat, lng: infoWindowTarget.lng }}
-                onCloseClick={() => setInfoWindowTarget(null)}
-              >
-                <div className="fleet-infowindow">
-                  {infoWindowTarget.type === "checkpoint" ? (
-                    <div>
-                      <strong>{infoWindowTarget.data.title}</strong>
-                      <p style={{ margin: "4px 0 2px", color: "#334155", fontSize: "12px" }}>
-                        🕒 {infoWindowTarget.data.time}
-                      </p>
-                      {infoWindowTarget.data.battery != null && (
-                        <small style={{ color: "#64748b", display: "block" }}>
-                          🔋 Battery: {infoWindowTarget.data.battery}%
-                          {infoWindowTarget.data.speed != null ? ` • Speed: ${infoWindowTarget.data.speed} km/h` : ""}
-                        </small>
-                      )}
-                    </div>
-                  ) : infoWindowTarget.type === "employee" ? (
-                    <div>
-                      <strong>{infoWindowTarget.data.name}</strong>
-                      {infoWindowTarget.data.isActiveTracking ? (
-                        <p style={{ color: "#059669", fontWeight: 600, margin: "2px 0" }}>
-                          🟢 Live Tracking (In Visit: {infoWindowTarget.data.active_visit_client || "Client"})
+            {infoWindowTarget &&
+              infoWindowData &&
+              (!Array.isArray(infoWindowData) || infoWindowData.length > 0) && (
+                <InfoWindowF
+                  position={{ lat: infoWindowTarget.lat, lng: infoWindowTarget.lng }}
+                  onCloseClick={() => setInfoWindowTarget(null)}
+                >
+                  <div className="fleet-infowindow">
+                    {infoWindowTarget.type === "checkpoint" ? (
+                      <div>
+                        <strong>{infoWindowData.title}</strong>
+                        <p>{infoWindowData.time}</p>
+                        {infoWindowData.battery != null && (
+                          <small>
+                            Battery: {infoWindowData.battery}%
+                            {infoWindowData.speed != null
+                              ? ` · Speed: ${infoWindowData.speed} km/h`
+                              : ""}
+                          </small>
+                        )}
+                      </div>
+                    ) : infoWindowTarget.type === "employee" ? (
+                      <div>
+                        <strong>{infoWindowData.name || "Employee"}</strong>
+                        <p>
+                          Shift: {isEmployeeOnShift(infoWindowData)
+                            ? `On shift${getDisplayTime(infoWindowData.shiftCheckIn)
+                              ? ` · punched in ${getDisplayTime(infoWindowData.shiftCheckIn)}`
+                              : ""}`
+                            : infoWindowData.shiftStatus || "Unavailable"}
                         </p>
-                      ) : infoWindowTarget.data.visit_stage === "CHECKED_OUT" ? (
-                        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "6px 8px", borderRadius: "6px", margin: "4px 0" }}>
-                          <p style={{ color: "#d97706", fontWeight: 700, margin: "0 0 2px" }}>
-                            🟡 Checked Out Today
+                        <p>
+                          GPS: {!isValidCoordinatePair(infoWindowData.latitude, infoWindowData.longitude)
+                            ? "Location unavailable"
+                            : infoWindowData.is_stale_location
+                              ? "Stale"
+                              : infoWindowData.isActiveTracking
+                                ? "Live"
+                                : "Last known"}
+                        </p>
+                        {(infoWindowData.last_ping_at || infoWindowData.last_ping_formatted) && (
+                          <p>
+                            Last GPS update: {formatPingTimestamp(
+                              infoWindowData.last_ping_at || infoWindowData.last_ping_formatted
+                            )}
                           </p>
-                          <p style={{ color: "#475569", fontSize: "11px", margin: "0 0 2px" }}>
-                            {infoWindowTarget.data.check_in_time_formatted && `In: ${infoWindowTarget.data.check_in_time_formatted} • `}
-                            Out: <strong>{infoWindowTarget.data.check_out_time_formatted || "Completed"}</strong>
-                            {infoWindowTarget.data.last_visit_client ? ` (${infoWindowTarget.data.last_visit_client})` : ""}
+                        )}
+                        {isValidCoordinatePair(infoWindowData.latitude, infoWindowData.longitude) && (
+                          <p>
+                            Location: {Number(infoWindowData.latitude).toFixed(6)}, {Number(infoWindowData.longitude).toFixed(6)}
                           </p>
-                          <p style={{ color: "#92400e", fontSize: "10px", margin: "0" }}>
-                            Live tracking is stopped after checkout.
+                        )}
+                      </div>
+                    ) : infoWindowTarget.type === "visit-group" ? (
+                      <div className="fleet-visit-group-popup">
+                        <strong>{infoWindowData.length} visits near this location</strong>
+                        {infoWindowData.map((visit) => (
+                          <div className="fleet-visit-group-popup__item" key={visit.id}>
+                            <strong>{visit.companyName || visit.leadName || "Visit"}</strong>
+                            <p>Assigned to: {visit.employeeName || selectedEmployee?.name || "Employee unavailable"}</p>
+                            {visit.address && <p>{visit.address}</p>}
+                            <p>Status: {getVisitStatusLabel(visit)}</p>
+                            {(visit.scheduledDate || visit.scheduledTime) && (
+                              <p>
+                                Scheduled: {[visit.scheduledDate, visit.scheduledTime].filter(Boolean).join(" · ")}
+                              </p>
+                            )}
+                            {getDisplayTime(visit.checkInTime) && (
+                              <p>Check-in: {getDisplayTime(visit.checkInTime)}</p>
+                            )}
+                            {getDisplayTime(visit.checkOutTime) && (
+                              <p>Check-out: {getDisplayTime(visit.checkOutTime)}</p>
+                            )}
+                            <div className="fleet-lead-card__footer">
+                              <button
+                                type="button"
+                                className="fleet-btn-xs"
+                                onClick={() => handleFocusLead(visit)}
+                              >
+                                Focus
+                              </button>
+                              <button
+                                type="button"
+                                className="fleet-btn-xs"
+                                onClick={() => onSelectVisit(visit)}
+                              >
+                                Visit details
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div>
+                        <strong>{infoWindowData.companyName || infoWindowData.leadName || "Visit"}</strong>
+                        <p>Assigned to: {infoWindowData.employeeName || selectedEmployee?.name || "Employee unavailable"}</p>
+                        {infoWindowData.address && <p>{infoWindowData.address}</p>}
+                        <p>Status: {getVisitStatusLabel(infoWindowData)}</p>
+                        {(infoWindowData.scheduledDate || infoWindowData.scheduledTime) && (
+                          <p>
+                            Scheduled: {[infoWindowData.scheduledDate, infoWindowData.scheduledTime].filter(Boolean).join(" · ")}
                           </p>
-                        </div>
-                      ) : infoWindowTarget.data.visit_stage === "NOT_CHECKED_IN" ? (
-                        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", padding: "6px 8px", borderRadius: "6px", margin: "4px 0" }}>
-                          <p style={{ color: "#334155", fontWeight: 700, margin: "0 0 2px" }}>
-                            ⚪ Scheduled (Not Checked In)
-                          </p>
-                          <p style={{ color: "#64748b", fontSize: "10px", margin: "0" }}>
-                            {infoWindowTarget.data.today_visits_count || 0} visits scheduled today.
-                          </p>
-                        </div>
-                      ) : (
-                        <div style={{ background: "#fffbeb", border: "1px solid #fde68a", padding: "6px 8px", borderRadius: "6px", margin: "4px 0" }}>
-                          <p style={{ color: "#d97706", fontWeight: 700, margin: "0 0 2px" }}>
-                            ⚠️ Inactive / Not Live
-                          </p>
-                          <p style={{ color: "#475569", fontSize: "11px", margin: "0 0 2px" }}>
-                            📌 Showing <strong>Last Known Location</strong>
-                          </p>
-                          <p style={{ color: "#64748b", fontSize: "10px", margin: "0" }}>
-                            Recorded: <strong>{formatPingTimestamp(infoWindowTarget.data.last_ping_at || infoWindowTarget.data.last_ping_formatted)}</strong>
-                            {` (${formatLastSeenAgo(infoWindowTarget.data.last_ping_at, infoWindowTarget.data.last_seen_human)})`}
-                          </p>
-                        </div>
-                      )}
-                      <small style={{ color: "#64748b" }}>
-                        Distance Today: {infoWindowTarget.data.today_distance_km || 0} km • {infoWindowTarget.data.today_visits_count || 0} Visits
-                      </small>
-                    </div>
-                  ) : (
-                    <div>
-                      <strong>{infoWindowTarget.data.companyName || infoWindowTarget.data.leadName}</strong>
-                      <p>Status: {infoWindowTarget.data.visitStatus}</p>
-                      <button
-                        type="button"
-                        className="fleet-btn-xs"
-                        onClick={() => onSelectVisit(infoWindowTarget.data)}
-                      >
-                        Open Visit Details
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </InfoWindowF>
-            )}
+                        )}
+                        {getDisplayTime(infoWindowData.checkInTime) && (
+                          <p>Check-in: {getDisplayTime(infoWindowData.checkInTime)}</p>
+                        )}
+                        {getDisplayTime(infoWindowData.checkOutTime) && (
+                          <p>Check-out: {getDisplayTime(infoWindowData.checkOutTime)}</p>
+                        )}
+                        <button
+                          type="button"
+                          className="fleet-btn-xs"
+                          onClick={() => onSelectVisit(infoWindowData)}
+                        >
+                          Open Visit Details
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </InfoWindowF>
+              )}
           </GoogleMap>
         ) : (
           /* Graceful Leaflet fallback if Google Maps key not active */
@@ -1191,34 +1536,47 @@ export default function LiveFleetCommandMap({
 
             {/* Rep Markers */}
             {employees.map((emp) => {
-              if (emp.latitude == null || emp.longitude == null) return null;
-              const isLive = Boolean(emp.isActiveTracking);
-              const initials = emp.name
-                .split(" ")
-                .map((n) => n[0])
-                .slice(0, 2)
-                .join("");
+              const coords = isValidCoordinatePair(emp.latitude, emp.longitude);
+              if (!coords) return null;
+              const isSelected = String(selectedRepId) === String(emp.id);
 
               return (
                 <Marker
                   key={`leaflet-rep-${emp.id}`}
-                  position={[Number(emp.latitude), Number(emp.longitude)]}
-                  icon={createLeafletRepIcon(initials, isLive)}
+                  position={[coords.lat, coords.lng]}
+                  icon={createLeafletIcon(createEmployeeMarkerIcon(isSelected))}
                   eventHandlers={{
-                    click: () => handleSelectRep(emp),
+                    click: () => {
+                      handleSelectRep(emp);
+                      setInfoWindowTarget({
+                        type: "employee",
+                        data: emp,
+                        lat: coords.lat,
+                        lng: coords.lng,
+                      });
+                    },
                   }}
                 >
                   <Popup>
                     <div className="fleet-popup">
-                      <strong>{emp.name}</strong>
+                      <strong>{emp.name || "Employee"}</strong>
                       <div className="fleet-popup__meta">
-                        {isLive
-                          ? `🟢 Live (${emp.active_visit_client || "In Visit"})`
-                          : emp.visit_stage === "CHECKED_OUT"
-                          ? `🟡 Checked Out (${emp.check_out_time_formatted || "Completed"})`
-                          : emp.visit_stage === "NOT_CHECKED_IN"
-                          ? "⚪ Scheduled"
-                          : "⚪ Inactive"} • {emp.today_distance_km || 0} km
+                        {isEmployeeOnShift(emp)
+                          ? `On shift${getDisplayTime(emp.shiftCheckIn) ? ` · punched in ${getDisplayTime(emp.shiftCheckIn)}` : ""}`
+                          : emp.shiftStatus || "Shift status unavailable"}
+                      </div>
+                      <div className="fleet-popup__meta">
+                        {emp.is_stale_location
+                          ? "Stale GPS"
+                          : emp.isActiveTracking
+                            ? "Live GPS"
+                            : "Last known GPS"}
+                        {emp.last_ping_at
+                          ? ` · ${formatPingTimestamp(emp.last_ping_at)}`
+                          : ""}
+                      </div>
+                      <div className="fleet-popup__meta">
+                        {coords.lat.toFixed(6)}, {coords.lng.toFixed(6)}
                       </div>
                     </div>
                   </Popup>
@@ -1227,34 +1585,81 @@ export default function LiveFleetCommandMap({
             })}
 
             {/* Selected Rep Visits */}
-            {selectedRepVisits.map((v) => {
-              const vLat = v.leadLatitude ?? v.latitude;
-              const vLng = v.leadLongitude ?? v.longitude;
-              if (vLat == null || vLng == null) return null;
-              const isCompleted =
-                v.visitStatus === "COMPLETED" || v.status === "Completed";
-              const isFocused = focusedLead && focusedLead.id === v.id;
+            {selectedRepMapVisitGroups.map((group) => {
+              const isGrouped = group.visits.length > 1;
+              const firstVisit = group.visits[0];
+              const isFocused = group.visits.some(
+                (visit) => focusedLead?.id === visit.id
+              );
+              const markerIcon = isGrouped
+                ? createVisitGroupMarkerIcon(group, isFocused)
+                : createVisitMarkerIcon(firstVisit, isFocused);
 
               return (
                 <Marker
-                  key={`leaflet-visit-${v.id}`}
-                  position={[Number(vLat), Number(vLng)]}
-                  icon={createLeafletLeadIcon(isCompleted, isFocused)}
+                  key={`leaflet-visit-group-${group.key}`}
+                  position={[group.coords.lat, group.coords.lng]}
+                  icon={createLeafletIcon(markerIcon, true, isGrouped)}
                   eventHandlers={{
-                    click: () => setFocusedLead(v),
+                    click: () => {
+                      if (isGrouped) {
+                        handleVisitGroupClick(group);
+                      } else {
+                        handleFocusLead(firstVisit);
+                      }
+                    },
                   }}
                 >
                   <Popup>
-                    <div className="fleet-popup">
-                      <strong>{v.companyName || v.leadName}</strong>
-                      <p>{v.address || "Visit address"}</p>
-                      <button
-                        type="button"
-                        className="fleet-btn-xs"
-                        onClick={() => onSelectVisit(v)}
-                      >
-                        View Visit
-                      </button>
+                    <div className="fleet-popup fleet-visit-group-popup">
+                      <strong>
+                        {isGrouped
+                          ? `${group.visits.length} visits near this location`
+                          : firstVisit.companyName || firstVisit.leadName || "Visit"}
+                      </strong>
+                      {group.visits.map((visit) => (
+                        <div className="fleet-visit-group-popup__item" key={visit.id}>
+                          <strong>{visit.companyName || visit.leadName || "Visit"}</strong>
+                          {visit.address && <p>{visit.address}</p>}
+                          <div className="fleet-popup__meta">
+                            Assigned to: {visit.employeeName || selectedEmployee?.name || "Employee unavailable"}
+                          </div>
+                          <div className="fleet-popup__meta">
+                            Status: {getVisitStatusLabel(visit)}
+                          </div>
+                          {(visit.scheduledDate || visit.scheduledTime) && (
+                            <div className="fleet-popup__meta">
+                              Scheduled: {[visit.scheduledDate, visit.scheduledTime].filter(Boolean).join(" · ")}
+                            </div>
+                          )}
+                          {getDisplayTime(visit.checkInTime) && (
+                            <div className="fleet-popup__meta">
+                              Check-in: {getDisplayTime(visit.checkInTime)}
+                            </div>
+                          )}
+                          {getDisplayTime(visit.checkOutTime) && (
+                            <div className="fleet-popup__meta">
+                              Check-out: {getDisplayTime(visit.checkOutTime)}
+                            </div>
+                          )}
+                          <div className="fleet-lead-card__footer">
+                            <button
+                              type="button"
+                              className="fleet-btn-xs"
+                              onClick={() => handleFocusLead(visit)}
+                            >
+                              Focus
+                            </button>
+                            <button
+                              type="button"
+                              className="fleet-btn-xs"
+                              onClick={() => onSelectVisit(visit)}
+                            >
+                              Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </Popup>
                 </Marker>
@@ -1306,7 +1711,7 @@ export default function LiveFleetCommandMap({
               >
                 <Popup>
                   <div className="fleet-popup">
-                    <strong>🟢 Check-In / Day Start</strong>
+                    <strong>First recorded location</strong>
                     <p>{formatPingTimestamp(historyRouteCoords[0].timestamp)}</p>
                   </div>
                 </Popup>
@@ -1329,7 +1734,7 @@ export default function LiveFleetCommandMap({
                 <Popup>
                   <div className="fleet-popup">
                     <strong>
-                      {routeSummary?.is_finalized ? "🔴 Check-Out / Day End" : "🔵 Latest Point"}
+                      Last recorded location
                     </strong>
                     <p>
                       {formatPingTimestamp(
@@ -1343,49 +1748,59 @@ export default function LiveFleetCommandMap({
           </MapContainer>
         )}
 
-        {/* Banner: When Selected Rep is Inactive or Checked Out */}
+        {/* Shift attendance and visit activity are separate states. */}
         {selectedEmployee && !selectedEmployee.isActiveTracking && (
           <div className="fleet-stale-warning-hud">
             <div className="fleet-stale-warning-hud__icon">
-              {selectedEmployee.visit_stage === "CHECKED_OUT" ? (
-                <CheckCircle2 size={16} color="#d97706" />
-              ) : selectedEmployee.visit_stage === "NOT_CHECKED_IN" ? (
+              {isEmployeeOnShift(selectedEmployee) ? (
                 <Clock size={16} color="#475569" />
+              ) : isCompletedVisit({ visitStatus: selectedEmployee.visit_stage }) ? (
+                <CheckCircle2 size={16} color="#d97706" />
               ) : (
                 <AlertTriangle size={16} />
               )}
             </div>
             <div className="fleet-stale-warning-hud__content">
               <div className="fleet-stale-warning-hud__title">
-                {selectedEmployee.visit_stage === "CHECKED_OUT"
-                  ? `${selectedEmployee.name} Checked Out Today`
-                  : selectedEmployee.visit_stage === "NOT_CHECKED_IN"
-                  ? `${selectedEmployee.name} Has Not Checked In Yet`
-                  : `${selectedEmployee.name} is Inactive`}
+                {isEmployeeOnShift(selectedEmployee)
+                  ? `${selectedEmployee.name} is on shift`
+                  : selectedEmployee.shiftStatus === "NOT_STARTED" ||
+                    selectedEmployee.shiftStatus === "ABSENT"
+                  ? `${selectedEmployee.name} is off shift`
+                  : `${selectedEmployee.name} has no live GPS`}
               </div>
               <div className="fleet-stale-warning-hud__desc">
-                {selectedEmployee.visit_stage === "CHECKED_OUT" ? (
+                {isEmployeeOnShift(selectedEmployee) ? (
                   <>
-                    {selectedEmployee.check_in_time_formatted && (
-                      <>Checked in: <strong>{selectedEmployee.check_in_time_formatted}</strong> • </>
+                    Shift punch-in
+                    {getDisplayTime(selectedEmployee.shiftCheckIn) && (
+                      <>: <strong>{getDisplayTime(selectedEmployee.shiftCheckIn)}</strong></>
                     )}
-                    Checked out: <strong>{selectedEmployee.check_out_time_formatted || "Completed"}</strong>
-                    {selectedEmployee.last_visit_client ? ` (${selectedEmployee.last_visit_client})` : ""}.
-                    {" "}Live GPS tracking is paused because the visit is completed.
+                    .{" "}
+                    {selectedRepInProgressVisit
+                      ? `Visit in progress: ${selectedRepInProgressVisit.companyName || selectedRepInProgressVisit.leadName || "assigned visit"}. Live GPS is unavailable.`
+                      : "No visit is checked in; shift punch-in does not start a visit."}
                   </>
-                ) : selectedEmployee.visit_stage === "NOT_CHECKED_IN" ? (
+                ) : selectedEmployee.shiftStatus === "NOT_STARTED" ||
+                  selectedEmployee.shiftStatus === "ABSENT" ? (
                   <>
-                    Visits scheduled: <strong>{selectedEmployee.today_visits_count ?? 0}</strong>.
-                    {" "}Live tracking will activate once the representative checks in to a visit.
+                    No active shift punch-in is recorded.
                   </>
                 ) : selectedEmployee.latitude != null ? (
                   <>
-                    Showing Last Known Location recorded at{" "}
+                    Shift status is{" "}
+                    <strong>{attendanceUnavailable ? "unavailable" : "not returned"}</strong>.
+                    Showing the last known GPS location recorded at{" "}
                     <strong>{formatPingTimestamp(selectedEmployee.last_ping_at || selectedEmployee.last_ping_formatted)}</strong>
                     {` (${formatLastSeenAgo(selectedEmployee.last_ping_at, selectedEmployee.last_seen_human)})`}.
                   </>
                 ) : (
-                  <>No GPS signal received from device yet today.</>
+                  <>
+                    {attendanceUnavailable
+                      ? "Shift attendance could not be loaded. "
+                      : "Shift status was not returned. "}
+                    No live GPS location is available.
+                  </>
                 )}
               </div>
             </div>
@@ -1400,7 +1815,7 @@ export default function LiveFleetCommandMap({
             </div>
             <div className="fleet-route-floating-hud__info">
               <span className="fleet-route-floating-hud__title">
-                {focusedLead.companyName || focusedLead.leadName || "Client"}
+                {focusedLead.companyName || focusedLead.leadName || "Visit"}
               </span>
               <span className="fleet-route-floating-hud__meta">
                 {isCalculatingRoute
@@ -1427,84 +1842,90 @@ export default function LiveFleetCommandMap({
         {/* Floating Map Legend */}
         <div className="fleet-map-legend">
           <div className="fleet-legend-item">
-            <span className="fleet-legend-dot fleet-legend-dot--rep" />
-            <span>Rep (Live)</span>
+            <UserRound size={14} className="fleet-legend-person" />
+            <span>Employee location</span>
           </div>
           <div className="fleet-legend-item">
-            <span className="fleet-legend-dot fleet-legend-dot--stale" />
-            <span>Rep (Last Known)</span>
+            <MapPin size={14} className="fleet-legend-visit fleet-legend-visit--scheduled" />
+            <span>Scheduled / assigned</span>
           </div>
           <div className="fleet-legend-item">
-            <span className="fleet-legend-dot fleet-legend-dot--pending" />
-            <span>Pending Client</span>
+            <MapPin size={14} className="fleet-legend-visit fleet-legend-visit--progress" />
+            <span>In progress</span>
           </div>
           <div className="fleet-legend-item">
-            <span className="fleet-legend-dot fleet-legend-dot--completed" />
-            <span>Completed Visit</span>
+            <MapPin size={14} className="fleet-legend-visit fleet-legend-visit--completed" />
+            <span>Completed</span>
           </div>
         </div>
       </main>
 
       {/* ==================================================================== */}
-      {/* RIGHT SIDEBAR: Selected Rep's Leads & Distances                     */}
+      {/* Selected employee and assigned visit details */}
       {/* ==================================================================== */}
       <aside className="fleet-col fleet-col--right">
         {selectedEmployee ? (
           <>
             <div className="fleet-col__header">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <h4 className="fleet-rep-title">{selectedEmployee.name}</h4>
-                {selectedEmployee.isActiveTracking ? (
-                  <span className="fleet-live-pill">
-                    <span className="fleet-live-pill__dot" />
-                    Live
-                  </span>
-                ) : selectedEmployee.visit_stage === "CHECKED_OUT" ? (
-                  <span
-                    className="fleet-inactive-pill"
-                    style={{ background: "#fef3c7", color: "#92400e", borderColor: "#fde68a" }}
-                  >
-                    🟡 Checked Out
-                  </span>
-                ) : selectedEmployee.visit_stage === "NOT_CHECKED_IN" ? (
-                  <span
-                    className="fleet-inactive-pill"
-                    style={{ background: "#f1f5f9", color: "#475569", borderColor: "#e2e8f0" }}
-                  >
-                    ⚪ Scheduled
-                  </span>
-                ) : (
-                  <span
-                    className="fleet-inactive-pill"
-                    title={formatPingTimestamp(selectedEmployee.last_ping_at || selectedEmployee.last_ping_formatted)}
-                  >
-                    ⚠️ Inactive ({formatLastSeenAgo(selectedEmployee.last_ping_at, selectedEmployee.last_seen_human)})
-                  </span>
-                )}
+              <div className="fleet-selected-employee-header">
+                <div>
+                  <h4 className="fleet-rep-title">{selectedEmployee.name}</h4>
+                  <p className="fleet-rep-subtitle">
+                    {isEmployeeOnShift(selectedEmployee)
+                      ? `On shift${getDisplayTime(selectedEmployee.shiftCheckIn) ? ` · punched in ${getDisplayTime(selectedEmployee.shiftCheckIn)}` : ""}. ${
+                          selectedRepInProgressVisit
+                            ? `Visit in progress: ${selectedRepInProgressVisit.companyName || selectedRepInProgressVisit.leadName || "Assigned visit"}.`
+                            : "No visit is checked in."
+                        }${selectedEmployee.isActiveTracking ? " Live GPS is active." : ""}`
+                      : attendanceUnavailable || !selectedEmployee.shiftStatus
+                      ? "Shift status unavailable; GPS and visit status are separate."
+                      : selectedEmployee.shiftStatus === "NOT_STARTED" ||
+                        selectedEmployee.shiftStatus === "ABSENT"
+                      ? "No shift punch-in is recorded."
+                      : `Attendance status: ${selectedEmployee.shiftStatus}`}
+                  </p>
+                  {selectedEmployee.visit_stage && (
+                    <p className="fleet-visit-stage">
+                      Visit tracking: {String(selectedEmployee.visit_stage).replace(/_/g, " ")}
+                      {selectedEmployee.check_in_time_formatted
+                        ? ` · visit check-in ${selectedEmployee.check_in_time_formatted}`
+                        : ""}
+                    </p>
+                  )}
+                </div>
+                <span
+                  className={`fleet-shift-pill ${
+                    isEmployeeOnShift(selectedEmployee)
+                      ? "fleet-shift-pill--active"
+                      : selectedEmployee.isActiveTracking
+                      ? "fleet-shift-pill--gps"
+                      : ""
+                  }`}
+                >
+                  {isEmployeeOnShift(selectedEmployee)
+                    ? "ON SHIFT"
+                    : selectedEmployee.isActiveTracking
+                    ? "GPS LIVE"
+                    : selectedEmployee.shiftStatus === "NOT_STARTED" ||
+                      selectedEmployee.shiftStatus === "ABSENT"
+                    ? "OFF SHIFT"
+                    : attendanceUnavailable
+                    ? "SHIFT UNKNOWN"
+                    : "STATUS UNKNOWN"}
+                </span>
               </div>
-              <p className="fleet-rep-subtitle">
-                {selectedEmployee.isActiveTracking
-                  ? `🟢 In Visit with ${selectedEmployee.active_visit_client || "Client"} (Checked in: ${selectedEmployee.check_in_time_formatted || "Today"})`
-                  : selectedEmployee.visit_stage === "CHECKED_OUT"
-                  ? `🟡 Checked out at ${selectedEmployee.check_out_time_formatted || "today"}${selectedEmployee.last_visit_client ? ` (${selectedEmployee.last_visit_client})` : ""}`
-                  : selectedEmployee.visit_stage === "NOT_CHECKED_IN"
-                  ? "⚪ Not checked in yet today"
-                  : (selectedEmployee.last_ping_at || selectedEmployee.last_ping_formatted)
-                  ? `Last Location: ${formatPingTimestamp(selectedEmployee.last_ping_at || selectedEmployee.last_ping_formatted)}`
-                  : "Today's Visits Schedule"}
-              </p>
 
               <div className="fleet-counter-row">
                 <div className="fleet-counter-card">
-                  <span className="fleet-counter-card__label">Total</span>
+                  <span className="fleet-counter-card__label">Assigned</span>
                   <strong className="fleet-counter-card__num">{selectedRepVisits.length}</strong>
                 </div>
                 <div className="fleet-counter-card fleet-counter-card--done">
-                  <span className="fleet-counter-card__label">Done</span>
+                  <span className="fleet-counter-card__label">Completed</span>
                   <strong className="fleet-counter-card__num">{completedVisits.length}</strong>
                 </div>
                 <div className="fleet-counter-card fleet-counter-card--left">
-                  <span className="fleet-counter-card__label">Left</span>
+                  <span className="fleet-counter-card__label">Active</span>
                   <strong className="fleet-counter-card__num">{pendingVisits.length}</strong>
                 </div>
               </div>
@@ -1512,20 +1933,29 @@ export default function LiveFleetCommandMap({
 
             <div className="fleet-lead-feed">
               <div className="fleet-feed-section-header">
-                🔴 PENDING CLIENT VISITS ({pendingVisits.length})
+                Active assigned visits ({pendingVisits.length})
               </div>
 
-              {pendingVisits.length > 0 ? (
+              {visitsUnavailable ? (
+                <div className="fleet-empty-state" role="status">
+                  Assigned visits could not be loaded. Refresh to try again.
+                </div>
+              ) : pendingVisits.length > 0 ? (
                 pendingVisits.map((visit, idx) => {
                   const vLat = visit.leadLatitude ?? visit.latitude;
                   const vLng = visit.leadLongitude ?? visit.longitude;
+                  const visitCoords = isValidCoordinatePair(vLat, vLng);
+                  const employeeCoords = isValidCoordinatePair(
+                    selectedEmployee.latitude,
+                    selectedEmployee.longitude
+                  );
                   const distMeters =
-                    selectedEmployee.latitude != null && vLat != null
+                    employeeCoords && visitCoords
                       ? calculateDistance(
-                          selectedEmployee.latitude,
-                          selectedEmployee.longitude,
-                          vLat,
-                          vLng
+                          employeeCoords.lat,
+                          employeeCoords.lng,
+                          visitCoords.lat,
+                          visitCoords.lng
                         )
                       : null;
 
@@ -1539,30 +1969,48 @@ export default function LiveFleetCommandMap({
                       <div className="fleet-lead-card__header">
                         <span className="fleet-lead-card__num">{idx + 1}</span>
                         <strong className="fleet-lead-card__title">
-                          {visit.companyName || visit.leadName || "Client"}
+                          {visit.companyName || visit.leadName || "Visit"}
                         </strong>
-                        <span
-                          className={`fleet-badge fleet-badge--${visit.priority?.toLowerCase() || "medium"}`}
-                        >
-                          {visit.priority || "Medium"}
+                        <span className={`fleet-visit-status fleet-visit-status--${visit.visitStatus?.toLowerCase() || "unknown"}`}>
+                          {getVisitStatusLabel(visit)}
                         </span>
                       </div>
 
                       <div className="fleet-lead-card__details">
-                        {visit.contactPerson && (
-                          <div className="fleet-lead-meta">
-                            <User size={12} /> {visit.contactPerson}
-                          </div>
-                        )}
                         {visit.address && (
                           <div className="fleet-lead-meta">
                             <MapPin size={12} /> {visit.address}
                           </div>
                         )}
+                        {(visit.scheduledDate || visit.scheduledTime) && (
+                          <div className="fleet-visit-time">
+                            <Calendar size={12} />
+                            {visit.scheduledDate || ""}
+                            {visit.scheduledDate && visit.scheduledTime ? " · " : ""}
+                            {visit.scheduledTime || ""}
+                          </div>
+                        )}
+                        {getDisplayTime(visit.checkInTime) && (
+                          <div className="fleet-visit-time">
+                            <Clock size={12} />
+                            Visit check-in: {getDisplayTime(visit.checkInTime)}
+                          </div>
+                        )}
+                        {getDisplayTime(visit.checkOutTime) && (
+                          <div className="fleet-visit-time">
+                            <Clock size={12} />
+                            Visit check-out: {getDisplayTime(visit.checkOutTime)}
+                          </div>
+                        )}
+                        {!visitCoords && (
+                          <div className="fleet-visit-location-unavailable">
+                            No map location available for this visit.
+                          </div>
+                        )}
                       </div>
 
                       {/* Distance & ETA Banner */}
-                      <div
+                      {distMeters != null && <div
                         className={`fleet-distance-banner ${
                           isFocused ? "fleet-distance-banner--road" : ""
                         }`}
@@ -1589,15 +2037,16 @@ export default function LiveFleetCommandMap({
                               : `~${estimateEtaMins(distMeters)}`}
                           </strong>
                         </div>
-                      </div>
+                      </div>}
 
                       <div className="fleet-lead-card__footer">
                         <button
                           type="button"
                           className={`fleet-btn ${isFocused ? "fleet-btn--active-route" : "fleet-btn--outline"}`}
                           onClick={() => handleFocusLead(visit)}
+                          disabled={!visitCoords}
                         >
-                          <Navigation size={12} /> {isFocused ? "Route Active" : "Focus on Map"}
+                          <Navigation size={12} /> {isFocused ? "Route Active" : visitCoords ? "Focus on Map" : "No visit location"}
                         </button>
                         <button
                           type="button"
@@ -1612,12 +2061,12 @@ export default function LiveFleetCommandMap({
                 })
               ) : (
                 <div className="fleet-all-completed">
-                  <CheckCircle2 size={24} color="#0ba37f" />
-                  <p>All scheduled visits completed today! 🎉</p>
+                  <MapPin size={22} color="#64748b" />
+                  <p>No active assigned visits</p>
                 </div>
               )}
 
-              {completedVisits.length > 0 && (
+              {/* {completedVisits.length > 0 && (
                 <>
                   <div className="fleet-feed-section-header" style={{ marginTop: 20 }}>
                     🟢 COMPLETED VISITS ({completedVisits.length})
@@ -1627,16 +2076,18 @@ export default function LiveFleetCommandMap({
                       <div className="fleet-lead-card__header">
                         <CheckCircle2 size={14} color="#0ba37f" />
                         <strong className="fleet-lead-card__title">
-                          {visit.companyName || visit.leadName}
+                          {visit.companyName || visit.leadName || "Visit"}
                         </strong>
                       </div>
-                      <small className="text-muted">
-                        Completed at {visit.checkOutTime || "Today"}
-                      </small>
+                      {visit.checkOutTime && (
+                        <small className="text-muted">
+                          Completed at {visit.checkOutTime}
+                        </small>
+                      )}
                     </div>
                   ))}
                 </>
-              )}
+              )} */}
             </div>
           </>
         ) : (

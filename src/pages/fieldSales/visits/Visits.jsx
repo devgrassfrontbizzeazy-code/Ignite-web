@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { Plus, AlertTriangle, RefreshCw } from "lucide-react";
+import { Plus, AlertTriangle } from "lucide-react";
 
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
 import Button from "../../../components/common/Button/Button";
@@ -10,14 +10,18 @@ import Drawer from "../../../components/common/Drawer/Drawer";
 import VisitStats from "../../../components/fieldSales/visits/visitStats/VisitStats";
 import VisitFilters from "../../../components/fieldSales/visits/visitFilters/VisitFilters";
 import VisitTable from "../../../components/fieldSales/visits/visitTable/VisitTable";
-import VisitMap from "../../../components/fieldSales/visits/visitMap/VisitMap";
-import LiveFleetCommandMap, { formatPingTimestamp, formatLastSeenAgo } from "../../../components/fieldSales/visits/visitMap/LiveFleetCommandMap";
+import LiveFleetCommandMap, { formatLastSeenAgo } from "../../../components/fieldSales/visits/visitMap/LiveFleetCommandMap";
 import { useSmartPolling } from "../../../hooks/useSmartPolling";
 import VisitDetails from "../../../components/fieldSales/visits/visitDetails/VisitDetails";
 import VisitCheckIn from "../../../components/fieldSales/visits/visitCheckIn/VisitCheckIn";
 import VisitCheckOut from "../../../components/fieldSales/visits/visitCheckOut/VisitCheckOut";
 import LocationPermissionModal from "../../../components/fieldSales/common/LocationPermissionModal/LocationPermissionModal";
-import { getCurrentUser, isFieldSalesManager, isSalesPerson } from "../../../utils/permissionUtils";
+import {
+  canViewAttendance,
+  getCurrentUser,
+  isFieldSalesManager,
+  isSalesPerson,
+} from "../../../utils/permissionUtils";
 import { useNotification } from "../../../context/NotificationContext";
 import {
   getFieldSalesVisits,
@@ -29,6 +33,7 @@ import {
   getTeamLiveLocations,
   getEmployeeTimelineHistory,
 } from "../../../services/api/fieldSalesAPI";
+import attendanceAPI from "../../../services/api/attendanceAPI";
 
 
 import "./Visits.css";
@@ -36,12 +41,6 @@ import "./Visits.css";
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
-
-const formatTime = (date = new Date()) =>
-  date.toLocaleTimeString("en-IN", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
   if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
@@ -82,6 +81,36 @@ const normalizeVisitStatus = (statusStr) => {
   return s;
 };
 
+const getRelatedId = (value) => {
+  if (value && typeof value === "object") {
+    return value.id == null ? "" : String(value.id);
+  }
+  return value == null ? "" : String(value);
+};
+
+const getCoordinatePair = (latitude, longitude) => {
+  const latValue = typeof latitude === "string" ? latitude.trim() : latitude;
+  const lngValue = typeof longitude === "string" ? longitude.trim() : longitude;
+  if (latValue == null || latValue === "" || lngValue == null || lngValue === "") {
+    return null;
+  }
+
+  const lat = Number(latValue);
+  const lng = Number(lngValue);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+  return { latitude: lat, longitude: lng };
+};
+
+const getResponseItems = (response) => {
+  if (response?.success === false) return null;
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.results)) return response.results;
+  if (Array.isArray(response?.data)) return response.data;
+  return null;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -91,16 +120,25 @@ const Visits = () => {
   const user = useMemo(() => getCurrentUser(), []);
   const isManager = isFieldSalesManager(user);
   const isSales = isSalesPerson(user);
+  const canReadTeamAttendance = isManager && canViewAttendance(user);
 
   const [visits, setVisits] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [attendanceByEmployeeId, setAttendanceByEmployeeId] = useState({});
+  const [visitsUnavailable, setVisitsUnavailable] = useState(false);
+  const [employeesUnavailable, setEmployeesUnavailable] = useState(false);
+  const [attendanceUnavailable, setAttendanceUnavailable] = useState(false);
+  const [attendanceStatusAvailable, setAttendanceStatusAvailable] = useState(false);
   const [liveLocations, setLiveLocations] = useState([]);
+  const [locationsUnavailable, setLocationsUnavailable] = useState(false);
   const [timelinePoints, setTimelinePoints] = useState([]);
   const [availableRouteDays, setAvailableRouteDays] = useState([]);
   const [selectedRouteDate, setSelectedRouteDate] = useState("");
   const [selectedRouteMonth, setSelectedRouteMonth] = useState("");
   const [selectedRouteYear, setSelectedRouteYear] = useState("");
   const [routeSummaryData, setRouteSummaryData] = useState(null);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -120,52 +158,61 @@ const Visits = () => {
 
   const [currentUserLocation, setCurrentUserLocation] = useState(null);
   const [gpsStatus, setGpsStatus] = useState("loading");
-  const lastPingTimeRef = useRef(0);
 
   // Load visits and employees with real-time periodic background sync
   const loadLiveVisits = useCallback(async (silent = false) => {
+    let hasLoadError = false;
     try {
       if (!silent) setLoading(true);
-      const [visitsRes, empsRes] = await Promise.allSettled([
+      const [visitsRes, empsRes, attendanceRes] = await Promise.allSettled([
         getFieldSalesVisits(),
         isManager ? getFieldSalesEmployees() : Promise.resolve(null),
+        canReadTeamAttendance
+          ? attendanceAPI.getCompanyAttendance({ date: getToday() })
+          : Promise.resolve(null),
       ]);
 
       if (visitsRes.status === "fulfilled") {
-        const data = visitsRes.value?.data || visitsRes.value?.results || visitsRes.value || [];
+        const data = getResponseItems(visitsRes.value);
         if (Array.isArray(data)) {
           const mapped = data.map((v) => {
-            const vLat = v.latitude != null ? Number(v.latitude) : (v.lead_latitude != null ? Number(v.lead_latitude) : null);
-            const vLng = v.longitude != null ? Number(v.longitude) : (v.lead_longitude != null ? Number(v.lead_longitude) : null);
+            const coordinates =
+              getCoordinatePair(v.latitude, v.longitude) ||
+              getCoordinatePair(v.lead_latitude, v.lead_longitude);
+            const assignedEmployeeId =
+              getRelatedId(v.assigned_to_id) ||
+              getRelatedId(v.assigned_to) ||
+              getRelatedId(v.employee_id);
 
             return {
               id: String(v.id),
-              leadId: v.lead ? String(v.lead) : String(v.customer || v.id),
-              leadName: v.lead_name || v.customer_name || "Lead Client",
-              companyName: v.company_name || v.customer_company || "Client Company",
-              employeeId: String(v.assigned_to || v.employee_id || ""),
-              employeeName: v.assigned_to_name || v.employee_name || "Sales Person",
+              leadId: getRelatedId(v.lead ?? v.customer ?? v.id) || String(v.id),
+              leadName: v.lead_name || v.customer_name || "",
+              companyName: v.company_name || v.customer_company || "",
+              employeeId: assignedEmployeeId,
+              employeeName: v.assigned_to_name || v.employee_name || "",
               employeeRole: v.assigned_to_role || "Sales Person",
-              scheduledDate: v.visit_date || getToday(),
-              scheduledTime: v.visit_time || "11:00 AM",
-              location: v.location || v.lead_address || "Client Location",
-              purpose: v.purpose || v.visit_purpose || "Product Demo & Pricing",
+              scheduledDate: v.visit_date || null,
+              scheduledTime: v.visit_time || null,
+              location: v.location || v.lead_address || "",
+              address: v.location || v.lead_address || "",
+              purpose: v.purpose || v.visit_purpose || "",
               visitStatus: normalizeVisitStatus(v.status),
               rawStatus: v.status,
-              priority: v.priority || "High",
+              priority: v.priority || "",
               instructions: v.instructions || "",
               contactPhone: v.contact_phone || "",
               outcome: v.outcome || null,
-              leadLatitude: vLat,
-              leadLongitude: vLng,
+              leadLatitude: coordinates?.latitude ?? null,
+              leadLongitude: coordinates?.longitude ?? null,
               currentLatitude: currentUserLocation?.latitude ?? null,
               currentLongitude: currentUserLocation?.longitude ?? null,
-              distance: currentUserLocation && vLat != null
+              distance: currentUserLocation && coordinates
                 ? calculateDistance(
                     currentUserLocation.latitude,
                     currentUserLocation.longitude,
-                    vLat,
-                    vLng
+                    coordinates.latitude,
+                    coordinates.longitude
                   )
                 : null,
               gpsAccuracy: currentUserLocation?.accuracy ?? null,
@@ -186,11 +233,20 @@ const Visits = () => {
             };
           });
           setVisits(mapped);
+          setVisitsUnavailable(false);
+        } else {
+          hasLoadError = true;
+          setVisitsUnavailable(true);
+          console.warn("Unexpected response shape from field sales visits endpoint.");
         }
+      } else {
+        hasLoadError = true;
+        setVisitsUnavailable(true);
+        console.warn("Could not load backend visits:", visitsRes.reason);
       }
 
       if (empsRes.status === "fulfilled" && empsRes.value) {
-        const empData = empsRes.value?.data || empsRes.value?.results || empsRes.value || [];
+        const empData = getResponseItems(empsRes.value);
         if (Array.isArray(empData)) {
           setEmployees(
             empData
@@ -200,20 +256,73 @@ const Visits = () => {
               })
               .map((e) => ({
                 id: String(e.id),
+                employee_id: e.employee_id ?? null,
+                employeeId: e.employeeId ?? null,
+                pk: e.pk ?? null,
                 name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
                 role: e.role || "Sales Person",
                 email: e.email,
                 phone: e.phone_number || e.phone,
               }))
           );
+          setEmployeesUnavailable(false);
+        } else {
+          hasLoadError = true;
+          setEmployeesUnavailable(true);
+          console.warn("Unexpected response shape from field sales employees endpoint.");
         }
+      } else if (isManager) {
+        hasLoadError = true;
+        setEmployeesUnavailable(true);
+        console.warn("Could not load field sales employees:", empsRes.reason);
+      }
+
+      if (canReadTeamAttendance && attendanceRes.status === "fulfilled") {
+        const payload = attendanceRes.value;
+        const rows = getResponseItems(payload);
+        const attendanceRecords = {};
+        if (Array.isArray(rows) && payload?.success !== false) {
+          rows.forEach((record) => {
+              const employeeId = [
+                record.employeeId,
+                record.employee_id,
+                record.employee?.id,
+              ]
+                .map(getRelatedId)
+                .find(Boolean);
+            if (employeeId) attendanceRecords[employeeId] = record;
+          });
+          setAttendanceByEmployeeId(attendanceRecords);
+          setAttendanceUnavailable(false);
+          setAttendanceStatusAvailable(true);
+        } else {
+          hasLoadError = true;
+          setAttendanceByEmployeeId({});
+          setAttendanceUnavailable(true);
+          setAttendanceStatusAvailable(false);
+          console.warn("Unexpected response shape from company attendance endpoint.");
+        }
+      } else if (canReadTeamAttendance) {
+        hasLoadError = true;
+        setAttendanceByEmployeeId({});
+        setAttendanceUnavailable(true);
+        setAttendanceStatusAvailable(false);
+        console.warn("Could not load company attendance:", attendanceRes.reason);
       }
     } catch (err) {
+      setVisitsUnavailable(true);
+      if (canReadTeamAttendance) {
+        setAttendanceByEmployeeId({});
+        setAttendanceUnavailable(true);
+        setAttendanceStatusAvailable(false);
+      }
       console.warn("Could not load backend visits:", err);
+      hasLoadError = true;
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [isManager, currentUserLocation?.latitude, currentUserLocation?.longitude, currentUserLocation?.accuracy]);
+    return !hasLoadError;
+  }, [canReadTeamAttendance, isManager, currentUserLocation?.latitude, currentUserLocation?.longitude, currentUserLocation?.accuracy]);
 
   useEffect(() => {
     loadLiveVisits(false);
@@ -348,16 +457,35 @@ const Visits = () => {
   const fetchTeamLive = useCallback(async () => {
     try {
       const res = await getTeamLiveLocations();
-      const data = res?.data || res?.results || res || [];
+      const data = getResponseItems(res);
       if (Array.isArray(data)) {
         setLiveLocations(data);
+        setLocationsUnavailable(false);
+        return true;
       }
+      setLocationsUnavailable(true);
+      console.warn("Unexpected response shape from team live location endpoint.");
     } catch (err) {
+      setLocationsUnavailable(true);
       console.warn("Team live location fetch error:", err);
     }
+    return false;
   }, []);
 
   useSmartPolling(fetchTeamLive, 15000, { enabled: isManager });
+
+  const refreshManagerTracking = useCallback(async () => {
+    const results = await Promise.all([
+      loadLiveVisits(true),
+      fetchTeamLive(),
+    ]);
+    if (results.some((result) => !result)) {
+      showNotification({
+        type: "error",
+        message: "Some tracking data could not be refreshed. Please try again.",
+      });
+    }
+  }, [fetchTeamLive, loadLiveVisits, showNotification]);
 
   /* ---------------------------------------------------------------------- */
   /* Fetch Employee Timeline Journey Trail when Sales Person selected       */
@@ -382,11 +510,18 @@ const Visits = () => {
       setTimelinePoints([]);
       setAvailableRouteDays([]);
       setRouteSummaryData(null);
+      setTimelineLoading(false);
+      setTimelineError(false);
       return;
     }
 
     let isMounted = true;
     const loadTimeline = async () => {
+      setTimelineLoading(true);
+      setTimelineError(false);
+      setTimelinePoints([]);
+      setAvailableRouteDays([]);
+      setRouteSummaryData(null);
       try {
         const res = await getEmployeeTimelineHistory(
           selectedEntity.id,
@@ -394,6 +529,9 @@ const Visits = () => {
           selectedRouteMonth,
           selectedRouteYear
         );
+        if (res?.success === false) {
+          throw new Error(res.message || "Timeline history request failed.");
+        }
         if (isMounted && res) {
           const points = res.timeline || res.route_points || res.data || [];
           setTimelinePoints(Array.isArray(points) ? points : []);
@@ -414,6 +552,11 @@ const Visits = () => {
             end_location_name: res.end_location_name || res.end_location,
             is_finalized: res.is_finalized,
           });
+        } else if (isMounted) {
+          setTimelinePoints([]);
+          setAvailableRouteDays([]);
+          setRouteSummaryData(null);
+          setTimelineError(true);
         }
       } catch (err) {
         console.warn("Timeline history fetch error:", err);
@@ -421,7 +564,10 @@ const Visits = () => {
           setTimelinePoints([]);
           setAvailableRouteDays([]);
           setRouteSummaryData(null);
+          setTimelineError(true);
         }
+      } finally {
+        if (isMounted) setTimelineLoading(false);
       }
     };
 
@@ -534,154 +680,137 @@ const Visits = () => {
     };
   }, [filteredVisits]);
 
-  const filteredMapLeads = useMemo(() => {
-    return filteredVisits
-      .filter((v) => v.leadLatitude != null && v.leadLongitude != null)
-      .map((v) => ({
-        id: v.leadId || v.id,
-        name: v.leadName,
-        companyName: v.companyName,
-        address: v.location,
-        latitude: v.leadLatitude,
-        longitude: v.leadLongitude,
-        assignedEmployeeId: v.employeeId,
-        assignedEmployeeName: v.employeeName,
-        scheduledDate: v.scheduledDate,
-        scheduledVisitTime: v.scheduledTime,
-        visitStatus: v.visitStatus,
-      }));
-  }, [filteredVisits]);
-
   const filteredMapEmployees = useMemo(() => {
-    const map = new Map();
+    const employeesById = new Map();
+    const idAliases = new Map();
+    const employeesByName = new Map();
+    const attendanceForEmployee = (employee) => {
+      const aliases = [
+        employee.id,
+        employee.employee_id,
+        employee.employeeId,
+        employee.pk,
+      ]
+        .filter((id) => id != null && id !== "")
+        .map(String);
+      return aliases
+        .map((id) => attendanceByEmployeeId[id])
+        .find(Boolean);
+    };
 
-    // 1. First populate from employees list / visits
-    employees.forEach((emp) => {
-      map.set(String(emp.id), {
-        id: String(emp.id),
-        name: emp.name,
-        role: emp.role || "Sales Person",
-        phone: emp.phone,
+    employees.forEach((employee) => {
+      const employeeId = String(employee.id);
+      const fullName = String(employee.name || "").trim();
+      const normalizedName = fullName.toLocaleLowerCase();
+      const attendance = attendanceForEmployee(employee);
+      const mapEmployee = {
+        id: employeeId,
+        name: fullName,
+        role: employee.role || "Sales Person",
+        email: employee.email,
+        phone: employee.phone,
         hasLiveGps: false,
         latitude: null,
         longitude: null,
         isActiveTracking: false,
-        lastUpdated: "Not connected",
-        accuracy: 10,
-        status: "SCHEDULED",
+        lastUpdated: "Location unavailable",
         currentVisit: null,
-      });
+        shiftStatus: attendance?.status || null,
+        shiftCheckIn: attendance?.checkIn ?? null,
+        shiftCheckOut: attendance?.checkOut ?? null,
+      };
+      employeesById.set(employeeId, mapEmployee);
+      [employee.id, employee.employee_id, employee.employeeId, employee.pk]
+        .filter((id) => id != null && id !== "")
+        .forEach((id) => idAliases.set(String(id), employeeId));
+      if (normalizedName) {
+        const matchingEmployees = employeesByName.get(normalizedName) || [];
+        matchingEmployees.push(employeeId);
+        employeesByName.set(normalizedName, matchingEmployees);
+      }
     });
 
-    // 2. Overlay visits data
-    filteredVisits.forEach((v) => {
-      if (v.employeeRole === "Manager") return;
-      const empId = String(v.employeeId);
-      if (!empId) return;
+    liveLocations.forEach((location) => {
+      const rawId = [
+        location.employee_id,
+        location.employeeId,
+        location.employee?.id,
+        location.employee,
+        location.id,
+      ]
+        .map(getRelatedId)
+        .find(Boolean);
+      const locationName =
+        location.name ||
+        location.employee_name ||
+        location.employee?.full_name ||
+        "";
+      const normalizedName = String(locationName).trim().toLocaleLowerCase();
+      const uniqueNameMatch = employeesByName.get(normalizedName);
+      const employeeId =
+        idAliases.get(rawId) ||
+        (uniqueNameMatch?.length === 1 ? uniqueNameMatch[0] : rawId);
+      if (!employeeId) return;
 
-      const existing = map.get(empId) || {
-        id: empId,
-        name: v.employeeName,
-        role: v.employeeRole || "Sales Person",
-        phone: "",
+      const coordinates = getCoordinatePair(location.latitude, location.longitude);
+      const isStale = Boolean(location.is_stale_location);
+      const isLive =
+        Boolean(location.is_active_tracking) && !isStale && Boolean(coordinates);
+      const pingTimestamp = location.last_ping_at || location.last_ping_formatted;
+      const timeAgo = formatLastSeenAgo(
+        location.last_ping_at,
+        location.last_seen_human
+      );
+      const existing = employeesById.get(employeeId);
+      const mapEmployee = existing || {
+        id: employeeId,
+        name: locationName,
+        role: "Sales Person",
         hasLiveGps: false,
         latitude: null,
         longitude: null,
         isActiveTracking: false,
-        lastUpdated: "Today",
-        accuracy: 8,
-        status: "SCHEDULED",
+        lastUpdated: "Location unavailable",
         currentVisit: null,
+        shiftStatus: null,
+        shiftCheckIn: null,
+        shiftCheckOut: null,
       };
 
-      if (v.visitStatus === "CHECKED_IN") {
-        existing.status = "IN_PROGRESS";
-        existing.currentVisit = v;
-      }
-
-      // Rep location remains null until real GPS is received
-      if (existing.latitude == null) {
-        existing.latitude = null;
-        existing.longitude = null;
-      }
-
-      map.set(empId, existing);
+      mapEmployee.latitude = coordinates?.latitude ?? null;
+      mapEmployee.longitude = coordinates?.longitude ?? null;
+      mapEmployee.hasLiveGps = Boolean(coordinates);
+      mapEmployee.accuracy =
+        location.accuracy != null ? Number(location.accuracy) : null;
+      mapEmployee.isActiveTracking = isLive;
+      mapEmployee.is_stale_location = isStale;
+      mapEmployee.last_ping_at = location.last_ping_at || null;
+      mapEmployee.last_ping_formatted = location.last_ping_formatted || null;
+      mapEmployee.last_seen_human = location.last_seen_human || null;
+      mapEmployee.last_seen_seconds = location.last_seen_seconds ?? null;
+      mapEmployee.today_distance_km = location.today_distance_km;
+      mapEmployee.today_distance_meters = location.today_distance_meters;
+      mapEmployee.battery_level = location.battery_level;
+      mapEmployee.today_visits_count = location.today_visits_count;
+      mapEmployee.completed_visits_count = location.completed_visits_count;
+      mapEmployee.pending_visits_count = location.pending_visits_count;
+      mapEmployee.visit_stage = location.visit_stage;
+      mapEmployee.status_label = location.status_label;
+      mapEmployee.active_visit_client = location.active_visit_client;
+      mapEmployee.check_in_time_formatted = location.check_in_time_formatted;
+      mapEmployee.check_out_time_formatted = location.check_out_time_formatted;
+      mapEmployee.last_visit_client = location.last_visit_client;
+      mapEmployee.lastUpdated = isLive
+        ? "Live GPS"
+        : pingTimestamp
+          ? `Last known GPS · ${timeAgo}`
+          : "Location unavailable";
+      if (!mapEmployee.name && locationName) mapEmployee.name = locationName;
+      employeesById.set(employeeId, mapEmployee);
     });
 
-    // 3. Overlay real-time GPS and telemetry from liveLocations (from team-live API)
-    liveLocations.forEach((loc) => {
-      const empId = String(loc.id || loc.employee_id || loc.employee);
-      const existing = map.get(empId);
-      const isLive = Boolean(loc.is_active_tracking);
-      const pingFormatted = formatPingTimestamp(loc.last_ping_at || loc.last_ping_formatted);
-      const timeAgo = formatLastSeenAgo(loc.last_ping_at, loc.last_seen_human);
-      const lastSeenText = isLive
-        ? "Live Now"
-        : (loc.last_ping_at || loc.last_ping_formatted)
-        ? `Last seen: ${pingFormatted} (${timeAgo})`
-        : "Location Inactive";
-
-      if (existing) {
-        if (loc.latitude != null) {
-          existing.latitude = Number(loc.latitude);
-          existing.hasLiveGps = true;
-        }
-        if (loc.longitude != null) existing.longitude = Number(loc.longitude);
-        if (loc.accuracy != null) existing.accuracy = Number(loc.accuracy || 10);
-        existing.isActiveTracking = isLive;
-        existing.is_stale_location = Boolean(loc.is_stale_location);
-        existing.last_ping_at = loc.last_ping_at;
-        existing.last_ping_formatted = loc.last_ping_formatted;
-        existing.last_seen_human = loc.last_seen_human;
-        existing.last_seen_seconds = loc.last_seen_seconds;
-        existing.today_distance_km = loc.today_distance_km;
-        existing.today_distance_meters = loc.today_distance_meters;
-        existing.battery_level = loc.battery_level;
-        existing.today_visits_count = loc.today_visits_count;
-        existing.completed_visits_count = loc.completed_visits_count;
-        existing.visit_stage = loc.visit_stage;
-        existing.status_label = loc.status_label;
-        existing.active_visit_client = loc.active_visit_client;
-        existing.check_in_time_formatted = loc.check_in_time_formatted;
-        existing.check_out_time_formatted = loc.check_out_time_formatted;
-        existing.last_visit_client = loc.last_visit_client;
-        existing.lastUpdated = lastSeenText;
-      } else if (loc.name || loc.employee_name) {
-        map.set(empId, {
-          id: empId,
-          name: loc.name || loc.employee_name,
-          role: "Sales Person",
-          hasLiveGps: loc.latitude != null,
-          latitude: loc.latitude != null ? Number(loc.latitude) : null,
-          longitude: loc.longitude != null ? Number(loc.longitude) : null,
-          accuracy: Number(loc.accuracy || 10),
-          isActiveTracking: isLive,
-          is_stale_location: Boolean(loc.is_stale_location),
-          visit_stage: loc.visit_stage,
-          status_label: loc.status_label,
-          active_visit_client: loc.active_visit_client,
-          check_in_time_formatted: loc.check_in_time_formatted,
-          check_out_time_formatted: loc.check_out_time_formatted,
-          last_visit_client: loc.last_visit_client,
-          last_ping_at: loc.last_ping_at,
-          last_ping_formatted: loc.last_ping_formatted,
-          last_seen_human: loc.last_seen_human,
-          last_seen_seconds: loc.last_seen_seconds,
-          today_distance_km: loc.today_distance_km,
-          today_distance_meters: loc.today_distance_meters,
-          battery_level: loc.battery_level,
-          today_visits_count: loc.today_visits_count,
-          completed_visits_count: loc.completed_visits_count,
-          pending_visits_count: loc.pending_visits_count,
-          lastUpdated: lastSeenText,
-          status: "SCHEDULED",
-          currentVisit: null,
-        });
-      }
-    });
-
-    return Array.from(map.values());
-  }, [filteredVisits, employees, liveLocations]);
+    return Array.from(employeesById.values());
+  }, [employees, liveLocations, attendanceByEmployeeId]);
 
   // Check for inactive employees to alert Manager (only if they have live GPS history and stopped sending)
   const inactiveEmployees = useMemo(() => {
@@ -725,7 +854,6 @@ const Visits = () => {
       return;
     }
 
-    const now = new Date();
     const liveDist = calculateDistance(
       currentUserLocation?.latitude,
       currentUserLocation?.longitude,
@@ -734,10 +862,8 @@ const Visits = () => {
     ) || selectedVisit.distance || 0;
 
     setCheckInLoading(true);
-    let checkInSuccess = false;
-    let checkInRes = null;
     try {
-      checkInRes = await checkInFieldSalesVisit(selectedVisit.id, {
+      await checkInFieldSalesVisit(selectedVisit.id, {
         latitude: currentUserLocation?.latitude,
         longitude: currentUserLocation?.longitude,
         accuracy: currentUserLocation?.accuracy || 10,
@@ -746,7 +872,6 @@ const Visits = () => {
         override_reason: overrideData?.override_reason || "",
         override_notes: overrideData?.override_notes || "",
       });
-      checkInSuccess = true;
     } catch (err) {
       console.error("Backend check-in error:", err);
       const errMsg =
@@ -761,14 +886,12 @@ const Visits = () => {
       setCheckInLoading(false);
     }
 
-    if (checkInSuccess) {
-      setVisits((currentVisits) =>
-        currentVisits.map((visit) =>
-          visit.id === selectedVisit.id
-            ? {
+    setVisits((currentVisits) =>
+      currentVisits.map((visit) =>
+        visit.id === selectedVisit.id
+          ? {
               ...visit,
               visitStatus: "CHECKED_IN",
-              checkInTime: formatTime(now),
               currentLatitude: currentUserLocation?.latitude ?? null,
               currentLongitude: currentUserLocation?.longitude ?? null,
               gpsAccuracy: currentUserLocation?.accuracy ?? null,
@@ -780,29 +903,27 @@ const Visits = () => {
               overrideReason: overrideData?.override_reason || "",
               overrideNotes: overrideData?.override_notes || "",
             }
-            : visit
-        )
-      );
+          : visit
+      )
+    );
 
-      setSelectedVisit((current) => ({
-        ...current,
-        visitStatus: "CHECKED_IN",
-        checkInTime: formatTime(now),
-        currentLatitude: currentUserLocation?.latitude ?? null,
-        currentLongitude: currentUserLocation?.longitude ?? null,
-        gpsAccuracy: currentUserLocation?.accuracy ?? null,
-        distance: liveDist,
-        checkInLatitude: currentUserLocation?.latitude ?? null,
-        checkInLongitude: currentUserLocation?.longitude ?? null,
-        checkInDistanceMeters: liveDist,
-        isLocationOverridden: Boolean(overrideData?.is_location_overridden),
-        overrideReason: overrideData?.override_reason || "",
-        overrideNotes: overrideData?.override_notes || "",
-      }));
+    setSelectedVisit((current) => ({
+      ...current,
+      visitStatus: "CHECKED_IN",
+      currentLatitude: currentUserLocation?.latitude ?? null,
+      currentLongitude: currentUserLocation?.longitude ?? null,
+      gpsAccuracy: currentUserLocation?.accuracy ?? null,
+      distance: liveDist,
+      checkInLatitude: currentUserLocation?.latitude ?? null,
+      checkInLongitude: currentUserLocation?.longitude ?? null,
+      checkInDistanceMeters: liveDist,
+      isLocationOverridden: Boolean(overrideData?.is_location_overridden),
+      overrideReason: overrideData?.override_reason || "",
+      overrideNotes: overrideData?.override_notes || "",
+    }));
 
-      setCheckInOpen(false);
-      loadLiveVisits(true);
-    }
+    setCheckInOpen(false);
+    void loadLiveVisits(true);
   };
 
   /* ---------------------------------------------------------------------- */
@@ -820,7 +941,6 @@ const Visits = () => {
       return;
     }
 
-    const now = new Date();
     try {
       setCheckoutSubmitting(true);
       await submitFieldSalesVisitReport(selectedVisit.id, reportData);
@@ -835,12 +955,11 @@ const Visits = () => {
           visit.id === selectedVisit.id
             ? {
               ...visit,
-              visitStatus: "COMPLETED",
+              visitStatus: "CHECKED_OUT",
               clientResponse: reportData.client_response,
               feedback: reportData.feedback,
               photos: reportData.photos || [],
               outcome: reportData.client_response,
-              checkOutTime: formatTime(now),
             }
             : visit
         )
@@ -848,26 +967,21 @@ const Visits = () => {
 
       setSelectedVisit((current) => ({
         ...current,
-        visitStatus: "COMPLETED",
+        visitStatus: "CHECKED_OUT",
         clientResponse: reportData.client_response,
         feedback: reportData.feedback,
         photos: reportData.photos || [],
         outcome: reportData.client_response,
-        checkOutTime: formatTime(now),
       }));
 
       setCheckOutOpen(false);
       setDetailsOpen(false);
 
-      // Re-fetch from server to ensure database sync
-      try {
-        const refreshed = await getFieldSalesVisits();
-        const vList = refreshed?.data || (Array.isArray(refreshed) ? refreshed : []);
-        if (vList.length > 0) {
-          setVisits(vList);
-        }
-      } catch (refErr) {
-        console.warn("Could not reload visits after checkout:", refErr);
+      if (!(await loadLiveVisits(true))) {
+        showNotification({
+          type: "error",
+          message: "Visit completed, but refreshed visit data could not be loaded.",
+        });
       }
     } catch (err) {
       console.error("Backend report submission error:", err);
@@ -960,7 +1074,7 @@ const Visits = () => {
         </div>
       )}
 
-      <VisitStats stats={stats} />
+      {(!isManager || viewMode !== "map") && <VisitStats stats={stats} />}
 
       <Card className="visits__workspace">
         <VisitFilters
@@ -985,23 +1099,27 @@ const Visits = () => {
 
         {viewMode === "map" ? (
           <LiveFleetCommandMap
-            visits={filteredVisits}
-            leads={filteredMapLeads}
+            visits={isManager ? visits : filteredVisits}
             employees={filteredMapEmployees}
+            isLoading={loading}
             currentUserLocation={currentUserLocation}
             selectedEntity={selectedEntity}
             onSelectEntity={handleSelectEntity}
             onSelectVisit={openVisit}
-            gpsStatus={gpsStatus}
             timelinePoints={timelinePoints}
+            timelineLoading={timelineLoading}
+            timelineError={timelineError}
             availableDays={availableRouteDays}
             selectedRouteDate={selectedRouteDate}
             onSelectRouteDate={setSelectedRouteDate}
-            selectedRouteMonth={selectedRouteMonth}
-            selectedRouteYear={selectedRouteYear}
             onChangeRouteMonth={handleChangeRouteMonth}
             routeSummary={routeSummaryData}
-            isManager={isManager}
+            attendanceUnavailable={attendanceUnavailable}
+            attendanceStatusAvailable={attendanceStatusAvailable}
+            visitsUnavailable={visitsUnavailable}
+            employeesUnavailable={employeesUnavailable}
+            locationsUnavailable={locationsUnavailable}
+            onRefresh={isManager ? refreshManagerTracking : undefined}
           />
         ) : (
           <VisitTable
