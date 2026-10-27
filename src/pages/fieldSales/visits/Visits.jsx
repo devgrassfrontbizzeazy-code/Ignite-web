@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Plus, AlertTriangle } from "lucide-react";
 
 import PageHeader from "../../../components/common/PageHeader/PageHeader";
@@ -146,7 +147,11 @@ const Visits = () => {
   const [employee, setEmployee] = useState("");
   const [status, setStatus] = useState("");
 
-  const [viewMode, setViewMode] = useState(isManager ? "map" : "list");
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const repIdParam = searchParams.get("repId");
+
+  const [viewMode, setViewMode] = useState(tabParam === "map" ? "map" : (tabParam === "table" || tabParam === "list") ? "table" : (isManager ? "map" : "list"));
 
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [selectedEntity, setSelectedEntity] = useState(null);
@@ -551,6 +556,13 @@ const Visits = () => {
             start_location_name: res.start_location_name || res.start_location,
             end_location_name: res.end_location_name || res.end_location,
             is_finalized: res.is_finalized,
+            attendance_status: res.attendance_status,
+            check_in_latitude: res.check_in_latitude,
+            check_in_longitude: res.check_in_longitude,
+            check_in_address: res.check_in_address,
+            check_out_latitude: res.check_out_latitude,
+            check_out_longitude: res.check_out_longitude,
+            check_out_address: res.check_out_address,
           });
         } else if (isMounted) {
           setTimelinePoints([]);
@@ -703,6 +715,9 @@ const Visits = () => {
       const fullName = String(employee.name || "").trim();
       const normalizedName = fullName.toLocaleLowerCase();
       const attendance = attendanceForEmployee(employee);
+      const attendanceStatus = attendance
+        ? (attendance.status === "WORKING" || attendance.status === "ON_BREAK" ? "CHECKED_IN" : attendance.checkOut ? "CHECKED_OUT" : "NOT_CHECKED_IN")
+        : "NOT_CHECKED_IN";
       const mapEmployee = {
         id: employeeId,
         name: fullName,
@@ -718,6 +733,13 @@ const Visits = () => {
         shiftStatus: attendance?.status || null,
         shiftCheckIn: attendance?.checkIn ?? null,
         shiftCheckOut: attendance?.checkOut ?? null,
+        attendance_status: attendanceStatus,
+        check_in_latitude: attendance?.checkInLatitude ?? null,
+        check_in_longitude: attendance?.checkInLongitude ?? null,
+        check_in_address: attendance?.checkInAddress || "",
+        check_out_latitude: attendance?.checkOutLatitude ?? null,
+        check_out_longitude: attendance?.checkOutLongitude ?? null,
+        check_out_address: attendance?.checkOutAddress || "",
       };
       employeesById.set(employeeId, mapEmployee);
       [employee.id, employee.employee_id, employee.employeeId, employee.pk]
@@ -800,6 +822,14 @@ const Visits = () => {
       mapEmployee.check_in_time_formatted = location.check_in_time_formatted;
       mapEmployee.check_out_time_formatted = location.check_out_time_formatted;
       mapEmployee.last_visit_client = location.last_visit_client;
+      mapEmployee.attendance_status = location.attendance_status || mapEmployee.attendance_status;
+      mapEmployee.check_in_latitude = location.check_in_latitude ?? mapEmployee.check_in_latitude;
+      mapEmployee.check_in_longitude = location.check_in_longitude ?? mapEmployee.check_in_longitude;
+      mapEmployee.check_in_address = location.check_in_address || mapEmployee.check_in_address;
+      mapEmployee.check_out_latitude = location.check_out_latitude ?? mapEmployee.check_out_latitude;
+      mapEmployee.check_out_longitude = location.check_out_longitude ?? mapEmployee.check_out_longitude;
+      mapEmployee.check_out_address = location.check_out_address || mapEmployee.check_out_address;
+      mapEmployee.is_stale_location = Boolean(location.is_stale || location.is_stale_location);
       mapEmployee.lastUpdated = isLive
         ? "Live GPS"
         : pingTimestamp
@@ -811,6 +841,18 @@ const Visits = () => {
 
     return Array.from(employeesById.values());
   }, [employees, liveLocations, attendanceByEmployeeId]);
+
+  // Auto-select rep if repId is specified in URL query params
+  useEffect(() => {
+    if (repIdParam && filteredMapEmployees.length > 0 && !selectedEntity) {
+      const match = filteredMapEmployees.find(
+        (e) => String(e.id) === String(repIdParam) || String(e.employee_id) === String(repIdParam)
+      );
+      if (match) {
+        handleSelectEntity({ type: "employee", id: match.id, ...match });
+      }
+    }
+  }, [repIdParam, filteredMapEmployees, selectedEntity, handleSelectEntity]);
 
   // Check for inactive employees to alert Manager (only if they have live GPS history and stopped sending)
   const inactiveEmployees = useMemo(() => {

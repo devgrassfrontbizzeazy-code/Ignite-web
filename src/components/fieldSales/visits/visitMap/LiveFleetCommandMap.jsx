@@ -133,7 +133,9 @@ const isValidCoordinatePair = (latitude, longitude) => {
 };
 
 const isEmployeeOnShift = (employee) =>
-  employee?.shiftStatus === "WORKING" || employee?.shiftStatus === "ON_BREAK";
+  employee?.attendance_status === "CHECKED_IN" ||
+  employee?.shiftStatus === "WORKING" ||
+  employee?.shiftStatus === "ON_BREAK";
 
 const isCompletedVisit = (visit) =>
   ["CHECKED_OUT", "COMPLETED"].includes(
@@ -167,6 +169,15 @@ const getVisitMarkerColor = (visit) => {
 
 const svgDataUri = (svg) =>
   `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+
+const createCheckpointMarkerIcon = (label, isFinalized = false) => {
+  const bg = label === "IN" ? "#10b981" : isFinalized ? "#ef4444" : "#3b82f6";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+    <circle cx="18" cy="18" r="15" fill="${bg}" stroke="#FFFFFF" stroke-width="2.5"/>
+    <text x="18" y="22" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" fill="#FFFFFF">${label}</text>
+  </svg>`;
+  return svgDataUri(svg);
+};
 
 const createEmployeeMarkerIcon = (selected = false) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="48" viewBox="0 0 42 48">
@@ -1304,18 +1315,19 @@ export default function LiveFleetCommandMap({
               </>
             )}
 
-            {/* Start / Check-in Marker */}
+            {/* Start / Check-in Marker (Green Badge Marker) */}
             {historyRouteCoords.length > 0 && (
               <MarkerF
                 key={`route-start-${historyRouteCoords[0].timestamp || 0}`}
                 position={{ lat: historyRouteCoords[0].lat, lng: historyRouteCoords[0].lng }}
-                title={`First recorded location: ${formatPingTimestamp(historyRouteCoords[0].timestamp)}`}
+                title={`Shift Check-in: ${routeSummary?.check_in_time || formatPingTimestamp(historyRouteCoords[0].timestamp)}`}
                 onClick={() => {
                   setInfoWindowTarget({
                     type: "checkpoint",
                     data: {
-                      title: "First recorded location",
-                      time: formatPingTimestamp(historyRouteCoords[0].timestamp),
+                      title: "🟢 Shift Check-in Location",
+                      time: routeSummary?.check_in_time || formatPingTimestamp(historyRouteCoords[0].timestamp),
+                      address: routeSummary?.start_location_name || routeSummary?.check_in_address || "",
                       battery: historyRouteCoords[0].battery,
                       speed: historyRouteCoords[0].speed,
                     },
@@ -1323,18 +1335,26 @@ export default function LiveFleetCommandMap({
                     lng: historyRouteCoords[0].lng,
                   });
                 }}
-                icon={{
-                  path: window.google.maps.SymbolPath.CIRCLE,
-                  scale: 8,
-                  fillColor: "#10b981",
-                  fillOpacity: 1,
-                  strokeColor: "#ffffff",
-                  strokeWeight: 2.5,
-                }}
+                icon={
+                  window.google?.maps?.Size
+                    ? {
+                        url: createCheckpointMarkerIcon("IN"),
+                        scaledSize: new window.google.maps.Size(32, 32),
+                        anchor: new window.google.maps.Point(16, 16),
+                      }
+                    : {
+                        path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                        scale: 9,
+                        fillColor: "#10b981",
+                        fillOpacity: 1,
+                        strokeColor: "#ffffff",
+                        strokeWeight: 2.5,
+                      }
+                }
               />
             )}
 
-            {/* End / Check-out Marker */}
+            {/* End / Check-out Marker (Red if checked out / finalized, Blue if in progress) */}
             {historyRouteCoords.length > 1 && (
               <MarkerF
                 key={`route-end-${historyRouteCoords[historyRouteCoords.length - 1].timestamp || 1}`}
@@ -1342,13 +1362,21 @@ export default function LiveFleetCommandMap({
                   lat: historyRouteCoords[historyRouteCoords.length - 1].lat,
                   lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
                 }}
-                title={`Last recorded location: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`}
+                title={
+                  routeSummary?.is_finalized || routeSummary?.check_out_time
+                    ? `Shift Check-out: ${routeSummary?.check_out_time || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
+                    : `Live Location: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
+                }
                 onClick={() => {
+                  const isCheckout = Boolean(routeSummary?.is_finalized || routeSummary?.check_out_time);
                   setInfoWindowTarget({
                     type: "checkpoint",
                     data: {
-                      title: "Last recorded location",
-                      time: formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp),
+                      title: isCheckout ? "🔴 Shift Check-out Location" : "🔵 Current Live Position",
+                      time: isCheckout
+                        ? (routeSummary?.check_out_time || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp))
+                        : formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp),
+                      address: routeSummary?.end_location_name || routeSummary?.check_out_address || "",
                       battery: historyRouteCoords[historyRouteCoords.length - 1].battery,
                       speed: historyRouteCoords[historyRouteCoords.length - 1].speed,
                     },
@@ -1356,14 +1384,25 @@ export default function LiveFleetCommandMap({
                     lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
                   });
                 }}
-                icon={{
-                  path: window.google.maps.SymbolPath.CIRCLE,
-                  scale: 8,
-                  fillColor: routeSummary?.is_finalized ? "#ef4444" : "#3b82f6",
-                  fillOpacity: 1,
-                  strokeColor: "#ffffff",
-                  strokeWeight: 2.5,
-                }}
+                icon={
+                  window.google?.maps?.Size
+                    ? {
+                        url: createCheckpointMarkerIcon(
+                          (routeSummary?.is_finalized || routeSummary?.check_out_time) ? "OUT" : "NOW",
+                          Boolean(routeSummary?.is_finalized || routeSummary?.check_out_time)
+                        ),
+                        scaledSize: new window.google.maps.Size(32, 32),
+                        anchor: new window.google.maps.Point(16, 16),
+                      }
+                    : {
+                        path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                        scale: 9,
+                        fillColor: (routeSummary?.is_finalized || routeSummary?.check_out_time) ? "#ef4444" : "#3b82f6",
+                        fillOpacity: 1,
+                        strokeColor: "#ffffff",
+                        strokeWeight: 2.5,
+                      }
+                }
               />
             )}
 
@@ -1410,6 +1449,11 @@ export default function LiveFleetCommandMap({
                       <div>
                         <strong>{infoWindowData.title}</strong>
                         <p>{infoWindowData.time}</p>
+                        {infoWindowData.address && (
+                          <p style={{ margin: "2px 0 4px", fontSize: "11px", color: "#64748b" }}>
+                            📍 {infoWindowData.address}
+                          </p>
+                        )}
                         {infoWindowData.battery != null && (
                           <small>
                             Battery: {infoWindowData.battery}%
@@ -1870,6 +1914,9 @@ export default function LiveFleetCommandMap({
               <div className="fleet-selected-employee-header">
                 <div>
                   <h4 className="fleet-rep-title">{selectedEmployee.name}</h4>
+                  <p className="fleet-rep-code" style={{ fontSize: "12px", color: "#64748b", margin: "2px 0 4px" }}>
+                    ID: {selectedEmployee.employee_code || selectedEmployee.employee_id || selectedEmployee.id}
+                  </p>
                   <p className="fleet-rep-subtitle">
                     {isEmployeeOnShift(selectedEmployee)
                       ? `On shift${getDisplayTime(selectedEmployee.shiftCheckIn) ? ` · punched in ${getDisplayTime(selectedEmployee.shiftCheckIn)}` : ""}. ${
@@ -1913,6 +1960,78 @@ export default function LiveFleetCommandMap({
                     ? "SHIFT UNKNOWN"
                     : "STATUS UNKNOWN"}
                 </span>
+              </div>
+
+              {/* Authoritative Workday Attendance & Field Telemetry Card */}
+              <div className="fleet-attendance-tracking-card">
+                <div className="fleet-att-row">
+                  <span className="fleet-att-label">Attendance:</span>
+                  <span className={`fleet-att-badge fleet-att-badge--${(selectedEmployee.attendance_status || (isEmployeeOnShift(selectedEmployee) ? "CHECKED_IN" : selectedEmployee.shiftCheckOut ? "CHECKED_OUT" : "NOT_CHECKED_IN")).toLowerCase()}`}>
+                    {selectedEmployee.attendance_status === "CHECKED_IN" || isEmployeeOnShift(selectedEmployee)
+                      ? "Checked In"
+                      : selectedEmployee.attendance_status === "CHECKED_OUT" || selectedEmployee.shiftCheckOut
+                      ? "Checked Out"
+                      : "Not Checked In"}
+                  </span>
+                </div>
+
+                <div className="fleet-att-row">
+                  <span className="fleet-att-label">GPS Telemetry:</span>
+                  <span className={`fleet-gps-badge ${selectedEmployee.isActiveTracking && !selectedEmployee.is_stale_location ? "live" : selectedEmployee.is_stale_location ? "stale" : selectedEmployee.hasLiveGps ? "cached" : "none"}`}>
+                    {selectedEmployee.isActiveTracking && !selectedEmployee.is_stale_location
+                      ? "🟢 Live GPS"
+                      : selectedEmployee.is_stale_location
+                      ? "⚠️ Stale GPS (> 2m ago)"
+                      : selectedEmployee.hasLiveGps
+                      ? "Last known GPS"
+                      : "Location unavailable"}
+                  </span>
+                </div>
+
+                <div className="fleet-att-row">
+                  <span className="fleet-att-label">Check-in:</span>
+                  <span className="fleet-att-val">
+                    {selectedEmployee.check_in_time_formatted || selectedEmployee.shiftCheckIn || routeSummary?.check_in_time || "—"}
+                    {(selectedEmployee.check_in_address || routeSummary?.start_location_name) && (
+                      <span className="fleet-att-subtext">📍 {selectedEmployee.check_in_address || routeSummary?.start_location_name}</span>
+                    )}
+                  </span>
+                </div>
+
+                {(selectedEmployee.check_out_time_formatted || selectedEmployee.shiftCheckOut || routeSummary?.check_out_time) && (
+                  <div className="fleet-att-row">
+                    <span className="fleet-att-label">Check-out:</span>
+                    <span className="fleet-att-val">
+                      {selectedEmployee.check_out_time_formatted || selectedEmployee.shiftCheckOut || routeSummary?.check_out_time}
+                      {(selectedEmployee.check_out_address || routeSummary?.end_location_name) && (
+                        <span className="fleet-att-subtext">📍 {selectedEmployee.check_out_address || routeSummary?.end_location_name}</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                <div className="fleet-att-row">
+                  <span className="fleet-att-label">Day Distance:</span>
+                  <strong className="fleet-att-val text-emerald">
+                    {selectedEmployee.today_distance_km ?? routeSummary?.total_distance_km ?? 0} KM
+                  </strong>
+                </div>
+
+                <div className="fleet-att-row">
+                  <span className="fleet-att-label">Last GPS Ping:</span>
+                  <span className="fleet-att-val">
+                    {selectedEmployee.last_ping_formatted || (selectedEmployee.last_ping_at ? formatPingTimestamp(selectedEmployee.last_ping_at) : "—")}
+                  </span>
+                </div>
+
+                <a
+                  href={`/employees/${selectedEmployee.employee_id || selectedEmployee.id}`}
+                  className="fleet-open-profile-btn"
+                  title="Open salesperson profile and full attendance details"
+                >
+                  <UserRound size={13} />
+                  Open Salesperson Profile
+                </a>
               </div>
 
               <div className="fleet-counter-row">

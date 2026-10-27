@@ -3,6 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   FiEdit2,
   FiSend,
+  FiNavigation,
+  FiExternalLink,
+  FiMapPin,
+  FiClock,
+  FiActivity,
 } from "react-icons/fi";
 
 import BackButton from "../../../components/common/BackButton/BackButton";
@@ -11,6 +16,8 @@ import IgniteLoader from "../../../components/common/IgniteLoader/IgniteLoader";
 import employeeService from "../../../services/employeeService";
 import roleService from "../../../services/roleService";
 import { canUpdateEmployees } from "../../../utils/permissionUtils";
+import { getTeamLiveLocations } from "../../../services/api/fieldSalesAPI";
+import attendanceAPI from "../../../services/api/attendanceAPI";
 
 import "./EmployeeProfile.css";
 
@@ -70,6 +77,10 @@ const EmployeeProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [fieldTracking, setFieldTracking] = useState(null);
+  const [attendanceRecord, setAttendanceRecord] = useState(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
+
   useEffect(() => {
     const loadEmployee = async () => {
       try {
@@ -91,6 +102,80 @@ const EmployeeProfile = () => {
 
     loadEmployee();
   }, [id]);
+
+  // Load Workday Attendance & Field GPS Telemetry
+  useEffect(() => {
+    if (!employee) return;
+    let isMounted = true;
+
+    const loadTrackingTelemetry = async () => {
+      try {
+        setTrackingLoading(true);
+        const todayStr = new Date().toISOString().split("T")[0];
+        const [liveRes, attRes] = await Promise.allSettled([
+          getTeamLiveLocations(),
+          attendanceAPI.getCompanyAttendance({ date: todayStr }),
+        ]);
+
+        if (!isMounted) return;
+
+        if (liveRes.status === "fulfilled") {
+          const list = Array.isArray(liveRes.value?.data)
+            ? liveRes.value.data
+            : Array.isArray(liveRes.value)
+            ? liveRes.value
+            : [];
+          const found = list.find((item) => {
+            const itemEmpId = String(item.employee_id || item.employeeId || item.id || "");
+            const itemCode = String(item.employee_code || "").toLowerCase();
+            const itemEmail = String(item.email || "").toLowerCase();
+            const empId = String(employee.id || "");
+            const empCode = String(employee.employee_code || "").toLowerCase();
+            const empEmail = String(employee.email || "").toLowerCase();
+            return (
+              itemEmpId === empId ||
+              (itemCode && itemCode === empCode) ||
+              (itemEmail && itemEmail === empEmail)
+            );
+          });
+          if (found) setFieldTracking(found);
+        }
+
+        if (attRes.status === "fulfilled") {
+          const attList = Array.isArray(attRes.value?.data)
+            ? attRes.value.data
+            : Array.isArray(attRes.value?.results)
+            ? attRes.value.results
+            : Array.isArray(attRes.value)
+            ? attRes.value
+            : [];
+          const foundAtt = attList.find((att) => {
+            const attEmpId = String(att.employeeId || att.employee_id || att.employee?.id || "");
+            const attCode = String(att.employee?.employee_code || "").toLowerCase();
+            const attEmail = String(att.employee?.email || "").toLowerCase();
+            const empId = String(employee.id || "");
+            const empCode = String(employee.employee_code || "").toLowerCase();
+            const empEmail = String(employee.email || "").toLowerCase();
+            return (
+              attEmpId === empId ||
+              (attCode && attCode === empCode) ||
+              (attEmail && attEmail === empEmail)
+            );
+          });
+          if (foundAtt) setAttendanceRecord(foundAtt);
+        }
+      } catch (err) {
+        console.warn("Failed to load tracking/attendance info for employee profile:", err);
+      } finally {
+        if (isMounted) setTrackingLoading(false);
+      }
+    };
+
+    loadTrackingTelemetry();
+    return () => {
+      isMounted = false;
+    };
+  }, [employee]);
 
   // RBAC Role Resolution
   const desigRole = useMemo(() => {
@@ -115,6 +200,27 @@ const EmployeeProfile = () => {
     if (!employee) return null;
     return roleService.getEffectiveRole(employee);
   }, [employee]);
+
+  const attendanceStatus = useMemo(() => {
+    if (fieldTracking?.attendance_status) return fieldTracking.attendance_status;
+    const attStatus = attendanceRecord?.status;
+    if (attStatus === "WORKING" || attStatus === "ON_BREAK") return "CHECKED_IN";
+    if (attStatus === "COMPLETED" || attendanceRecord?.checkOut || attendanceRecord?.check_out_time) return "CHECKED_OUT";
+    return "NOT_CHECKED_IN";
+  }, [fieldTracking, attendanceRecord]);
+
+  const gpsStatusInfo = useMemo(() => {
+    if (fieldTracking?.is_live) {
+      return { type: "live", label: "🟢 Live GPS" };
+    }
+    if (fieldTracking?.is_stale) {
+      return { type: "stale", label: "⚠️ Stale GPS (> 2m ago)" };
+    }
+    if (fieldTracking?.latitude && fieldTracking?.longitude) {
+      return { type: "cached", label: "Last Known GPS" };
+    }
+    return { type: "none", label: "Location Unavailable" };
+  }, [fieldTracking]);
 
   if (loading) {
     return <IgniteLoader text="Loading employee profile..." />;
@@ -221,6 +327,129 @@ const EmployeeProfile = () => {
               ? "Account Active"
               : "Invitation Pending"}
           </span>
+        </div>
+      </section>
+
+      {/* =========================
+          WORKDAY ATTENDANCE & FIELD TRACKING
+      ========================= */}
+      <section className="employee-profile__section employee-profile__tracking-section">
+        <div className="employee-profile__tracking-header">
+          <h2>Workday Attendance & Field Tracking</h2>
+          <Button
+            variant="outline"
+            className="employee-profile__map-btn"
+            onClick={() => navigate(`/field-sales/visits?tab=map&repId=${employee.id}`)}
+          >
+            <FiNavigation style={{ marginRight: 6 }} />
+            View Route on Command Map
+          </Button>
+        </div>
+
+        <div className="employee-profile__tracking-banner">
+          <div className="employee-profile__tracking-stat">
+            <span className="employee-profile__stat-label">Authoritative Attendance</span>
+            <div className="employee-profile__stat-value-row">
+              <span className={`employee-profile__attendance-badge employee-profile__attendance-badge--${attendanceStatus.toLowerCase()}`}>
+                {attendanceStatus === "CHECKED_IN"
+                  ? "Checked In"
+                  : attendanceStatus === "CHECKED_OUT"
+                  ? "Checked Out"
+                  : "Not Checked In"}
+              </span>
+            </div>
+          </div>
+
+          <div className="employee-profile__tracking-stat">
+            <span className="employee-profile__stat-label">Live Telemetry</span>
+            <div className="employee-profile__stat-value-row">
+              <span className={`employee-profile__gps-badge employee-profile__gps-badge--${gpsStatusInfo.type}`}>
+                {gpsStatusInfo.label}
+              </span>
+            </div>
+          </div>
+
+          <div className="employee-profile__tracking-stat">
+            <span className="employee-profile__stat-label">Today's Distance Travelled</span>
+            <strong className="employee-profile__stat-km">
+              {fieldTracking?.today_distance_km ?? 0} km
+            </strong>
+          </div>
+        </div>
+
+        <div className="employee-profile__grid">
+          <div className="employee-profile__item">
+            <span className="employee-profile__label">Check-in Time</span>
+            <span className="employee-profile__value">
+              {fieldTracking?.check_in_time_formatted || attendanceRecord?.checkIn || "Not recorded"}
+            </span>
+          </div>
+
+          <div className="employee-profile__item">
+            <span className="employee-profile__label">Check-in Location</span>
+            <span className="employee-profile__value">
+              {fieldTracking?.check_in_address || attendanceRecord?.checkInAddress || "—"}
+              {fieldTracking?.check_in_latitude && fieldTracking?.check_in_longitude && (
+                <a
+                  href={`https://www.google.com/maps?q=${fieldTracking.check_in_latitude},${fieldTracking.check_in_longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="employee-profile__map-link"
+                >
+                  <FiExternalLink /> ({Number(fieldTracking.check_in_latitude).toFixed(5)}, {Number(fieldTracking.check_in_longitude).toFixed(5)})
+                </a>
+              )}
+            </span>
+          </div>
+
+          <div className="employee-profile__item">
+            <span className="employee-profile__label">Check-out Time</span>
+            <span className="employee-profile__value">
+              {fieldTracking?.check_out_time_formatted || attendanceRecord?.checkOut || (attendanceStatus === "CHECKED_IN" ? "In progress" : "Not recorded")}
+            </span>
+          </div>
+
+          <div className="employee-profile__item">
+            <span className="employee-profile__label">Check-out Location</span>
+            <span className="employee-profile__value">
+              {fieldTracking?.check_out_address || attendanceRecord?.checkOutAddress || "—"}
+              {fieldTracking?.check_out_latitude && fieldTracking?.check_out_longitude && (
+                <a
+                  href={`https://www.google.com/maps?q=${fieldTracking.check_out_latitude},${fieldTracking.check_out_longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="employee-profile__map-link"
+                >
+                  <FiExternalLink /> ({Number(fieldTracking.check_out_latitude).toFixed(5)}, {Number(fieldTracking.check_out_longitude).toFixed(5)})
+                </a>
+              )}
+            </span>
+          </div>
+
+          <div className="employee-profile__item">
+            <span className="employee-profile__label">Last Known GPS Position</span>
+            <span className="employee-profile__value">
+              {fieldTracking?.latitude && fieldTracking?.longitude ? (
+                <a
+                  href={`https://www.google.com/maps?q=${fieldTracking.latitude},${fieldTracking.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="employee-profile__map-link"
+                >
+                  <FiExternalLink /> {Number(fieldTracking.latitude).toFixed(5)}, {Number(fieldTracking.longitude).toFixed(5)}
+                </a>
+              ) : (
+                "Location unavailable"
+              )}
+            </span>
+          </div>
+
+          <div className="employee-profile__item">
+            <span className="employee-profile__label">Last GPS Ping Received</span>
+            <span className="employee-profile__value">
+              {fieldTracking?.last_ping_formatted || (fieldTracking?.minutes_ago != null ? `${fieldTracking.minutes_ago}m ago` : "No recent ping")}
+            </span>
+          </div>
         </div>
       </section>
 
