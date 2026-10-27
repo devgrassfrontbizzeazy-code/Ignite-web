@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import Toggle from "../../common/Toggle/Toggle";
+import {
+  CARRY_FORWARD_OPTIONS,
+  CARRY_FORWARD_TYPES,
+} from "../../../utils/leavePolicyUtils";
 
 import "./LeavePolicyForm.css";
 
@@ -25,6 +29,7 @@ const LeavePolicyForm = ({
   saving = false,
 }) => {
   const [formData, setFormData] = useState(defaultForm);
+  const [carryForwardError, setCarryForwardError] = useState("");
 
   useEffect(() => {
     if (policy) {
@@ -87,9 +92,22 @@ const LeavePolicyForm = ({
   }, [policy]);
 
   const updateField = (field, value) => {
+    setCarryForwardError("");
     setFormData((current) => ({
       ...current,
       [field]: value,
+    }));
+  };
+
+  const handleCarryForwardToggle = (enabled) => {
+    setCarryForwardError("");
+    setFormData((current) => ({
+      ...current,
+      carryForward: enabled,
+      carryForwardType:
+        enabled && current.carryForwardType === CARRY_FORWARD_TYPES.NONE
+          ? CARRY_FORWARD_TYPES.ALL_UNUSED
+          : current.carryForwardType,
     }));
   };
 
@@ -98,6 +116,40 @@ const LeavePolicyForm = ({
 
     if (!formData.name.trim() || saving) {
       return;
+    }
+
+    if (
+      formData.carryForward &&
+      formData.carryForwardType === CARRY_FORWARD_TYPES.NONE
+    ) {
+      setCarryForwardError(
+        "Choose All unused days or Maximum number of days, or turn off carry forward."
+      );
+      return;
+    }
+
+    if (
+      formData.carryForward &&
+      formData.carryForwardType === CARRY_FORWARD_TYPES.MAX_DAYS
+    ) {
+      const limit = Number(formData.carryForwardLimit);
+      const allocationDays = Number(formData.days);
+      if (!Number.isFinite(limit) || limit <= 0) {
+        setCarryForwardError(
+          "Maximum carry-forward days must be greater than zero."
+        );
+        return;
+      }
+      if (
+        Number.isFinite(allocationDays) &&
+        allocationDays > 0 &&
+        limit > allocationDays
+      ) {
+        setCarryForwardError(
+          "Maximum carry-forward days cannot exceed the allocated days."
+        );
+        return;
+      }
     }
 
     onSave({
@@ -115,11 +167,11 @@ const LeavePolicyForm = ({
 
       carryForwardType: formData.carryForward
         ? formData.carryForwardType
-        : "NONE",
+        : CARRY_FORWARD_TYPES.NONE,
 
       carryForwardLimit:
         formData.carryForward &&
-        formData.carryForwardType === "MAXIMUM"
+        formData.carryForwardType === CARRY_FORWARD_TYPES.MAX_DAYS
           ? Number(formData.carryForwardLimit)
           : null,
 
@@ -330,12 +382,7 @@ const LeavePolicyForm = ({
 
                 <Toggle
                   checked={formData.carryForward}
-                  onChange={(value) =>
-                    updateField(
-                      "carryForward",
-                      value
-                    )
-                  }
+                  onChange={handleCarryForwardToggle}
                   disabled={saving}
                 />
               </div>
@@ -364,22 +411,23 @@ const LeavePolicyForm = ({
                       }
                       disabled={saving}
                     >
-                      <option value="NONE">
-                        No carry forward
-                      </option>
-
-                      <option value="ALL">
-                        All unused days
-                      </option>
-
-                      <option value="MAXIMUM">
-                        Maximum number of days
-                      </option>
+                      {CARRY_FORWARD_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  {formData.carryForwardType ===
-                    "MAXIMUM" && (
+                  {formData.carryForwardType === CARRY_FORWARD_TYPES.ALL_UNUSED && (
+                    <span className="leave-policy-form-help full">
+                      This saves the All unused days policy setting. Automatic
+                      calculation of unused prior-period balances is not currently
+                      implemented.
+                    </span>
+                  )}
+
+                  {formData.carryForwardType === CARRY_FORWARD_TYPES.MAX_DAYS && (
                     <div className="leave-policy-form-group">
                       <label
                         className="leave-policy-form-label"
@@ -406,9 +454,18 @@ const LeavePolicyForm = ({
                         }
                         disabled={saving}
                       />
+                      <span className="leave-policy-form-help">
+                        Must be greater than zero and no more than the allocated
+                        days.
+                      </span>
                     </div>
                   )}
                 </div>
+              )}
+              {carryForwardError && (
+                <p className="leave-policy-form-error" role="alert">
+                  {carryForwardError}
+                </p>
               )}
             </div>
 

@@ -14,6 +14,7 @@ import LeavePolicyForm from "../../components/leavePolicies/LeavePolicyForm/Leav
 import ConfirmModal from "../../components/common/ConfirmModal/ConfirmModal";
 import leavePolicyApi from "../../services/api/leavePolicyAPI";
 import { useNotification } from "../../context/NotificationContext";
+import { formatLeavePolicyApiError } from "../../utils/leavePolicyUtils";
 
 import "./LeavePolicies.css";
 
@@ -81,6 +82,7 @@ const LeavePolicies = () => {
 
   const [policies, setPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [editingPolicy, setEditingPolicy] = useState(null);
@@ -250,6 +252,7 @@ const annualDays = activePolicies.reduce(
   };
 
   const handleSavePolicy = async (payload) => {
+    setSavingPolicy(true);
     try {
       if (editingPolicy) {
         await leavePolicyApi.updatePolicy(
@@ -267,10 +270,9 @@ const annualDays = activePolicies.reduce(
       setEditingPolicy(null);
     } catch (err) {
       console.error("Failed to save leave policy:", err);
-      notify.error(
-        err.response?.data?.detail ||
-          "Unable to save leave policy."
-      );
+      notify.error(formatLeavePolicyApiError(err));
+    } finally {
+      setSavingPolicy(false);
     }
   };
 
@@ -341,6 +343,7 @@ const annualDays = activePolicies.reduce(
         <LeavePolicyForm
           policy={editingPolicy}
           onSave={handleSavePolicy}
+          saving={savingPolicy}
           onClose={() => {
             setShowForm(false);
             setEditingPolicy(null);

@@ -1,6 +1,10 @@
 import { Power } from "lucide-react";
 import { FiEdit2, FiPower, FiTrash2 } from "react-icons/fi";
 import RowActions from "../../common/RowActions/RowActions";
+import {
+  CARRY_FORWARD_TYPES,
+  getCarryForwardLabel,
+} from "../../../utils/leavePolicyUtils";
 
 import "./LeavePolicyTable.css";
 
@@ -120,13 +124,9 @@ const LeavePolicyTable = ({
                 <td>
                   {policy.carryForward ? (
                     <span className="leave-policy-carry-value">
-                      {policy.carryForwardType ===
-                      "MAXIMUM"
+                      {policy.carryForwardType === CARRY_FORWARD_TYPES.MAX_DAYS
                         ? `Up to ${policy.carryForwardLimit} days`
-                        : policy.carryForwardType ===
-                            "ALL"
-                          ? "All unused days"
-                          : "No carry forward"}
+                        : getCarryForwardLabel(policy.carryForwardType)}
                     </span>
                   ) : (
                     <PolicyBoolean value={false} />
