@@ -95,7 +95,12 @@ api.interceptors.response.use(
             failedQueue.push({ resolve, reject });
           })
             .then((token) => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
+              originalRequest._retry = true;
+              if (originalRequest.headers?.set) {
+                originalRequest.headers.set("Authorization", `Bearer ${token}`);
+              } else if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
               return api(originalRequest);
             })
             .catch((err) => Promise.reject(err));
@@ -109,14 +114,45 @@ api.interceptors.response.use(
             refresh: refreshToken,
           });
 
-          const newAccessToken = res.data?.access || res.data?.data?.access;
+          // Extract access token across possible backend response formats
+          const newAccessToken =
+            res.data?.access ||
+            res.data?.tokens?.access ||
+            res.data?.data?.access ||
+            res.data?.data?.tokens?.access ||
+            res.data?.access_token ||
+            res.data?.data?.access_token;
+
+          // Extract refresh token if rotated by backend (SimpleJWT ROTATE_REFRESH_TOKENS)
+          const newRefreshToken =
+            res.data?.refresh ||
+            res.data?.tokens?.refresh ||
+            res.data?.data?.refresh ||
+            res.data?.data?.tokens?.refresh ||
+            res.data?.refresh_token ||
+            res.data?.data?.refresh_token;
+
           if (newAccessToken) {
             localStorage.setItem("accessToken", newAccessToken);
             localStorage.setItem("access_token", newAccessToken);
+
+            if (newRefreshToken) {
+              localStorage.setItem("refreshToken", newRefreshToken);
+              localStorage.setItem("refresh_token", newRefreshToken);
+            }
+
             api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+            if (originalRequest.headers?.set) {
+              originalRequest.headers.set("Authorization", `Bearer ${newAccessToken}`);
+            } else if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            }
+
             processQueue(null, newAccessToken);
             return api(originalRequest);
+          } else {
+            throw new Error("Unable to parse access token from refresh response");
           }
         } catch (refreshErr) {
           processQueue(refreshErr, null);
@@ -148,7 +184,5 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-export default api;
 
 export default api;

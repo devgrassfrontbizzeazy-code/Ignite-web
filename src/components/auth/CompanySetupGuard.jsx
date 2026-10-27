@@ -68,12 +68,8 @@ const CompanySetupGuard = () => {
           } else if (status === 404) {
             setCompanyExists(false);
           } else if (status === 401) {
-            // Token expired or invalid — clear auth state and redirect to login
-            localStorage.removeItem("accessToken");
-            localStorage.removeItem("refreshToken");
-            localStorage.removeItem("user");
-            localStorage.removeItem("ignite_authenticated");
-            window.location.href = "/login";
+            // Central axios interceptor handles token refresh and session purging if token is truly invalid
+            setError(true);
           } else {
             setError(true);
           }

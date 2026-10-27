@@ -24,6 +24,60 @@ const Login = () => {
 
   const navigate = useNavigate();
 
+  // If user is already authenticated, redirect them to their destination immediately
+  useEffect(() => {
+    const accessToken =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("access_token");
+    const refreshToken =
+      localStorage.getItem("refreshToken") ||
+      localStorage.getItem("refresh_token");
+
+    if (accessToken || refreshToken) {
+      let storedUser = {};
+      try {
+        storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      } catch (e) {
+        storedUser = {};
+      }
+
+      if (storedUser?.is_field_sales === true) {
+        navigate("/field-sales", { replace: true });
+        return;
+      }
+
+      const from = location.state?.from;
+      navigate(from || "/dashboard", { replace: true });
+    }
+  }, [navigate, location]);
+
+  // If user is already authenticated, redirect them to their destination immediately
+  useEffect(() => {
+    const accessToken =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("access_token");
+    const refreshToken =
+      localStorage.getItem("refreshToken") ||
+      localStorage.getItem("refresh_token");
+
+    if (accessToken || refreshToken) {
+      let storedUser = {};
+      try {
+        storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      } catch (e) {
+        storedUser = {};
+      }
+
+      if (storedUser?.is_field_sales === true) {
+        navigate("/field-sales", { replace: true });
+        return;
+      }
+
+      const from = location.state?.from;
+      navigate(from || "/dashboard", { replace: true });
+    }
+  }, [navigate, location]);
+
   useEffect(() => {
     // Non-blocking pre-warm ping to wake up cloud backend (Render) while user types credentials
     api.get("/health/").catch(() => {});

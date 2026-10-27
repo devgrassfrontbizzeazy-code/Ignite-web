@@ -10,6 +10,21 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isAuthenticated = Boolean(
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token") ||
+    localStorage.getItem("refreshToken") ||
+    localStorage.getItem("refresh_token")
+  );
+
+  let storedUser = {};
+  try {
+    storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  } catch (e) {
+    storedUser = {};
+  }
+  const dashboardPath = storedUser?.is_field_sales ? "/field-sales" : "/dashboard";
+
   const navItems = [
     { label: "Home", path: "/" },
     { label: "Products", path: "#our-solutions" },
@@ -148,24 +163,39 @@ const Navbar = () => {
 
           {/* HEADER ACTIONS */}
           <div className="header-actions">
-            <button
-              className="btn btn-login"
-              onClick={() => {
-                setIsMenuOpen(false);
-                navigate("/login");
-              }}
-            >
-              Login
-            </button>
+            {isAuthenticated ? (
+              <button
+                className="btn btn-get-started"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  navigate(dashboardPath);
+                }}
+              >
+                Go to Dashboard
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path d="M3.75 9H14.25M14.25 9L9.75 4.5M14.25 9L9.75 13.5" stroke="#071629" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-login"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate("/login");
+                  }}
+                >
+                  Login
+                </button>
 
-            <button
-              className="btn btn-get-started"
-              onClick={() => {
-                setIsMenuOpen(false);
-                navigate("/signup");
-              }}
-            >
-              Get Started
+                <button
+                  className="btn btn-get-started"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    navigate("/signup");
+                  }}
+                >
+                  Get Started
 
               <svg
                 width="18"
@@ -182,6 +212,8 @@ const Navbar = () => {
                 />
               </svg>
             </button>
+              </>
+            )}
           </div>
         </nav>
       </div>

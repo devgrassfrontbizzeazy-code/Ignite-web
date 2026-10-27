@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import logo from "../../../assets/logo.png";
@@ -70,6 +70,26 @@ const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
 const CreateAccount = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const accessToken =
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("access_token");
+    const refreshToken =
+      localStorage.getItem("refreshToken") ||
+      localStorage.getItem("refresh_token");
+
+    if (accessToken || refreshToken) {
+      let storedUser = {};
+      try {
+        storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      } catch (e) {
+        storedUser = {};
+      }
+      const target = storedUser?.is_field_sales === true ? "/field-sales" : "/dashboard";
+      navigate(target, { replace: true });
+    }
+  }, [navigate]);
 
   // Step state: "email" | "otp" | "password" | "success"
   const [step, setStep] = useState("email");
