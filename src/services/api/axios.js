@@ -2,7 +2,7 @@ import axios from "axios";
 
 const BASE_URL =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "/api" : "https://ignite-backend-v0ef.onrender.com/api");
+  (import.meta.env.DEV ? "/api" : "https://ignite-backend-8t7z.onrender.com/api");
 
 const api = axios.create({
   baseURL: BASE_URL,
