@@ -1542,3 +1542,130 @@
   font-size: 11px;
   font-weight: 600;
 }
+
+
+/* =========================
+   WORKDAY ATTENDANCE & TELEMETRY SIDEBAR CARD
+========================= */
+
+.fleet-attendance-tracking-card {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.fleet-att-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.fleet-att-label {
+  color: #64748b;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.fleet-att-val {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
+}
+
+.fleet-att-subtext {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.fleet-att-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.fleet-att-badge--checked_in {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.fleet-att-badge--checked_out {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.fleet-att-badge--not_checked_in {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.fleet-gps-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.fleet-gps-badge.live {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.fleet-gps-badge.stale {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.fleet-gps-badge.cached {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.fleet-gps-badge.none {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.fleet-open-profile-btn {
+  margin-top: 6px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fleet-open-profile-btn:hover {
+  background: #edf2f7;
+  border-color: #94a3b8;
+  color: #000000;
+}

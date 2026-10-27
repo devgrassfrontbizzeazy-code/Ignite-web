@@ -449,3 +449,128 @@
     font-size: 18px;
   }
 }
+
+/* =========================
+   WORKDAY ATTENDANCE & TRACKING
+========================= */
+
+.employee-profile__tracking-section {
+  border-left: 4px solid var(--ignite-emerald, #059669);
+}
+
+.employee-profile__tracking-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.employee-profile__tracking-header h2 {
+  margin: 0;
+}
+
+.employee-profile__map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.employee-profile__tracking-banner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+
+.employee-profile__tracking-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.employee-profile__stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.employee-profile__stat-km {
+  font-size: 20px;
+  color: var(--ignite-emerald, #059669);
+  font-weight: 700;
+}
+
+.employee-profile__attendance-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.employee-profile__attendance-badge--checked_in {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.employee-profile__attendance-badge--checked_out {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.employee-profile__attendance-badge--not_checked_in {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.employee-profile__gps-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.employee-profile__gps-badge--live {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.employee-profile__gps-badge--stale {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.employee-profile__gps-badge--cached {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.employee-profile__gps-badge--none {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.employee-profile__map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #0284c7;
+  font-size: 12px;
+  text-decoration: underline;
+  margin-left: 6px;
+}

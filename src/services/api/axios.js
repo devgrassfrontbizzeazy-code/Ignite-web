@@ -8,6 +8,15 @@ const api = axios.create({
   baseURL: BASE_URL,
 });
 
+export const clearAuthSession = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("ignite_authenticated");
+};
+
 api.interceptors.request.use(
   (config) => {
     // Skip Authorization header for auth/public endpoints
@@ -111,28 +120,35 @@ api.interceptors.response.use(
           }
         } catch (refreshErr) {
           processQueue(refreshErr, null);
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          localStorage.removeItem("ignite_authenticated");
-          if (window.location.pathname !== "/login") {
-            window.location.href = "/login";
+
+          const status = refreshErr.response?.status;
+          const isTokenInvalid = status === 401 || status === 403;
+
+          // Only purge credentials and eject user if the backend explicitly rejected the refresh token (401/403)
+          // Never log out the user on temporary network disconnections, waking from sleep, or server timeouts
+          if (isTokenInvalid) {
+            clearAuthSession();
+            if (window.location.pathname !== "/login") {
+              window.location.href = "/login";
+            }
           }
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
         }
       } else {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("user");
-        localStorage.removeItem("ignite_authenticated");
+        // No refresh token available
+        clearAuthSession();
+        if (window.location.pathname !== "/login") {
+          window.location.href = "/login";
+        }
       }
     }
 
     return Promise.reject(error);
   }
 );
+
+export default api;
 
 export default api;

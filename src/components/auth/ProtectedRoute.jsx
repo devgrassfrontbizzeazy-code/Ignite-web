@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Navigate,
@@ -9,9 +10,14 @@ const ProtectedRoute = () => {
   const location = useLocation();
 
   const accessToken =
-    localStorage.getItem("accessToken");
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token");
+  const refreshToken =
+    localStorage.getItem("refreshToken") ||
+    localStorage.getItem("refresh_token");
 
-  if (!accessToken) {
+  // Allow session restoration if either an access token or a valid refresh token exists
+  if (!accessToken && !refreshToken) {
     return (
       <Navigate
         to="/login"
@@ -27,4 +33,3 @@ const ProtectedRoute = () => {
 };
 
 export default ProtectedRoute;
-
