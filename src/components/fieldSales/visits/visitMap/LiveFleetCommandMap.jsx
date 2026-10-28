@@ -237,6 +237,24 @@ const getDisplayTime = (value) => {
 async function fetchOsrmMultiRoute(waypoints) {
   if (!waypoints || waypoints.length < 2) return null;
   try {
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    let directDistMeters = 0;
+    for (let i = 0; i < waypoints.length; i++) {
+      const pt = waypoints[i];
+      if (pt.lat < minLat) minLat = pt.lat;
+      if (pt.lat > maxLat) maxLat = pt.lat;
+      if (pt.lng < minLng) minLng = pt.lng;
+      if (pt.lng > maxLng) maxLng = pt.lng;
+      if (i > 0) {
+        directDistMeters += (calculateDistance(
+          waypoints[i - 1].lat,
+          waypoints[i - 1].lng,
+          pt.lat,
+          pt.lng
+        ) || 0) * 1000;
+      }
+    }
+
     let selected = waypoints;
     if (waypoints.length > 25) {
       const step = Math.ceil(waypoints.length / 23);
@@ -254,7 +272,30 @@ async function fetchOsrmMultiRoute(waypoints) {
     if (!res.ok) return null;
     const data = await res.json();
     if (data.code === "Ok" && data.routes?.[0]?.geometry?.coordinates) {
-      return data.routes[0].geometry.coordinates.map(([lng, lat]) => ({
+      const osrmDist = data.routes[0].distance || 0;
+      // Guard against wild highway detours (e.g. OSRM routing miles away to highway junctions)
+      if (directDistMeters > 0 && osrmDist > directDistMeters * 1.8) {
+        console.warn(`OSRM detour rejected: route distance ${Math.round(osrmDist)}m vs direct ${Math.round(directDistMeters)}m`);
+        return null;
+      }
+
+      // Guard against wander outside the waypoints bounding box (max 0.015 deg ~ 1.5 km buffer)
+      const latBuffer = 0.015;
+      const lngBuffer = 0.015;
+      const coords = data.routes[0].geometry.coordinates;
+      const hasWildDetour = coords.some(
+        ([lng, lat]) =>
+          lat < minLat - latBuffer ||
+          lat > maxLat + latBuffer ||
+          lng < minLng - lngBuffer ||
+          lng > maxLng + lngBuffer
+      );
+      if (hasWildDetour) {
+        console.warn("OSRM detour rejected: road path wandered outside route bounding box.");
+        return null;
+      }
+
+      return coords.map(([lng, lat]) => ({
         lat: Number(lat),
         lng: Number(lng),
       }));
