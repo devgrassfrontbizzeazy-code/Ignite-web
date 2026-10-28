@@ -4,13 +4,13 @@ import {
   toggleFieldSalesLocation,
   getTodayVisits,
 } from "../services/api/fieldSalesAPI";
+import { attendanceAPI } from "../services/api/attendanceAPI";
 
 /**
- * Global Web Tracking Hook for Field Sales Personnel
+ * Global Real-Time Web Tracking Hook for Field Sales Personnel
  *
- * Tracks and pings the logged-in salesperson's GPS coordinates
- * STRICTLY and EXCLUSIVELY while they have an active in-progress visit
- * (between Check-In and Check-Out).
+ * Sends GPS heartbeat pings every 5 seconds while the salesperson
+ * is on shift or has an active visit in progress, ensuring real-time active/inactive status.
  */
 export default function useFieldSalesWebTracker() {
   const lastPingTimeRef = useRef(0);
@@ -29,7 +29,7 @@ export default function useFieldSalesWebTracker() {
 
     if (!storedUser || !storedUser.id) return;
 
-    // Check if user is a Field Sales Person (Managers do not ping live location)
+    // Check if user is a Field Sales representative
     const role = String(storedUser.role || storedUser.designation || "").toUpperCase();
     const isManagerRole =
       role === "MANAGER" ||
@@ -46,13 +46,12 @@ export default function useFieldSalesWebTracker() {
     if (!navigator.geolocation) return;
 
     let isCancelled = false;
-    let syncIntervalId = null;
 
-    // 2. Sender function with displacement & time debounce (Anti-loop & anti-spam)
+    // 2. Sender function: sends GPS ping every 5 seconds
     const sendLocationPing = async (latitude, longitude, accuracy) => {
       const now = Date.now();
-      // Debounce: don't ping faster than every 10 seconds unless moved significantly
-      if (now - lastPingTimeRef.current < 10000) return;
+      // Enforce 4.5s debounce so it sends cleanly on the 5-second cadence
+      if (now - lastPingTimeRef.current < 4500) return;
       if (isPingingRef.current) return;
 
       isPingingRef.current = true;
@@ -61,21 +60,23 @@ export default function useFieldSalesWebTracker() {
           latitude: Number(latitude),
           longitude: Number(longitude),
           accuracy: accuracy ? Math.round(accuracy) : 10,
+          is_active_tracking: true,
+          is_tracking: true,
         });
         lastPingTimeRef.current = now;
-        lastCoordsRef.current = { latitude, longitude };
+        lastCoordsRef.current = { latitude, longitude, accuracy };
       } catch (err) {
-        console.warn("Web sales location ping deferred:", err?.message || err);
+        console.warn("Real-time GPS ping error:", err?.message || err);
       } finally {
         isPingingRef.current = false;
       }
     };
 
-    // 3. Lifecycle gate: Check if user has an active checked-in visit in progress
+    // 3. Check shift & visit status, then start tracking and send 5s heartbeats
     const checkAndSyncTracking = async () => {
       if (isCancelled) return;
       try {
-        const res = await getTodayVisits();
+        const res = await getTodayVisits().catch(() => null);
         const visits = Array.isArray(res) ? res : res?.data || res?.results || [];
         const hasActiveVisit = visits.some(
           (v) =>
@@ -83,8 +84,35 @@ export default function useFieldSalesWebTracker() {
             (Boolean(v.check_in_time) && !v.check_out_time)
         );
 
-        if (!hasActiveVisit) {
-          // If no active visit is in progress, stop tracking immediately
+        let isUserOnShift = false;
+        try {
+          const attRes = await attendanceAPI.getTodayAttendance().catch(() => null);
+          const att = attRes?.data;
+          if (att) {
+            const status = String(att.status || "").toUpperCase();
+            isUserOnShift =
+              (status === "WORKING" || status === "ON_BREAK" || Boolean(att.checkInAt)) &&
+              !att.checkOutAt;
+          }
+        } catch {
+          // fallback
+        }
+
+        if (!isUserOnShift) {
+          try {
+            const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+            isUserOnShift =
+              userObj?.attendance_status === "CHECKED_IN" ||
+              userObj?.shiftStatus === "WORKING" ||
+              userObj?.is_on_shift === true;
+          } catch {
+            // fallback
+          }
+        }
+
+        const isTrackingAllowed = hasActiveVisit || isUserOnShift;
+
+        if (!isTrackingAllowed) {
           if (watchIdRef.current !== null) {
             navigator.geolocation.clearWatch(watchIdRef.current);
             watchIdRef.current = null;
@@ -93,7 +121,10 @@ export default function useFieldSalesWebTracker() {
           return;
         }
 
-        // Active visit in progress: start watching if not already active
+        // Active tracking is enabled
+        toggleFieldSalesLocation(true).catch(() => {});
+
+        // Start watcher if not running
         if (watchIdRef.current === null) {
           navigator.geolocation.getCurrentPosition(
             (pos) => {
@@ -105,8 +136,8 @@ export default function useFieldSalesWebTracker() {
                 );
               }
             },
-            (err) => console.warn("Initial web GPS lookup notice:", err?.message || err),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            (err) => console.warn("GPS lookup notice:", err?.message || err),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
           );
 
           try {
@@ -125,40 +156,35 @@ export default function useFieldSalesWebTracker() {
                   toggleFieldSalesLocation(false).catch(() => {});
                 }
               },
-              { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
+              { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 }
             );
           } catch (e) {
             console.warn("Could not start geolocation watcher:", e);
           }
         } else if (lastCoordsRef.current) {
-          // Send periodic heartbeat ping if already watching
+          // Send 5-second heartbeat ping with current position (keeps status Active in real time even when stationary)
           sendLocationPing(
             lastCoordsRef.current.latitude,
             lastCoordsRef.current.longitude,
-            10
+            lastCoordsRef.current.accuracy || 10
           );
         }
       } catch (err) {
-        console.warn("Error verifying active visit status for web tracker:", err);
+        console.warn("Real-time tracking sync warning:", err?.message || err);
       }
     };
 
-    // Initial check on mount
+    // Run immediately and poll every 5 seconds for real-time active/inactive status
     void checkAndSyncTracking();
-
-    // Check visit state every 20 seconds to activate/deactivate tracking as rep checks in / checks out
-    syncIntervalId = setInterval(() => {
-      void checkAndSyncTracking();
-    }, 20000);
+    const syncIntervalId = setInterval(checkAndSyncTracking, 5000);
 
     return () => {
       isCancelled = true;
-      if (syncIntervalId) clearInterval(syncIntervalId);
+      clearInterval(syncIntervalId);
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
       }
-      toggleFieldSalesLocation(false).catch(() => {});
     };
   }, []);
 

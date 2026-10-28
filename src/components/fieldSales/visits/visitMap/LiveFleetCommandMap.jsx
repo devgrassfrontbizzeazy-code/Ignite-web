@@ -216,12 +216,96 @@ const createVisitGroupMarkerIcon = (group, selected = false) => {
 const getDisplayTime = (value) => {
   if (value == null) return null;
   const text = String(value).trim();
-  return text && !["—", "-", "N/A"].includes(text.toUpperCase()) ? text : null;
+  if (!text || ["—", "-", "N/A", "NULL"].includes(text.toUpperCase())) return null;
+  if (text.includes("T") || (text.includes("-") && text.length > 10)) {
+    try {
+      const d = new Date(text);
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return text;
 };
 
 /* -------------------------------------------------------------------------- */
 /* Real Road Routing Fallback via OSRM (100% Free Road Geometry)              */
 /* -------------------------------------------------------------------------- */
+
+async function fetchOsrmMultiRoute(waypoints) {
+  if (!waypoints || waypoints.length < 2) return null;
+  try {
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    let directDistMeters = 0;
+    for (let i = 0; i < waypoints.length; i++) {
+      const pt = waypoints[i];
+      if (pt.lat < minLat) minLat = pt.lat;
+      if (pt.lat > maxLat) maxLat = pt.lat;
+      if (pt.lng < minLng) minLng = pt.lng;
+      if (pt.lng > maxLng) maxLng = pt.lng;
+      if (i > 0) {
+        directDistMeters += (calculateDistance(
+          waypoints[i - 1].lat,
+          waypoints[i - 1].lng,
+          pt.lat,
+          pt.lng
+        ) || 0) * 1000;
+      }
+    }
+
+    let selected = waypoints;
+    if (waypoints.length > 25) {
+      const step = Math.ceil(waypoints.length / 23);
+      selected = [
+        waypoints[0],
+        ...waypoints.slice(1, -1).filter((_, idx) => idx % step === 0),
+        waypoints[waypoints.length - 1],
+      ];
+    }
+    const coordString = selected
+      .map((pt) => `${Number(pt.lng).toFixed(6)},${Number(pt.lat).toFixed(6)}`)
+      .join(";");
+    const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.code === "Ok" && data.routes?.[0]?.geometry?.coordinates) {
+      const osrmDist = data.routes[0].distance || 0;
+      // Guard against wild highway detours (e.g. OSRM routing miles away to highway junctions)
+      if (directDistMeters > 0 && osrmDist > directDistMeters * 1.8) {
+        console.warn(`OSRM detour rejected: route distance ${Math.round(osrmDist)}m vs direct ${Math.round(directDistMeters)}m`);
+        return null;
+      }
+
+      // Guard against wander outside the waypoints bounding box (max 0.015 deg ~ 1.5 km buffer)
+      const latBuffer = 0.015;
+      const lngBuffer = 0.015;
+      const coords = data.routes[0].geometry.coordinates;
+      const hasWildDetour = coords.some(
+        ([lng, lat]) =>
+          lat < minLat - latBuffer ||
+          lat > maxLat + latBuffer ||
+          lng < minLng - lngBuffer ||
+          lng > maxLng + lngBuffer
+      );
+      if (hasWildDetour) {
+        console.warn("OSRM detour rejected: road path wandered outside route bounding box.");
+        return null;
+      }
+
+      return coords.map(([lng, lat]) => ({
+        lat: Number(lat),
+        lng: Number(lng),
+      }));
+    }
+  } catch (err) {
+    console.warn("OSRM multi-waypoint road route warning:", err);
+  }
+  return null;
+}
+
 async function fetchOsrmRoute(originLat, originLng, destLat, destLng) {
   try {
     const url = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destLng},${destLat}?overview=full&geometries=geojson`;
@@ -244,16 +328,31 @@ async function fetchOsrmRoute(originLat, originLng, destLat, destLng) {
   return null;
 }
 
-// Leaflet Pan Component
-function LeafletMapController({ center, zoom }) {
+// Leaflet Pan & Fit Bounds Component
+function LeafletMapController({ center, zoom, bounds }) {
   const map = useMap();
   useEffect(() => {
+    if (bounds && bounds.length >= 2) {
+      try {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+        return;
+      } catch (e) {}
+    }
     if (center && center[0] != null && center[1] != null) {
       map.panTo(center, { animate: true, duration: 0.8 });
       if (zoom) map.setZoom(zoom);
     }
-  }, [center, zoom, map]);
+  }, [center, zoom, bounds, map]);
   return null;
+}
+
+function createLeafletWaypointIcon(number) {
+  return L.divIcon({
+    className: "fleet-custom-marker",
+    html: `<div style="background:#7c3aed;color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,0.25);">${number}</div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
 }
 
 const createLeafletIcon = (url, visit = false, grouped = false) =>
@@ -323,6 +422,9 @@ export default function LiveFleetCommandMap({
 
   // Road Routing States (DirectionsService & OSRM)
   const [directionsResult, setDirectionsResult] = useState(null);
+  const [historyDirectionsResult, setHistoryDirectionsResult] = useState(null);
+  const [historyRoadCoords, setHistoryRoadCoords] = useState(null);
+  const lastHistoryRouteKeyRef = useRef("");
   const [osrmRoadCoords, setOsrmRoadCoords] = useState(null);
   const [isCalculatingRoute, setIsCalculatingRoute] = useState(false);
   const [routeStats, setRouteStats] = useState(null); // { distanceText, durationText }
@@ -367,31 +469,178 @@ export default function LiveFleetCommandMap({
     return employees.find((e) => String(e.id) === String(selectedRepId)) || null;
   }, [employees, selectedRepId]);
 
-  // Parse 5-day route waypoints into coordinates array
+  // Selected Day & Shift Derivations for Route History
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+
+  const activeSelectedDate = selectedRouteDate || routeSummary?.selected_date || "";
+  const isViewingToday = !activeSelectedDate || activeSelectedDate === todayStr;
+
+  const currentDayFromRibbon = useMemo(() => {
+    if (!availableDays || !availableDays.length) return null;
+    return (
+      availableDays.find((d) => d.date === activeSelectedDate) ||
+      (activeSelectedDate ? null : availableDays[0])
+    );
+  }, [availableDays, activeSelectedDate]);
+
+  const activeCheckInTime = useMemo(() => {
+    if (isViewingToday) {
+      return (
+        selectedEmployee?.shiftCheckIn ||
+        selectedEmployee?.check_in_time_formatted ||
+        routeSummary?.check_in_time ||
+        currentDayFromRibbon?.check_in_time ||
+        null
+      );
+    }
+    return (
+      routeSummary?.check_in_time ||
+      currentDayFromRibbon?.check_in_time ||
+      null
+    );
+  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
+
+  const activeCheckOutTime = useMemo(() => {
+    if (isViewingToday) {
+      return (
+        selectedEmployee?.shiftCheckOut ||
+        selectedEmployee?.check_out_time_formatted ||
+        routeSummary?.check_out_time ||
+        currentDayFromRibbon?.check_out_time ||
+        null
+      );
+    }
+    return (
+      routeSummary?.check_out_time ||
+      currentDayFromRibbon?.check_out_time ||
+      null
+    );
+  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
+
+  const activeDistanceKm = useMemo(() => {
+    if (isViewingToday) {
+      if (selectedEmployee?.today_distance_km != null) {
+        return selectedEmployee.today_distance_km;
+      }
+      return routeSummary?.total_distance_km ?? currentDayFromRibbon?.distance_km ?? 0;
+    }
+    return routeSummary?.total_distance_km ?? currentDayFromRibbon?.distance_km ?? 0;
+  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
+
+  const activeAttendanceStatus = useMemo(() => {
+    if (isViewingToday) {
+      if (selectedEmployee?.attendance_status) return String(selectedEmployee.attendance_status);
+      if (isEmployeeOnShift(selectedEmployee)) return "CHECKED_IN";
+      if (selectedEmployee?.shiftCheckOut) return "CHECKED_OUT";
+      return "NOT_CHECKED_IN";
+    }
+    if (routeSummary?.attendance_status) return String(routeSummary.attendance_status);
+    if (activeCheckOutTime || routeSummary?.is_finalized || currentDayFromRibbon?.is_finalized) {
+      return "CHECKED_OUT";
+    }
+    if (activeCheckInTime) return "CHECKED_IN";
+    return "NOT_CHECKED_IN";
+  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon, activeCheckOutTime, activeCheckInTime]);
+
+  const activeCheckInAddress = useMemo(() => {
+    return (
+      routeSummary?.check_in_address ||
+      routeSummary?.start_location_name ||
+      (isViewingToday ? selectedEmployee?.check_in_address : null) ||
+      ""
+    );
+  }, [routeSummary, isViewingToday, selectedEmployee]);
+
+  const activeCheckOutAddress = useMemo(() => {
+    return (
+      routeSummary?.check_out_address ||
+      routeSummary?.end_location_name ||
+      (isViewingToday ? selectedEmployee?.check_out_address : null) ||
+      ""
+    );
+  }, [routeSummary, isViewingToday, selectedEmployee]);
+
+  // Parse 5-day route waypoints into coordinates array (guarantees polyline and OUT marker when check-out / distance exists)
   const historyRouteCoords = useMemo(() => {
-    if (!timelinePoints || !timelinePoints.length) return [];
-    return timelinePoints
-      .map((pt, idx) => {
-        const coords = isValidCoordinatePair(pt.latitude, pt.longitude);
-        if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
-        return {
-          ...coords,
-          timestamp: pt.timestamp,
-          speed: pt.speed,
-          battery: pt.battery_percentage,
-          accuracy: pt.accuracy,
-          logType: pt.log_type,
-          index: idx,
-        };
-      })
-      .filter(Boolean);
-  }, [timelinePoints]);
+    let pts = [];
+    if (timelinePoints && timelinePoints.length) {
+      pts = timelinePoints
+        .map((pt, idx) => {
+          const coords = isValidCoordinatePair(pt.latitude, pt.longitude);
+          if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
+          return {
+            ...coords,
+            timestamp: pt.timestamp,
+            speed: pt.speed,
+            battery: pt.battery_percentage,
+            accuracy: pt.accuracy,
+            logType: pt.log_type,
+            time: pt.time,
+            address: pt.address,
+            index: idx,
+          };
+        })
+        .filter(Boolean);
+    }
+
+    // Defensive fallback if points are empty but routeSummary has check-in coordinates
+    if (pts.length === 0 && routeSummary) {
+      const startCoord = isValidCoordinatePair(
+        routeSummary.check_in_latitude,
+        routeSummary.check_in_longitude
+      );
+      if (startCoord) {
+        pts.push({
+          ...startCoord,
+          logType: "DUTY_START",
+          time: activeCheckInTime,
+          address: activeCheckInAddress,
+          index: 0,
+        });
+      }
+    }
+
+    // If we only have 1 point (or if checkout exists), ensure end/checkout point is present on historical / finalized days so graph and OUT marker render!
+    if (pts.length === 1) {
+      const endCoord = isValidCoordinatePair(
+        routeSummary?.check_out_latitude,
+        routeSummary?.check_out_longitude
+      );
+      if (endCoord && (Math.abs(endCoord.lat - pts[0].lat) > 0.0001 || Math.abs(endCoord.lng - pts[0].lng) > 0.0001)) {
+        pts.push({
+          ...endCoord,
+          logType: "DUTY_END",
+          time: activeCheckOutTime,
+          address: activeCheckOutAddress,
+          index: 1,
+        });
+      }
+    }
+
+    return pts;
+  }, [
+    timelinePoints,
+    routeSummary,
+    activeCheckInTime,
+    activeCheckOutTime,
+    activeCheckInAddress,
+    activeCheckOutAddress,
+    currentDayFromRibbon,
+    activeDistanceKm,
+    isViewingToday,
+  ]);
 
   // Fit bounds when employee 5-day route changes
   useEffect(() => {
     if (historyRouteCoords.length > 0 && googleMapRef.current && window.google?.maps?.LatLngBounds) {
       if (historyRouteCoords.length === 1) {
-        googleMapRef.current.panTo({
+        googleMapRef.current?.panTo?.({
           lat: historyRouteCoords[0].lat,
           lng: historyRouteCoords[0].lng,
         });
@@ -401,7 +650,7 @@ export default function LiveFleetCommandMap({
         historyRouteCoords.forEach((pt) => {
           bounds.extend({ lat: pt.lat, lng: pt.lng });
         });
-        googleMapRef.current.fitBounds(bounds, {
+        googleMapRef.current?.fitBounds?.(bounds, {
           top: 90,
           right: 70,
           bottom: 70,
@@ -410,6 +659,64 @@ export default function LiveFleetCommandMap({
       }
     }
   }, [historyRouteCoords]);
+
+  // Turn-by-Turn Road Route Calculation for Daily History Trail (snaps polyline to real street network)
+  useEffect(() => {
+    if (!historyRouteCoords || historyRouteCoords.length < 2) {
+      setHistoryDirectionsResult(null);
+      setHistoryRoadCoords(null);
+      lastHistoryRouteKeyRef.current = "";
+      return;
+    }
+
+    const origin = historyRouteCoords[0];
+    const destination = historyRouteCoords[historyRouteCoords.length - 1];
+    const routeKey = `hist_${origin.lat.toFixed(4)}_${origin.lng.toFixed(4)}_to_${destination.lat.toFixed(4)}_${destination.lng.toFixed(4)}_count${historyRouteCoords.length}`;
+
+    if (lastHistoryRouteKeyRef.current === routeKey) return;
+    lastHistoryRouteKeyRef.current = routeKey;
+
+    let isSubscribed = true;
+
+    // Fetch OSRM Road Geometry (100% Free Road Snapping across all checkpoints)
+    fetchOsrmMultiRoute(historyRouteCoords).then((roadPts) => {
+      if (isSubscribed && roadPts && roadPts.length > 0) {
+        setHistoryRoadCoords(roadPts);
+      }
+    });
+
+    if (isGoogleLoaded && window.google?.maps?.DirectionsService) {
+      const directionsService = new window.google.maps.DirectionsService();
+      const waypoints = historyRouteCoords
+        .slice(1, -1)
+        .slice(0, 23)
+        .map((pt) => ({
+          location: { lat: pt.lat, lng: pt.lng },
+          stopover: false,
+        }));
+
+      directionsService.route(
+        {
+          origin: { lat: origin.lat, lng: origin.lng },
+          destination: { lat: destination.lat, lng: destination.lng },
+          waypoints,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (!isSubscribed) return;
+          if (status === window.google.maps.DirectionsStatus.OK && result) {
+            setHistoryDirectionsResult(result);
+          } else {
+            setHistoryDirectionsResult(null);
+          }
+        }
+      );
+    }
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [historyRouteCoords, isGoogleLoaded]);
 
   // Real Road Route calculation (Zero loop, memoized by rep & lead coordinates)
   useEffect(() => {
@@ -458,7 +765,7 @@ export default function LiveFleetCommandMap({
         const bounds = new window.google.maps.LatLngBounds();
         bounds.extend({ lat: originLat, lng: originLng });
         bounds.extend({ lat: destLat, lng: destLng });
-        googleMapRef.current.fitBounds(bounds, {
+        googleMapRef.current?.fitBounds?.(bounds, {
           top: 60,
           right: 60,
           bottom: 60,
@@ -685,7 +992,7 @@ export default function LiveFleetCommandMap({
   const panToCoords = useCallback((lat, lng, zoom = 15) => {
     if (lat == null || lng == null) return;
     if (googleMapRef.current) {
-      googleMapRef.current.panTo({ lat, lng });
+      googleMapRef.current?.panTo?.({ lat, lng });
       googleMapRef.current.setZoom(zoom);
     }
   }, []);
@@ -695,6 +1002,7 @@ export default function LiveFleetCommandMap({
     setFocusedLead(null);
     setInfoWindowTarget(null);
     setDirectionsResult(null);
+    setHistoryDirectionsResult(null);
     setOsrmRoadCoords(null);
     setRouteStats(null);
     onSelectEntity?.({ type: "employee", id: emp.id });
@@ -726,7 +1034,7 @@ export default function LiveFleetCommandMap({
         const bounds = new window.google.maps.LatLngBounds();
         bounds.extend(employeeCoords);
         bounds.extend(coords);
-        googleMapRef.current.fitBounds(bounds, {
+        googleMapRef.current?.fitBounds?.(bounds, {
           top: 60,
           right: 60,
           bottom: 60,
@@ -792,6 +1100,16 @@ export default function LiveFleetCommandMap({
       setIsRefreshing(false);
     }
   };
+
+  const leafletRouteBounds = useMemo(() => {
+    const pts = (historyRoadCoords && historyRoadCoords.length >= 2)
+      ? historyRoadCoords
+      : historyRouteCoords;
+    if (pts && pts.length >= 2) {
+      return pts.map((p) => [p.lat, p.lng]);
+    }
+    return null;
+  }, [historyRoadCoords, historyRouteCoords]);
 
   return (
     <div className="live-fleet-command">
@@ -1008,16 +1326,22 @@ export default function LiveFleetCommandMap({
                   </span>
                 </div>
                 <span
-                  className={`fleet-badge ${isEmployeeOnShift(selectedEmployee) ? "active" : "finalized"}`}
-                  title="Shift status comes from employee attendance"
+                  className={`fleet-badge ${isViewingToday ? (isEmployeeOnShift(selectedEmployee) ? "active" : "finalized") : "finalized"}`}
+                  title="Shift status for selected date"
                 >
-                  {isEmployeeOnShift(selectedEmployee)
-                    ? "On shift"
-                    : selectedEmployee.shiftCheckOut
+                  {isViewingToday
+                    ? isEmployeeOnShift(selectedEmployee)
+                      ? "On shift"
+                      : selectedEmployee.shiftCheckOut
+                      ? "Shift ended"
+                      : attendanceUnavailable
+                      ? "Shift unavailable"
+                      : "Shift status unknown"
+                    : activeAttendanceStatus === "CHECKED_OUT"
                     ? "Shift ended"
-                    : attendanceUnavailable
-                    ? "Shift unavailable"
-                    : "Shift status unknown"}
+                    : activeAttendanceStatus === "CHECKED_IN"
+                    ? "Punched in"
+                    : "Finalized"}
                 </span>
               </div>
 
@@ -1026,32 +1350,35 @@ export default function LiveFleetCommandMap({
                 <div className="fleet-metric-item">
                   <span className="fleet-metric-label">Day Distance</span>
                   <strong className="fleet-metric-val">
-                    {routeSummary?.total_distance_km != null
-                      ? `${routeSummary.total_distance_km} KM`
-                      : "—"}
+                    {activeDistanceKm != null ? `${activeDistanceKm} KM` : "—"}
                   </strong>
                 </div>
-                {getDisplayTime(selectedEmployee.shiftCheckIn) && (
+                {activeCheckInTime && (
                   <div className="fleet-metric-item">
                     <span className="fleet-metric-label">Shift punch-in</span>
                     <strong className="fleet-metric-val">
-                      {getDisplayTime(selectedEmployee.shiftCheckIn)}
+                      {getDisplayTime(activeCheckInTime) || activeCheckInTime}
                     </strong>
                   </div>
                 )}
-                {getDisplayTime(selectedEmployee.shiftCheckOut) ? (
+                {activeCheckOutTime ? (
                   <div className="fleet-metric-item">
                     <span className="fleet-metric-label">Shift punch-out</span>
                     <strong className="fleet-metric-val">
-                      {getDisplayTime(selectedEmployee.shiftCheckOut)}
+                      {getDisplayTime(activeCheckOutTime) || activeCheckOutTime}
                     </strong>
                   </div>
-                ) : isEmployeeOnShift(selectedEmployee) && (
+                ) : isViewingToday && isEmployeeOnShift(selectedEmployee) ? (
                   <div className="fleet-metric-item">
                     <span className="fleet-metric-label">Shift punch-out</span>
                     <span className="fleet-metric-val in-progress">Not yet recorded</span>
                   </div>
-                )}
+                ) : !isViewingToday ? (
+                  <div className="fleet-metric-item">
+                    <span className="fleet-metric-label">Shift punch-out</span>
+                    <span className="fleet-metric-val text-muted">Not recorded</span>
+                  </div>
+                ) : null}
                 <div className="fleet-metric-item">
                   <span className="fleet-metric-label">Waypoints</span>
                   <strong className="fleet-metric-val">{historyRouteCoords.length} pts</strong>
@@ -1289,8 +1616,51 @@ export default function LiveFleetCommandMap({
               />
             )}
 
-            {/* 5-Day History Route Trail (Check-in to Check-out waypoints) */}
-            {historyRouteCoords.length > 1 && (
+            {/* Turn-by-Turn Road Route Trail (Snaps to real driving street network) */}
+            {historyDirectionsResult && (
+              <DirectionsRenderer
+                directions={historyDirectionsResult}
+                options={{
+                  suppressMarkers: true,
+                  preserveViewport: true,
+                  polylineOptions: {
+                    strokeColor: "#7c3aed",
+                    strokeWeight: 6,
+                    strokeOpacity: 0.92,
+                    zIndex: 22,
+                  },
+                }}
+              />
+            )}
+
+            {/* Real Street Route Polyline via OSRM when DirectionsRenderer not used */}
+            {!historyDirectionsResult && historyRoadCoords && historyRoadCoords.length > 0 && (
+              <>
+                <PolylineF
+                  path={historyRoadCoords}
+                  options={{
+                    strokeColor: "#4c1d95",
+                    strokeWeight: 7,
+                    strokeOpacity: 0.45,
+                    geodesic: true,
+                    zIndex: 20,
+                  }}
+                />
+                <PolylineF
+                  path={historyRoadCoords}
+                  options={{
+                    strokeColor: "#7c3aed",
+                    strokeWeight: 5,
+                    strokeOpacity: 0.95,
+                    geodesic: true,
+                    zIndex: 22,
+                  }}
+                />
+              </>
+            )}
+
+            {/* Continuous Fallback History Polyline if neither DirectionsService nor OSRM road route loaded */}
+            {!historyDirectionsResult && (!historyRoadCoords || historyRoadCoords.length === 0) && historyRouteCoords.length > 1 && (
               <>
                 <PolylineF
                   path={historyRouteCoords}
@@ -1315,19 +1685,51 @@ export default function LiveFleetCommandMap({
               </>
             )}
 
+            {/* Intermediate Checkpoints (Google Maps) */}
+            {historyRouteCoords.length > 2 &&
+              historyRouteCoords.slice(1, -1).map((pt, idx) => (
+                <MarkerF
+                  key={`route-waypoint-${pt.index ?? idx}-${pt.timestamp ?? idx}`}
+                  position={{ lat: pt.lat, lng: pt.lng }}
+                  icon={{
+                    path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                    scale: 6,
+                    fillColor: "#7c3aed",
+                    fillOpacity: 1,
+                    strokeColor: "#ffffff",
+                    strokeWeight: 2,
+                  }}
+                  title={pt.label || `Waypoint ${idx + 1}`}
+                  onClick={() => {
+                    setInfoWindowTarget({
+                      type: "checkpoint",
+                      data: {
+                        title: `📍 ${pt.label || `Waypoint ${idx + 1}`}`,
+                        time: pt.time || formatPingTimestamp(pt.timestamp),
+                        address: pt.address || "",
+                        battery: pt.battery,
+                        speed: pt.speed,
+                      },
+                      lat: pt.lat,
+                      lng: pt.lng,
+                    });
+                  }}
+                />
+              ))}
+
             {/* Start / Check-in Marker (Green Badge Marker) */}
             {historyRouteCoords.length > 0 && (
               <MarkerF
                 key={`route-start-${historyRouteCoords[0].timestamp || 0}`}
                 position={{ lat: historyRouteCoords[0].lat, lng: historyRouteCoords[0].lng }}
-                title={`Shift Check-in: ${routeSummary?.check_in_time || formatPingTimestamp(historyRouteCoords[0].timestamp)}`}
+                title={`Shift Check-in: ${activeCheckInTime || formatPingTimestamp(historyRouteCoords[0].timestamp)}`}
                 onClick={() => {
                   setInfoWindowTarget({
                     type: "checkpoint",
                     data: {
                       title: "🟢 Shift Check-in Location",
-                      time: routeSummary?.check_in_time || formatPingTimestamp(historyRouteCoords[0].timestamp),
-                      address: routeSummary?.start_location_name || routeSummary?.check_in_address || "",
+                      time: activeCheckInTime || formatPingTimestamp(historyRouteCoords[0].timestamp),
+                      address: activeCheckInAddress || "",
                       battery: historyRouteCoords[0].battery,
                       speed: historyRouteCoords[0].speed,
                     },
@@ -1363,20 +1765,20 @@ export default function LiveFleetCommandMap({
                   lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
                 }}
                 title={
-                  routeSummary?.is_finalized || routeSummary?.check_out_time
-                    ? `Shift Check-out: ${routeSummary?.check_out_time || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
+                  activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday
+                    ? `Shift Check-out: ${activeCheckOutTime || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
                     : `Live Location: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
                 }
                 onClick={() => {
-                  const isCheckout = Boolean(routeSummary?.is_finalized || routeSummary?.check_out_time);
+                  const isCheckout = Boolean(activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday);
                   setInfoWindowTarget({
                     type: "checkpoint",
                     data: {
                       title: isCheckout ? "🔴 Shift Check-out Location" : "🔵 Current Live Position",
                       time: isCheckout
-                        ? (routeSummary?.check_out_time || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp))
+                        ? (activeCheckOutTime || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp))
                         : formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp),
-                      address: routeSummary?.end_location_name || routeSummary?.check_out_address || "",
+                      address: activeCheckOutAddress || "",
                       battery: historyRouteCoords[historyRouteCoords.length - 1].battery,
                       speed: historyRouteCoords[historyRouteCoords.length - 1].speed,
                     },
@@ -1388,8 +1790,8 @@ export default function LiveFleetCommandMap({
                   window.google?.maps?.Size
                     ? {
                         url: createCheckpointMarkerIcon(
-                          (routeSummary?.is_finalized || routeSummary?.check_out_time) ? "OUT" : "NOW",
-                          Boolean(routeSummary?.is_finalized || routeSummary?.check_out_time)
+                          activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday ? "OUT" : "NOW",
+                          Boolean(activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday)
                         ),
                         scaledSize: new window.google.maps.Size(32, 32),
                         anchor: new window.google.maps.Point(16, 16),
@@ -1397,7 +1799,7 @@ export default function LiveFleetCommandMap({
                     : {
                         path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
                         scale: 9,
-                        fillColor: (routeSummary?.is_finalized || routeSummary?.check_out_time) ? "#ef4444" : "#3b82f6",
+                        fillColor: activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday ? "#ef4444" : "#3b82f6",
                         fillOpacity: 1,
                         strokeColor: "#ffffff",
                         strokeWeight: 2.5,
@@ -1426,7 +1828,7 @@ export default function LiveFleetCommandMap({
                   });
                 }}
                 icon={{
-                  path: window.google.maps.SymbolPath.CIRCLE,
+                  path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
                   scale: 3.5,
                   fillColor: "#7c3aed",
                   fillOpacity: 0.8,
@@ -1576,7 +1978,7 @@ export default function LiveFleetCommandMap({
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <LeafletMapController center={[currentMapCenter.lat, currentMapCenter.lng]} />
+            <LeafletMapController center={[currentMapCenter.lat, currentMapCenter.lng]} bounds={leafletRouteBounds} />
 
             {/* Rep Markers */}
             {employees.map((emp) => {
@@ -1738,13 +2140,36 @@ export default function LiveFleetCommandMap({
               )
             )}
 
-            {/* 5-Day History Polyline on Leaflet */}
+            {/* 5-Day Road Route Polyline on Leaflet (Snaps along actual street driving paths) */}
             {historyRouteCoords.length > 1 && (
               <Polyline
-                positions={historyRouteCoords.map((c) => [c.lat, c.lng])}
-                pathOptions={{ color: "#8b5cf6", weight: 5, opacity: 0.9 }}
+                positions={
+                  historyRoadCoords && historyRoadCoords.length > 0
+                    ? historyRoadCoords.map((c) => [c.lat, c.lng])
+                    : historyRouteCoords.map((c) => [c.lat, c.lng])
+                }
+                pathOptions={{ color: "#7c3aed", weight: 6, opacity: 0.92 }}
               />
             )}
+
+            {/* Intermediate Waypoints along Daily Route on Leaflet */}
+            {historyRouteCoords.length > 2 &&
+              historyRouteCoords.slice(1, -1).map((pt, idx) => (
+                <Marker
+                  key={`leaflet-waypoint-${pt.index ?? idx}-${pt.timestamp ?? idx}`}
+                  position={[pt.lat, pt.lng]}
+                  icon={createLeafletWaypointIcon(idx + 1)}
+                >
+                  <Popup>
+                    <div className="fleet-popup">
+                      <strong>{pt.label || `Waypoint ${idx + 1}`}</strong>
+                      <p>{pt.time || formatPingTimestamp(pt.timestamp)}</p>
+                      {pt.address && <p>{pt.address}</p>}
+                      {pt.battery != null && <p>Battery: {pt.battery}%</p>}
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
 
             {/* Start Marker Leaflet */}
             {historyRouteCoords.length > 0 && (
@@ -1771,20 +2196,23 @@ export default function LiveFleetCommandMap({
                   historyRouteCoords[historyRouteCoords.length - 1].lng,
                 ]}
                 icon={createLeafletCheckpointIcon(
-                  routeSummary?.is_finalized ? "OUT" : "NOW",
-                  routeSummary?.is_finalized
+                  activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday ? "OUT" : "NOW",
+                  Boolean(activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday)
                 )}
               >
                 <Popup>
                   <div className="fleet-popup">
                     <strong>
-                      Last recorded location
+                      {activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday
+                        ? "🔴 Shift Check-out Location"
+                        : "Last recorded location"}
                     </strong>
                     <p>
-                      {formatPingTimestamp(
+                      {activeCheckOutTime || formatPingTimestamp(
                         historyRouteCoords[historyRouteCoords.length - 1].timestamp
                       )}
                     </p>
+                    {activeCheckOutAddress && <p>{activeCheckOutAddress}</p>}
                   </div>
                 </Popup>
               </Marker>
@@ -1793,7 +2221,7 @@ export default function LiveFleetCommandMap({
         )}
 
         {/* Shift attendance and visit activity are separate states. */}
-        {selectedEmployee && !selectedEmployee.isActiveTracking && (
+        {selectedEmployee && isViewingToday && !selectedEmployee.isActiveTracking && (
           <div className="fleet-stale-warning-hud">
             <div className="fleet-stale-warning-hud__icon">
               {isEmployeeOnShift(selectedEmployee) ? (
@@ -1918,20 +2346,28 @@ export default function LiveFleetCommandMap({
                     ID: {selectedEmployee.employee_code || selectedEmployee.employee_id || selectedEmployee.id}
                   </p>
                   <p className="fleet-rep-subtitle">
-                    {isEmployeeOnShift(selectedEmployee)
-                      ? `On shift${getDisplayTime(selectedEmployee.shiftCheckIn) ? ` · punched in ${getDisplayTime(selectedEmployee.shiftCheckIn)}` : ""}. ${
-                          selectedRepInProgressVisit
-                            ? `Visit in progress: ${selectedRepInProgressVisit.companyName || selectedRepInProgressVisit.leadName || "Assigned visit"}.`
-                            : "No visit is checked in."
-                        }${selectedEmployee.isActiveTracking ? " Live GPS is active." : ""}`
-                      : attendanceUnavailable || !selectedEmployee.shiftStatus
-                      ? "Shift status unavailable; GPS and visit status are separate."
-                      : selectedEmployee.shiftStatus === "NOT_STARTED" ||
-                        selectedEmployee.shiftStatus === "ABSENT"
-                      ? "No shift punch-in is recorded."
-                      : `Attendance status: ${selectedEmployee.shiftStatus}`}
+                    {isViewingToday ? (
+                      isEmployeeOnShift(selectedEmployee)
+                        ? `On shift${getDisplayTime(selectedEmployee.shiftCheckIn) ? ` · punched in ${getDisplayTime(selectedEmployee.shiftCheckIn)}` : ""}. ${
+                            selectedRepInProgressVisit
+                              ? `Visit in progress: ${selectedRepInProgressVisit.companyName || selectedRepInProgressVisit.leadName || "Assigned visit"}.`
+                              : "No visit is checked in."
+                          }${selectedEmployee.isActiveTracking ? " Live GPS is active." : ""}`
+                        : attendanceUnavailable || !selectedEmployee.shiftStatus
+                        ? "Shift status unavailable; GPS and visit status are separate."
+                        : selectedEmployee.shiftStatus === "NOT_STARTED" ||
+                          selectedEmployee.shiftStatus === "ABSENT"
+                        ? "No shift punch-in is recorded."
+                        : `Attendance status: ${selectedEmployee.shiftStatus}`
+                    ) : (
+                      activeAttendanceStatus === "CHECKED_OUT"
+                        ? `Shift ended · punched out${activeCheckOutTime ? ` at ${getDisplayTime(activeCheckOutTime) || activeCheckOutTime}` : ""}.`
+                        : activeAttendanceStatus === "CHECKED_IN"
+                        ? `Shift started · punched in${activeCheckInTime ? ` at ${getDisplayTime(activeCheckInTime) || activeCheckInTime}` : ""}.`
+                        : `Route on ${routeSummary?.selected_date_label || activeSelectedDate}.`
+                    )}
                   </p>
-                  {selectedEmployee.visit_stage && (
+                  {selectedEmployee.visit_stage && isViewingToday && (
                     <p className="fleet-visit-stage">
                       Visit tracking: {String(selectedEmployee.visit_stage).replace(/_/g, " ")}
                       {selectedEmployee.check_in_time_formatted
@@ -1940,25 +2376,36 @@ export default function LiveFleetCommandMap({
                     </p>
                   )}
                 </div>
+
                 <span
                   className={`fleet-shift-pill ${
-                    isEmployeeOnShift(selectedEmployee)
-                      ? "fleet-shift-pill--active"
-                      : selectedEmployee.isActiveTracking
-                      ? "fleet-shift-pill--gps"
-                      : ""
+                    isViewingToday
+                      ? isEmployeeOnShift(selectedEmployee)
+                        ? "fleet-shift-pill--active"
+                        : selectedEmployee.isActiveTracking
+                        ? "fleet-shift-pill--gps"
+                        : ""
+                      : activeAttendanceStatus === "CHECKED_OUT"
+                      ? "fleet-shift-pill--completed"
+                      : "fleet-shift-pill--active"
                   }`}
                 >
-                  {isEmployeeOnShift(selectedEmployee)
-                    ? "ON SHIFT"
-                    : selectedEmployee.isActiveTracking
-                    ? "GPS LIVE"
-                    : selectedEmployee.shiftStatus === "NOT_STARTED" ||
-                      selectedEmployee.shiftStatus === "ABSENT"
-                    ? "OFF SHIFT"
-                    : attendanceUnavailable
-                    ? "SHIFT UNKNOWN"
-                    : "STATUS UNKNOWN"}
+                  {isViewingToday
+                    ? isEmployeeOnShift(selectedEmployee)
+                      ? "ON SHIFT"
+                      : selectedEmployee.isActiveTracking
+                      ? "GPS LIVE"
+                      : selectedEmployee.shiftStatus === "NOT_STARTED" ||
+                        selectedEmployee.shiftStatus === "ABSENT"
+                      ? "OFF SHIFT"
+                      : attendanceUnavailable
+                      ? "SHIFT UNKNOWN"
+                      : "STATUS UNKNOWN"
+                    : activeAttendanceStatus === "CHECKED_OUT"
+                    ? "SHIFT ENDED"
+                    : activeAttendanceStatus === "CHECKED_IN"
+                    ? "PUNCHED IN"
+                    : "OFF SHIFT"}
                 </span>
               </div>
 
@@ -1966,10 +2413,10 @@ export default function LiveFleetCommandMap({
               <div className="fleet-attendance-tracking-card">
                 <div className="fleet-att-row">
                   <span className="fleet-att-label">Attendance:</span>
-                  <span className={`fleet-att-badge fleet-att-badge--${(selectedEmployee.attendance_status || (isEmployeeOnShift(selectedEmployee) ? "CHECKED_IN" : selectedEmployee.shiftCheckOut ? "CHECKED_OUT" : "NOT_CHECKED_IN")).toLowerCase()}`}>
-                    {selectedEmployee.attendance_status === "CHECKED_IN" || isEmployeeOnShift(selectedEmployee)
+                  <span className={`fleet-att-badge fleet-att-badge--${String(activeAttendanceStatus || "not_checked_in").toLowerCase()}`}>
+                    {activeAttendanceStatus === "CHECKED_IN"
                       ? "Checked In"
-                      : selectedEmployee.attendance_status === "CHECKED_OUT" || selectedEmployee.shiftCheckOut
+                      : activeAttendanceStatus === "CHECKED_OUT"
                       ? "Checked Out"
                       : "Not Checked In"}
                   </span>
@@ -1977,34 +2424,40 @@ export default function LiveFleetCommandMap({
 
                 <div className="fleet-att-row">
                   <span className="fleet-att-label">GPS Telemetry:</span>
-                  <span className={`fleet-gps-badge ${selectedEmployee.isActiveTracking && !selectedEmployee.is_stale_location ? "live" : selectedEmployee.is_stale_location ? "stale" : selectedEmployee.hasLiveGps ? "cached" : "none"}`}>
-                    {selectedEmployee.isActiveTracking && !selectedEmployee.is_stale_location
-                      ? "🟢 Live GPS"
-                      : selectedEmployee.is_stale_location
-                      ? "⚠️ Stale GPS (> 2m ago)"
-                      : selectedEmployee.hasLiveGps
-                      ? "Last known GPS"
-                      : "Location unavailable"}
-                  </span>
+                  {isViewingToday ? (
+                    <span className={`fleet-gps-badge ${selectedEmployee.isActiveTracking && !selectedEmployee.is_stale_location ? "live" : selectedEmployee.is_stale_location ? "stale" : selectedEmployee.hasLiveGps ? "cached" : "none"}`}>
+                      {selectedEmployee.isActiveTracking && !selectedEmployee.is_stale_location
+                        ? "🟢 Live GPS"
+                        : selectedEmployee.is_stale_location
+                        ? "⚠️ Stale GPS (> 2m ago)"
+                        : selectedEmployee.hasLiveGps
+                        ? "Last known GPS"
+                        : "Location unavailable"}
+                    </span>
+                  ) : (
+                    <span className="fleet-gps-badge cached">
+                      📁 Historical Route
+                    </span>
+                  )}
                 </div>
 
                 <div className="fleet-att-row">
                   <span className="fleet-att-label">Check-in:</span>
                   <span className="fleet-att-val">
-                    {selectedEmployee.check_in_time_formatted || selectedEmployee.shiftCheckIn || routeSummary?.check_in_time || "—"}
-                    {(selectedEmployee.check_in_address || routeSummary?.start_location_name) && (
-                      <span className="fleet-att-subtext">📍 {selectedEmployee.check_in_address || routeSummary?.start_location_name}</span>
+                    {activeCheckInTime ? (getDisplayTime(activeCheckInTime) || activeCheckInTime) : "—"}
+                    {activeCheckInAddress && (
+                      <span className="fleet-att-subtext">📍 {activeCheckInAddress}</span>
                     )}
                   </span>
                 </div>
 
-                {(selectedEmployee.check_out_time_formatted || selectedEmployee.shiftCheckOut || routeSummary?.check_out_time) && (
+                {(activeCheckOutTime || !isViewingToday) && (
                   <div className="fleet-att-row">
                     <span className="fleet-att-label">Check-out:</span>
                     <span className="fleet-att-val">
-                      {selectedEmployee.check_out_time_formatted || selectedEmployee.shiftCheckOut || routeSummary?.check_out_time}
-                      {(selectedEmployee.check_out_address || routeSummary?.end_location_name) && (
-                        <span className="fleet-att-subtext">📍 {selectedEmployee.check_out_address || routeSummary?.end_location_name}</span>
+                      {activeCheckOutTime ? (getDisplayTime(activeCheckOutTime) || activeCheckOutTime) : "—"}
+                      {activeCheckOutAddress && (
+                        <span className="fleet-att-subtext">📍 {activeCheckOutAddress}</span>
                       )}
                     </span>
                   </div>
@@ -2013,14 +2466,16 @@ export default function LiveFleetCommandMap({
                 <div className="fleet-att-row">
                   <span className="fleet-att-label">Day Distance:</span>
                   <strong className="fleet-att-val text-emerald">
-                    {selectedEmployee.today_distance_km ?? routeSummary?.total_distance_km ?? 0} KM
+                    {activeDistanceKm != null ? `${activeDistanceKm} KM` : "0 KM"}
                   </strong>
                 </div>
 
                 <div className="fleet-att-row">
-                  <span className="fleet-att-label">Last GPS Ping:</span>
+                  <span className="fleet-att-label">{isViewingToday ? "Last GPS Ping:" : "Route Date:"}</span>
                   <span className="fleet-att-val">
-                    {selectedEmployee.last_ping_formatted || (selectedEmployee.last_ping_at ? formatPingTimestamp(selectedEmployee.last_ping_at) : "—")}
+                    {isViewingToday
+                      ? (selectedEmployee.last_ping_formatted || (selectedEmployee.last_ping_at ? formatPingTimestamp(selectedEmployee.last_ping_at) : "—"))
+                      : (routeSummary?.selected_date_label || activeSelectedDate || "Historical Day")}
                   </span>
                 </div>
 

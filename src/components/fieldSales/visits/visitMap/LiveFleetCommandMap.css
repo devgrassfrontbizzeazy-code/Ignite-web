@@ -1141,6 +1141,12 @@
   letter-spacing: 0.04em;
 }
 
+.fleet-shift-pill--completed {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+}
+
 .fleet-shift-pill--active {
   border-color: rgba(11, 163, 127, 0.25);
   background: rgba(11, 163, 127, 0.1);

@@ -12,8 +12,8 @@ export const attendanceAPI = {
   /**
    * Punch In for the current 4:00 AM business day
    */
-  punchIn: async () => {
-    const response = await api.post("/attendance/punch-in/");
+  punchIn: async (data = {}) => {
+    const response = await api.post("/attendance/punch-in/", data);
     return response.data;
   },
 
@@ -36,8 +36,8 @@ export const attendanceAPI = {
   /**
    * Punch Out for today and lock session for approval
    */
-  punchOut: async () => {
-    const response = await api.post("/attendance/punch-out/");
+  punchOut: async (data = {}) => {
+    const response = await api.post("/attendance/punch-out/", data);
     return response.data;
   },
 
@@ -53,8 +53,8 @@ export const attendanceAPI = {
   },
 
   /**
-   * Fetch specific attendance details with full break breakdown
-   * @param {number|string} attendanceId
+   * Fetch details of a specific historical attendance record
+   * @param {string|number} attendanceId
    */
   getAttendanceDetails: async (attendanceId) => {
     const response = await api.get(`/attendance/${attendanceId}/`);
@@ -62,8 +62,8 @@ export const attendanceAPI = {
   },
 
   /**
-   * Fetch company-wide employee attendance records with summary stats and filters
-   * @param {Object} params - { date, department, status, search }
+   * Fetch attendance records across the entire company for date range
+   * (Owner / Admin / HR Access)
    */
   getCompanyAttendance: async (params = {}) => {
     const response = await api.get("/attendance/company/", { params });
@@ -71,11 +71,19 @@ export const attendanceAPI = {
   },
 
   /**
+   * Fetch pending approval queue (Manager / HR Access)
+   */
+  getPendingApprovals: async (params = {}) => {
+    const response = await api.get("/attendance/approvals/", { params });
+    return response.data;
+  },
+
+  /**
    * Approve an attendance session
    */
-  approveAttendance: async (attendanceId) => {
-    const response = await api.post(`/attendance/${attendanceId}/approve/`, {
-      action: "APPROVE",
+  approveAttendance: async (attendanceId, remarks = "") => {
+    const response = await api.post(`/attendance/approvals/${attendanceId}/approve/`, {
+      remarks,
     });
     return response.data;
   },
@@ -84,9 +92,8 @@ export const attendanceAPI = {
    * Reject an attendance session
    */
   rejectAttendance: async (attendanceId, reason = "") => {
-    const response = await api.post(`/attendance/${attendanceId}/reject/`, {
-      action: "REJECT",
-      rejection_reason: reason,
+    const response = await api.post(`/attendance/approvals/${attendanceId}/reject/`, {
+      reason,
     });
     return response.data;
   },
