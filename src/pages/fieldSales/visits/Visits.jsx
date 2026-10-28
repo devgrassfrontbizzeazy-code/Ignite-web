@@ -447,7 +447,7 @@ const Visits = () => {
     };
 
     void doPing();
-    const interval = setInterval(doPing, 15000);
+    const interval = setInterval(doPing, 5000);
 
     return () => {
       mounted = false;
@@ -477,7 +477,7 @@ const Visits = () => {
     return false;
   }, []);
 
-  useSmartPolling(fetchTeamLive, 15000, { enabled: isManager });
+  useSmartPolling(fetchTeamLive, 5000, { enabled: isManager });
 
   const refreshManagerTracking = useCallback(async () => {
     const results = await Promise.all([
@@ -830,11 +830,9 @@ const Visits = () => {
       mapEmployee.check_out_longitude = location.check_out_longitude ?? mapEmployee.check_out_longitude;
       mapEmployee.check_out_address = location.check_out_address || mapEmployee.check_out_address;
       mapEmployee.is_stale_location = Boolean(location.is_stale || location.is_stale_location);
-      mapEmployee.lastUpdated = isLive
-        ? "Live GPS"
-        : pingTimestamp
-          ? `Last known GPS · ${timeAgo}`
-          : "Location unavailable";
+      mapEmployee.gps_telemetry_status = location.gps_telemetry_status || (isLive ? "LIVE" : isStale ? "STALE" : "UNAVAILABLE");
+      mapEmployee.gps_telemetry_label = location.gps_telemetry_label || (isLive ? "Live GPS" : pingTimestamp ? `Last known GPS · ${timeAgo}` : "Location unavailable");
+      mapEmployee.lastUpdated = mapEmployee.gps_telemetry_label;
       if (!mapEmployee.name && locationName) mapEmployee.name = locationName;
       employeesById.set(employeeId, mapEmployee);
     });
@@ -854,13 +852,36 @@ const Visits = () => {
     }
   }, [repIdParam, filteredMapEmployees, selectedEntity, handleSelectEntity]);
 
-  // Check for inactive employees to alert Manager (only if they have live GPS history and stopped sending)
+  const [dismissedAlertEmployees, setDismissedAlertEmployees] = useState(new Set());
+
+  // Check for inactive employees to alert Manager (only if they are actively on shift and stopped sending)
   const inactiveEmployees = useMemo(() => {
     if (!isManager) return [];
-    return filteredMapEmployees.filter(
-      (emp) => emp.hasLiveGps && emp.isActiveTracking === false
-    );
-  }, [isManager, filteredMapEmployees]);
+    return filteredMapEmployees.filter((emp) => {
+      // 1. Employee MUST be actively on shift (working / checked in today)
+      const onShift =
+        emp.attendance_status === 'CHECKED_IN' ||
+        emp.shiftStatus === 'WORKING' ||
+        emp.shiftStatus === 'ON_BREAK';
+      if (!onShift) return false;
+
+      // 2. Check if already dismissed by manager
+      if (dismissedAlertEmployees.has(String(emp.id))) return false;
+
+      // 3. Never flag if transmitting live or stationary within allowed window
+      if (emp.gps_telemetry_status === "LIVE" || emp.gps_telemetry_status === "IDLE") {
+        return false;
+      }
+
+      // 4. Flag only if GPS is explicitly disabled or heartbeats have stopped (> 120s)
+      return (
+        emp.gps_telemetry_status === "DISABLED" ||
+        emp.gps_telemetry_status === "STALE" ||
+        (emp.last_seen_seconds != null && emp.last_seen_seconds > 120) ||
+        (emp.isActiveTracking === false && emp.hasLiveGps)
+      );
+    });
+  }, [isManager, filteredMapEmployees, dismissedAlertEmployees]);
 
   /* ---------------------------------------------------------------------- */
   /* Select visit                                                             */
@@ -1109,10 +1130,24 @@ const Visits = () => {
               <strong>GPS Tracking Inactive Alert</strong>
               <p>
                 {inactiveEmployees.map((e) => e.name).join(", ")}{" "}
-                {inactiveEmployees.length === 1 ? "has" : "have"} disabled location or stopped sending GPS heartbeats (&gt; 2 mins).
+                {inactiveEmployees.length === 1 ? "has" : "have"} stopped sending GPS heartbeats.
               </p>
             </div>
           </div>
+          <button
+            type="button"
+            className="visits__inactive-alert-dismiss"
+            onClick={() => {
+              setDismissedAlertEmployees((prev) => {
+                const next = new Set(prev);
+                inactiveEmployees.forEach((e) => next.add(String(e.id)));
+                return next;
+              });
+            }}
+            title="Dismiss alert"
+          >
+            ✕
+          </button>
         </div>
       )}
 

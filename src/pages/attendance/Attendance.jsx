@@ -186,7 +186,8 @@ const Attendance = () => {
   const executePunchIn = async () => {
     try {
       setActionLoading(true);
-      const res = await attendanceAPI.punchIn();
+      const gps = await getDeviceGpsPayload();
+      const res = await attendanceAPI.punchIn(gps);
       if (res?.data) {
         setTodayData(res.data);
       }
@@ -285,7 +286,8 @@ const Attendance = () => {
   const executePunchOut = async () => {
     try {
       setActionLoading(true);
-      const res = await attendanceAPI.punchOut();
+      const gps = await getDeviceGpsPayload();
+      const res = await attendanceAPI.punchOut(gps);
       if (res?.data) {
         setTodayData(res.data);
       }
