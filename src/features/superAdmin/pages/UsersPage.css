@@ -1,8 +1,112 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — USERS PAGE
+   Polished enterprise user accounts management.
+   ========================================================================== */
+
 .super-users-page {
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* Page Header Top Bar */
+.super-users-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.super-users-page__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.super-users-page__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f3d3e;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.super-users-page__subtitle {
+  font-size: 12.5px;
+  color: #5b6672;
+}
+
+.super-users-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.super-users-page__btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  color: #0f3d3e;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.super-users-page__btn-outline:hover {
+  border-color: #0f3d3e;
+  background-color: #f8fafb;
+}
+
+.super-users-page__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background-color: #0ba37f;
+  border: none;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.super-users-page__btn-primary:hover {
+  background-color: #09886a;
+}
+
+/* Compact Summary Grid */
+.super-users-page__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .super-users-page__summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .super-users-page__summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Table Cells */
 .super-users-table__cell {
   display: flex;
   align-items: center;
@@ -14,20 +118,20 @@
   height: 36px;
   border-radius: 50%;
   background-color: #f3f6f7;
-  color: var(--color-text-secondary, #5b6672);
+  color: #5b6672;
   font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid var(--color-border, #e6eaee);
+  border: 1px solid #e6eaee;
 }
 
 .super-users-table__avatar--superuser {
-  background-color: var(--ignite-gold-050, #fbf3dd);
+  background-color: #fbf3dd;
   color: #8c680d;
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: rgba(212, 175, 55, 0.45);
 }
 
 .super-users-table__user-info {
@@ -38,13 +142,14 @@
 
 .super-users-table__full-name {
   font-weight: 600;
-  color: var(--color-text-primary, #1a1f24);
+  color: #1a1f24;
+  font-size: 13.5px;
 }
 
 .super-users-table__username {
   font-size: 11px;
   font-family: monospace;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
 }
 
 .super-users-table__company-link {
@@ -52,52 +157,193 @@
   align-items: center;
   gap: 5px;
   font-weight: 600;
-  color: var(--ignite-deep-teal, #0f3d3e);
+  color: #0f3d3e;
   text-decoration: none;
+  font-size: 12.5px;
+  transition: color 0.15s ease;
 }
 
 .super-users-table__company-link:hover {
-  color: var(--ignite-emerald, #0ba37f);
+  color: #0ba37f;
   text-decoration: underline;
 }
 
-.super-users-table__linked-emp {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-}
-
-.super-users-table__emp-code {
-  font-size: 11px;
-  font-family: monospace;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a1f24);
-}
-
-.super-users-table__emp-comp {
-  font-size: 11px;
-  color: var(--color-text-muted, #8b96a3);
-}
-
-.super-users-table__staff-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  background-color: var(--ignite-teal-050, #e7eeee);
-  color: var(--ignite-deep-teal, #0f3d3e);
+.super-users-table__email {
+  font-size: 13px;
+  color: #1a1f24;
 }
 
 .super-users-table__date {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12.5px;
-  color: var(--color-text-secondary, #5b6672);
+  font-size: 12px;
+  color: #5b6672;
+  white-space: nowrap;
+}
+
+/* Role Pills */
+.super-users-table__role-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.super-users-table__role-pill--super {
+  background-color: #fbf3dd;
+  color: #8c680d;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+}
+
+.super-users-table__role-pill--staff {
+  background-color: #e7eeee;
+  color: #0f3d3e;
+  border: 1px solid #cfdede;
+}
+
+.super-users-table__role-pill--owner {
+  background-color: #e4f6f1;
+  color: #076d54;
+  border: 1px solid #b3e7d8;
+}
+
+.super-users-table__role-pill--standard {
+  background-color: #f8fafb;
+  color: #5b6672;
+  border: 1px solid #e6eaee;
 }
 
 .super-users-table__muted {
   font-size: 12px;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
+  font-style: italic;
+}
+
+.super-users-table__inspect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background-color: #e7eeee;
+  color: #0f3d3e;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.super-users-table__inspect-btn:hover {
+  background-color: #0f3d3e;
+  color: #ffffff;
+}
+
+/* User Detail Modal Styling */
+.super-user-detail__hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f8fafb;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+}
+
+.super-user-detail__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f3d3e, #0ba37f);
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.super-user-detail__avatar--superuser {
+  background: #fbf3dd;
+  color: #8c680d;
+  border: 2px solid rgba(212, 175, 55, 0.45);
+}
+
+.super-user-detail__hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.super-user-detail__name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f3d3e;
+  margin: 0;
+}
+
+.super-user-detail__username {
+  font-size: 12px;
+  font-family: monospace;
+  color: #8b96a3;
+}
+
+.super-user-detail__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.super-user-detail__info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.super-user-detail__info-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 13px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e6eaee;
+}
+
+.super-user-detail__info-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.super-user-detail__info-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5b6672;
+  font-weight: 500;
+}
+
+.super-user-detail__info-val {
+  color: #1a1f24;
+  font-weight: 600;
+  text-align: right;
+}
+
+.super-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

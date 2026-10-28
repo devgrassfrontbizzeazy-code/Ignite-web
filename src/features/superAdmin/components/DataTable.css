@@ -1,9 +1,15 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — DATA TABLE
+   Readable enterprise tabular presentation with clear column spacing.
+   ========================================================================== */
+
 .super-data-table-container {
   background-color: #ffffff;
-  border: 1px solid var(--color-border, #e6eaee);
-  border-radius: 12px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15, 61, 62, 0.04);
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .super-data-table-wrapper {
@@ -16,30 +22,30 @@
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .super-data-table__th {
   background-color: #f8fafb;
-  color: var(--color-text-secondary, #5b6672);
-  font-size: 12px;
+  color: #5b6672;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--color-border, #e6eaee);
+  letter-spacing: 0.05em;
+  padding: 13px 18px;
+  border-bottom: 1px solid #e6eaee;
   white-space: nowrap;
   user-select: none;
 }
 
 .super-data-table__th--sortable {
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .super-data-table__th--sortable:hover {
-  background-color: #eef2f5;
-  color: var(--color-text-primary, #1a1f24);
+  background-color: #edf2f6;
+  color: #0f3d3e;
 }
 
 .super-data-table__th-content {
@@ -58,8 +64,8 @@
 }
 
 .super-data-table__tr {
-  border-bottom: 1px solid var(--color-border, #e6eaee);
-  transition: background-color 0.15s ease;
+  border-bottom: 1px solid #e6eaee;
+  transition: background-color 0.12s ease;
 }
 
 .super-data-table__tr:last-child {
@@ -67,7 +73,7 @@
 }
 
 .super-data-table__tr:hover {
-  background-color: #fbfcfd;
+  background-color: #f4f7f9;
 }
 
 .super-data-table__tr--clickable {
@@ -75,31 +81,41 @@
 }
 
 .super-data-table__td {
-  padding: 14px 18px;
-  color: var(--color-text-primary, #1a1f24);
+  padding: 13px 18px;
+  color: #1a1f24;
   vertical-align: middle;
 }
 
+/* --------------------------------------------------------------------------
+   Pagination Footer Bar
+   -------------------------------------------------------------------------- */
 .super-data-table__pagination {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
-  border-top: 1px solid var(--color-border, #e6eaee);
-  background-color: #fafbfc;
+  padding: 12px 18px;
+  background-color: #f8fafb;
+  border-top: 1px solid #e6eaee;
   flex-wrap: wrap;
   gap: 12px;
+  font-size: 12.5px;
+  color: #5b6672;
 }
 
 .super-data-table__pagination-info {
-  font-size: 13px;
-  color: var(--color-text-secondary, #5b6672);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #5b6672;
+  line-height: 32px;
 }
 
 .super-data-table__pagination-controls {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .super-data-table__page-size {
@@ -109,53 +125,100 @@
 }
 
 .super-data-table__page-size-label {
-  font-size: 12.5px;
-  color: var(--color-text-secondary, #5b6672);
+  font-size: 12px;
+  color: #5b6672;
+  font-weight: 500;
+  line-height: 32px;
 }
 
 .super-data-table__page-size-select {
-  padding: 4px 8px;
+  height: 32px;
+  padding: 0 10px;
   border-radius: 6px;
-  border: 1px solid var(--color-border, #e6eaee);
+  border: 1px solid #e6eaee;
   background-color: #ffffff;
-  font-size: 12.5px;
-  color: var(--color-text-primary, #1a1f24);
+  color: #1a1f24;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
   cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.super-data-table__page-size-select:focus {
+  border-color: #0ba37f;
 }
 
 .super-data-table__nav-buttons {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.super-data-table__page-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: 1px solid var(--color-border, #e6eaee);
-  background-color: #ffffff;
-  color: var(--color-text-primary, #1a1f24);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.super-data-table__page-btn:hover:not(:disabled) {
-  background-color: #f3f6f7;
-  border-color: #d3dae1;
-}
-
-.super-data-table__page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+  vertical-align: middle;
 }
 
 .super-data-table__page-indicator {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--color-text-secondary, #5b6672);
-  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 6px;
+  font-weight: 600;
+  color: #1a1f24;
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.super-data-table__page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  margin: 0;
+  border-radius: 6px;
+  border: 1px solid #e6eaee;
+  background-color: #ffffff;
+  color: #1a1f24;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+.super-data-table__page-btn svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: auto;
+}
+
+.super-data-table__page-btn:hover:not(:disabled) {
+  background-color: #edf2f6;
+  border-color: #d3dae1;
+  color: #0f3d3e;
+}
+
+.super-data-table__page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background-color: #f8fafb;
+  border-color: #e6eaee;
+  color: #8b96a3;
+}
+
+@media (max-width: 640px) {
+  .super-data-table__pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

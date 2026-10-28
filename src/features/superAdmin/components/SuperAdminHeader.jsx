@@ -72,10 +72,10 @@ export default function SuperAdminHeader({
         <Link
           to="/dashboard"
           className="super-header__action-btn"
-          title="Open regular tenant workspace"
+          title="Switch to Tenant Workspace"
         >
           <ExternalLink size={15} />
-          <span className="super-header__action-btn-text">Workspace</span>
+          <span className="super-header__action-btn-text">Tenant Workspace</span>
         </Link>
 
         {/* User profile dropdown / preview */}

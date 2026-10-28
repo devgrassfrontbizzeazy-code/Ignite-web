@@ -1,8 +1,17 @@
 import axios from "axios";
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "/api" : "https://ignite-backend-8t7z.onrender.com/api");
+const resolveBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (import.meta.env.VITE_BACKEND_URL) {
+    const raw = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, "");
+    return raw.endsWith("/api") ? raw : `${raw}/api`;
+  }
+  return "/api";
+};
+
+const BASE_URL = resolveBaseUrl();
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -39,19 +48,11 @@ export const clearSuperAdminAuthSession = () => {
 };
 
 export const getSuperAdminAccessToken = () => {
-  return (
-    localStorage.getItem("superAdmin_accessToken") ||
-    localStorage.getItem("accessToken") ||
-    localStorage.getItem("access_token")
-  );
+  return localStorage.getItem("superAdmin_accessToken");
 };
 
 export const getSuperAdminRefreshToken = () => {
-  return (
-    localStorage.getItem("superAdmin_refreshToken") ||
-    localStorage.getItem("refreshToken") ||
-    localStorage.getItem("refresh_token")
-  );
+  return localStorage.getItem("superAdmin_refreshToken");
 };
 
 api.interceptors.request.use(
@@ -181,7 +182,7 @@ api.interceptors.response.use(
             res.data?.data?.refresh_token;
 
           if (newAccessToken) {
-            if (isSuperAdminEndpoint && localStorage.getItem("superAdmin_refreshToken")) {
+            if (isSuperAdminEndpoint) {
               localStorage.setItem("superAdmin_accessToken", newAccessToken);
               if (newRefreshToken) {
                 localStorage.setItem("superAdmin_refreshToken", newRefreshToken);

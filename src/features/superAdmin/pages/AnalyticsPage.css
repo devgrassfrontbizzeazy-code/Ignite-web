@@ -1,27 +1,33 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — ANALYTICS PAGE
+   ========================================================================== */
+
 .super-analytics-page {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .super-analytics-page__metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .super-analytics-page__grid-2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(440px, 1fr));
   gap: 20px;
 }
 
 .super-analytics-page__card {
   background-color: #ffffff;
-  border: 1px solid var(--color-border, #e6eaee);
-  border-radius: 12px;
+  border: 1px solid #e6eaee;
+  border-radius: 10px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(15, 61, 62, 0.04);
+  box-sizing: border-box;
 }
 
 .super-analytics-page__card-header {
@@ -41,17 +47,19 @@
 .super-analytics-page__card-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a1f24);
+  color: #0f3d3e;
   margin: 0;
+  line-height: 1.25;
 }
 
 .super-analytics-page__card-subtitle {
   font-size: 12.5px;
-  color: var(--color-text-muted, #8b96a3);
+  color: #5b6672;
 }
 
 .super-analytics-page__card-icon {
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
+  flex-shrink: 0;
 }
 
 .super-analytics-page__chart-wrap {
@@ -59,16 +67,35 @@
   width: 100%;
 }
 
-.super-analytics-page__empty-chart {
-  height: 260px;
+.super-analytics-page__breakdown-list {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted, #8b96a3);
-  font-size: 13.5px;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
 }
 
-@media (max-width: 600px) {
+.super-analytics-page__breakdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: #f8fafb;
+  border: 1px solid #e6eaee;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.super-analytics-page__breakdown-label {
+  font-weight: 600;
+  color: #1a1f24;
+}
+
+.super-analytics-page__breakdown-value {
+  font-weight: 700;
+  color: #0ba37f;
+}
+
+@media (max-width: 900px) {
   .super-analytics-page__grid-2 {
     grid-template-columns: 1fr;
   }

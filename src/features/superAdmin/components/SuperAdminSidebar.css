@@ -1,127 +1,166 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — SIDEBAR
+   Enterprise Deep Teal administration shell with emerald active states.
+   ========================================================================== */
+
 .super-sidebar {
-  width: 260px;
-  min-width: 260px;
+  width: 264px;
+  min-width: 264px;
   height: 100vh;
-  background-color: var(--ignite-deep-teal, #0f3d3e);
+  background-color: #0f3d3e;
   color: #ffffff;
   display: flex;
   flex-direction: column;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 50;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   user-select: none;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
 }
 
 .super-sidebar--collapsed {
-  width: 72px;
-  min-width: 72px;
+  width: 80px;
+  min-width: 80px;
 }
 
+/* --------------------------------------------------------------------------
+   Brand Header
+   -------------------------------------------------------------------------- */
 .super-sidebar__brand {
-  height: 70px;
+  height: 72px;
+  min-height: 72px;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  padding: 0 16px 0 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .super-sidebar__logo-link {
   display: flex;
   align-items: center;
-  gap: 12px;
   text-decoration: none;
   color: inherit;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
-.super-sidebar__logo-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--ignite-emerald, #0ba37f) 0%, var(--ignite-gold, #d4af37) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
+.super-sidebar__logo-img {
+  height: 34px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(11, 163, 127, 0.3);
 }
 
-.super-sidebar__brand-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  white-space: nowrap;
-}
-
-.super-sidebar__app-name {
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #ffffff;
-}
-
-.super-sidebar__pill {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--ignite-gold, #d4af37);
+.super-sidebar__logo-favicon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
 }
 
 .super-sidebar__collapse-btn {
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.7);
-  width: 28px;
-  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
   border-radius: 6px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .super-sidebar__collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.14);
   color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 .super-sidebar--collapsed .super-sidebar__brand {
-  justify-content: center;
-  padding: 0;
+  height: 72px;
+  min-height: 72px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.super-sidebar--collapsed .super-sidebar__logo-link {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.super-sidebar--collapsed .super-sidebar__logo-favicon {
+  width: 28px;
+  height: 28px;
 }
 
 .super-sidebar--collapsed .super-sidebar__collapse-btn {
-  position: absolute;
-  top: 22px;
-  right: -14px;
-  background: var(--ignite-deep-teal, #0f3d3e);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: static;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  margin: 0;
+  margin-left: auto;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: none;
   color: #ffffff;
-  z-index: 60;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
+/* --------------------------------------------------------------------------
+   Navigation Groups
+   -------------------------------------------------------------------------- */
 .super-sidebar__nav {
   flex: 1;
-  padding: 20px 12px;
+  padding: 18px 12px;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
 }
 
-.super-sidebar__section-label {
-  font-size: 10px;
+.super-sidebar__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.super-sidebar__group-title {
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.4);
-  padding: 0 10px 10px 10px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 12px;
+  margin-bottom: 2px;
   white-space: nowrap;
+}
+
+.super-sidebar--collapsed .super-sidebar__group-title {
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  padding: 0;
 }
 
 .super-sidebar__menu {
@@ -143,12 +182,19 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.72);
   text-decoration: none;
   font-size: 13.5px;
   font-weight: 500;
   transition: all 0.15s ease;
-  white-space: nowrap;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.super-sidebar__link-icon {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.15s ease;
 }
 
 .super-sidebar__link:hover {
@@ -156,79 +202,92 @@
   color: #ffffff;
 }
 
-.super-sidebar__link--active {
-  background-color: var(--ignite-emerald, #0ba37f);
+.super-sidebar__link:hover .super-sidebar__link-icon {
   color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(11, 163, 127, 0.25);
 }
 
-.super-sidebar__link-icon {
-  flex-shrink: 0;
+/* Active Nav State with Emerald accent */
+.super-sidebar__link--active {
+  background-color: rgba(11, 163, 127, 0.18);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.super-sidebar__link--active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3.5px;
+  border-radius: 0 3px 3px 0;
+  background-color: #0ba37f;
+}
+
+.super-sidebar__link--active .super-sidebar__link-icon {
+  color: #0ba37f;
 }
 
 .super-sidebar--collapsed .super-sidebar__link {
   justify-content: center;
-  padding: 12px;
+  padding: 11px 0;
 }
 
+.super-sidebar--collapsed .super-sidebar__link-label {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   Sidebar Footer
+   -------------------------------------------------------------------------- */
 .super-sidebar__footer {
-  padding: 16px 12px;
+  padding: 16px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.super-sidebar__workspace-btn {
-  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 12.5px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.super-sidebar__workspace-btn:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-}
-
-.super-sidebar--collapsed .super-sidebar__workspace-btn {
   justify-content: center;
-  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.08);
+  min-height: 52px;
+  box-sizing: border-box;
 }
 
-.super-sidebar__system-status {
+.super-sidebar--collapsed .super-sidebar__footer {
+  padding: 16px 8px;
+}
+
+.super-sidebar__status-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 4px;
 }
 
 .super-sidebar__status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #10b981;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  background-color: #0ba37f;
+  box-shadow: 0 0 8px rgba(11, 163, 127, 0.7);
+  flex-shrink: 0;
 }
 
 .super-sidebar__status-text {
   font-size: 11px;
-  font-weight: 600;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-/* Mobile responsive */
+/* --------------------------------------------------------------------------
+   Mobile Drawer & Backdrop
+   -------------------------------------------------------------------------- */
+.super-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 61, 62, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 49;
+}
+
 @media (max-width: 900px) {
   .super-sidebar {
     position: fixed;
@@ -236,19 +295,14 @@
     left: 0;
     bottom: 0;
     transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    z-index: 100;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
   }
 
   .super-sidebar--mobile-open {
     transform: translateX(0);
   }
 
-  .super-sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 90;
-    backdrop-filter: blur(2px);
+  .super-sidebar__collapse-btn {
+    display: none;
   }
 }

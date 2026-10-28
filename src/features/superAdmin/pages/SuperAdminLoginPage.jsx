@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
-  Shield,
   Mail,
   Lock,
   Eye,
@@ -9,8 +8,9 @@ import {
   AlertCircle,
   ArrowRight,
   Loader2,
-  LockKeyhole,
+  ShieldCheck,
 } from "lucide-react";
+import logo from "../../../assets/logo.png";
 import superAdminAPI from "../services/superAdminAPI";
 import {
   setSuperAdminAuthSession,
@@ -146,7 +146,7 @@ export default function SuperAdminLoginPage() {
       <div className="sa-login-container sa-login-container--loading">
         <div className="sa-login-spinner-card">
           <Loader2 className="sa-login-spinner" size={32} />
-          <p>Verifying administrative credentials...</p>
+          <p>Verifying administrative privileges...</p>
         </div>
       </div>
     );
@@ -154,24 +154,17 @@ export default function SuperAdminLoginPage() {
 
   return (
     <div className="sa-login-container">
-      {/* Background Decorative Radial Layers */}
-      <div className="sa-login-backdrop-glow sa-login-backdrop-glow--top" />
-      <div className="sa-login-backdrop-glow sa-login-backdrop-glow--bottom" />
-
       <div className="sa-login-card">
-        {/* Security Badge Header */}
+        {/* Logo and Brand Header */}
         <div className="sa-login-header">
-          <div className="sa-login-shield-badge">
-            <Shield className="sa-login-shield-icon" size={28} />
+          <img src={logo} alt="Ignite" className="sa-login-logo" />
+          <div className="sa-login-pill">
+            <ShieldCheck size={13} />
+            <span>Platform Super Admin</span>
           </div>
-          <span className="sa-login-pill">
-            <LockKeyhole size={13} />
-            Restricted System Area
-          </span>
-          <h1 className="sa-login-title">Platform Super Admin</h1>
+          <h1 className="sa-login-title">Sign in to Admin Console</h1>
           <p className="sa-login-subtitle">
-            Ignite HRMS multi-tenant infrastructure control console. Authorized
-            platform superusers only.
+            Restricted to authorized system administrators and infrastructure operators.
           </p>
         </div>
 
@@ -191,7 +184,7 @@ export default function SuperAdminLoginPage() {
           {/* Email Field */}
           <div className="sa-form-group">
             <label className="sa-form-label" htmlFor="sa-email">
-              Super Admin Email
+              Administrator Email
             </label>
             <div
               className={`sa-input-wrapper ${
@@ -267,8 +260,7 @@ export default function SuperAdminLoginPage() {
           {/* Security Notice */}
           <div className="sa-security-notice">
             <span>
-              All login attempts are logged with timestamp, client IP, and
-              tamper-evident audit trails.
+              All console access events are monitored and recorded with client IP and tamper-evident audit trails.
             </span>
           </div>
 
@@ -295,7 +287,7 @@ export default function SuperAdminLoginPage() {
         {/* Tenant Login Link */}
         <div className="sa-login-footer">
           <span className="sa-footer-text">
-            Not a platform super admin?
+            Not a platform administrator?
           </span>
           <Link to="/login" className="sa-footer-link">
             Return to Organization Workspace →

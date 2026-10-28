@@ -1,13 +1,7 @@
-/* =========================================================
-   PLATFORM SUPER ADMIN LOGIN
-   Dedicated command center aesthetic with dark slate tones,
-   radiant deep teal / emerald accents, and clear hierarchy.
-   ========================================================= */
-
-.sa-login-container,
-.sa-login-container * {
-  box-sizing: border-box;
-}
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — LOGIN PAGE
+   Clean enterprise SaaS administration login matching Ignite HRMS.
+   ========================================================================== */
 
 .sa-login-container {
   min-height: 100vh;
@@ -17,44 +11,14 @@
   align-items: center;
   justify-content: center;
   padding: 32px 20px;
-  background-color: #070d19;
-  background-image: 
-    radial-gradient(circle at 50% 0%, rgba(15, 61, 62, 0.45) 0%, transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(0, 163, 117, 0.15) 0%, transparent 50%),
-    linear-gradient(180deg, #070d19 0%, #0d1627 100%);
-  color: #f1f5f9;
-  font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow: hidden;
+  background-color: #f8fafb;
+  color: #1a1f24;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
 }
 
-/* Background Radial Glows */
-.sa-login-backdrop-glow {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 50%;
-  filter: blur(80px);
-}
-
-.sa-login-backdrop-glow--top {
-  top: -120px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 480px;
-  height: 280px;
-  background: radial-gradient(circle, rgba(0, 201, 167, 0.22) 0%, transparent 70%);
-}
-
-.sa-login-backdrop-glow--bottom {
-  bottom: -100px;
-  right: 10%;
-  width: 380px;
-  height: 240px;
-  background: radial-gradient(circle, rgba(245, 166, 35, 0.12) 0%, transparent 70%);
-}
-
-/* Loading state placeholder */
 .sa-login-container--loading {
-  background: #070d19;
+  background-color: #f8fafb;
 }
 
 .sa-login-spinner-card {
@@ -62,47 +26,35 @@
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  color: #94a3b8;
+  color: #5b6672;
   font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .sa-login-spinner {
-  animation: sa-spin 1s linear infinite;
-  color: #00c9a7;
+  animation: sa-spin 0.9s linear infinite;
+  color: #0ba37f;
 }
 
-/* Card Container */
+/* --------------------------------------------------------------------------
+   Login Card
+   -------------------------------------------------------------------------- */
 .sa-login-card {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 460px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-top-color: rgba(0, 201, 167, 0.4);
-  border-radius: 16px;
-  padding: 40px 36px;
-  box-shadow: 
-    0 20px 40px -15px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(255, 255, 255, 0.04),
-    0 10px 30px rgba(0, 201, 167, 0.08);
-  animation: sa-fade-in 0.4s ease-out;
+  max-width: 440px;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  border-radius: 14px;
+  padding: 44px 38px;
+  box-shadow: 0 4px 24px rgba(15, 61, 62, 0.06), 0 1px 3px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
 }
 
-@keyframes sa-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.99);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Header */
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
 .sa-login-header {
   display: flex;
   flex-direction: column;
@@ -111,82 +63,65 @@
   margin-bottom: 28px;
 }
 
-.sa-login-shield-badge {
-  width: 58px;
-  height: 58px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0f3d3e 0%, #154c4e 100%);
-  border: 1px solid rgba(0, 201, 167, 0.35);
-  box-shadow: 0 0 20px rgba(0, 201, 167, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-}
-
-.sa-login-shield-icon {
-  color: #00c9a7;
+.sa-login-logo {
+  height: 46px;
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 18px;
 }
 
 .sa-login-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background-color: #fbf3dd;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #8c6d19;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  background: rgba(245, 166, 35, 0.12);
-  color: #f5a623;
-  border: 1px solid rgba(245, 166, 35, 0.3);
   margin-bottom: 14px;
 }
 
 .sa-login-title {
-  font-size: 1.65rem;
+  font-size: 22px;
   font-weight: 700;
-  color: #ffffff;
+  color: #0f3d3e;
   letter-spacing: -0.02em;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
 }
 
 .sa-login-subtitle {
-  font-size: 0.88rem;
-  color: #94a3b8;
+  font-size: 13px;
+  color: #5b6672;
   line-height: 1.5;
   margin: 0;
-  max-width: 360px;
+  max-width: 340px;
 }
 
-/* Global Error Alert */
+/* --------------------------------------------------------------------------
+   Alert Error Box
+   -------------------------------------------------------------------------- */
 .sa-login-alert {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fca5a5;
+  border-radius: 8px;
+  background-color: #fdecea;
+  border: 1px solid rgba(196, 66, 58, 0.25);
+  color: #c4423a;
   margin-bottom: 22px;
-  animation: sa-slide-down 0.25s ease-out;
-}
-
-@keyframes sa-slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .sa-login-alert-icon {
-  color: #ef4444;
+  color: #c4423a;
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -195,24 +130,26 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 0.84rem;
+  font-size: 13px;
 }
 
 .sa-login-alert-title {
   font-weight: 600;
-  color: #f87171;
+  color: #c4423a;
 }
 
 .sa-login-alert-text {
-  color: #fca5a5;
+  color: #c4423a;
   line-height: 1.4;
 }
 
-/* Form */
+/* --------------------------------------------------------------------------
+   Form Controls
+   -------------------------------------------------------------------------- */
 .sa-login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .sa-form-group {
@@ -228,135 +165,137 @@
 }
 
 .sa-form-label {
-  font-size: 0.82rem;
+  font-size: 13px;
   font-weight: 600;
-  color: #cbd5e1;
-  letter-spacing: 0.02em;
+  color: #1a1f24;
 }
 
 .sa-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(2, 6, 23, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 10px;
-  transition: all 0.2s ease;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
 }
 
 .sa-input-wrapper:hover {
-  border-color: rgba(148, 163, 184, 0.35);
+  border-color: #d3dae1;
 }
 
 .sa-input-wrapper:focus-within {
-  border-color: #00c9a7;
-  box-shadow: 0 0 0 3px rgba(0, 201, 167, 0.2);
-  background: rgba(2, 6, 23, 0.85);
+  border-color: #0ba37f;
+  box-shadow: 0 0 0 3px rgba(11, 163, 127, 0.15);
 }
 
 .sa-input-wrapper--error {
-  border-color: #ef4444 !important;
+  border-color: #c4423a !important;
 }
 
 .sa-input-wrapper--error:focus-within {
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+  box-shadow: 0 0 0 3px rgba(196, 66, 58, 0.15) !important;
 }
 
 .sa-input-icon {
   position: absolute;
-  left: 14px;
-  color: #64748b;
+  left: 12px;
+  color: #8b96a3;
   pointer-events: none;
-  transition: color 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .sa-input-wrapper:focus-within .sa-input-icon {
-  color: #00c9a7;
+  color: #0ba37f;
 }
 
 .sa-input {
   width: 100%;
-  padding: 12px 14px 12px 42px;
+  height: 42px;
+  padding: 0 12px 0 38px;
   background: transparent;
   border: none;
   outline: none;
-  font-size: 0.92rem;
+  font-size: 13.5px;
   font-family: inherit;
-  color: #ffffff;
-  border-radius: 10px;
+  color: #1a1f24;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
 
 .sa-input::placeholder {
-  color: #475569;
+  color: #8b96a3;
 }
 
 .sa-input:disabled {
-  opacity: 0.6;
+  background-color: #f8fafb;
   cursor: not-allowed;
 }
 
 .sa-password-toggle {
   position: absolute;
-  right: 12px;
+  right: 10px;
   background: none;
   border: none;
   padding: 4px;
-  color: #64748b;
+  color: #8b96a3;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: color 0.2s ease;
+  border-radius: 4px;
+  transition: color 0.15s ease;
 }
 
 .sa-password-toggle:hover {
-  color: #cbd5e1;
+  color: #1a1f24;
 }
 
 .sa-field-error {
-  font-size: 0.78rem;
-  color: #ef4444;
+  font-size: 12px;
+  color: #c4423a;
   margin-top: 2px;
 }
 
-/* Security notice */
 .sa-security-notice {
   padding: 10px 12px;
-  border-radius: 8px;
-  background: rgba(15, 61, 62, 0.25);
-  border: 1px dashed rgba(0, 201, 167, 0.25);
-  font-size: 0.74rem;
-  color: #94a3b8;
+  border-radius: 6px;
+  background-color: #f8fafb;
+  border: 1px solid #e6eaee;
+  font-size: 11.5px;
+  color: #5b6672;
   line-height: 1.45;
   text-align: center;
 }
 
-/* Submit Button */
+/* --------------------------------------------------------------------------
+   Submit Button
+   -------------------------------------------------------------------------- */
 .sa-submit-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 13px 20px;
-  margin-top: 6px;
+  height: 44px;
+  margin-top: 4px;
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #00c9a7 0%, #009374 100%);
-  color: #07191d;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  border-radius: 8px;
+  background-color: #0ba37f;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 201, 167, 0.35);
-  transition: all 0.25s ease;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 6px rgba(11, 163, 127, 0.25);
 }
 
 .sa-submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #05e2bc 0%, #00a884 100%);
+  background-color: #098f70;
+  box-shadow: 0 4px 12px rgba(11, 163, 127, 0.35);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 201, 167, 0.45);
 }
 
 .sa-submit-btn:active:not(:disabled) {
@@ -364,7 +303,7 @@
 }
 
 .sa-submit-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
   transform: none;
 }
@@ -382,11 +321,13 @@
   }
 }
 
-/* Footer Link */
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
 .sa-login-footer {
-  margin-top: 28px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #e6eaee;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -395,30 +336,29 @@
 }
 
 .sa-footer-text {
-  font-size: 0.8rem;
-  color: #64748b;
+  font-size: 12.5px;
+  color: #8b96a3;
 }
 
 .sa-footer-link {
-  font-size: 0.84rem;
+  font-size: 13px;
   font-weight: 600;
-  color: #00c9a7;
+  color: #0ba37f;
   text-decoration: none;
-  transition: color 0.2s ease, text-decoration 0.2s ease;
+  transition: color 0.15s ease;
 }
 
 .sa-footer-link:hover {
-  color: #05e2bc;
+  color: #098f70;
   text-decoration: underline;
 }
 
-/* Responsive */
 @media (max-width: 480px) {
   .sa-login-card {
-    padding: 30px 22px;
+    padding: 32px 22px;
   }
 
   .sa-login-title {
-    font-size: 1.4rem;
+    font-size: 20px;
   }
 }

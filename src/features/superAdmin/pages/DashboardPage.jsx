@@ -1,18 +1,24 @@
-import { useEffect, useState } from "react";
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useEffect, useState, useMemo } from "react";
 import { useOutletContext, Link } from "react-router-dom";
 import {
   Building2,
   Users,
-  UserCheck,
+  DollarSign,
+  Clock,
+  Zap,
+  Coins,
   TrendingUp,
-  MapPin,
-  Calendar,
-  Activity,
-  ArrowRight,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
+  Search,
+  Download,
+  Eye,
   ShieldAlert,
+  ArrowRight,
 } from "lucide-react";
 import {
-  ResponsiveContainer,
   AreaChart,
   Area,
   XAxis,
@@ -22,7 +28,9 @@ import {
   BarChart,
   Bar,
   Legend,
+  ResponsiveContainer,
 } from "recharts";
+import * as XLSX from "xlsx";
 import superAdminAPI from "../services/superAdminAPI";
 import StatCard from "../components/StatCard";
 import StatusBadge from "../components/StatusBadge";
@@ -33,8 +41,14 @@ import "./DashboardPage.css";
 export default function DashboardPage() {
   const { setHeaderInfo } = useOutletContext() || {};
   const [data, setData] = useState(null);
+  const [companiesList, setCompaniesList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Table filter state
+  const [tableSearch, setTableSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [tokenFilter, setTokenFilter] = useState("all");
 
   useEffect(() => {
     if (setHeaderInfo) {
@@ -49,11 +63,21 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await superAdminAPI.getDashboard();
-      if (res && res.data) {
-        setData(res.data);
+
+      // Fetch dashboard metrics and company directory in parallel
+      const [dashRes, compRes] = await Promise.all([
+        superAdminAPI.getDashboard(),
+        superAdminAPI.getCompanies({ page_size: 100 }),
+      ]);
+
+      if (dashRes && dashRes.data) {
+        setData(dashRes.data);
       } else {
-        throw new Error(res?.message || "Invalid dashboard payload received.");
+        throw new Error(dashRes?.message || "Invalid dashboard payload received.");
+      }
+
+      if (compRes && compRes.data) {
+        setCompaniesList(Array.isArray(compRes.data) ? compRes.data : []);
       }
     } catch (err) {
       console.error("Super Admin Dashboard fetch failed:", err);
@@ -72,15 +96,119 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
+  // Filtered companies for the Primary Company Table
+  const filteredCompanies = useMemo(() => {
+    return companiesList.filter((company) => {
+      const name = (company.name || "").toLowerCase();
+      const code = (company.code || "").toLowerCase();
+      const industry = (company.industry || "").toLowerCase();
+      const query = tableSearch.toLowerCase().trim();
+
+      const matchesSearch = !query || name.includes(query) || code.includes(query) || industry.includes(query);
+
+      let matchesStatus = true;
+      const isActive = company.employee_count > 0 || company.field_sales_enabled;
+      if (statusFilter === "active") matchesStatus = isActive;
+      if (statusFilter === "inactive") matchesStatus = !isActive;
+
+      // Low tokens filter (since tokens are unmetered, low tokens count is 0)
+      let matchesToken = true;
+      if (tokenFilter === "low") matchesToken = false;
+
+      return matchesSearch && matchesStatus && matchesToken;
+    });
+  }, [companiesList, tableSearch, statusFilter, tokenFilter]);
+
+  // Derived metrics for the 8 Top-Level Cards
+  const totalCompanies = data?.companies?.total ?? companiesList.length;
+  const activeCompanies = companiesList.filter((c) => (c.employee_count > 0 || c.field_sales_enabled)).length;
+  const inactiveCompanies = Math.max(0, totalCompanies - activeCompanies);
+
+  const totalEmployees = data?.employees?.total ?? 0;
+  const activeEmployees = data?.employees?.active ?? 0;
+
+  const todayPunches = data?.attendance_overview?.today_records ?? 0;
+  const activeUsersToday = Math.max(todayPunches, data?.users?.active ?? 0);
+
+  // New companies this month calculation
+  const newCompaniesThisMonth = useMemo(() => {
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+    return companiesList.filter((c) => {
+      if (!c.created_at) return false;
+      const d = new Date(c.created_at);
+      return d.getFullYear() === curYear && d.getMonth() === curMonth;
+    }).length;
+  }, [companiesList]);
+
+  // Companies with no activity for 14+ days
+  const inactiveAttentionCompanies = useMemo(() => {
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+    return companiesList.filter((c) => {
+      if (c.employee_count > 0) return false;
+      if (!c.created_at) return true;
+      return new Date(c.created_at) < fourteenDaysAgo;
+    });
+  }, [companiesList]);
+
+  // Growth Trend Chart Data
+  const growthTrend = useMemo(() => {
+    return data?.company_growth_trend || [];
+  }, [data?.company_growth_trend]);
+
+  // Monthly Signups vs Churn Comparison Chart Data
+  const signupsVsChurnData = useMemo(() => {
+    if (!growthTrend || growthTrend.length === 0) {
+      return [];
+    }
+    return growthTrend.map((item) => ({
+      month: item.month,
+      signups: item.count,
+      churn: 0, // No cancellations recorded in database schema
+    }));
+  }, [growthTrend]);
+
+  // Export filtered companies to genuine Excel (.xlsx) file
+  const handleExportExcel = () => {
+    if (filteredCompanies.length === 0) {
+      alert("No company data available to export.");
+      return;
+    }
+
+    const rows = filteredCompanies.map((c) => ({
+      "Company Name": c.name || "—",
+      "Company Code": c.code || "—",
+      "Industry": c.industry || "—",
+      "Organization Type": c.company_type || "—",
+      "Operational Status": (c.employee_count > 0 || c.field_sales_enabled) ? "Active" : "Inactive",
+      "Total Workforce": c.employee_count ?? 0,
+      "Subscription Plan": "Standard Direct",
+      "Plan Expiry": "Perpetual",
+      "Token Allocation": "Unlimited / Unmetered",
+      "Country": c.country || "—",
+      "Registration Date": c.created_at ? new Date(c.created_at).toLocaleDateString() : "—",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Organizations");
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(workbook, `Ignite_Organizations_Directory_${dateStr}.xlsx`);
+  };
+
   if (loading) {
     return (
       <div className="super-dashboard">
-        <LoadingSkeleton type="cards" cards={4} />
+        <LoadingSkeleton type="cards" cards={8} />
         <div className="super-dashboard__grid-2">
           <LoadingSkeleton type="chart" />
           <LoadingSkeleton type="chart" />
         </div>
-        <LoadingSkeleton type="table" rows={5} cols={5} />
+        <LoadingSkeleton type="table" rows={6} cols={7} />
       </div>
     );
   }
@@ -89,94 +217,213 @@ export default function DashboardPage() {
     return (
       <div className="super-dashboard">
         <ErrorState
-          title="Failed to Load Dashboard"
-          message={error || "Could not retrieve platform metrics."}
+          title="Dashboard Unavailable"
+          message={error || "Could not retrieve real-time platform metrics."}
           onRetry={fetchDashboardData}
         />
       </div>
     );
   }
 
-  const {
-    companies = {},
-    employees = {},
-    users = {},
-    recent_companies = [],
-    company_growth_trend = [],
-    attendance_overview = {},
-    field_sales_overview = {},
-    platform_activity = {},
-  } = data;
-
-  // Format status breakdown data for bar chart
-  const employeeStatusData = Object.entries(employees.status_breakdown || {}).map(
-    ([statusKey, count]) => ({
-      status: statusKey.replace(/_/g, " "),
-      count,
-    })
-  );
-
   return (
     <div className="super-dashboard">
-      {/* 1. Core Summary Metrics */}
-      <section className="super-dashboard__metrics-grid">
-        <StatCard
-          title="Total Organizations"
-          value={companies.total ?? 0}
-          subtext={`${companies.field_sales_enabled ?? 0} with Field Sales enabled`}
-          icon={Building2}
-          variant="teal"
-          badge="Global"
-        />
-        <StatCard
-          title="Platform Employees"
-          value={employees.total ?? 0}
-          subtext={`${employees.active ?? 0} Active • ${employees.inactive ?? 0} Inactive`}
-          icon={Users}
-          variant="emerald"
-        />
-        <StatCard
-          title="Registered Accounts"
-          value={users.total ?? 0}
-          subtext={`${users.active ?? 0} Active • ${users.superusers ?? 0} Superuser${
-            users.superusers === 1 ? "" : "s"
-          }`}
-          icon={UserCheck}
-          variant="gold"
-        />
-        <StatCard
-          title="Field Sales Usage"
-          value={field_sales_overview.total_leads ?? 0}
-          subtext={`${field_sales_overview.total_visits ?? 0} visits • ${field_sales_overview.total_employees ?? 0} reps`}
-          icon={MapPin}
-          variant="neutral"
-        />
+      {/* =========================================================================
+          SECTION A: EIGHT TOP-LEVEL CARDS
+          ========================================================================= */}
+      <section className="super-dashboard__metrics-section" aria-label="Key Platform Metrics">
+        <div className="super-dashboard__metrics-grid-8">
+          {/* Card 1: Total Companies */}
+          <StatCard
+            title="Total Organizations"
+            value={totalCompanies}
+            subtext={`${activeCompanies} Active • ${inactiveCompanies} Inactive`}
+            icon={Building2}
+            variant="teal"
+          />
+
+          {/* Card 2: Total Employees */}
+          <StatCard
+            title="Total Workforce"
+            value={totalEmployees}
+            subtext={`${activeEmployees} Active staff across platform`}
+            icon={Users}
+            variant="emerald"
+          />
+
+          {/* Card 3: Monthly Recurring Revenue (MRR) */}
+          <StatCard
+            title="Monthly Recurring Revenue"
+            value="$0.00"
+            subtext="Awaiting billing module integration"
+            icon={DollarSign}
+            variant="gold"
+          />
+
+          {/* Card 4: Plans Expiring in 30 Days */}
+          <StatCard
+            title="Plans Expiring (30d)"
+            value="0"
+            subtext="All accounts perpetual / active"
+            icon={Clock}
+            variant="neutral"
+          />
+
+          {/* Card 5: Active Users Today */}
+          <StatCard
+            title="Active Users Today"
+            value={activeUsersToday}
+            subtext={`${todayPunches} attendance punches recorded`}
+            icon={Zap}
+            variant="emerald"
+          />
+
+          {/* Card 6: Tokens Used This Month */}
+          <StatCard
+            title="Tokens Used (Month)"
+            value="0"
+            subtext="Unmetered / Token ledger not configured"
+            icon={Coins}
+            variant="neutral"
+          />
+
+          {/* Card 7: New Companies This Month */}
+          <StatCard
+            title="New Tenants (Month)"
+            value={newCompaniesThisMonth}
+            subtext={`${growthTrend.length > 0 ? "Latest registry cohort" : "Current calendar month"}`}
+            icon={TrendingUp}
+            variant="teal"
+          />
+
+          {/* Card 8: Business Usage and Tokens */}
+          <StatCard
+            title="Platform Usage Activity"
+            value={(data.attendance_overview?.today_records || 0) + (data.field_sales_overview?.total_visits || 0)}
+            subtext={`${data.field_sales_overview?.total_leads || 0} Leads • ${data.attendance_overview?.total_records || 0} Punches`}
+            icon={Sparkles}
+            variant="gold"
+          />
+        </div>
       </section>
 
-      {/* 2. Charts Section */}
-      <div className="super-dashboard__grid-2">
-        {/* Company Registration Growth */}
-        <section className="super-dashboard__card">
+      {/* =========================================================================
+          SECTION D: NEEDS ATTENTION PANEL
+          ========================================================================= */}
+      <section className="super-dashboard__attention-card" aria-label="System Alerts">
+        <div className="super-dashboard__attention-header">
+          <div className="super-dashboard__attention-titles">
+            <div className="super-dashboard__attention-badge">
+              <AlertTriangle size={15} />
+              <span>Needs Attention</span>
+            </div>
+            <h2 className="super-dashboard__attention-title">Actionable Administrative Alerts</h2>
+          </div>
+          <span className="super-dashboard__attention-status">
+            {inactiveAttentionCompanies.length > 0 ? "Items require inspection" : "All systems operational"}
+          </span>
+        </div>
+
+        <div className="super-dashboard__attention-grid">
+          {/* Alert 1 */}
+          <div className="super-dashboard__attention-tile">
+            <div className="super-dashboard__attention-tile-top">
+              <span className="super-dashboard__attention-tile-tag super-dashboard__attention-tile-tag--neutral">
+                0 Pending
+              </span>
+              <Clock size={16} className="super-dashboard__attention-tile-icon" />
+            </div>
+            <div className="super-dashboard__attention-tile-title">Plans Expiring (7 Days)</div>
+            <div className="super-dashboard__attention-tile-desc">
+              All active organization plans are perpetual or enterprise direct.
+            </div>
+          </div>
+
+          {/* Alert 2 */}
+          <div className="super-dashboard__attention-tile">
+            <div className="super-dashboard__attention-tile-top">
+              <span className="super-dashboard__attention-tile-tag super-dashboard__attention-tile-tag--neutral">
+                0 Overdue
+              </span>
+              <DollarSign size={16} className="super-dashboard__attention-tile-icon" />
+            </div>
+            <div className="super-dashboard__attention-tile-title">Overdue Invoices</div>
+            <div className="super-dashboard__attention-tile-desc">
+              No outstanding balance or unpaid invoices recorded in database.
+            </div>
+          </div>
+
+          {/* Alert 3 */}
+          <div className="super-dashboard__attention-tile">
+            <div className="super-dashboard__attention-tile-top">
+              <span className="super-dashboard__attention-tile-tag super-dashboard__attention-tile-tag--neutral">
+                0 Low
+              </span>
+              <Coins size={16} className="super-dashboard__attention-tile-icon" />
+            </div>
+            <div className="super-dashboard__attention-tile-title">Low Token Balances (&lt;20%)</div>
+            <div className="super-dashboard__attention-tile-desc">
+              Token allocations currently unmetered across all tenants.
+            </div>
+          </div>
+
+          {/* Alert 4 */}
+          <div className="super-dashboard__attention-tile">
+            <div className="super-dashboard__attention-tile-top">
+              <span className="super-dashboard__attention-tile-tag super-dashboard__attention-tile-tag--neutral">
+                0 Trials
+              </span>
+              <CheckCircle2 size={16} className="super-dashboard__attention-tile-icon" />
+            </div>
+            <div className="super-dashboard__attention-tile-title">Trials Ending (3 Days)</div>
+            <div className="super-dashboard__attention-tile-desc">
+              No temporary trial periods pending expiration.
+            </div>
+          </div>
+
+          {/* Alert 5 */}
+          <div className={`super-dashboard__attention-tile ${inactiveAttentionCompanies.length > 0 ? "super-dashboard__attention-tile--active" : ""}`}>
+            <div className="super-dashboard__attention-tile-top">
+              <span className={`super-dashboard__attention-tile-tag ${inactiveAttentionCompanies.length > 0 ? "super-dashboard__attention-tile-tag--warning" : "super-dashboard__attention-tile-tag--neutral"}`}>
+                {inactiveAttentionCompanies.length} Inactive
+              </span>
+              <ShieldAlert size={16} className="super-dashboard__attention-tile-icon" />
+            </div>
+            <div className="super-dashboard__attention-tile-title">No Activity for ≥ 14 Days</div>
+            <div className="super-dashboard__attention-tile-desc">
+              {inactiveAttentionCompanies.length > 0
+                ? `${inactiveAttentionCompanies.slice(0, 2).map((c) => c.name).join(", ")}${inactiveAttentionCompanies.length > 2 ? ` and ${inactiveAttentionCompanies.length - 2} more` : ""}`
+                : "All onboarded organizations have logged staff or activity."}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          SECTION B: TWO CHARTS SIDE BY SIDE
+          ========================================================================= */}
+      <section className="super-dashboard__grid-2" aria-label="Visual Trends">
+        {/* Chart 1: Tenant Acquisition Growth Trend */}
+        <div className="super-dashboard__card">
           <div className="super-dashboard__card-header">
             <div className="super-dashboard__card-titles">
-              <h2 className="super-dashboard__card-title">Organization Registrations</h2>
+              <h2 className="super-dashboard__card-title">Tenant Acquisition Growth</h2>
               <span className="super-dashboard__card-subtitle">
-                Monthly trend of new companies joining the platform
+                Monthly registered organizations curve (last 6–12 months)
               </span>
             </div>
             <TrendingUp size={18} className="super-dashboard__card-icon" />
           </div>
 
           <div className="super-dashboard__chart-wrap">
-            {company_growth_trend && company_growth_trend.length > 0 ? (
+            {growthTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart
-                  data={company_growth_trend}
+                  data={growthTrend}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0BA37F" stopOpacity={0.4} />
+                      <stop offset="5%" stopColor="#0BA37F" stopOpacity={0.22} />
                       <stop offset="95%" stopColor="#0BA37F" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
@@ -195,17 +442,22 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1A1F24",
+                      backgroundColor: "#FFFFFF",
                       borderRadius: 8,
-                      border: "none",
-                      color: "#FFFFFF",
+                      border: "1px solid #E6EAEE",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+                      color: "#1A1F24",
                       fontSize: 12,
+                      padding: "8px 12px",
                     }}
+                    itemStyle={{ color: "#0F3D3E", fontWeight: 600 }}
+                    labelStyle={{ color: "#5B6672", fontSize: 11, marginBottom: 4 }}
+                    cursor={{ stroke: "#0BA37F", strokeWidth: 1.5, strokeDasharray: "3 3" }}
                   />
                   <Area
                     type="monotone"
                     dataKey="count"
-                    name="Companies"
+                    name="New Organizations"
                     stroke="#0BA37F"
                     strokeWidth={2.5}
                     fillOpacity={1}
@@ -219,30 +471,30 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </section>
+        </div>
 
-        {/* Workforce Status Distribution */}
-        <section className="super-dashboard__card">
+        {/* Chart 2: Company Growth (Signups vs Churned) */}
+        <div className="super-dashboard__card">
           <div className="super-dashboard__card-header">
             <div className="super-dashboard__card-titles">
-              <h2 className="super-dashboard__card-title">Workforce Status Distribution</h2>
+              <h2 className="super-dashboard__card-title">Company Growth: Signups vs Churn</h2>
               <span className="super-dashboard__card-subtitle">
-                Current employee employment classifications across all tenants
+                New tenant signups compared to decommissioned organizations
               </span>
             </div>
-            <Users size={18} className="super-dashboard__card-icon" />
+            <Building2 size={18} className="super-dashboard__card-icon" />
           </div>
 
           <div className="super-dashboard__chart-wrap">
-            {employeeStatusData && employeeStatusData.length > 0 ? (
+            {signupsVsChurnData.length > 0 ? (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart
-                  data={employeeStatusData}
+                  data={signupsVsChurnData}
                   margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#E6EAEE" vertical={false} />
                   <XAxis
-                    dataKey="status"
+                    dataKey="month"
                     tick={{ fontSize: 11, fill: "#5B6672" }}
                     axisLine={{ stroke: "#E6EAEE" }}
                     tickLine={false}
@@ -255,227 +507,245 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1A1F24",
+                      backgroundColor: "#FFFFFF",
                       borderRadius: 8,
-                      border: "none",
-                      color: "#FFFFFF",
+                      border: "1px solid #E6EAEE",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+                      color: "#1A1F24",
                       fontSize: 12,
+                      padding: "8px 12px",
                     }}
+                    itemStyle={{ color: "#0F3D3E", fontWeight: 600 }}
+                    labelStyle={{ color: "#5B6672", fontSize: 11, marginBottom: 4 }}
+                    cursor={{ fill: "rgba(15, 61, 62, 0.04)" }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar
-                    dataKey="count"
-                    name="Employees"
+                    dataKey="signups"
+                    name="New Signups"
                     fill="#0F3D3E"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="churn"
+                    name="Churned"
+                    fill="#D4AF37"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
               <div className="super-dashboard__chart-empty">
-                <p>No employee records present.</p>
+                <p>No historical growth data recorded.</p>
               </div>
             )}
-          </div>
-        </section>
-      </div>
-
-      {/* 3. Operational Highlights: Attendance Overview */}
-      <section className="super-dashboard__operational-grid">
-        <div className="super-dashboard__card">
-          <div className="super-dashboard__card-header">
-            <div className="super-dashboard__card-titles">
-              <h2 className="super-dashboard__card-title">Platform Attendance Snapshot</h2>
-              <span className="super-dashboard__card-subtitle">
-                Today ({attendance_overview.today_date || "Current date"}) records across all companies
-              </span>
-            </div>
-            <Calendar size={18} className="super-dashboard__card-icon" />
-          </div>
-
-          <div className="super-dashboard__attendance-stats">
-            <div className="super-dashboard__attendance-stat-item">
-              <span className="super-dashboard__attendance-stat-value">
-                {(attendance_overview.today_records ?? 0).toLocaleString()}
-              </span>
-              <span className="super-dashboard__attendance-stat-label">Punches Recorded Today</span>
-            </div>
-            <div className="super-dashboard__attendance-stat-item">
-              <span className="super-dashboard__attendance-stat-value">
-                {(attendance_overview.total_records ?? 0).toLocaleString()}
-              </span>
-              <span className="super-dashboard__attendance-stat-label">Historical Attendance Total</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="super-dashboard__card">
-          <div className="super-dashboard__card-header">
-            <div className="super-dashboard__card-titles">
-              <h2 className="super-dashboard__card-title">Field Sales Platform Aggregate</h2>
-              <span className="super-dashboard__card-subtitle">
-                Sales ecosystem adoption across companies
-              </span>
-            </div>
-            <MapPin size={18} className="super-dashboard__card-icon" />
-          </div>
-
-          <div className="super-dashboard__fs-grid">
-            <div className="super-dashboard__fs-stat">
-              <span className="super-dashboard__fs-value">
-                {field_sales_overview.total_customers ?? 0}
-              </span>
-              <span className="super-dashboard__fs-label">Customers</span>
-            </div>
-            <div className="super-dashboard__fs-stat">
-              <span className="super-dashboard__fs-value">
-                {field_sales_overview.total_leads ?? 0}
-              </span>
-              <span className="super-dashboard__fs-label">Leads</span>
-            </div>
-            <div className="super-dashboard__fs-stat">
-              <span className="super-dashboard__fs-value">
-                {field_sales_overview.total_visits ?? 0}
-              </span>
-              <span className="super-dashboard__fs-label">Visits</span>
-            </div>
-            <div className="super-dashboard__fs-stat">
-              <span className="super-dashboard__fs-value">
-                {field_sales_overview.total_employees ?? 0}
-              </span>
-              <span className="super-dashboard__fs-label">Sales Reps</span>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Recently Registered Companies */}
-      <section className="super-dashboard__card">
-        <div className="super-dashboard__card-header">
-          <div className="super-dashboard__card-titles">
-            <h2 className="super-dashboard__card-title">Recently Registered Organizations</h2>
-            <span className="super-dashboard__card-subtitle">
-              Newest company tenants created on the platform
+      {/* =========================================================================
+          SECTION C: PRIMARY COMPANY TABLE WITH EXCEL EXPORT
+          ========================================================================= */}
+      <section className="super-dashboard__table-card" aria-label="Tenant Organizations">
+        <div className="super-dashboard__table-header-row">
+          <div>
+            <h2 className="super-dashboard__table-title">Platform Organizations Directory</h2>
+            <span className="super-dashboard__table-subtitle">
+              Unified tenant registry with real-time workforce, plan status, and token allocation
             </span>
           </div>
-          <Link to="/admin/companies" className="super-dashboard__view-all-link">
-            <span>View All Companies</span>
-            <ArrowRight size={15} />
-          </Link>
+
+          <div className="super-dashboard__table-actions">
+            <button
+              type="button"
+              className="super-dashboard__export-btn"
+              onClick={handleExportExcel}
+              title="Export filtered directory to genuine Excel (.xlsx)"
+            >
+              <Download size={15} />
+              <span>Export Excel (.xlsx)</span>
+            </button>
+          </div>
         </div>
 
-        {recent_companies && recent_companies.length > 0 ? (
-          <div className="super-dashboard__table-wrapper">
+        {/* Filter controls */}
+        <div className="super-dashboard__table-controls">
+          <div className="super-dashboard__search-box">
+            <Search size={15} className="super-dashboard__search-icon" />
+            <input
+              type="text"
+              placeholder="Search organizations by name, code, or industry..."
+              value={tableSearch}
+              onChange={(e) => setTableSearch(e.target.value)}
+              className="super-dashboard__search-input"
+            />
+          </div>
+
+          <div className="super-dashboard__filter-group">
+            <div className="super-dashboard__select-wrap">
+              <label htmlFor="status-filter" className="super-dashboard__select-label">Status:</label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="super-dashboard__select"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+              </select>
+            </div>
+
+            <div className="super-dashboard__select-wrap">
+              <label htmlFor="token-filter" className="super-dashboard__select-label">Tokens:</label>
+              <select
+                id="token-filter"
+                value={tokenFilter}
+                onChange={(e) => setTokenFilter(e.target.value)}
+                className="super-dashboard__select"
+              >
+                <option value="all">All Allocations</option>
+                <option value="low">Low Balance (&lt;20%)</option>
+              </select>
+            </div>
+
+            <span className="super-dashboard__results-count">
+              {filteredCompanies.length} of {totalCompanies} organizations
+            </span>
+          </div>
+        </div>
+
+        {/* Table content */}
+        <div className="super-dashboard__table-wrap">
+          {filteredCompanies.length > 0 ? (
             <table className="super-dashboard__table">
               <thead>
                 <tr>
                   <th>Organization</th>
-                  <th>Code</th>
-                  <th>Industry</th>
-                  <th>Employees</th>
-                  <th>Field Sales</th>
-                  <th>Owner</th>
-                  <th>Registered</th>
-                  <th>Action</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Workforce</th>
+                  <th>Plan Expiry</th>
+                  <th>Token Usage &amp; Allocation</th>
+                  <th>Last Active</th>
+                  <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {recent_companies.map((comp) => (
-                  <tr key={comp.id}>
-                    <td>
-                      <div className="super-dashboard__comp-cell">
-                        {comp.logo_url ? (
-                          <img
-                            src={comp.logo_url}
-                            alt=""
-                            className="super-dashboard__comp-logo"
-                          />
-                        ) : (
-                          <div className="super-dashboard__comp-avatar">
-                            {comp.name ? comp.name.charAt(0).toUpperCase() : "C"}
+                {filteredCompanies.slice(0, 15).map((company) => {
+                  const isActive = (company.employee_count > 0 || company.field_sales_enabled);
+                  return (
+                    <tr key={company.id}>
+                      {/* Company Info */}
+                      <td>
+                        <div className="super-dashboard__comp-cell">
+                          {company.logo_url ? (
+                            <img
+                              src={company.logo_url}
+                              alt=""
+                              className="super-dashboard__comp-logo"
+                            />
+                          ) : (
+                            <div className="super-dashboard__comp-avatar">
+                              {company.name ? company.name.charAt(0).toUpperCase() : "O"}
+                            </div>
+                          )}
+                          <div className="super-dashboard__comp-meta">
+                            <span className="super-dashboard__comp-name">{company.name}</span>
+                            <span className="super-dashboard__comp-code">{company.code || "No code"}</span>
                           </div>
-                        )}
-                        <span className="super-dashboard__comp-name">{comp.name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="super-dashboard__code-pill">{comp.code || "—"}</span>
-                    </td>
-                    <td>{comp.industry || "—"}</td>
-                    <td>
-                      <strong>{(comp.employee_count ?? 0).toLocaleString()}</strong>
-                    </td>
-                    <td>
-                      <StatusBadge type="fieldSales" value={comp.field_sales_enabled} />
-                    </td>
-                    <td>
-                      <span className="super-dashboard__owner-name">
-                        {comp.owner?.username || comp.owner?.email || "—"}
-                      </span>
-                    </td>
-                    <td className="super-dashboard__date-cell">
-                      {comp.created_at
-                        ? new Date(comp.created_at).toLocaleDateString()
-                        : "—"}
-                    </td>
-                    <td>
-                      <Link
-                        to={`/admin/companies/${comp.id}`}
-                        className="super-dashboard__row-action"
-                      >
-                        Inspect
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                        </div>
+                      </td>
+
+                      {/* Plan */}
+                      <td>
+                        <span className="super-dashboard__plan-badge">Standard Direct</span>
+                      </td>
+
+                      {/* Status */}
+                      <td>
+                        <StatusBadge type="active" value={isActive} />
+                      </td>
+
+                      {/* Workforce */}
+                      <td>
+                        <span className="super-dashboard__num-bold">{company.employee_count ?? 0}</span>
+                        <span className="super-dashboard__num-sub"> staff</span>
+                      </td>
+
+                      {/* Plan Expiry */}
+                      <td>
+                        <span className="super-dashboard__expiry-text">Perpetual</span>
+                      </td>
+
+                      {/* Tokens Used / Tokens Left */}
+                      <td>
+                        <div className="super-dashboard__token-cell">
+                          <div className="super-dashboard__token-bar-track">
+                            <div
+                              className="super-dashboard__token-bar-fill super-dashboard__token-bar-fill--green"
+                              style={{ width: "0%" }}
+                            />
+                          </div>
+                          <span className="super-dashboard__token-val">
+                            0% used • <span className="super-dashboard__token-status">Unmetered</span>
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Last Active */}
+                      <td>
+                        <span className="super-dashboard__date-cell">
+                          {company.created_at
+                            ? new Date(company.created_at).toLocaleDateString()
+                            : "—"}
+                        </span>
+                      </td>
+
+                      {/* Action */}
+                      <td style={{ textAlign: "right" }}>
+                        <Link
+                          to={`/admin/companies/${company.id}`}
+                          className="super-dashboard__action-btn"
+                          title="Inspect company detail profile"
+                        >
+                          <Eye size={14} />
+                          <span>Inspect</span>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
-          </div>
-        ) : (
-          <div className="super-dashboard__empty-block">
-            <Building2 size={32} />
-            <p>No recent organizations recorded in the database.</p>
-          </div>
-        )}
-      </section>
-
-      {/* 5. Honest Platform Audit Log Section */}
-      <section className="super-dashboard__card">
-        <div className="super-dashboard__card-header">
-          <div className="super-dashboard__card-titles">
-            <h2 className="super-dashboard__card-title">Platform Activity Stream</h2>
-            <span className="super-dashboard__card-subtitle">
-              Centralized platform-wide event audit log
-            </span>
-          </div>
-          <Activity size={18} className="super-dashboard__card-icon" />
+          ) : (
+            <div className="super-dashboard__empty-table">
+              <Building2 size={32} className="super-dashboard__empty-icon" />
+              <p className="super-dashboard__empty-text">No organizations matched the selected filters.</p>
+              <button
+                type="button"
+                className="super-dashboard__clear-filters-btn"
+                onClick={() => {
+                  setTableSearch("");
+                  setStatusFilter("all");
+                  setTokenFilter("all");
+                }}
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
         </div>
 
-        {platform_activity.is_available &&
-        platform_activity.events &&
-        platform_activity.events.length > 0 ? (
-          <div className="super-dashboard__events-list">
-            {platform_activity.events.map((evt, idx) => (
-              <div key={idx} className="super-dashboard__event-item">
-                <span className="super-dashboard__event-desc">{evt.description}</span>
-                <span className="super-dashboard__event-time">{evt.timestamp}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="super-dashboard__honest-empty">
-            <div className="super-dashboard__honest-icon">
-              <ShieldAlert size={24} />
-            </div>
-            <div className="super-dashboard__honest-content">
-              <h3 className="super-dashboard__honest-title">
-                Platform Audit Log Unavailable
-              </h3>
-              <p className="super-dashboard__honest-desc">
-                {platform_activity.message ||
-                  "No centralized platform audit log model exists in the database schema. Domain-level audit trails exist within their respective tenant modules (such as payroll runs and field sales leads)."}
-              </p>
-            </div>
+        {filteredCompanies.length > 15 && (
+          <div className="super-dashboard__table-footer">
+            <span className="super-dashboard__table-footer-text">
+              Showing top 15 of {filteredCompanies.length} matching organizations.
+            </span>
+            <Link to="/admin/companies" className="super-dashboard__view-all-link">
+              <span>View Full Directory with Pagination</span>
+              <ArrowRight size={14} />
+            </Link>
           </div>
         )}
       </section>

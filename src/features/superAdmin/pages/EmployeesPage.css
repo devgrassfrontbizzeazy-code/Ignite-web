@@ -1,8 +1,112 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — EMPLOYEES PAGE
+   Polished enterprise workforce registry and profile inspection.
+   ========================================================================== */
+
 .super-employees-page {
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* Page Header Top Bar */
+.super-employees-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.super-employees-page__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.super-employees-page__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f3d3e;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.super-employees-page__subtitle {
+  font-size: 12.5px;
+  color: #5b6672;
+}
+
+.super-employees-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.super-employees-page__btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  color: #0f3d3e;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.super-employees-page__btn-outline:hover {
+  border-color: #0f3d3e;
+  background-color: #f8fafb;
+}
+
+.super-employees-page__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background-color: #0ba37f;
+  border: none;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.super-employees-page__btn-primary:hover {
+  background-color: #09886a;
+}
+
+/* Summary Grid */
+.super-employees-page__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .super-employees-page__summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .super-employees-page__summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Table Cells */
 .super-emp-table__cell {
   display: flex;
   align-items: center;
@@ -13,15 +117,15 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: var(--ignite-teal-050, #e7eeee);
-  color: var(--ignite-deep-teal, #0f3d3e);
+  background-color: #e7eeee;
+  color: #0f3d3e;
   font-size: 13px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid var(--ignite-teal-100, #cfdede);
+  border: 1px solid #cfdede;
 }
 
 .super-emp-table__photo {
@@ -30,6 +134,7 @@
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
+  border: 1px solid #e6eaee;
 }
 
 .super-emp-table__name-info {
@@ -40,13 +145,14 @@
 
 .super-emp-table__full-name {
   font-weight: 600;
-  color: var(--color-text-primary, #1a1f24);
+  color: #1a1f24;
+  font-size: 13.5px;
 }
 
 .super-emp-table__code {
   font-size: 11px;
   font-family: monospace;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
 }
 
 .super-emp-table__company {
@@ -60,46 +166,226 @@
   align-items: center;
   gap: 5px;
   font-weight: 600;
-  color: var(--ignite-deep-teal, #0f3d3e);
+  color: #0f3d3e;
   text-decoration: none;
+  font-size: 12.5px;
+  transition: color 0.15s ease;
 }
 
 .super-emp-table__company-link:hover {
-  color: var(--ignite-emerald, #0ba37f);
+  color: #0ba37f;
   text-decoration: underline;
 }
 
 .super-emp-table__company-code {
   font-size: 11px;
   font-family: monospace;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
+}
+
+.super-emp-table__dept-text,
+.super-emp-table__desig-text {
+  font-size: 12.5px;
+  color: #1a1f24;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .super-emp-table__contact {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  line-height: 1.2;
+  font-size: 12px;
 }
 
 .super-emp-table__contact-item {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: var(--color-text-secondary, #5b6672);
+  gap: 4px;
+  color: #5b6672;
+}
+
+.super-emp-table__type-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background-color: #f8fafb;
+  border: 1px solid #e6eaee;
+  color: #5b6672;
+  white-space: nowrap;
 }
 
 .super-emp-table__date {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12.5px;
-  color: var(--color-text-secondary, #5b6672);
+  font-size: 12px;
+  color: #5b6672;
+  white-space: nowrap;
 }
 
 .super-emp-table__muted {
   font-size: 12px;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
   font-style: italic;
+}
+
+.super-emp-table__inspect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background-color: #e7eeee;
+  color: #0f3d3e;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.super-emp-table__inspect-btn:hover {
+  background-color: #0f3d3e;
+  color: #ffffff;
+}
+
+/* Modal Detail Profile */
+.super-emp-detail__hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f8fafb;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+}
+
+.super-emp-detail__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f3d3e, #0ba37f);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.super-emp-detail__photo {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid #e6eaee;
+}
+
+.super-emp-detail__hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.super-emp-detail__name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.super-emp-detail__name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f3d3e;
+  margin: 0;
+}
+
+.super-emp-detail__code-badge {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: #e6eaee;
+  color: #5b6672;
+}
+
+.super-emp-detail__badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.super-emp-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .super-emp-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.super-emp-detail__card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.super-emp-detail__section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #0f3d3e;
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed #e6eaee;
+}
+
+.super-emp-detail__info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.super-emp-detail__info-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.super-emp-detail__label {
+  color: #5b6672;
+  font-weight: 500;
+}
+
+.super-emp-detail__val {
+  color: #1a1f24;
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word;
 }

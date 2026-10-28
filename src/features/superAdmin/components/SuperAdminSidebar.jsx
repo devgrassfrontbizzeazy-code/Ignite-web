@@ -7,50 +7,65 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  ArrowUpRight,
 } from "lucide-react";
+import darkLogo from "../../../assets/dark_logo-removebg.png";
+import favicon from "../../../assets/Favicon.png";
 import "./SuperAdminSidebar.css";
 
-const NAV_ITEMS = [
+const NAV_GROUPS = [
   {
-    to: "/admin",
-    end: true,
-    label: "Dashboard",
-    icon: LayoutDashboard,
-    badge: null,
+    title: "Overview",
+    items: [
+      {
+        to: "/admin",
+        end: true,
+        label: "Dashboard",
+        icon: LayoutDashboard,
+      },
+    ],
   },
   {
-    to: "/admin/companies",
-    end: false,
-    label: "Companies",
-    icon: Building2,
-    badge: null,
+    title: "Tenants & Workforce",
+    items: [
+      {
+        to: "/admin/companies",
+        end: false,
+        label: "Organizations",
+        icon: Building2,
+      },
+      {
+        to: "/admin/employees",
+        end: false,
+        label: "Employees",
+        icon: Users,
+      },
+      {
+        to: "/admin/users",
+        end: false,
+        label: "User Accounts",
+        icon: UserCheck,
+      },
+    ],
   },
   {
-    to: "/admin/employees",
-    end: false,
-    label: "Employees",
-    icon: Users,
-    badge: null,
-  },
-  {
-    to: "/admin/users",
-    end: false,
-    label: "User Accounts",
-    icon: UserCheck,
-    badge: null,
-  },
-  {
-    to: "/admin/analytics",
-    end: false,
-    label: "Platform Analytics",
-    icon: BarChart3,
-    badge: null,
+    title: "System Insights",
+    items: [
+      {
+        to: "/admin/analytics",
+        end: false,
+        label: "Platform Analytics",
+        icon: BarChart3,
+      },
+    ],
   },
 ];
 
-export default function SuperAdminSidebar({ collapsed, onToggleCollapse, isMobileOpen, onCloseMobile }) {
+export default function SuperAdminSidebar({
+  collapsed,
+  onToggleCollapse,
+  isMobileOpen,
+  onCloseMobile,
+}) {
   return (
     <>
       {/* Mobile backdrop */}
@@ -63,26 +78,29 @@ export default function SuperAdminSidebar({ collapsed, onToggleCollapse, isMobil
       )}
 
       <aside
-        className={`super-sidebar ${collapsed ? "super-sidebar--collapsed" : ""} ${
-          isMobileOpen ? "super-sidebar--mobile-open" : ""
-        }`}
+        className={`super-sidebar ${collapsed ? "super-sidebar--collapsed" : ""} ${isMobileOpen ? "super-sidebar--mobile-open" : ""
+          }`}
         aria-label="Platform Super Admin Navigation"
       >
         {/* Brand Header */}
         <div className="super-sidebar__brand">
           <Link to="/admin" className="super-sidebar__logo-link">
-            <div className="super-sidebar__logo-mark">
-              <ShieldCheck size={22} className="super-sidebar__logo-icon" />
-            </div>
-            {!collapsed && (
-              <div className="super-sidebar__brand-text">
-                <span className="super-sidebar__app-name">Ignite</span>
-                <span className="super-sidebar__pill">Super Admin</span>
-              </div>
+            {collapsed ? (
+              <img
+                src={favicon}
+                alt="Ignite"
+                className="super-sidebar__logo-favicon"
+              />
+            ) : (
+              <img
+                src={darkLogo}
+                alt="Ignite HRMS"
+                className="super-sidebar__logo-img"
+              />
             )}
           </Link>
 
-          {/* Desktop collapse toggle */}
+          {/* Desktop collapse toggle beside the logo on the right */}
           <button
             type="button"
             className="super-sidebar__collapse-btn"
@@ -90,58 +108,55 @@ export default function SuperAdminSidebar({ collapsed, onToggleCollapse, isMobil
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
         </div>
 
         {/* Navigation list */}
         <nav className="super-sidebar__nav">
-          <div className="super-sidebar__section-label">
-            {!collapsed ? "Platform Navigation" : "•••"}
-          </div>
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="super-sidebar__group">
+              <div className="super-sidebar__group-title">
+                {!collapsed ? group.title : "•••"}
+              </div>
 
-          <ul className="super-sidebar__menu">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <li key={item.to} className="super-sidebar__item">
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    className={({ isActive }) =>
-                      `super-sidebar__link ${isActive ? "super-sidebar__link--active" : ""}`
-                    }
-                    onClick={onCloseMobile}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon size={19} className="super-sidebar__link-icon" />
-                    {!collapsed && (
-                      <span className="super-sidebar__link-label">{item.label}</span>
-                    )}
-                  </NavLink>
-                </li>
-              );
-            })}
-          </ul>
+              <ul className="super-sidebar__menu">
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <li key={item.to} className="super-sidebar__item">
+                      <NavLink
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) =>
+                          `super-sidebar__link ${isActive ? "super-sidebar__link--active" : ""
+                          }`
+                        }
+                        onClick={onCloseMobile}
+                        title={collapsed ? item.label : undefined}
+                      >
+                        <Icon size={19} className="super-sidebar__link-icon" />
+                        {!collapsed && (
+                          <span className="super-sidebar__link-label">
+                            {item.label}
+                          </span>
+                        )}
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         {/* Sidebar Footer */}
         <div className="super-sidebar__footer">
-          <Link
-            to="/dashboard"
-            className="super-sidebar__workspace-btn"
-            title="Return to regular tenant workspace"
-          >
-            <ArrowUpRight size={16} />
-            {!collapsed && <span>Tenant Workspace</span>}
-          </Link>
-
-          {!collapsed && (
-            <div className="super-sidebar__system-status">
-              <span className="super-sidebar__status-dot" />
-              <span className="super-sidebar__status-text">Platform Live</span>
-            </div>
-          )}
+          <div className="super-sidebar__status-bar" title="Platform Infrastructure Live">
+            {!collapsed && (
+              <span className="super-sidebar__status-text">Ignite Infrastructure Live</span>
+            )}
+          </div>
         </div>
       </aside>
     </>

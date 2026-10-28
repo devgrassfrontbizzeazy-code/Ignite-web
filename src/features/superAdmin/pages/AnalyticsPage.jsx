@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import {
@@ -134,14 +135,6 @@ export default function AnalyticsPage() {
   // Attendance daily trends
   const attendanceDailyTrends = attendanceStats?.daily_trends || [];
 
-  // Attendance status breakdown
-  const todayBreakdownData = Object.entries(
-    attendanceStats?.today_status_breakdown || {}
-  ).map(([statusKey, count]) => ({
-    status: statusKey.replace(/_/g, " "),
-    count,
-  }));
-
   // Field sales lead status breakdown
   const fsLeadStatusData = Object.entries(
     fieldSalesStats?.lead_status_breakdown || {}
@@ -230,12 +223,17 @@ export default function AnalyticsPage() {
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#1A1F24",
+                    backgroundColor: "#FFFFFF",
                     borderRadius: 8,
-                    border: "none",
-                    color: "#FFFFFF",
+                    border: "1px solid #E6EAEE",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+                    color: "#1A1F24",
                     fontSize: 12,
+                    padding: "8px 12px",
                   }}
+                  itemStyle={{ color: "#0F3D3E", fontWeight: 600 }}
+                  labelStyle={{ color: "#5B6672", fontSize: 11, marginBottom: 4 }}
+                  cursor={{ stroke: "#0BA37F", strokeWidth: 1.5, strokeDasharray: "3 3" }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area
@@ -304,12 +302,17 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1A1F24",
+                      backgroundColor: "#FFFFFF",
                       borderRadius: 8,
-                      border: "none",
-                      color: "#FFFFFF",
+                      border: "1px solid #E6EAEE",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+                      color: "#1A1F24",
                       fontSize: 12,
+                      padding: "8px 12px",
                     }}
+                    itemStyle={{ color: "#0BA37F", fontWeight: 600 }}
+                    labelStyle={{ color: "#5B6672", fontSize: 11, marginBottom: 4 }}
+                    cursor={{ fill: "rgba(15, 61, 62, 0.04)" }}
                   />
                   <Bar
                     dataKey="records"
@@ -363,12 +366,17 @@ export default function AnalyticsPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1A1F24",
+                      backgroundColor: "#FFFFFF",
                       borderRadius: 8,
-                      border: "none",
-                      color: "#FFFFFF",
+                      border: "1px solid #E6EAEE",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+                      color: "#1A1F24",
                       fontSize: 12,
+                      padding: "8px 12px",
                     }}
+                    itemStyle={{ color: "#0F3D3E", fontWeight: 600 }}
+                    labelStyle={{ color: "#5B6672", fontSize: 11, marginBottom: 4 }}
+                    cursor={{ fill: "rgba(15, 61, 62, 0.04)" }}
                   />
                   <Bar
                     dataKey="count"

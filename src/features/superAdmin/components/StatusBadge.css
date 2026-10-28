@@ -1,13 +1,18 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — STATUS BADGE
+   ========================================================================== */
+
 .super-status-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
+  padding: 3px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.25;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .super-status-badge__dot {
@@ -18,19 +23,19 @@
 }
 
 .super-status-badge--success {
-  background-color: var(--ignite-emerald-050, #e4f6f1);
+  background-color: #e4f6f1;
   color: #087f62;
-  border: 1px solid rgba(11, 163, 127, 0.25);
+  border: 1px solid rgba(11, 163, 127, 0.3);
 }
 
 .super-status-badge--success .super-status-badge__dot {
-  background-color: var(--ignite-emerald, #0ba37f);
+  background-color: #0ba37f;
 }
 
 .super-status-badge--neutral {
   background-color: #f3f6f7;
   color: #5b6672;
-  border: 1px solid var(--color-border, #e6eaee);
+  border: 1px solid #e6eaee;
 }
 
 .super-status-badge--neutral .super-status-badge__dot {
@@ -38,23 +43,33 @@
 }
 
 .super-status-badge--warning {
-  background-color: var(--ignite-gold-050, #fbf3dd);
+  background-color: #fbf3dd;
   color: #8c6d19;
   border: 1px solid rgba(212, 175, 55, 0.35);
 }
 
 .super-status-badge--warning .super-status-badge__dot {
-  background-color: var(--ignite-gold, #d4af37);
+  background-color: #d4af37;
 }
 
 .super-status-badge--gold {
-  background-color: #fef7e2;
+  background-color: #fbf3dd;
   color: #8c680d;
   border: 1px solid rgba(212, 175, 55, 0.5);
 }
 
 .super-status-badge--gold .super-status-badge__dot {
   background-color: #d4af37;
+}
+
+.super-status-badge--info {
+  background-color: #e7eeee;
+  color: #0f3d3e;
+  border: 1px solid #cfdede;
+}
+
+.super-status-badge--info .super-status-badge__dot {
+  background-color: #0f3d3e;
 }
 
 .super-status-badge--danger {
@@ -65,14 +80,4 @@
 
 .super-status-badge--danger .super-status-badge__dot {
   background-color: #c4423a;
-}
-
-.super-status-badge--info {
-  background-color: var(--ignite-teal-050, #e7eeee);
-  color: var(--ignite-deep-teal, #0f3d3e);
-  border: 1px solid rgba(15, 61, 62, 0.2);
-}
-
-.super-status-badge--info .super-status-badge__dot {
-  background-color: var(--ignite-deep-teal, #0f3d3e);
 }

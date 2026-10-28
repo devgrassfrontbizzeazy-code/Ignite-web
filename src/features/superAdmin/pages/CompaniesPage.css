@@ -1,6 +1,100 @@
+/* ==========================================================================
+   IGNITE PLATFORM SUPER ADMIN — COMPANIES PAGE
+   ========================================================================== */
+
 .super-companies-page {
   display: flex;
   flex-direction: column;
+  gap: 18px;
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.super-companies-page__alert-success {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  background-color: #e4f6f1;
+  border: 1px solid #b3e7d8;
+  color: #076d54;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.super-companies-page__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.super-companies-page__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.super-companies-page__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f3d3e;
+  margin: 0;
+}
+
+.super-companies-page__subtitle {
+  font-size: 12.5px;
+  color: #5b6672;
+}
+
+.super-companies-page__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.super-companies-page__btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  border: 1px solid #e6eaee;
+  color: #0f3d3e;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.super-companies-page__btn-outline:hover {
+  border-color: #0f3d3e;
+  background-color: #f8fafb;
+}
+
+.super-companies-page__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background-color: #0ba37f;
+  border: none;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.super-companies-page__btn-primary:hover {
+  background-color: #09886a;
 }
 
 .super-comp-table__cell {
@@ -13,14 +107,15 @@
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background-color: var(--ignite-teal-050, #e7eeee);
-  color: var(--ignite-deep-teal, #0f3d3e);
+  background-color: #e7eeee;
+  color: #0f3d3e;
   font-size: 14px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border: 1px solid #cfdede;
 }
 
 .super-comp-table__logo {
@@ -29,6 +124,7 @@
   border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
+  border: 1px solid #e6eaee;
 }
 
 .super-comp-table__info {
@@ -39,18 +135,20 @@
 
 .super-comp-table__name {
   font-weight: 600;
-  color: var(--color-text-primary, #1a1f24);
+  color: #1a1f24;
   text-decoration: none;
+  font-size: 13.5px;
+  transition: color 0.15s ease;
 }
 
 .super-comp-table__name:hover {
-  color: var(--ignite-emerald, #0ba37f);
+  color: #0ba37f;
   text-decoration: underline;
 }
 
 .super-comp-table__email {
   font-size: 11.5px;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
 }
 
 .super-comp-table__code-pill {
@@ -58,17 +156,17 @@
   font-family: monospace;
   padding: 3px 8px;
   background-color: #f3f6f7;
+  border: 1px solid #e6eaee;
   border-radius: 4px;
-  color: var(--color-text-secondary, #5b6672);
-  font-weight: 600;
+  color: #5b6672;
 }
 
 .super-comp-table__location {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  color: #5b6672;
   font-size: 12.5px;
-  color: var(--color-text-secondary, #5b6672);
 }
 
 .super-comp-table__owner {
@@ -78,38 +176,41 @@
 }
 
 .super-comp-table__owner-name {
+  font-weight: 600;
+  color: #1a1f24;
   font-size: 12.5px;
-  font-weight: 500;
-  color: var(--color-text-primary, #1a1f24);
 }
 
 .super-comp-table__owner-email {
   font-size: 11px;
-  color: var(--color-text-muted, #8b96a3);
+  color: #8b96a3;
 }
 
 .super-comp-table__count-pill {
+  display: inline-block;
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a1f24);
+  color: #0f3d3e;
 }
 
 .super-comp-table__inspect-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 6px;
-  background-color: #f3f6f7;
-  color: var(--ignite-deep-teal, #0f3d3e);
+  background-color: #f8fafb;
+  border: 1px solid #e6eaee;
+  color: #0f3d3e;
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.15s ease;
-  border: 1px solid var(--color-border, #e6eaee);
+  white-space: nowrap;
 }
 
 .super-comp-table__inspect-btn:hover {
-  background-color: var(--ignite-teal-050, #e7eeee);
-  color: var(--ignite-deep-teal, #0f3d3e);
-  border-color: var(--ignite-teal-100, #cfdede);
+  background-color: #e7eeee;
+  border-color: #cfdede;
+  color: #0f3d3e;
 }
