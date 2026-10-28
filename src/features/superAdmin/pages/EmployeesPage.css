@@ -1,0 +1,105 @@
+.super-employees-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.super-emp-table__cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.super-emp-table__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--ignite-teal-050, #e7eeee);
+  color: var(--ignite-deep-teal, #0f3d3e);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--ignite-teal-100, #cfdede);
+}
+
+.super-emp-table__photo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.super-emp-table__name-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.super-emp-table__full-name {
+  font-weight: 600;
+  color: var(--color-text-primary, #1a1f24);
+}
+
+.super-emp-table__code {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--color-text-muted, #8b96a3);
+}
+
+.super-emp-table__company {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.super-emp-table__company-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--ignite-deep-teal, #0f3d3e);
+  text-decoration: none;
+}
+
+.super-emp-table__company-link:hover {
+  color: var(--ignite-emerald, #0ba37f);
+  text-decoration: underline;
+}
+
+.super-emp-table__company-code {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--color-text-muted, #8b96a3);
+}
+
+.super-emp-table__contact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.2;
+}
+
+.super-emp-table__contact-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #5b6672);
+}
+
+.super-emp-table__date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--color-text-secondary, #5b6672);
+}
+
+.super-emp-table__muted {
+  font-size: 12px;
+  color: var(--color-text-muted, #8b96a3);
+  font-style: italic;
+}

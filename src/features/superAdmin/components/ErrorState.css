@@ -1,0 +1,58 @@
+.super-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 24px;
+  background-color: #fff9f9;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  margin: 16px 0;
+}
+
+.super-error-state__icon-wrap {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: #fdecea;
+  color: #c4423a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.super-error-state__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #991b1b;
+  margin: 0 0 6px 0;
+}
+
+.super-error-state__message {
+  font-size: 13.5px;
+  color: #7f1d1d;
+  max-width: 440px;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.super-error-state__retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background-color: #c4423a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.super-error-state__retry-btn:hover {
+  background-color: #b91c1c;
+}

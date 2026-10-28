@@ -92,6 +92,17 @@ import EmployeeSelfService from "./pages/account/EmployeeSelfService/EmployeeSel
 import PayrollSettings from "./pages/account/PayrollSettings/PayrollSettings";
 import MyPayslips from "./pages/account/MyPayslips/MyPayslips";
 
+/* Platform Super Admin */
+import SuperAdminGuard from "./features/superAdmin/components/SuperAdminGuard";
+import SuperAdminLayout from "./features/superAdmin/components/SuperAdminLayout";
+import SuperAdminLoginPage from "./features/superAdmin/pages/SuperAdminLoginPage";
+import DashboardPage from "./features/superAdmin/pages/DashboardPage";
+import CompaniesPage from "./features/superAdmin/pages/CompaniesPage";
+import CompanyDetailPage from "./features/superAdmin/pages/CompanyDetailPage";
+import EmployeesPage from "./features/superAdmin/pages/EmployeesPage";
+import UsersPage from "./features/superAdmin/pages/UsersPage";
+import AnalyticsPage from "./features/superAdmin/pages/AnalyticsPage";
+
 /* =========================================================
    TEMPORARY / DASHBOARD
 ========================================================= */
@@ -226,6 +237,25 @@ export default function App() {
 
                 <Route path="/accept-invite" element={<AcceptInvitePage />} />
                 <Route path="/accept-invitation" element={<AcceptInvitePage />} />
+
+                {/* =====================================================
+                    PLATFORM SUPER ADMIN
+                    Requires database-verified Django platform superuser (SuperAdminGuard).
+                    Has separate authentication at /admin/login.
+                    Does not require tenant company setup or company permissions.
+                ===================================================== */}
+                <Route path="/admin/login" element={<SuperAdminLoginPage />} />
+
+                <Route element={<SuperAdminGuard />}>
+                  <Route element={<SuperAdminLayout />}>
+                    <Route path="/admin" element={<DashboardPage />} />
+                    <Route path="/admin/companies" element={<CompaniesPage />} />
+                    <Route path="/admin/companies/:id" element={<CompanyDetailPage />} />
+                    <Route path="/admin/employees" element={<EmployeesPage />} />
+                    <Route path="/admin/users" element={<UsersPage />} />
+                    <Route path="/admin/analytics" element={<AnalyticsPage />} />
+                  </Route>
+                </Route>
 
                 {/* =====================================================
                     INITIAL COMPANY SETUP

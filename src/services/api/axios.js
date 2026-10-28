@@ -18,6 +18,42 @@ export const clearAuthSession = () => {
   clearApiCache();
 };
 
+export const setSuperAdminAuthSession = ({ access, refresh, user }) => {
+  if (access) {
+    localStorage.setItem("superAdmin_accessToken", access);
+  }
+  if (refresh) {
+    localStorage.setItem("superAdmin_refreshToken", refresh);
+  }
+  if (user) {
+    localStorage.setItem("superAdmin_user", JSON.stringify(user));
+  }
+  clearApiCache();
+};
+
+export const clearSuperAdminAuthSession = () => {
+  localStorage.removeItem("superAdmin_accessToken");
+  localStorage.removeItem("superAdmin_refreshToken");
+  localStorage.removeItem("superAdmin_user");
+  clearApiCache();
+};
+
+export const getSuperAdminAccessToken = () => {
+  return (
+    localStorage.getItem("superAdmin_accessToken") ||
+    localStorage.getItem("accessToken") ||
+    localStorage.getItem("access_token")
+  );
+};
+
+export const getSuperAdminRefreshToken = () => {
+  return (
+    localStorage.getItem("superAdmin_refreshToken") ||
+    localStorage.getItem("refreshToken") ||
+    localStorage.getItem("refresh_token")
+  );
+};
+
 api.interceptors.request.use(
   (config) => {
     // Skip Authorization header for auth/public endpoints
@@ -26,27 +62,35 @@ api.interceptors.request.use(
       url.includes("/auth/login") ||
       url.includes("/auth/register") ||
       url.includes("/auth/token/refresh") ||
+      url.includes("/super-admin/login") ||
       url.includes("/invitation");
 
-    const accessToken =
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("access_token");
+    const isSuperAdminEndpoint = url.includes("/super-admin");
+
+    const accessToken = isSuperAdminEndpoint
+      ? getSuperAdminAccessToken()
+      : (localStorage.getItem("accessToken") || localStorage.getItem("access_token"));
 
     if (accessToken && !isPublicEndpoint) {
       config.headers.Authorization = `Bearer ${accessToken}`;
 
-      // Attach X-Company-ID if present in active user session to ensure tenant scoping
-      try {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-          const parsed = JSON.parse(storedUser);
-          const compId = parsed.company_id || parsed.companyId || parsed.company?.id;
-          if (compId) {
-            config.headers["X-Company-ID"] = String(compId);
+      // Attach X-Company-ID if present in active user session to ensure tenant scoping,
+      // but strictly omit for global platform super-admin endpoints.
+      if (!isSuperAdminEndpoint) {
+        try {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            const compId = parsed.company_id || parsed.companyId || parsed.company?.id;
+            if (compId) {
+              config.headers["X-Company-ID"] = String(compId);
+            }
           }
+        } catch {
+          // ignore parse error
         }
-      } catch (e) {
-        // ignore parse error
+      } else if (config.headers) {
+        delete config.headers["X-Company-ID"];
       }
     } else if (!accessToken) {
       delete config.headers.Authorization;
@@ -82,13 +126,16 @@ api.interceptors.response.use(
       url.includes("/auth/login") ||
       url.includes("/auth/register") ||
       url.includes("/auth/token/refresh") ||
+      url.includes("/super-admin/login") ||
       url.includes("/invitation");
+
+    const isSuperAdminEndpoint = url.includes("/super-admin");
 
     // If 401 occurs and request hasn't been retried yet
     if (error.response?.status === 401 && !originalRequest?._retry && !isPublicEndpoint) {
-      const refreshToken =
-        localStorage.getItem("refreshToken") ||
-        localStorage.getItem("refresh_token");
+      const refreshToken = isSuperAdminEndpoint
+        ? getSuperAdminRefreshToken()
+        : (localStorage.getItem("refreshToken") || localStorage.getItem("refresh_token"));
 
       if (refreshToken) {
         if (isRefreshing) {
@@ -134,12 +181,18 @@ api.interceptors.response.use(
             res.data?.data?.refresh_token;
 
           if (newAccessToken) {
-            localStorage.setItem("accessToken", newAccessToken);
-            localStorage.setItem("access_token", newAccessToken);
-
-            if (newRefreshToken) {
-              localStorage.setItem("refreshToken", newRefreshToken);
-              localStorage.setItem("refresh_token", newRefreshToken);
+            if (isSuperAdminEndpoint && localStorage.getItem("superAdmin_refreshToken")) {
+              localStorage.setItem("superAdmin_accessToken", newAccessToken);
+              if (newRefreshToken) {
+                localStorage.setItem("superAdmin_refreshToken", newRefreshToken);
+              }
+            } else {
+              localStorage.setItem("accessToken", newAccessToken);
+              localStorage.setItem("access_token", newAccessToken);
+              if (newRefreshToken) {
+                localStorage.setItem("refreshToken", newRefreshToken);
+                localStorage.setItem("refresh_token", newRefreshToken);
+              }
             }
 
             api.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
@@ -162,11 +215,20 @@ api.interceptors.response.use(
           const isTokenInvalid = status === 401 || status === 403;
 
           // Only purge credentials and eject user if the backend explicitly rejected the refresh token (401/403)
-          // Never log out the user on temporary network disconnections, waking from sleep, or server timeouts
           if (isTokenInvalid) {
-            clearAuthSession();
-            if (window.location.pathname !== "/login") {
-              window.location.href = "/login";
+            if (isSuperAdminEndpoint) {
+              clearSuperAdminAuthSession();
+              if (
+                window.location.pathname.startsWith("/admin") &&
+                window.location.pathname !== "/admin/login"
+              ) {
+                window.location.href = "/admin/login";
+              }
+            } else {
+              clearAuthSession();
+              if (window.location.pathname !== "/login") {
+                window.location.href = "/login";
+              }
             }
           }
           return Promise.reject(refreshErr);
@@ -175,9 +237,19 @@ api.interceptors.response.use(
         }
       } else {
         // No refresh token available
-        clearAuthSession();
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
+        if (isSuperAdminEndpoint) {
+          clearSuperAdminAuthSession();
+          if (
+            window.location.pathname.startsWith("/admin") &&
+            window.location.pathname !== "/admin/login"
+          ) {
+            window.location.href = "/admin/login";
+          }
+        } else {
+          clearAuthSession();
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
         }
       }
     }
@@ -238,7 +310,7 @@ export const clearApiCache = () => {
     if (typeof sessionStorage !== "undefined") {
       sessionStorage.removeItem("ignite_api_cache");
     }
-  } catch (e) {}
+  } catch (e) { }
 };
 
 // Patterns that MUST NOT be cached
@@ -249,6 +321,7 @@ const NO_CACHE_PATTERNS = [
   "/auth/signup",
   "/auth/forgot-password",
   "/auth/me",
+  "/super-admin",
   "/health",
   "/location",
   "/ping",
@@ -304,7 +377,7 @@ const cloneData = (data) => {
     if (typeof structuredClone === "function") {
       return structuredClone(data);
     }
-  } catch (e) {}
+  } catch (e) { }
   return JSON.parse(JSON.stringify(data));
 };
 
@@ -405,7 +478,7 @@ api.delete = function (url, config) {
 };
 
 export const prefetchApi = (url, params = {}) => {
-  return api.get(url, { params }).catch(() => {});
+  return api.get(url, { params }).catch(() => { });
 };
 
 export default api;
