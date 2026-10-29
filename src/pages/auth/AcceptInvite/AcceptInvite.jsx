@@ -803,7 +803,20 @@ const AcceptInvite = () => {
             <button
               type="button"
               className="login-button"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => {
+                const stored = (() => {
+                  try {
+                    return JSON.parse(localStorage.getItem("user") || "{}");
+                  } catch {
+                    return {};
+                  }
+                })();
+                if (stored?.is_field_sales === true) {
+                  navigate("/field-sales", { replace: true });
+                } else {
+                  navigate("/dashboard", { replace: true });
+                }
+              }}
             >
               Go to Workspace Dashboard
             </button>
