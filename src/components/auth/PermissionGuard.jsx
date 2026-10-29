@@ -50,8 +50,7 @@ export default function PermissionGuard({ requiredPermission, adminOnly = false 
         userPermissions.includes("employees.view") ||
         userPermissions.includes("employees.view_all") ||
         userPermissions.includes("employees.view_department") ||
-        userPermissions.includes("employees.view_team") ||
-        userPermissions.includes("employees.view_own")
+        userPermissions.includes("employees.view_team")
       )) ||
       (requiredPermission === "view_department" && (
         userPermissions.includes("departments.view") ||

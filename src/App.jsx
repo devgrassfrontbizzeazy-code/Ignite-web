@@ -9,7 +9,7 @@ import {
 
 import { OrganizationProvider } from "./context/OrganizationContext/OrganizationContext";
 import { NotificationProvider } from "./context/NotificationContext";
-import { isFieldSalesManager, canViewWorkManagement, canViewTeams } from "./utils/permissionUtils";
+import { isFieldSalesManager, canViewTeams } from "./utils/permissionUtils";
 
 /* Website */
 import HomePage from "./pages/landingPage/HomePage";
@@ -130,6 +130,38 @@ function Settings() {
    WORK MANAGEMENT GUARD
 ========================================================= */
 
+function FieldSalesGuard() {
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "{}");
+    } catch {
+      return {};
+    }
+  })();
+  const rawRole = String(user?.role || "").toUpperCase();
+  const isAdminOrOwner =
+    rawRole === "OWNER" ||
+    rawRole === "ADMIN" ||
+    rawRole === "ADMINISTRATOR" ||
+    user?.is_superuser === true;
+
+  const userPermissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  const isFieldSales =
+    isAdminOrOwner ||
+    userPermissions.includes("*") ||
+    user?.is_field_sales === true ||
+    user?.department === "Field Sales" ||
+    rawRole === "SALES PERSON" ||
+    rawRole === "FIELD SALES MANAGER" ||
+    userPermissions.some((p) => String(p).startsWith("field_sales."));
+
+  if (!isFieldSales) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
+}
+
 function WorkManagementGuard() {
   const { loading, workManagementAccess } = useTeamsTasks();
 
@@ -151,22 +183,15 @@ function WorkManagementGuard() {
     user?.is_superuser === true;
 
   const userPermissions = Array.isArray(user?.permissions) ? user.permissions : [];
-  const hasWorkManagementPermission =
-    canViewWorkManagement(user) ||
+  const canSeeTeams =
+    isAdminOrOwner ||
     canViewTeams(user) ||
     userPermissions.includes("view_team") ||
     userPermissions.includes("teams.view") ||
     userPermissions.includes("teams.view_team") ||
-    userPermissions.includes("view_task") ||
-    userPermissions.includes("tasks.view");
+    workManagementAccess?.canViewTeams === true;
 
-  const hasExplicitAccess = isAdminOrOwner || hasWorkManagementPermission;
-
-  /*
-   * TeamsTasksProvider needs to finish its initial team request
-   * before we can determine team membership, unless user already has explicit permission or is admin.
-   */
-  if (loading && !hasExplicitAccess) {
+  if (loading && !isAdminOrOwner && !canViewTeams) {
     return (
       <div
         style={{
@@ -183,10 +208,8 @@ function WorkManagementGuard() {
     );
   }
 
-  const hasAccess = hasExplicitAccess || workManagementAccess?.hasAccess === true;
-
-  if (!hasAccess) {
-    return <Navigate to="/dashboard" replace />;
+  if (!canSeeTeams) {
+    return <Navigate to="/tasks" replace />;
   }
 
   return <Outlet />;
@@ -370,32 +393,33 @@ export default function App() {
                       <Route path="/dashboard" element={<Dashboard />} />
                       <Route path="/profile" element={<Profile />} />
 
-                      <Route
-                        path="/field-sales"
-                        element={<SalesDashboard />}
-                      />
-                      <Route
-                        path="/field-sales/dashboard"
-                        element={<SalesDashboard />}
-                      />
-
-
-                      <Route path="/field-sales/leads" element={<Leads />} />
-                      <Route
-                        path="/field-sales/leads/add"
-                        element={<LeadForm />}
-                      />
-                      <Route
-                        path="/field-sales/leads/:id/edit"
-                        element={<LeadForm />}
-                      />
-                      <Route element={<FieldSalesManagerGuard />}>
+                      <Route element={<FieldSalesGuard />}>
                         <Route
-                          path="/field-sales/employees"
-                          element={<FieldSalesEmployees />}
+                          path="/field-sales"
+                          element={<SalesDashboard />}
                         />
+                        <Route
+                          path="/field-sales/dashboard"
+                          element={<SalesDashboard />}
+                        />
+
+                        <Route path="/field-sales/leads" element={<Leads />} />
+                        <Route
+                          path="/field-sales/leads/add"
+                          element={<LeadForm />}
+                        />
+                        <Route
+                          path="/field-sales/leads/:id/edit"
+                          element={<LeadForm />}
+                        />
+                        <Route element={<FieldSalesManagerGuard />}>
+                          <Route
+                            path="/field-sales/employees"
+                            element={<FieldSalesEmployees />}
+                          />
+                        </Route>
+                        <Route path="/field-sales/visits" element={<Visits />} />
                       </Route>
-                      <Route path="/field-sales/visits" element={<Visits />} />
 
                       <Route path="/attendance" element={<Attendance />} />
 
@@ -422,22 +446,18 @@ export default function App() {
                           - Redirected to dashboard
                       ================================================= */}
 
+                      {/* Universal Tasks Access for all Authenticated Users */}
+                      <Route path="/tasks" element={<Tasks />} />
+                      <Route path="/tasks/:id" element={<TaskDetailsPage />} />
+
+                      {/* Work Management & Teams Guarded by Teams Access */}
                       <Route element={<WorkManagementGuard />}>
                         <Route
                           path="/work-management"
                           element={<WorkManagement />}
                         />
-
                         <Route path="/teams" element={<Teams />} />
-
                         <Route path="/teams/:id" element={<TeamDetails />} />
-
-                        <Route path="/tasks" element={<Tasks />} />
-
-                        <Route
-                          path="/tasks/:id"
-                          element={<TaskDetailsPage />}
-                        />
                       </Route>
 
                       {/* =================================================

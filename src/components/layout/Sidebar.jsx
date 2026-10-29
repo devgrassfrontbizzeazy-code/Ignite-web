@@ -398,20 +398,20 @@ const FIELD_SALES_NAV_ITEMS = [
     label: "Leads",
     path: "/field-sales/leads",
     icon: LeadsIcon,
-    isPublic: true,
+    permission: "field_sales.leads_view",
   },
   {
     label: "Visits",
     path: "/field-sales/visits",
     icon: VisitsIcon,
+    permission: "field_sales.visits_view",
+  },
+  {
+    label: "Tasks",
+    path: "/tasks",
+    icon: TasksIcon,
     isPublic: true,
   },
-  // {
-  //   label: "Customers",
-  //   path: "/field-sales/customers",
-  //   icon: CustomersIcon,
-  //   isPublic: true,
-  // },
   {
     label: "Attendance",
     path: "/attendance",
@@ -520,6 +520,14 @@ export default function Sidebar({
 
         setUser(merged);
         localStorage.setItem("user", JSON.stringify(merged));
+
+        const rRole = String(merged.role || userRole || "").toUpperCase();
+        const isAdm = rRole === "OWNER" || rRole === "ADMIN" || rRole === "ADMINISTRATOR" || merged.is_superuser === true;
+        const isFS = merged.is_field_sales === true || merged.department === "Field Sales" || rRole === "FIELD SALES MANAGER" || rRole === "SALES PERSON" || (Array.isArray(merged.permissions) && merged.permissions.some((p) => String(p).startsWith("field_sales.")));
+        if (!isAdm && !isFS) {
+          setActiveSystem("hrms");
+          localStorage.setItem("ignite_active_system", "hrms");
+        }
 
         const userPhoto = merged.profile_photo_url || merged.photo_url || merged.profilePhotoUrl || merged.photoUrl;
         if (userPhoto) {
@@ -748,22 +756,14 @@ export default function Sidebar({
   const isFieldSalesUser =
     user?.is_field_sales === true ||
     user?.department === "Field Sales" ||
-    user?.designation === "Manager" ||
-    user?.designation === "Sales Person" ||
-    user?.role === "Manager" ||
-    user?.role === "Sales Person" ||
-    rawRole === "MANAGER" ||
     rawRole === "SALES PERSON" ||
     rawRole === "FIELD SALES MANAGER" ||
     userPermissions.some((p) => String(p).startsWith("field_sales."));
 
   const isManager =
     isAdminOrOwner ||
-    user?.is_manager === true ||
-    user?.designation === "Manager" ||
-    user?.role === "Manager" ||
-    rawRole === "MANAGER" ||
     rawRole === "FIELD SALES MANAGER" ||
+    (isFieldSalesUser && (user?.is_manager === true || rawRole === "MANAGER")) ||
     userPermissions.includes("field_sales.employees_manage") ||
     userPermissions.includes("field_sales.manage");
 
@@ -797,21 +797,26 @@ export default function Sidebar({
 
   const filteredNavItems = NAV_ITEMS.map((item) => {
     if (item.id === "work-management") {
-      const filteredChildren = (item.children || []).filter((child) => {
-        if (child.path === "/teams") {
-          return canSeeTeams;
-        }
-        return true;
-      });
+      if (!canSeeTeams) {
+        return {
+          label: "Tasks",
+          path: "/tasks",
+          icon: TasksIcon,
+          isPublic: true,
+        };
+      }
       return {
         ...item,
-        children: filteredChildren,
+        children: [
+          { label: "Teams", path: "/teams", icon: TeamsIcon },
+          { label: "Tasks", path: "/tasks", icon: TasksIcon },
+        ],
       };
     }
     return item;
   }).filter((item) => {
-    if (item.id === "work-management") {
-      return hasWorkManagementAccess;
+    if (item.id === "work-management" || item.path === "/tasks") {
+      return true;
     }
 
     if (isAdminOrOwner || userPermissions.includes("*")) {
@@ -879,12 +884,43 @@ export default function Sidebar({
       );
     }
 
-    return true;
+    if (item.isPublic) {
+      return true;
+    }
+
+    if (item.permission) {
+      const p = item.permission;
+      if (p === "field_sales.leads_view") {
+        return (
+          userPermissions.includes("field_sales.leads_view") ||
+          userPermissions.includes("field_sales.leads_manage") ||
+          userPermissions.includes("field_sales.view") ||
+          isFieldSalesUser
+        );
+      }
+      if (p === "field_sales.visits_view") {
+        return (
+          userPermissions.includes("field_sales.visits_view") ||
+          userPermissions.includes("field_sales.visits_manage") ||
+          userPermissions.includes("field_sales.today_visits") ||
+          userPermissions.includes("field_sales.view") ||
+          isFieldSalesUser
+        );
+      }
+      return (
+        userPermissions.includes(p) ||
+        userPermissions.includes(`auth.${p}`) ||
+        userPermissions.includes(`attendance.${p}`) ||
+        userPermissions.includes(`leave.${p}`) ||
+        userPermissions.includes("holidays.view")
+      );
+    }
+
+    return false;
   });
 
   const isFieldSalesMode =
-    (!isAdminOrOwner && isFieldSalesUser) ||
-    activeSystem === "field-sales";
+    isAdminOrOwner ? activeSystem === "field-sales" : isFieldSalesUser;
 
   const visibleNavItems = isFieldSalesMode
     ? filteredFieldSalesNavItems
@@ -946,6 +982,7 @@ export default function Sidebar({
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
+    localStorage.removeItem("ignite_active_system");
 
     window.dispatchEvent(
       new CustomEvent("ignite:user-updated", {
