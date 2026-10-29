@@ -11,6 +11,7 @@ import { getDesignations } from "../../../services/api/designationAPI";
 import { getRoles } from "../../../services/api/roleAPI";
 import leavePolicyApi from "../../../services/api/leavePolicyAPI";
 import { getWorkSchedule } from "../../../services/api/workScheduleAPI";
+import { getPayrollOverview } from "../../../services/api/accountAPI";
 
 import { useTeamsTasks } from "../../../context/TeamsTasksContext";
 
@@ -64,6 +65,7 @@ const useDashboardData = () => {
         designations: [],
         roles: [],
         workSchedule: null,
+        payrollSettings: null,
         leavePolicies: [],
         holidaysList: [],
 
@@ -158,6 +160,7 @@ const useDashboardData = () => {
                             designations: getArrayData(d.designations),
                             roles: getArrayData(d.roles),
                             workSchedule: d.workSchedule || null,
+                            payrollSettings: d.payrollSettings || null,
                             leavePolicies: getArrayData(d.leavePolicies),
                             holidaysList: getArrayData(d.holidaysList),
                             leaveBalance: getArrayData(d.leaveBalance),
@@ -221,6 +224,7 @@ const useDashboardData = () => {
                     workScheduleResponse,
                     leavePoliciesResponse,
                     holidaysResponse,
+                    payrollSettingsResponse,
                 ] = await Promise.allSettled([
                     canViewDepartments()
                         ? getDepartments()
@@ -239,6 +243,8 @@ const useDashboardData = () => {
                     leavePolicyApi.getPolicies(),
 
                     holidayAPI.getHolidays(),
+
+                    getPayrollOverview(),
                 ]);
 
                 if (!isMounted) return;
@@ -272,6 +278,11 @@ const useDashboardData = () => {
                     holidaysResponse.status === "fulfilled"
                         ? getArrayData(holidaysResponse.value)
                         : [];
+
+                const payrollSettings =
+                    payrollSettingsResponse.status === "fulfilled"
+                        ? (payrollSettingsResponse.value?.data || payrollSettingsResponse.value)
+                        : null;
 
                 const employeeOverview = {
                     total: 0,
@@ -321,6 +332,7 @@ const useDashboardData = () => {
                     workSchedule,
                     leavePolicies,
                     holidaysList,
+                    payrollSettings,
 
                     leaveBalance:
                         Array.isArray(leaveBalance?.data)
@@ -363,6 +375,39 @@ const useDashboardData = () => {
         };
     }, []);
 
+    useEffect(() => {
+        const handlePayrollSettingsUpdate = (event) => {
+            const nextSettings = event.detail ?? null;
+            if (nextSettings) {
+                setFetchedData((current) => ({
+                    ...current,
+                    payrollSettings: nextSettings,
+                }));
+            } else {
+                getPayrollOverview()
+                    .then((res) => {
+                        setFetchedData((current) => ({
+                            ...current,
+                            payrollSettings: res?.data || res,
+                        }));
+                    })
+                    .catch(() => { });
+            }
+        };
+
+        window.addEventListener(
+            "ignite:payroll-settings-updated",
+            handlePayrollSettingsUpdate
+        );
+
+        return () => {
+            window.removeEventListener(
+                "ignite:payroll-settings-updated",
+                handlePayrollSettingsUpdate
+            );
+        };
+    }, []);
+
     /*
      * Context-derived data computation.
      * Recomputed whenever teams, teamTasks, workManagementAccess, or contextEmployees change,
@@ -383,8 +428,8 @@ const useDashboardData = () => {
             workManagementAccess?.isAdminOrHr
                 ? teamTasks
                 : teamTasks.filter((task) =>
-                      userTeamIds.has(String(task.teamId))
-                  ),
+                    userTeamIds.has(String(task.teamId))
+                ),
         [workManagementAccess?.isAdminOrHr, teamTasks, userTeamIds]
     );
 
@@ -456,6 +501,7 @@ const useDashboardData = () => {
                 workSchedule: fetchedData.workSchedule,
                 leavePolicies: fetchedData.leavePolicies,
                 holidays: fetchedData.holidaysList.length > 0 ? fetchedData.holidaysList : fetchedData.holidays,
+                payrollSettings: fetchedData.payrollSettings,
             }),
         [
             company,
@@ -466,6 +512,8 @@ const useDashboardData = () => {
             fetchedData.leavePolicies,
             fetchedData.holidaysList,
             fetchedData.holidays,
+            fetchedData.payrollSettings,
+
         ]
     );
 

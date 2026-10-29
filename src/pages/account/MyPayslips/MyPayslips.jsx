@@ -15,11 +15,9 @@ import {
 
 import { useNotification } from "../../../context/NotificationContext";
 import {
-    getPayslips,
-    getPayslip,
-    getPayrollDrafts,
-    getPayrollDraft,
-    downloadPayslip,
+    getMyPayslips,
+    getMyPayslip,
+    downloadMyPayslip,
     unwrapList,
     triggerBlobDownload,
 } from "../../../services/api/accountAPI";
@@ -276,46 +274,6 @@ const getBreakdown = (record, category) => {
     return components;
 };
 
-const getPayrollRecordForPayslip = async (payslip) => {
-    const period = getPeriod(payslip);
-    if (!period) return null;
-
-    const runs = await getPayrollDrafts();
-    const matchingRuns = runs
-        .filter((run) => String(run.period ?? run.payroll_period) === String(period))
-        .sort((left, right) => {
-            const statusOrder = Number(/final|lock|approv|complete|paid/i.test(String(right.status || ""))) -
-                Number(/final|lock|approv|complete|paid/i.test(String(left.status || "")));
-            if (statusOrder) return statusOrder;
-            return (Date.parse(right.finalized_at || right.updated_at || right.created_at || "") || 0) -
-                (Date.parse(left.finalized_at || left.updated_at || left.created_at || "") || 0);
-        });
-    const employeeCode = getEmployeeCode(payslip);
-    const employeeId = payslip.employee ?? payslip.employee_id;
-
-    for (const run of matchingRuns) {
-        let detail = flattenPayslip(run);
-        let records = detail.records ?? detail.employees ?? detail.payroll_records ?? detail.employee_records;
-        if ((!Array.isArray(records) || records.length === 0) && run.id != null) {
-            detail = flattenPayslip(await getPayrollDraft(run.id));
-            records = detail.records ?? detail.employees ?? detail.payroll_records ?? detail.employee_records;
-        }
-        if (!Array.isArray(records)) continue;
-        const matched = records.find((rawRecord) => {
-            const record = flattenPayslip(rawRecord);
-            const recordCode = getEmployeeCode(record);
-            const recordEmployee = record.employee;
-            const recordId = recordEmployee && typeof recordEmployee === "object"
-                ? recordEmployee.id ?? recordEmployee.employee_id
-                : recordEmployee ?? record.employee_id;
-            return (employeeCode && recordCode && String(employeeCode) === String(recordCode)) ||
-                (employeeId != null && recordId != null && String(employeeId) === String(recordId));
-        });
-        if (matched) return flattenPayslip(matched);
-    }
-    return null;
-};
-
 const getDisplayValue = (record, keys) => {
     const value = firstValue(...keys.map((key) => record?.[key]));
     if (value && typeof value === "object") {
@@ -358,7 +316,7 @@ const MyPayslips = () => {
         setError("");
 
         try {
-            const response = await getPayslips();
+            const response = await getMyPayslips();
             const records = unwrapList(response);
 
             setPayslips(
@@ -434,19 +392,8 @@ const MyPayslips = () => {
         setViewingId(id);
 
         try {
-            const response = await getPayslip(id);
+            const response = await getMyPayslip(id);
             const detail = flattenPayslip(response);
-            let payrollRecord = null;
-            let payrollLookupFailed = false;
-            try {
-                payrollRecord = await getPayrollRecordForPayslip({
-                    ...flattenPayslip(slip),
-                    ...detail,
-                });
-            } catch (payrollError) {
-                console.error("Failed to load complete payroll details:", payrollError);
-                payrollLookupFailed = true;
-            }
             const hasCompleteDetail = Boolean(
                 detail.employee_snapshot ||
                 detail.employeeSnapshot ||
@@ -460,10 +407,9 @@ const MyPayslips = () => {
             setSelectedPayslip({
                 ...flattenPayslip(slip),
                 ...detail,
-                ...(payrollRecord || {}),
-                period: getPeriod(payrollRecord || {}) || getPeriod(detail) || getPeriod(slip),
+                period: getPeriod(detail) || getPeriod(slip),
                 _payslipId: id,
-                _payrollDetailsUnavailable: payrollLookupFailed || (!payrollRecord && !hasCompleteDetail),
+                _payrollDetailsUnavailable: !hasCompleteDetail,
             });
         } catch (err) {
             console.error("Failed to load payslip details:", err);
@@ -487,7 +433,7 @@ const MyPayslips = () => {
         setDownloadingId(id);
 
         try {
-            const file = await downloadPayslip(id);
+            const file = await downloadMyPayslip(id);
             const period = getPeriod(slip) || "payslip";
 
             triggerBlobDownload(file, `payslip-${period}.pdf`);

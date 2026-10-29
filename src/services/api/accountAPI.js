@@ -23,6 +23,9 @@ const getAllPages = async (url, params = {}) => {
             : payload?.results ?? payload?.data?.results ?? payload?.data;
 
         if (!Array.isArray(pageResults)) {
+            if (payload && typeof payload === "object") {
+                return [];
+            }
             throw new Error(`Unexpected list response while loading ${url}.`);
         }
         results.push(...pageResults);
@@ -75,6 +78,11 @@ export const updatePayrollSettings = async (data) => {
 
 export const patchPayrollSettings = async (data) => {
     const response = await api.patch("/account/payroll-settings/", data);
+    return response.data;
+};
+
+export const getPayrollOverview = async () => {
+    const response = await api.get("/account/payroll/overview/");
     return response.data;
 };
 
@@ -277,13 +285,29 @@ export const getPayslips = async (params = {}) => {
     return getAllPages("/account/payslips/", params);
 };
 
+export const getMyPayslips = async (params = {}) => {
+    return getAllPages("/account/payslips/my/", params);
+};
+
 export const getPayslip = async (id) => {
     const response = await api.get(`/account/payslips/${id}/`);
     return response.data;
 };
 
+export const getMyPayslip = async (id) => {
+    const response = await api.get(`/account/payslips/my/${id}/`);
+    return response.data;
+};
+
 export const downloadPayslip = async (id) => {
     const response = await api.get(`/account/payslips/${id}/download/`, {
+        responseType: "blob",
+    });
+    return response.data;
+};
+
+export const downloadMyPayslip = async (id) => {
+    const response = await api.get(`/account/payslips/my/${id}/download/`, {
         responseType: "blob",
     });
     return response.data;

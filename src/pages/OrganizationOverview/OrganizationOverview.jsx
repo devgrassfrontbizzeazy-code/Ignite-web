@@ -17,6 +17,8 @@ import {
   ArrowRight,
   ShieldCheck,
   Clock3,
+  CreditCard,
+  AlertCircle,
 } from "lucide-react";
 
 import { getCompany } from "../../services/api/companyAPI";
@@ -28,7 +30,7 @@ import { getWorkSchedule } from "../../services/api/workScheduleAPI";
 import leavePolicyApi from "../../services/api/leavePolicyAPI";
 import holidayAPI from "../../services/api/holidayAPI";
 import { getFieldSalesStatus, toggleFieldSalesStatus } from "../../services/api/fieldSalesAPI";
-import { getPayrollSettings } from "../../services/api/accountAPI";
+import { getPayrollSettings, getPayrollOverview } from "../../services/api/accountAPI";
 import { calculateOrganizationSetupProgress } from "../../utils/setupProgressUtils";
 import roleService from "../../services/roleService";
 
@@ -288,6 +290,9 @@ export default function OrganizationOverview() {
   const [leavePolicies, setLeavePolicies] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [payrollSettings, setPayrollSettings] = useState(null);
+  const [payrollOverview, setPayrollOverview] = useState(null);
+  const [payrollLoading, setPayrollLoading] = useState(false);
+  const [payrollError, setPayrollError] = useState("");
   const [fieldSalesEnabled, setFieldSalesEnabled] = useState(() => {
     return localStorage.getItem("ignite_field_sales_enabled") === "true";
   });
@@ -307,6 +312,9 @@ export default function OrganizationOverview() {
         setLoading(true);
       }
 
+      setPayrollLoading(true);
+      setPayrollError("");
+
       const [
         companyResponse,
         departmentResponse,
@@ -318,6 +326,7 @@ export default function OrganizationOverview() {
         holidayResponse,
         fieldSalesStatusResponse,
         payrollSettingsResponse,
+        payrollOverviewResponse,
       ] = await Promise.allSettled([
         getCompany(),
         getDepartments(),
@@ -329,6 +338,7 @@ export default function OrganizationOverview() {
         holidayAPI.getHolidays(),
         getFieldSalesStatus(),
         getPayrollSettings(),
+        getPayrollOverview(),
       ]);
 
       if (companyResponse.status === "fulfilled") {
@@ -375,6 +385,32 @@ export default function OrganizationOverview() {
           : null,
       );
 
+      if (payrollOverviewResponse.status === "fulfilled") {
+        const pData = payrollOverviewResponse.value?.data || payrollOverviewResponse.value;
+        setPayrollOverview(pData);
+        setPayrollError("");
+      } else {
+        console.error("Failed to load payroll overview:", payrollOverviewResponse.reason);
+        const sValue = payrollSettingsResponse.status === "fulfilled" ? (payrollSettingsResponse.value?.data || payrollSettingsResponse.value) : null;
+        if (sValue) {
+          setPayrollOverview({
+            configured: Boolean(sValue.configured ?? sValue.is_configured),
+            is_configured: Boolean(sValue.configured ?? sValue.is_configured),
+            settings: sValue,
+            components_count: 0,
+            has_components: false,
+            templates_count: 0,
+            structures_count: 0,
+            has_structures: false,
+            latest_run: null,
+          });
+          setPayrollError("");
+        } else {
+          setPayrollError("Unable to load organization payroll details.");
+        }
+      }
+      setPayrollLoading(false);
+
       if (fieldSalesStatusResponse.status === "fulfilled") {
         const fsData = fieldSalesStatusResponse.value?.data || fieldSalesStatusResponse.value;
         const isFsEnabled = Boolean(fsData?.field_sales_enabled ?? fsData?.fieldSalesEnabled);
@@ -399,6 +435,14 @@ export default function OrganizationOverview() {
     const handlePayrollSettingsUpdate = (event) => {
       const nextSettings = event.detail ?? null;
       setPayrollSettings(nextSettings);
+      getPayrollOverview()
+        .then((res) => {
+          setPayrollOverview(res?.data || res);
+          setPayrollError("");
+        })
+        .catch((err) => {
+          console.error("Failed to refresh payroll overview:", err);
+        });
     };
 
     window.addEventListener(
@@ -417,6 +461,16 @@ export default function OrganizationOverview() {
     loadOverview(true);
   };
 
+  const isPayrollConfigured = Boolean(
+    payrollOverview?.configured ||
+    payrollOverview?.is_configured ||
+    payrollOverview?.has_components ||
+    payrollOverview?.has_structures ||
+    (typeof payrollOverview?.components_count === "number" && payrollOverview.components_count > 0) ||
+    payrollSettings?.configured ||
+    payrollSettings?.is_configured
+  );
+
   const setupProgressData = calculateOrganizationSetupProgress({
     company,
     departments,
@@ -425,7 +479,7 @@ export default function OrganizationOverview() {
     workSchedule,
     leavePolicies,
     holidays,
-    payrollSettings,
+    payrollSettings: payrollOverview || payrollSettings,
   });
 
   if (loading) {
@@ -817,6 +871,158 @@ export default function OrganizationOverview() {
             <span className="organization-overview__field-sales-toggle-thumb" />
           </button>
         </div>
+      </section>
+
+      {/* PAYROLL OVERVIEW */}
+
+      <section className="organization-overview__payroll">
+        <div className="organization-overview__payroll-header">
+          <div className="organization-overview__payroll-title-wrap">
+            <div className="organization-overview__payroll-icon">
+              <CreditCard size={21} strokeWidth={1.8} />
+            </div>
+
+            <div className="organization-overview__payroll-content">
+              <span className="organization-overview__page-eyebrow">
+                PAYROLL
+              </span>
+
+              <h2>Payroll Overview</h2>
+
+              <p>
+                Configure salary components, employee structures, payroll cycle and monthly processing for your organization.
+              </p>
+            </div>
+          </div>
+
+          <div className="organization-overview__payroll-badge-wrap">
+            {payrollLoading ? (
+              <span className="organization-overview__setup-badge is-pending">
+                Checking...
+              </span>
+            ) : payrollError ? (
+              <span className="organization-overview__setup-badge is-error">
+                Failed to load
+              </span>
+            ) : isPayrollConfigured ? (
+              <span className="organization-overview__setup-badge is-complete">
+                Configured
+              </span>
+            ) : (
+              <span className="organization-overview__setup-badge is-pending">
+                Not Configured
+              </span>
+            )}
+          </div>
+        </div>
+
+        {payrollLoading ? (
+          <div className="organization-overview__payroll-status-box is-loading">
+            <RefreshCw size={18} className="organization-overview__spin" />
+            <span>Loading payroll configuration...</span>
+          </div>
+        ) : payrollError ? (
+          <div className="organization-overview__payroll-status-box is-error">
+            <div className="organization-overview__payroll-error-msg">
+              <AlertCircle size={18} />
+              <span>{payrollError}</span>
+            </div>
+            <button
+              type="button"
+              className="organization-overview__payroll-retry-btn"
+              onClick={() => loadOverview(true)}
+            >
+              Retry
+            </button>
+          </div>
+        ) : !isPayrollConfigured ? (
+          <div className="organization-overview__payroll-unconfigured">
+            <div className="organization-overview__payroll-unconfigured-body">
+              <AlertCircle size={20} className="organization-overview__payroll-alert-icon" />
+              <div>
+                <strong>Payroll is not configured</strong>
+                <p>
+                  Payroll settings and employee salary structures have not been initialized. Configure your payroll cycle, salary components, and employee structures to begin processing payroll.
+                </p>
+              </div>
+            </div>
+            <div className="organization-overview__payroll-actions">
+              <button
+                type="button"
+                className="organization-overview__payroll-primary-btn"
+                onClick={() => navigate("/account/payroll-settings")}
+              >
+                Configure Payroll
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="organization-overview__payroll-configured">
+            <div className="organization-overview__payroll-metrics-grid">
+              <div className="organization-overview__payroll-metric-card">
+                <span className="organization-overview__payroll-metric-label">Payroll Cycle</span>
+                <strong className="organization-overview__payroll-metric-value">
+                  {payrollOverview?.settings?.payroll_cycle || "Monthly"}
+                </strong>
+                <small className="organization-overview__payroll-metric-sub">
+                  Pay Day: {payrollOverview?.settings?.payroll_day ? `Day ${payrollOverview.settings.payroll_day}` : "Default"}
+                </small>
+              </div>
+
+              <div className="organization-overview__payroll-metric-card">
+                <span className="organization-overview__payroll-metric-label">Salary Components</span>
+                <strong className="organization-overview__payroll-metric-value">
+                  {payrollOverview?.components_count ?? 0}
+                </strong>
+                <small className="organization-overview__payroll-metric-sub">
+                  {payrollOverview?.has_components ? "Components configured" : "No components added"}
+                </small>
+              </div>
+
+              <div className="organization-overview__payroll-metric-card">
+                <span className="organization-overview__payroll-metric-label">Salary Structures</span>
+                <strong className="organization-overview__payroll-metric-value">
+                  {payrollOverview?.structures_count ?? 0}
+                </strong>
+                <small className="organization-overview__payroll-metric-sub">
+                  {payrollOverview?.has_structures ? "Active employee structures" : "No structures configured"}
+                </small>
+              </div>
+
+              <div className="organization-overview__payroll-metric-card">
+                <span className="organization-overview__payroll-metric-label">Latest Payroll Run</span>
+                <strong className="organization-overview__payroll-metric-value">
+                  {payrollOverview?.latest_run?.period_display || (payrollOverview?.latest_run?.period ? payrollOverview.latest_run.period : "None")}
+                </strong>
+                <small className="organization-overview__payroll-metric-sub">
+                  {payrollOverview?.latest_run
+                    ? `Status: ${payrollOverview.latest_run.status_display || payrollOverview.latest_run.status} (${payrollOverview.latest_run.total_employees} employees)`
+                    : "No runs processed yet"}
+                </small>
+              </div>
+            </div>
+
+            <div className="organization-overview__payroll-actions">
+              <button
+                type="button"
+                className="organization-overview__payroll-secondary-btn"
+                onClick={() => navigate("/account/payroll-settings")}
+              >
+                <Settings2 size={15} />
+                Payroll Settings
+              </button>
+              <button
+                type="button"
+                className="organization-overview__payroll-primary-btn"
+                onClick={() => navigate("/account/process-payroll")}
+              >
+                Process Payroll
+                <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* SETUP STATUS */}

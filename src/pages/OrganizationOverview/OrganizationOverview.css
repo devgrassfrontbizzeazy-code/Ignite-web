@@ -786,6 +786,296 @@
   outline-offset: 3px;
 }
 /* =========================================================
+   PAYROLL OVERVIEW
+========================================================= */
+
+.organization-overview__payroll {
+  margin-bottom: 38px;
+  padding: 24px;
+  border: 1px solid #dfe6e8;
+  border-radius: 12px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.organization-overview__payroll-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.organization-overview__payroll-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+  flex: 1;
+}
+
+.organization-overview__payroll-icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #edf5f3;
+  color: #0f3d3e;
+}
+
+.organization-overview__payroll-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.organization-overview__payroll-content h2 {
+  margin: 4px 0 5px;
+  color: #1a1f24;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.organization-overview__payroll-content p {
+  margin: 0;
+  color: #707b82;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.organization-overview__payroll-badge-wrap {
+  flex: 0 0 auto;
+}
+
+.organization-overview__setup-badge.is-error {
+  background: #fdf2f2;
+  color: #d32f2f;
+}
+
+.organization-overview__payroll-status-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.organization-overview__payroll-status-box.is-loading {
+  background: #f4f7f6;
+  color: #556268;
+}
+
+.organization-overview__payroll-status-box.is-error {
+  background: #fef2f2;
+  border: 1px solid #fed7d7;
+  color: #c53030;
+  justify-content: space-between;
+}
+
+.organization-overview__payroll-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+.organization-overview__payroll-retry-btn {
+  padding: 5px 12px;
+  border: 1px solid #feb2b2;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #c53030;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.organization-overview__payroll-retry-btn:hover {
+  background: #fff5f5;
+}
+
+.organization-overview__spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.organization-overview__payroll-unconfigured {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  background: #fffbf5;
+}
+
+.organization-overview__payroll-unconfigured-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.organization-overview__payroll-alert-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: #d97706;
+}
+
+.organization-overview__payroll-unconfigured-body strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #92400e;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.organization-overview__payroll-unconfigured-body p {
+  margin: 0;
+  color: #78350f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.organization-overview__payroll-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.organization-overview__payroll-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid #0ba37f;
+  border-radius: 7px;
+  background: #0ba37f;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.organization-overview__payroll-primary-btn:hover {
+  background: #088b6c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(11, 163, 127, 0.25);
+}
+
+.organization-overview__payroll-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d6e2df;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #0f3d3e;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.organization-overview__payroll-secondary-btn:hover {
+  border-color: #0ba37f;
+  background: #edf8f5;
+  color: #0ba37f;
+}
+
+.organization-overview__payroll-configured {
+  margin-top: 20px;
+}
+
+.organization-overview__payroll-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.organization-overview__payroll-metric-card {
+  padding: 16px;
+  border: 1px solid #e7edeb;
+  border-radius: 9px;
+  background: #fbfdfc;
+  display: flex;
+  flex-direction: column;
+}
+
+.organization-overview__payroll-metric-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #66717a;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.organization-overview__payroll-metric-value {
+  display: block;
+  margin-bottom: 4px;
+  color: #1a1f24;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.organization-overview__payroll-metric-sub {
+  display: block;
+  color: #8a949a;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .organization-overview__payroll-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .organization-overview__payroll-header {
+    flex-direction: column;
+  }
+  .organization-overview__payroll-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .organization-overview__payroll-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* =========================================================
    SETUP STATUS
 ========================================================= */
 

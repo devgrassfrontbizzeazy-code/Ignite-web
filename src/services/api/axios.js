@@ -20,6 +20,16 @@ const api = axios.create({
   baseURL: BASE_URL,
 });
 
+const normalizePath = (pathname) => pathname.replace(/\/+$/, "") || "/";
+
+const isSuperAdminPath = () => {
+  const pathname = normalizePath(window.location.pathname);
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+};
+
+const isSuperAdminLoginPath = () =>
+  normalizePath(window.location.pathname) === "/admin/login";
+
 export const clearAuthSession = () => {
   localStorage.removeItem("accessToken");
   localStorage.removeItem("access_token");
@@ -107,18 +117,20 @@ api.interceptors.request.use(
   }
 );
 
-let isRefreshing = false;
-let failedQueue = [];
+const refreshStates = {
+  employee: { isRefreshing: false, failedQueue: [] },
+  superAdmin: { isRefreshing: false, failedQueue: [] },
+};
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
+const processQueue = (refreshState, error, token = null) => {
+  refreshState.failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
       prom.resolve(token);
     }
   });
-  failedQueue = [];
+  refreshState.failedQueue = [];
 };
 
 api.interceptors.response.use(
@@ -140,11 +152,14 @@ api.interceptors.response.use(
       const refreshToken = isSuperAdminEndpoint
         ? getSuperAdminRefreshToken()
         : (localStorage.getItem("refreshToken") || localStorage.getItem("refresh_token"));
+      const refreshState = isSuperAdminEndpoint
+        ? refreshStates.superAdmin
+        : refreshStates.employee;
 
       if (refreshToken) {
-        if (isRefreshing) {
+        if (refreshState.isRefreshing) {
           return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
+            refreshState.failedQueue.push({ resolve, reject });
           })
             .then((token) => {
               originalRequest._retry = true;
@@ -159,7 +174,7 @@ api.interceptors.response.use(
         }
 
         originalRequest._retry = true;
-        isRefreshing = true;
+        refreshState.isRefreshing = true;
 
         try {
           const res = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
@@ -207,13 +222,13 @@ api.interceptors.response.use(
               originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             }
 
-            processQueue(null, newAccessToken);
+            processQueue(refreshState, null, newAccessToken);
             return api(originalRequest);
           } else {
             throw new Error("Unable to parse access token from refresh response");
           }
         } catch (refreshErr) {
-          processQueue(refreshErr, null);
+          processQueue(refreshState, refreshErr, null);
 
           const status = refreshErr.response?.status;
           const isTokenInvalid = status === 401 || status === 403;
@@ -223,35 +238,35 @@ api.interceptors.response.use(
             if (isSuperAdminEndpoint) {
               clearSuperAdminAuthSession();
               if (
-                window.location.pathname.startsWith("/admin") &&
-                window.location.pathname !== "/admin/login"
+                isSuperAdminPath() &&
+                !isSuperAdminLoginPath()
               ) {
                 window.location.href = "/admin/login";
               }
             } else {
               clearAuthSession();
-              if (window.location.pathname !== "/login") {
+              if (!isSuperAdminPath() && window.location.pathname !== "/login") {
                 window.location.href = "/login";
               }
             }
           }
           return Promise.reject(refreshErr);
         } finally {
-          isRefreshing = false;
+          refreshState.isRefreshing = false;
         }
       } else {
         // No refresh token available
         if (isSuperAdminEndpoint) {
           clearSuperAdminAuthSession();
           if (
-            window.location.pathname.startsWith("/admin") &&
-            window.location.pathname !== "/admin/login"
+            isSuperAdminPath() &&
+            !isSuperAdminLoginPath()
           ) {
             window.location.href = "/admin/login";
           }
         } else {
           clearAuthSession();
-          if (window.location.pathname !== "/login") {
+          if (!isSuperAdminPath() && window.location.pathname !== "/login") {
             window.location.href = "/login";
           }
         }

@@ -43,6 +43,22 @@ const DEFAULT_SETTINGS = {
     minHoursHalfDay: "4.0",
 };
 
+const normalizeFinancialYear = (fy) => {
+    if (!fy) return "April–March";
+    const cleaned = String(fy).toLowerCase();
+    if (cleaned.includes("jan")) return "January–December";
+    return "April–March";
+};
+
+const normalizeCurrency = (curr) => {
+    if (!curr) return "INR";
+    const cleaned = String(curr).toUpperCase();
+    for (const c of ["INR", "USD", "GBP", "EUR", "AED"]) {
+        if (cleaned.includes(c)) return c;
+    }
+    return "INR";
+};
+
 const mapTypeToBackend = (type) => {
     switch (type) {
         case "earning":
@@ -163,8 +179,8 @@ export default function PayrollSettings() {
                 setSettings({
                     payrollCycle: data.payroll_cycle || data.payrollCycle || "Monthly",
                     payrollDay: (data.payroll_day ?? data.payrollDay) != null ? String(data.payroll_day ?? data.payrollDay) : "28",
-                    financialYear: data.financial_year || data.financialYear || "April–March",
-                    currency: data.currency || "INR",
+                    financialYear: normalizeFinancialYear(data.financial_year || data.financialYear),
+                    currency: normalizeCurrency(data.currency),
                     lwpCalculationBasis: data.lwp_calculation_basis || data.lwpCalculationBasis || "CALENDAR_DAYS",
                     lwpDeductionComponent: data.lwp_deduction_component || data.lwpDeductionComponent || "GROSS",
                     includeUnexcusedAbsentAsLwp: (data.include_unexcused_absent_as_lwp ?? data.includeUnexcusedAbsentAsLwp) ?? true,
@@ -172,14 +188,24 @@ export default function PayrollSettings() {
                     sandwichRuleEnabled: (data.sandwich_rule_enabled ?? data.sandwichRuleEnabled) ?? false,
                     minHoursFullDay: String((data.min_hours_full_day ?? data.minHoursFullDay) ?? "8.0"),
                     minHoursHalfDay: String((data.min_hours_half_day ?? data.minHoursHalfDay) ?? "4.0"),
+                    configured: Boolean(data.configured ?? data.is_configured),
+                    is_configured: Boolean(data.configured ?? data.is_configured),
                 });
             } else {
                 setSettings({ ...DEFAULT_SETTINGS });
             }
         } catch (error) {
             console.error("Failed to load payroll settings from API:", error);
-            if (error?.response?.status !== 404) {
-                setSettingsError("Could not load payroll settings from the server.");
+            if (error?.response?.status === 404) {
+                setSettings({ ...DEFAULT_SETTINGS });
+                setSettingsError("");
+            } else {
+                setSettingsError(
+                    error?.response?.data?.error ||
+                    error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Could not load payroll settings from the server."
+                );
             }
         } finally {
             setSettingsLoading(false);
@@ -196,8 +222,18 @@ export default function PayrollSettings() {
             setComponents(list.map(normalizeComponent));
         } catch (error) {
             console.error("Failed to load salary components from API:", error);
-            setComponentsError("Could not fetch salary components from server.");
-            setComponents([]);
+            if (error?.response?.status === 404) {
+                setComponents([]);
+                setComponentsError("");
+            } else {
+                setComponentsError(
+                    error?.response?.data?.error ||
+                    error?.response?.data?.detail ||
+                    error?.response?.data?.message ||
+                    "Could not fetch salary components from server."
+                );
+                setComponents([]);
+            }
         } finally {
             setComponentsLoading(false);
         }
@@ -485,20 +521,30 @@ export default function PayrollSettings() {
         };
 
         try {
+            let res;
             try {
-                await patchPayrollSettings(payload);
+                res = await patchPayrollSettings(payload);
             } catch (err) {
                 if (err?.response?.status === 404) {
-                    await createPayrollSettings(payload);
+                    res = await createPayrollSettings(payload);
                 } else {
                     throw err;
                 }
             }
 
+            const updatedData = res?.data ?? res ?? {};
+            const savedSettings = {
+                ...settings,
+                ...updatedData,
+                configured: true,
+                is_configured: true,
+            };
+
+            setSettings(savedSettings);
             setSaved(true);
             window.dispatchEvent(
                 new CustomEvent("ignite:payroll-settings-updated", {
-                    detail: settings,
+                    detail: savedSettings,
                 })
             );
             notify("success", "Payroll settings saved.");

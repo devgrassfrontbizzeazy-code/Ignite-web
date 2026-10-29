@@ -55,21 +55,36 @@ export const isPayrollSettingsConfigured = (settings) => {
   }
 
   const data = settings.data ?? settings;
-  const payrollCycle = data.payrollCycle ?? data.payroll_cycle;
-  const payrollDay = Number(data.payrollDay ?? data.payroll_day);
-  const financialYear = String(
-    data.financialYear ?? data.financial_year ?? "",
-  ).replace(/[\s–—-]/g, "");
-  const currency = String(data.currency ?? "").trim().toUpperCase();
+  if (
+    data.configured === true ||
+    data.is_configured === true ||
+    data.isConfigured === true
+  ) {
+    return true;
+  }
 
-  return (
-    String(payrollCycle ?? "").toLowerCase() === "monthly" &&
-    Number.isInteger(payrollDay) &&
-    payrollDay >= 1 &&
-    payrollDay <= 28 &&
-    ["AprilMarch", "JanuaryDecember"].includes(financialYear) &&
-    ["INR", "USD", "GBP", "EUR"].includes(currency)
-  );
+  if (
+    data.has_components === true ||
+    data.has_structures === true ||
+    data.hasComponents === true ||
+    data.hasStructures === true ||
+    (typeof data.components_count === "number" && data.components_count > 0) ||
+    (typeof data.structures_count === "number" && data.structures_count > 0)
+  ) {
+    return true;
+  }
+
+  if (typeof data.configured === "boolean") {
+    return data.configured;
+  }
+  if (typeof data.is_configured === "boolean") {
+    return data.is_configured;
+  }
+  if (typeof data.isConfigured === "boolean") {
+    return data.isConfigured;
+  }
+
+  return false;
 };
 
 export const getOrganizationSetupItems = ({

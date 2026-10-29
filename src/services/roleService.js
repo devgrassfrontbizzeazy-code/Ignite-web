@@ -105,8 +105,16 @@ export const syncRolesFromBackend = async () => {
   return getRoles();
 };
 
-// Initial background sync
-syncRolesFromBackend();
+// Roles are employee-scoped and should only sync inside an authenticated employee session.
+const currentPath = window.location.pathname.replace(/\/+$/, "") || "/";
+const isSuperAdminRoute =
+  currentPath === "/admin" || currentPath.startsWith("/admin/");
+const hasEmployeeAccessToken =
+  localStorage.getItem("accessToken") || localStorage.getItem("access_token");
+
+if (hasEmployeeAccessToken && !isSuperAdminRoute) {
+  syncRolesFromBackend();
+}
 
 /**
  * Retrieves a role by ID or Name.
