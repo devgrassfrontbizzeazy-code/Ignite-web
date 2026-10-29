@@ -7,6 +7,7 @@ import {
 
 import IgniteLoader from "../common/IgniteLoader/IgniteLoader";
 import { getCompany } from "../../services/api/companyAPI";
+import { clearAuthSession } from "../../services/api/axios";
 import { useOrganization } from "../../context/OrganizationContext/OrganizationContext";
 
 const CompanySetupGuard = () => {
@@ -24,21 +25,21 @@ const CompanySetupGuard = () => {
   const syncIsOwnerOrAdmin =
     syncRole === "OWNER" ||
     syncRole === "ADMIN" ||
-    syncRole === "ADMINISTRATOR";
-  const syncIsEmployee = !syncIsOwnerOrAdmin || Boolean(syncUser.employee_id || syncUser.employeeId || syncUser.is_field_sales);
-  const syncHasCompany = Boolean(syncUser.company_id || syncUser.companyId || syncUser.company);
-  const isSynchronouslyKnown = syncHasCompany || syncIsEmployee;
+    syncRole === "ADMINISTRATOR" ||
+    syncUser.is_superuser === true;
+  const syncIsEmployee = !syncIsOwnerOrAdmin;
+  const syncHasCompany = Boolean(syncUser.company_id || syncUser.companyId);
+  const isSynchronouslyKnown = syncHasCompany || (syncIsOwnerOrAdmin && !syncHasCompany);
 
-  const [loading, setLoading] = useState(!isSynchronouslyKnown);
-  const [companyExists, setCompanyExists] = useState(isSynchronouslyKnown);
-
+  const [loading, setLoading] = useState(true);
+  const [companyExists, setCompanyExists] = useState(syncHasCompany);
+  const [notInCompany, setNotInCompany] = useState(syncIsEmployee && !syncHasCompany && !syncUser.is_field_sales);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
 
     const checkCompany = async () => {
-      // If user is already identified as an employee or member, they belong to an existing company
       const storedUser = (() => {
         try {
           return JSON.parse(localStorage.getItem("user") || "{}");
@@ -51,16 +52,18 @@ const CompanySetupGuard = () => {
       const isOwnerOrAdmin =
         role === "OWNER" ||
         role === "ADMIN" ||
-        role === "ADMINISTRATOR";
-      const isEmployee = !isOwnerOrAdmin || Boolean(storedUser.employee_id || storedUser.employeeId || storedUser.is_field_sales);
-      const hasCompany = Boolean(storedUser.company_id || storedUser.companyId || storedUser.company);
+        role === "ADMINISTRATOR" ||
+        storedUser.is_superuser === true;
+      const isEmployee = !isOwnerOrAdmin;
+      const hasCompany = Boolean(storedUser.company_id || storedUser.companyId);
 
-      // If user already has an established company or is an employee/manager, unblock UI immediately
-      if (hasCompany || isEmployee) {
+      // If user is an employee and has no company association, they are not in any company
+      if (isEmployee && !hasCompany && !storedUser.is_field_sales) {
         if (mounted) {
-          setCompanyExists(true);
+          setNotInCompany(true);
           setLoading(false);
         }
+        return;
       }
 
       try {
@@ -77,13 +80,19 @@ const CompanySetupGuard = () => {
         const status = err?.response?.status;
 
         if (mounted) {
-          if (isEmployee || status === 403) {
-            // Employees or users without company edit permission belong to an existing company
-            setCompanyExists(true);
-          } else if (status === 404) {
-            setCompanyExists(false);
+          if (status === 404) {
+            if (isEmployee) {
+              setNotInCompany(true);
+            } else {
+              setCompanyExists(false);
+            }
+          } else if (status === 403) {
+            if (isEmployee && !hasCompany) {
+              setNotInCompany(true);
+            } else {
+              setCompanyExists(true);
+            }
           } else if (status === 401) {
-            // Central axios interceptor handles token refresh and session purging if token is truly invalid
             setError(true);
           } else {
             setError(true);
@@ -102,6 +111,96 @@ const CompanySetupGuard = () => {
       mounted = false;
     };
   }, []);
+
+  // ------------------------------------------
+  // NOT IN ANY COMPANY
+  // ------------------------------------------
+
+  if (notInCompany) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f8fafc",
+          padding: "24px",
+          fontFamily: "system-ui, -apple-system, sans-serif",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "460px",
+            width: "100%",
+            background: "#ffffff",
+            borderRadius: "16px",
+            padding: "40px 32px",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
+            textAlign: "center",
+            border: "1px solid #e2e8f0",
+          }}
+        >
+          <div
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "50%",
+              background: "#fee2e2",
+              color: "#ef4444",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              fontSize: "28px",
+            }}
+          >
+            🏢
+          </div>
+          <h2
+            style={{
+              fontSize: "22px",
+              fontWeight: "700",
+              color: "#0f172a",
+              marginBottom: "12px",
+            }}
+          >
+            You are not in any company now
+          </h2>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#64748b",
+              lineHeight: "1.6",
+              marginBottom: "28px",
+            }}
+          >
+            Your account is not associated with any active company. If you believe this is an error, please contact your organization administrator.
+          </p>
+          <button
+            onClick={() => {
+              clearAuthSession();
+              window.location.href = "/login";
+            }}
+            style={{
+              width: "100%",
+              padding: "12px 20px",
+              background: "#f97316",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor: "pointer",
+              transition: "background 0.2s",
+            }}
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ------------------------------------------
   // LOADING

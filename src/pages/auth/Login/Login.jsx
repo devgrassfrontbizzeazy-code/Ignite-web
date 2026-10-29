@@ -41,31 +41,23 @@ const Login = () => {
         storedUser = {};
       }
 
-      if (storedUser?.is_field_sales === true) {
-        navigate("/field-sales", { replace: true });
+      const role = String(storedUser?.role || "").toUpperCase();
+      const isOwnerOrAdmin =
+        role === "OWNER" ||
+        role === "ADMIN" ||
+        role === "ADMINISTRATOR" ||
+        storedUser?.is_superuser === true;
+      const hasCompany = Boolean(storedUser?.company_id || storedUser?.companyId);
+
+      // If user is a member/employee without a company, clear stale session so they can see error message
+      if (!isOwnerOrAdmin && !hasCompany && !storedUser?.is_field_sales) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("ignite_authenticated");
         return;
-      }
-
-      const from = location.state?.from;
-      navigate(from || "/dashboard", { replace: true });
-    }
-  }, [navigate, location]);
-
-  // If user is already authenticated, redirect them to their destination immediately
-  useEffect(() => {
-    const accessToken =
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("access_token");
-    const refreshToken =
-      localStorage.getItem("refreshToken") ||
-      localStorage.getItem("refresh_token");
-
-    if (accessToken || refreshToken) {
-      let storedUser = {};
-      try {
-        storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-      } catch (e) {
-        storedUser = {};
       }
 
       if (storedUser?.is_field_sales === true) {
@@ -180,11 +172,23 @@ const Login = () => {
         return;
       }
 
-      const hasCompany = Boolean(user?.company_id || user?.companyId || user?.company);
+      const hasCompany = Boolean(user?.company_id || user?.companyId);
       const from = location.state?.from;
 
-      // Non-owners (employees, managers, members) or users with an established company navigate directly
-      if (!isOwnerOrAdmin || hasCompany) {
+      // If user is not an owner/admin and has no company, they are not in any company
+      if (!isOwnerOrAdmin && !hasCompany && !user?.is_field_sales) {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("ignite_authenticated");
+        setError("You are not in any company now.");
+        return;
+      }
+
+      // Non-owners with an established company navigate directly
+      if (hasCompany) {
         navigate(from || "/dashboard", {
           replace: true,
         });
