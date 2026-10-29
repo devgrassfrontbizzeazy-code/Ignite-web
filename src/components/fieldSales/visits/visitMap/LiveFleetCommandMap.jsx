@@ -37,6 +37,7 @@ import "leaflet/dist/leaflet.css";
 import DatePicker from "../../../common/DatePicker/DatePicker";
 
 import "./LiveFleetCommandMap.css";
+import DailyRoutePlaybackMap from "./DailyRoutePlaybackMap";
 
 /* -------------------------------------------------------------------------- */
 /* Free Client-Side Haversine Math (Zero API Tokens, $0 Cost)                 */
@@ -415,6 +416,7 @@ export default function LiveFleetCommandMap({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState("all"); // 'all' | 'active'
   const [visitMapFilter, setVisitMapFilter] = useState("all");
+  const [mapViewSubMode, setMapViewSubMode] = useState("fleet"); // "fleet" | "playback"
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedRepId, setSelectedRepId] = useState(null);
   const [focusedLead, setFocusedLead] = useState(null);
@@ -685,33 +687,8 @@ export default function LiveFleetCommandMap({
       }
     });
 
-    if (isGoogleLoaded && window.google?.maps?.DirectionsService) {
-      const directionsService = new window.google.maps.DirectionsService();
-      const waypoints = historyRouteCoords
-        .slice(1, -1)
-        .slice(0, 23)
-        .map((pt) => ({
-          location: { lat: pt.lat, lng: pt.lng },
-          stopover: false,
-        }));
-
-      directionsService.route(
-        {
-          origin: { lat: origin.lat, lng: origin.lng },
-          destination: { lat: destination.lat, lng: destination.lng },
-          waypoints,
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (!isSubscribed) return;
-          if (status === window.google.maps.DirectionsStatus.OK && result) {
-            setHistoryDirectionsResult(result);
-          } else {
-            setHistoryDirectionsResult(null);
-          }
-        }
-      );
-    }
+    // Zero API Token Route: Render actual recorded GPS path directly without DirectionsService charges
+    setHistoryDirectionsResult(null);
 
     return () => {
       isSubscribed = false;
@@ -1111,6 +1088,26 @@ export default function LiveFleetCommandMap({
     return null;
   }, [historyRoadCoords, historyRouteCoords]);
 
+  if (mapViewSubMode === "playback") {
+    return (
+      <div className="live-fleet-command">
+        <DailyRoutePlaybackMap
+          selectedEmployee={selectedEmployee || (employees.length > 0 ? employees[0] : null)}
+          employees={employees}
+          onSelectEmployee={(emp) => handleSelectRep(emp)}
+          selectedDate={selectedRouteDate || routeSummary?.selected_date || ""}
+          onSelectDate={onSelectRouteDate}
+          routeSummary={routeSummary}
+          timelinePoints={timelinePoints}
+          availableDays={availableDays}
+          isLoading={timelineLoading}
+          onSelectVisit={onSelectVisit}
+          onBackToFleet={() => setMapViewSubMode("fleet")}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="live-fleet-command">
       {/* ==================================================================== */}
@@ -1118,6 +1115,30 @@ export default function LiveFleetCommandMap({
       {/* ==================================================================== */}
       <aside className="fleet-col fleet-col--left">
         <div className="fleet-col__header">
+          <div className="fleet-view-mode-toggle-bar">
+            <button
+              type="button"
+              className={`fleet-mode-toggle-btn ${mapViewSubMode === "fleet" ? "active" : ""}`}
+              onClick={() => setMapViewSubMode("fleet")}
+            >
+              <UserRound size={13} />
+              <span>Live Fleet</span>
+            </button>
+            <button
+              type="button"
+              className={`fleet-mode-toggle-btn ${mapViewSubMode === "playback" ? "active" : ""}`}
+              onClick={() => {
+                setMapViewSubMode("playback");
+                if (!selectedEmployee && employees.length > 0) {
+                  handleSelectRep(employees[0]);
+                }
+              }}
+            >
+              <Footprints size={13} />
+              <span>Route Playback</span>
+            </button>
+          </div>
+
           <div className="fleet-col__title-row">
             <h3 className="fleet-col__title">Sales Fleet</h3>
             <button
@@ -1261,6 +1282,18 @@ export default function LiveFleetCommandMap({
                         <Footprints size={12} style={{ display: "inline", marginRight: 2 }} />
                         {emp.today_distance_km ? `${emp.today_distance_km} KM` : "0.0 KM"}
                       </span>
+                      <button
+                        type="button"
+                        className="fleet-card-play-shortcut"
+                        title="Replay daily travel route on Google Maps"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectRep(emp);
+                          setMapViewSubMode("playback");
+                        }}
+                      >
+                        ▶ Play
+                      </button>
                     </div>
 
                     <div className="fleet-emp-card__last-seen">
@@ -1325,6 +1358,14 @@ export default function LiveFleetCommandMap({
                     {routeSummary?.selected_date_label || (routeSummary?.date ? `Route on ${routeSummary.date}` : "Daily Travel Graph")}
                   </span>
                 </div>
+                <button
+                  type="button"
+                  className="fleet-switch-to-playback-btn"
+                  title="Open full daily route playback on Google Maps"
+                  onClick={() => setMapViewSubMode("playback")}
+                >
+                  ▶ Replay Route
+                </button>
                 <span
                   className={`fleet-badge ${isViewingToday ? (isEmployeeOnShift(selectedEmployee) ? "active" : "finalized") : "finalized"}`}
                   title="Shift status for selected date"
