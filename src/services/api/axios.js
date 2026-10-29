@@ -8,6 +8,9 @@ const resolveBaseUrl = () => {
     const raw = import.meta.env.VITE_BACKEND_URL.replace(/\/+$/, "");
     return raw.endsWith("/api") ? raw : `${raw}/api`;
   }
+  if (import.meta.env.PROD) {
+    return "https://ignite-backend-8t7z.onrender.com/api";
+  }
   return "/api";
 };
 
