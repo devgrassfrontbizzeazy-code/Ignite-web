@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FiUsers,
   FiUserCheck,
@@ -96,6 +96,11 @@ const EmployeeAttendance = ({ onShowToast }) => {
     fetchDepts();
   }, []);
 
+  const onShowToastRef = useRef(onShowToast);
+  useEffect(() => {
+    onShowToastRef.current = onShowToast;
+  }, [onShowToast]);
+
   // Fetch company employee attendance
   const fetchEmployeeAttendance = useCallback(async () => {
     try {
@@ -115,14 +120,14 @@ const EmployeeAttendance = ({ onShowToast }) => {
       }
     } catch (err) {
       console.error("Failed to fetch employee attendance", err);
-      if (onShowToast) {
+      if (onShowToastRef.current) {
         const msg = err.response?.data?.message || "Failed to load employee attendance.";
-        onShowToast(msg, "error");
+        onShowToastRef.current(msg, "error");
       }
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, selectedDepartment, selectedStatus, searchQuery, onShowToast]);
+  }, [selectedDate, selectedDepartment, selectedStatus, searchQuery]);
 
   useEffect(() => {
     fetchEmployeeAttendance();

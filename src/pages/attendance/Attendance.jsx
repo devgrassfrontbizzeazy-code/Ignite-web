@@ -109,9 +109,9 @@ const Attendance = () => {
 
   const { showNotification } = useNotification();
 
-  const showToast = (message, type = "success") => {
+  const showToast = useCallback((message, type = "success") => {
     showNotification({ type, message });
-  };
+  }, [showNotification]);
 
   // Fetch today's attendance state
   const fetchTodayAttendance = useCallback(async () => {

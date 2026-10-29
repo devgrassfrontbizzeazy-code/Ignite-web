@@ -74,7 +74,9 @@ export const attendanceAPI = {
    * Fetch pending approval queue (Manager / HR Access)
    */
   getPendingApprovals: async (params = {}) => {
-    const response = await api.get("/attendance/approvals/", { params });
+    const response = await api.get("/attendance/company/", {
+      params: { ...params, status: "PENDING_APPROVAL" },
+    });
     return response.data;
   },
 
@@ -82,7 +84,8 @@ export const attendanceAPI = {
    * Approve an attendance session
    */
   approveAttendance: async (attendanceId, remarks = "") => {
-    const response = await api.post(`/attendance/approvals/${attendanceId}/approve/`, {
+    const response = await api.post(`/attendance/${attendanceId}/approve/`, {
+      action: "APPROVE",
       remarks,
     });
     return response.data;
@@ -92,7 +95,9 @@ export const attendanceAPI = {
    * Reject an attendance session
    */
   rejectAttendance: async (attendanceId, reason = "") => {
-    const response = await api.post(`/attendance/approvals/${attendanceId}/reject/`, {
+    const response = await api.post(`/attendance/${attendanceId}/reject/`, {
+      action: "REJECT",
+      rejection_reason: reason,
       reason,
     });
     return response.data;
