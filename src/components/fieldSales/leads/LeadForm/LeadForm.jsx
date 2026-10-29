@@ -67,8 +67,6 @@ const defaultFormData = {
   country: "India",
   pincode: "",
   address: "",
-  latitude: "",
-  longitude: "",
   assigned_to: "",
   priority: "High",
   visit_date: getToday(),
@@ -190,8 +188,6 @@ const LeadForm = ({
             country: lead.country || "India",
             pincode: lead.pincode || "",
             address: lead.address || "",
-            latitude: lead.latitude != null ? String(lead.latitude) : "",
-            longitude: lead.longitude != null ? String(lead.longitude) : "",
             assigned_to: lead.assigned_to ? String(lead.assigned_to) : (lead.assigned_to_details?.id ? String(lead.assigned_to_details.id) : ""),
             priority: lead.priority || "High",
             visit_date: lead.visit_date || getToday(),
@@ -354,18 +350,6 @@ const LeadForm = ({
         const lng = position.coords.longitude;
         const accuracy = Math.round(position.coords.accuracy || 10);
 
-        setFormData((prev) => ({
-          ...prev,
-          latitude: String(lat.toFixed(6)),
-          longitude: String(lng.toFixed(6)),
-        }));
-
-        setErrors((prev) => ({
-          ...prev,
-          latitude: "",
-          longitude: "",
-        }));
-
         try {
           const geo = await reverseGeocodeGoogle(lat, lng, googleApiKey);
           if (geo) {
@@ -445,8 +429,6 @@ const LeadForm = ({
         country: details.country || prev.country,
         pincode: details.pincode || prev.pincode,
         address: details.formattedAddress || prev.address,
-        latitude: details.latitude != null ? String(details.latitude) : prev.latitude,
-        longitude: details.longitude != null ? String(details.longitude) : prev.longitude,
       }));
       setErrors((prev) => ({
         ...prev,
@@ -477,8 +459,6 @@ const LeadForm = ({
           return {
             ...prev,
             pincode: geo.pincode,
-            latitude: geo.latitude != null ? String(geo.latitude) : prev.latitude,
-            longitude: geo.longitude != null ? String(geo.longitude) : prev.longitude,
           };
         });
         setErrors((prev) => ({ ...prev, pincode: "" }));
@@ -565,18 +545,6 @@ const LeadForm = ({
 
       const fullAddress = getFullAddress(formData) || formData.address.trim();
 
-      let finalLat = formData.latitude ? parseFloat(formData.latitude) : null;
-      let finalLng = formData.longitude ? parseFloat(formData.longitude) : null;
-
-      // Automatically forward-geocode address via Google Maps if coordinates not yet obtained
-      if ((finalLat == null || finalLng == null) && fullAddress) {
-        const geo = await forwardGeocodeGoogle(fullAddress, googleApiKey);
-        if (geo?.latitude && geo?.longitude) {
-          finalLat = parseFloat(geo.latitude);
-          finalLng = parseFloat(geo.longitude);
-        }
-      }
-
       const payload = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -592,9 +560,6 @@ const LeadForm = ({
         state: formData.state?.trim() || "",
         country: formData.country?.trim() || "India",
         pincode: formData.pincode?.trim() || "",
-
-        latitude: finalLat,
-        longitude: finalLng,
 
         assigned_to: formData.assigned_to ? parseInt(formData.assigned_to, 10) : null,
         priority: formData.priority || "High",
@@ -868,7 +833,7 @@ const LeadForm = ({
               <div>
                 <h2>Lead Location</h2>
                 <p>
-                  Verified with Google Maps API. Coordinates are automatically resolved.
+                  Enter client address and territory details.
                 </p>
               </div>
             </div>
@@ -879,7 +844,7 @@ const LeadForm = ({
               className="lead-form__locate-btn"
               onClick={handleUseCurrentLocation}
               disabled={isLocating}
-              title="Auto-fill device GPS coordinates and address via Google Maps"
+              title="Auto-fill address via device location"
             >
               <Navigation size={15} className={isLocating ? "lead-form__spin" : ""} />
               <span>{isLocating ? "Acquiring GPS..." : "Use My Current Location"}</span>
