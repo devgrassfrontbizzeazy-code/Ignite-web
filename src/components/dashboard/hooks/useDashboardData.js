@@ -486,6 +486,7 @@ const useDashboardData = () => {
 
             const gps = await getDeviceLocationPayload();
             await attendanceAPI.punchIn(gps);
+            window.dispatchEvent(new CustomEvent("ignite:attendance-sync"));
             await refreshAttendance();
         } catch (err) {
             console.error("Failed to punch in:", err);
@@ -503,6 +504,7 @@ const useDashboardData = () => {
 
             const gps = await getDeviceLocationPayload();
             await attendanceAPI.punchOut(gps);
+            window.dispatchEvent(new CustomEvent("ignite:attendance-sync"));
             await refreshAttendance();
         } catch (err) {
             console.error("Failed to punch out:", err);

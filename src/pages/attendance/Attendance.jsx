@@ -213,6 +213,7 @@ const Attendance = () => {
       if (res?.data) {
         setTodayData(res.data);
       }
+      window.dispatchEvent(new CustomEvent("ignite:attendance-sync"));
       showToast(res?.message || "Work session started successfully!", "success");
       setConfirmModal((prev) => ({ ...prev, open: false }));
       fetchHistory(activePeriod);
@@ -313,6 +314,7 @@ const Attendance = () => {
       if (res?.data) {
         setTodayData(res.data);
       }
+      window.dispatchEvent(new CustomEvent("ignite:attendance-sync"));
       showToast(
         res?.message || "Successfully punched out! Your attendance has been submitted for approval.",
         "success"

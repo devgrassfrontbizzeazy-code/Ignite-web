@@ -181,9 +181,12 @@ export default function useFieldSalesWebTracker() {
     void checkAndSyncTracking();
     const syncIntervalId = setInterval(checkAndSyncTracking, 5000);
 
+    window.addEventListener("ignite:attendance-sync", checkAndSyncTracking);
+
     return () => {
       isCancelled = true;
       clearInterval(syncIntervalId);
+      window.removeEventListener("ignite:attendance-sync", checkAndSyncTracking);
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;
