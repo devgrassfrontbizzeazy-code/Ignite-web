@@ -256,18 +256,80 @@ const Profile = () => {
       setSaveLoading(true);
       setEditError("");
 
+      const firstName = (editEmployee.firstName || editEmployee.first_name || "").trim();
+      const lastName = (editEmployee.lastName || editEmployee.last_name || "").trim();
+
+      if (!firstName) {
+        setEditError("First Name is required.");
+        setSaveLoading(false);
+        return;
+      }
+
+      if (!lastName) {
+        setEditError("Last Name is required.");
+        setSaveLoading(false);
+        return;
+      }
+
+      // Phone validation & normalization
+      const rawPhone = (editEmployee.phone || "").trim();
+      let formattedPhone = "";
+      if (rawPhone) {
+        let digits = rawPhone.replace(/[\s\-\(\)\.]/g, "");
+        if (digits.startsWith("+91")) digits = digits.slice(3);
+        else if (digits.startsWith("91") && digits.length === 12) digits = digits.slice(2);
+        else if (digits.startsWith("0") && digits.length === 11) digits = digits.slice(1);
+
+        if (!/^\d{10}$/.test(digits)) {
+          setEditError("Phone: Phone number must contain 10 digits.");
+          setSaveLoading(false);
+          return;
+        }
+        formattedPhone = digits;
+      }
+
+      // Date of Birth validation & formatting
+      const rawDob = (editEmployee.dateOfBirth || editEmployee.date_of_birth || "").toString().trim();
+      let cleanDob = null;
+      if (rawDob) {
+        const parsedDate = new Date(rawDob);
+        if (isNaN(parsedDate.getTime())) {
+          setEditError("Date of Birth: Please enter a valid Date of Birth.");
+          setSaveLoading(false);
+          return;
+        }
+        if (parsedDate > new Date()) {
+          setEditError("Date of Birth: Date of Birth cannot be in the future.");
+          setSaveLoading(false);
+          return;
+        }
+        cleanDob = rawDob;
+      }
+
+      const ecName = (editEmployee.emergency_contact_name || editEmployee.emergencyContact?.name || "").trim();
+      let ecPhone = (editEmployee.emergency_contact_phone || editEmployee.emergencyContact?.phone || "").toString().trim();
+      if (ecPhone) {
+        let ecDigits = ecPhone.replace(/[\s\-\(\)\.]/g, "");
+        if (ecDigits.startsWith("+91")) ecDigits = ecDigits.slice(3);
+        else if (ecDigits.startsWith("91") && ecDigits.length === 12) ecDigits = ecDigits.slice(2);
+        else if (ecDigits.startsWith("0") && ecDigits.length === 11) ecDigits = ecDigits.slice(1);
+        if (/^\d{10}$/.test(ecDigits)) {
+          ecPhone = ecDigits;
+        }
+      }
+
       let updatedEmployee = null;
 
       if (employee?.isFieldSalesEmployee) {
         const { updateFieldSalesEmployee } = await import("../../services/api/fieldSalesAPI");
         const payload = {
-          first_name: editEmployee.firstName || "",
-          middle_name: editEmployee.middleName || "",
-          last_name: editEmployee.lastName || "",
+          first_name: firstName,
+          middle_name: (editEmployee.middleName || editEmployee.middle_name || "").trim(),
+          last_name: lastName,
           gender: editEmployee.gender || "",
-          date_of_birth: editEmployee.dateOfBirth || null,
-          phone: editEmployee.phone || "",
-          address: editEmployee.address || "",
+          date_of_birth: cleanDob,
+          phone: formattedPhone,
+          address: (editEmployee.address || "").trim(),
         };
 
         if (profilePhotoFile) {
@@ -279,38 +341,65 @@ const Profile = () => {
         updatedEmployee = {
           ...employee,
           ...data,
-          firstName: data.first_name || editEmployee.firstName,
+          firstName: data.first_name || firstName,
           middleName: data.middle_name || editEmployee.middleName,
-          lastName: data.last_name || editEmployee.lastName,
-          fullName: data.full_name || `${editEmployee.firstName} ${editEmployee.lastName}`.trim(),
-          phone: data.phone || editEmployee.phone,
+          lastName: data.last_name || lastName,
+          fullName: data.full_name || (firstName + " " + lastName).trim(),
+          phone: formattedPhone || data.phone || editEmployee.phone,
           address: data.address || editEmployee.address,
           gender: data.gender || editEmployee.gender,
-          dateOfBirth: data.date_of_birth || editEmployee.dateOfBirth,
+          dateOfBirth: data.date_of_birth || cleanDob,
+          date_of_birth: data.date_of_birth || cleanDob,
           profile_photo_url: data.profile_photo_url || data.profilePhotoUrl || profilePhotoPreview || employee.profile_photo_url,
           profilePhotoUrl: data.profile_photo_url || data.profilePhotoUrl || profilePhotoPreview || employee.profile_photo_url,
         };
       } else {
         const payload = {
-          firstName: editEmployee.firstName || "",
-          middleName: editEmployee.middleName || "",
-          lastName: editEmployee.lastName || "",
+          first_name: firstName,
+          middle_name: (editEmployee.middleName || editEmployee.middle_name || "").trim(),
+          last_name: lastName,
           gender: editEmployee.gender || "",
-          dateOfBirth: editEmployee.dateOfBirth || null,
-          phone: editEmployee.phone || "",
-          address: editEmployee.address || "",
-          emergencyContact: {
-            name: editEmployee.emergencyContact?.name || "",
-            phone: editEmployee.emergencyContact?.phone || "",
-          },
+          date_of_birth: cleanDob,
+          phone: formattedPhone,
+          address: (editEmployee.address || "").trim(),
+          emergency_contact_name: ecName,
+          emergency_contact_phone: ecPhone,
+
+          // Legacy camelCase fallbacks
+          firstName,
+          middleName: (editEmployee.middleName || editEmployee.middle_name || "").trim(),
+          lastName,
+          dateOfBirth: cleanDob,
         };
 
         if (profilePhotoFile) {
+          payload.photo = profilePhotoFile;
           payload.profile_photo = profilePhotoFile;
         }
 
         const response = await patchEmployee(employee.id, payload);
-        updatedEmployee = response?.data || response;
+        const data = response?.data || response;
+        updatedEmployee = {
+          ...employee,
+          ...data,
+          firstName: data.first_name || data.firstName || firstName,
+          middleName: data.middle_name || data.middleName || editEmployee.middleName,
+          lastName: data.last_name || data.lastName || lastName,
+          fullName: data.full_name || data.fullName || (firstName + " " + lastName).trim(),
+          phone: formattedPhone || data.phone || editEmployee.phone,
+          address: data.address || editEmployee.address,
+          gender: data.gender || editEmployee.gender,
+          dateOfBirth: data.date_of_birth || data.dateOfBirth || cleanDob,
+          date_of_birth: data.date_of_birth || cleanDob,
+          emergency_contact_name: ecName,
+          emergency_contact_phone: ecPhone,
+          emergencyContact: {
+            name: ecName,
+            phone: ecPhone,
+          },
+          profile_photo_url: data.profile_photo_url || data.profilePhotoUrl || data.photo || profilePhotoPreview || employee.profile_photo_url,
+          profilePhotoUrl: data.profile_photo_url || data.profilePhotoUrl || data.photo || profilePhotoPreview || employee.profile_photo_url,
+        };
       }
 
       setEmployee(updatedEmployee);
@@ -345,21 +434,35 @@ const Profile = () => {
       console.error("Failed to update profile:", err);
 
       const backendError = err?.response?.data;
+      let message = "Unable to update your profile.";
 
-      let message =
-        backendError?.message ||
-        backendError?.detail ||
-        err?.message ||
-        "Unable to update your profile.";
+      const rawErrors =
+        backendError?.errors ||
+        (typeof backendError === "object" && !backendError?.message && !backendError?.detail
+          ? backendError
+          : null);
 
-      if (typeof backendError === "object" && !backendError?.message) {
-        const firstError = Object.values(backendError)?.[0];
-
-        if (Array.isArray(firstError)) {
-          message = firstError[0];
-        } else if (typeof firstError === "string") {
-          message = firstError;
+      if (rawErrors && typeof rawErrors === "object") {
+        const errorList = Object.entries(rawErrors).map(([field, val]) => {
+          const errorMsg = Array.isArray(val)
+            ? val[0]
+            : typeof val === "object"
+            ? Object.values(val)[0]
+            : String(val);
+          const fieldLabel = field
+            .replace(/_/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+          return fieldLabel + ": " + errorMsg;
+        });
+        if (errorList.length > 0) {
+          message = errorList.join(" | ");
         }
+      } else if (backendError?.message && backendError.message !== "Validation failed.") {
+        message = backendError.message;
+      } else if (backendError?.detail) {
+        message = backendError.detail;
+      } else if (err?.message) {
+        message = err.message;
       }
 
       setEditError(message);
