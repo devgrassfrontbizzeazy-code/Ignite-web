@@ -2,6 +2,7 @@ import { getCachedApiData } from "./api/axios";
 import {
   getEmployees,
   getEmployee,
+  getCurrentEmployee,
   createEmployee,
   updateEmployee,
   patchEmployee,
@@ -105,6 +106,15 @@ const normalizeEmployee = (emp) => {
       emp.overrideRole ??
       (typeof emp.override_role === "object" ? emp.override_role?.id : null) ??
       "",
+    employeeCode: emp.employee_code || emp.employeeCode || "",
+    dateOfJoining: emp.date_of_joining || emp.dateOfJoining || "",
+    dateOfBirth: emp.date_of_birth || emp.dateOfBirth || "",
+    workLocation: emp.work_location || emp.workLocation || "",
+    employmentType: emp.employment_type || emp.employmentType || "Full Time",
+    employmentStatus: emp.employment_status || emp.employmentStatus || "Active",
+    shift: emp.shift || null,
+    shift_name: emp.shift?.name || (typeof emp.shift === "string" ? emp.shift : "") || "",
+    shift_timing: emp.shift?.timingDisplay || (emp.shift?.start_time && emp.shift?.end_time ? `${emp.shift.start_time} - ${emp.shift.end_time}` : "") || "",
   };
 };
 
@@ -126,6 +136,15 @@ const employeeService = {
     const res = await getEmployees(params);
     const list = extractData(res);
     return Array.isArray(list) ? list.map(normalizeEmployee) : [];
+  },
+
+  /*
+   * GET CURRENT LOGGED-IN EMPLOYEE
+   */
+  async getCurrent() {
+    const res = await getCurrentEmployee();
+    const data = res?.data || res;
+    return normalizeEmployee(data);
   },
 
   /*

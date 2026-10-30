@@ -164,12 +164,15 @@ const Login = () => {
         role === "ADMIN" ||
         role === "ADMINISTRATOR";
 
-      // Field Sales employees go directly to Field Sales
+      // Synchronize initial active system workspace
       if (user?.is_field_sales === true) {
+        localStorage.setItem("ignite_active_system", "field-sales");
         navigate("/field-sales", {
           replace: true,
         });
         return;
+      } else {
+        localStorage.setItem("ignite_active_system", "hrms");
       }
 
       const hasCompany = Boolean(user?.company_id || user?.companyId);

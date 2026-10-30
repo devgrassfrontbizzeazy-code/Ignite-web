@@ -24,6 +24,7 @@ import { canUpdateEmployees } from "../../utils/permissionUtils";
 import {
   getEmployees,
   getEmployee,
+  getCurrentEmployee,
   patchEmployee,
 } from "../../services/api/employeeAPI";
 
@@ -388,8 +389,54 @@ const Profile = () => {
 
         let matchedEmployee = null;
 
-        // 1. If user is in Field Sales, check Field Sales employees first
-        if (user?.is_field_sales || user?.department === "Field Sales") {
+        // 1. First priority: Fetch full employee profile directly from /api/employees/me/
+        try {
+          const empRes = await getCurrentEmployee();
+          const empData = empRes?.data || empRes;
+          if (empData && (empData.employeeCode || empData.employee_code || empData.email)) {
+            matchedEmployee = {
+              ...empData,
+              employeeCode: empData.employeeCode || empData.employee_code,
+              employee_code: empData.employee_code || empData.employeeCode,
+              profile_photo_url:
+                empData.profile_photo_url ||
+                empData.profilePhotoUrl ||
+                empData.photoUrl ||
+                empData.photo_url ||
+                user.profile_photo_url ||
+                user.photo_url,
+            };
+          }
+        } catch (meErr) {
+          console.warn("Direct /employees/me/ lookup error:", meErr);
+        }
+
+        // 2. Second priority: If user has employee_id and not yet matched, fetch by employee ID
+        if (!matchedEmployee && user?.employee_id) {
+          try {
+            const empRes = await getEmployee(user.employee_id);
+            const empData = empRes?.data || empRes;
+            if (empData && (empData.employeeCode || empData.employee_code || empData.email)) {
+              matchedEmployee = {
+                ...empData,
+                employeeCode: empData.employeeCode || empData.employee_code,
+                employee_code: empData.employee_code || empData.employeeCode,
+                profile_photo_url:
+                  empData.profile_photo_url ||
+                  empData.profilePhotoUrl ||
+                  empData.photoUrl ||
+                  empData.photo_url ||
+                  user.profile_photo_url ||
+                  user.photo_url,
+              };
+            }
+          } catch (idErr) {
+            console.warn("getEmployee by ID error:", idErr);
+          }
+        }
+
+        // 3. Third priority: If user is in Field Sales, check Field Sales employees
+        if (!matchedEmployee && (user?.is_field_sales || user?.department === "Field Sales")) {
           try {
             const { getFieldSalesEmployees } = await import("../../services/api/fieldSalesAPI");
             const fsRes = await getFieldSalesEmployees();
@@ -405,6 +452,7 @@ const Profile = () => {
               matchedEmployee = {
                 id: fsMatched.id,
                 employeeCode: fsMatched.employee_code || fsMatched.employeeCode,
+                employee_code: fsMatched.employee_code || fsMatched.employeeCode,
                 firstName: fsMatched.first_name || fsMatched.firstName,
                 middleName: fsMatched.middle_name || fsMatched.middleName,
                 lastName: fsMatched.last_name || fsMatched.lastName,
@@ -435,7 +483,7 @@ const Profile = () => {
           }
         }
 
-        // 2. If still not matched, check HRMS employees
+        // 4. Fourth priority: HRMS employee directory lookup
         if (!matchedEmployee) {
           try {
             const employeeResponse = await getEmployees();
@@ -454,6 +502,8 @@ const Profile = () => {
             if (hrmsMatched) {
               matchedEmployee = {
                 ...hrmsMatched,
+                employeeCode: hrmsMatched.employeeCode || hrmsMatched.employee_code,
+                employee_code: hrmsMatched.employee_code || hrmsMatched.employeeCode,
                 profile_photo_url: hrmsMatched.profile_photo_url || hrmsMatched.profilePhotoUrl || user.profile_photo_url || user.photo_url,
               };
             }
@@ -462,75 +512,34 @@ const Profile = () => {
           }
         }
 
-        // 3. If still not matched, fallback check Field Sales employees
+        // 5. Fallback: Populate from authenticated user info
         if (!matchedEmployee) {
-          try {
-            const { getFieldSalesEmployees } = await import("../../services/api/fieldSalesAPI");
-            const fsRes = await getFieldSalesEmployees();
-            const fsEmployees = Array.isArray(fsRes)
-              ? fsRes
-              : Array.isArray(fsRes?.data)
-                ? fsRes.data
-                : [];
-            const fsMatched = fsEmployees.find(
-              (item) => item?.email?.toLowerCase() === user.email.toLowerCase()
-            );
-            if (fsMatched) {
-              matchedEmployee = {
-                id: fsMatched.id,
-                employeeCode: fsMatched.employee_code || fsMatched.employeeCode,
-                firstName: fsMatched.first_name || fsMatched.firstName,
-                middleName: fsMatched.middle_name || fsMatched.middleName,
-                lastName: fsMatched.last_name || fsMatched.lastName,
-                fullName: fsMatched.full_name || fsMatched.fullName || `${fsMatched.first_name || ""} ${fsMatched.last_name || ""}`.trim(),
-                email: fsMatched.email,
-                phone: fsMatched.phone,
-                gender: fsMatched.gender,
-                dateOfBirth: fsMatched.date_of_birth || fsMatched.dateOfBirth,
-                dateOfJoining: fsMatched.date_of_joining || fsMatched.dateOfJoining,
-                address: fsMatched.address,
-                employmentType: fsMatched.employment_type || fsMatched.employmentType || "Full Time",
-                employmentStatus: fsMatched.employment_status || fsMatched.employmentStatus || (fsMatched.is_active ? "Active" : "Inactive"),
-                invitationStatus: fsMatched.invitation_status || "ACCEPTED",
-                workLocation: fsMatched.work_location || "Field",
-                department: { name: "Field Sales" },
-                designation: {
-                  name: fsMatched.role,
-                  accessProfile: fsMatched.role === "Manager" ? "Manager" : "Sales Person",
-                },
-                reportingManager: fsMatched.reporting_manager_details || fsMatched.reporting_manager,
-                profile_photo_url: fsMatched.profile_photo_url || fsMatched.photo_url || user.profile_photo_url || user.photo_url,
-                effectivePermissions: user.permissions || [],
-                isFieldSalesEmployee: true,
-              };
-            }
-          } catch (fsErr) {
-            console.warn("Field Sales employee fallback lookup error:", fsErr);
-          }
-        }
-
-        // Fallback to user data if still not found
-        if (!matchedEmployee) {
+          const userEmployeeCode =
+            user.employee_code ||
+            user.employeeCode ||
+            "Not assigned";
           matchedEmployee = {
             id: user.employee_id || user.id,
-            employeeCode: user.employee_id ? `EMP-${user.employee_id}` : "N/A",
+            employeeCode: userEmployeeCode,
+            employee_code: userEmployeeCode,
             firstName: user.first_name || user.username || "",
             lastName: user.last_name || "",
             fullName: user.full_name || user.username || "User",
             email: user.email,
             phone: user.phone || "",
             gender: user.gender || "",
-            dateOfBirth: null,
-            dateOfJoining: null,
+            dateOfBirth: user.date_of_birth || user.dateOfBirth || null,
+            dateOfJoining: user.date_of_joining || user.dateOfJoining || null,
             address: user.address || "",
-            employmentType: "Full Time",
-            employmentStatus: "Active",
+            shift: user.shift || null,
+            employmentType: user.employment_type || user.employmentType || "Full Time",
+            employmentStatus: user.employment_status || user.employmentStatus || "Active",
             invitationStatus: "ACCEPTED",
-            workLocation: "Office",
-            department: { name: user.department || "Field Sales" },
+            workLocation: user.work_location || user.workLocation || "Office",
+            department: { name: user.department || "General" },
             designation: { name: user.designation || user.role || "Employee", accessProfile: user.role || "Employee" },
             reportingManager: null,
-            profile_photo_url: null,
+            profile_photo_url: user.profile_photo_url || user.photo_url || null,
             effectivePermissions: user.permissions || [],
           };
         }
@@ -648,7 +657,7 @@ const Profile = () => {
 
                 <span>
                   <BriefcaseBusiness size={15} />
-                  {displayValue(employee.employeeCode)}
+                  {displayValue(employee.employeeCode || employee.employee_code)}
                 </span>
 
                 <span>
@@ -707,7 +716,7 @@ const Profile = () => {
               <InfoItem
                 icon={CalendarDays}
                 label="Date of Birth"
-                value={formatDate(employee.dateOfBirth)}
+                value={formatDate(employee.dateOfBirth || employee.date_of_birth)}
               />
             </div>
           </Card>
@@ -751,7 +760,7 @@ const Profile = () => {
               <InfoItem
                 icon={BriefcaseBusiness}
                 label="Employee ID"
-                value={employee.employeeCode}
+                value={employee.employeeCode || employee.employee_code}
               />
 
               <InfoItem
@@ -775,7 +784,7 @@ const Profile = () => {
               <InfoItem
                 icon={CalendarDays}
                 label="Date of Joining"
-                value={formatDate(employee.dateOfJoining)}
+                value={formatDate(employee.dateOfJoining || employee.date_of_joining)}
               />
 
               <InfoItem
@@ -797,8 +806,9 @@ const Profile = () => {
                 icon={Clock3}
                 label="Shift"
                 value={
-                  employee.shift?.timingDisplay ||
-                  employee.shift?.name
+                  employee.shift?.timingDisplay
+                    ? `${employee.shift?.name || "Shift"} (${employee.shift.timingDisplay})`
+                    : (employee.shift?.name || employee.shift_timing || employee.shift_name || (typeof employee.shift === "string" ? employee.shift : null))
                 }
               />
             </div>

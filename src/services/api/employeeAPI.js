@@ -45,6 +45,11 @@ export const getEmployee = async (id) => {
   return response.data;
 };
 
+export const getCurrentEmployee = async () => {
+  const response = await api.get("/employees/me/");
+  return response.data;
+};
+
 export const createEmployee = async (employeeData) => {
   const hasFiles = isFormDataRequired(employeeData);
   const payload = hasFiles ? buildFormData(employeeData) : employeeData;

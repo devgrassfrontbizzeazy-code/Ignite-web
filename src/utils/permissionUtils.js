@@ -48,10 +48,10 @@ export const isFieldSalesManager = (user = null) => {
   if (isSuperOrAdmin(targetUser)) return true;
   const rawRole = String(targetUser.role || targetUser.designation || "").toUpperCase();
   const perms = getUserPermissions(targetUser);
+  const isFs = targetUser.is_field_sales === true || targetUser.department === "Field Sales";
   return (
-    targetUser.is_manager === true ||
-    rawRole === "MANAGER" ||
     rawRole === "FIELD SALES MANAGER" ||
+    (isFs && (targetUser.is_manager === true || rawRole === "MANAGER")) ||
     perms.includes("field_sales.manage") ||
     perms.includes("field_sales.employees_manage")
   );
@@ -61,11 +61,14 @@ export const isSalesPerson = (user = null) => {
   const targetUser = user || getCurrentUser();
   if (isFieldSalesManager(targetUser)) return false;
   const rawRole = String(targetUser.role || targetUser.designation || "").toUpperCase();
+  const perms = getUserPermissions(targetUser);
   return (
     rawRole === "SALES PERSON" ||
-    rawRole === "MEMBER" ||
+    rawRole === "FIELD SALES" ||
     targetUser.department === "Field Sales" ||
-    targetUser.is_field_sales === true
+    targetUser.is_field_sales === true ||
+    perms.includes("field_sales.view") ||
+    perms.includes("field_sales.visits_view")
   );
 };
 
