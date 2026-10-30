@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
+  MapContainer,
+  TileLayer,
+  Polyline,
+  Marker,
+  Popup,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import {
   GoogleMap,
   PolylineF,
   MarkerF,
@@ -62,6 +72,97 @@ const svgDataUri = (svg) =>
 /* -------------------------------------------------------------------------- */
 /* Static Map Options (Stable reference to prevent re-options re-renders)     */
 /* -------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------- */
+/* Leaflet Fallback Helpers & OSRM Road Geometry                              */
+/* -------------------------------------------------------------------------- */
+function createLeafletCheckpointIcon(label, isFinalized = false) {
+  const bg = label === "IN" ? "#10b981" : isFinalized ? "#ef4444" : "#3b82f6";
+  return L.divIcon({
+    className: "playback-leaflet-icon",
+    html: `<div style="background:${bg};color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);">${label}</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
+}
+
+function createLeafletVehicleIcon(heading = 0) {
+  const safeHeading = isNaN(heading) || heading == null ? 0 : Math.round(heading);
+  return L.divIcon({
+    className: "playback-leaflet-vehicle",
+    html: `<div style="transform: rotate(${safeHeading}deg); width: 44px; height: 44px;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="24" fill="#3B82F6" fill-opacity="0.3"/>
+        <circle cx="26" cy="26" r="14" fill="#1D4ED8" stroke="#FFFFFF" stroke-width="3"/>
+        <g transform="rotate(${safeHeading}, 26, 26)">
+          <path d="M26 15.5 L33.5 31 L26 27.5 L18.5 31 Z" fill="#FFFFFF"/>
+        </g>
+      </svg>
+    </div>`,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+  });
+}
+
+function LeafletMapController({ center, bounds, followPosition, isFollowCamera }) {
+  const map = useMap();
+  useEffect(() => {
+    if (bounds && bounds.isValid && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (center) {
+      map.setView(center, 14);
+    }
+  }, [bounds, center, map]);
+
+  useEffect(() => {
+    if (isFollowCamera && followPosition && !isNaN(followPosition[0]) && !isNaN(followPosition[1])) {
+      map.panTo(followPosition);
+    }
+  }, [isFollowCamera, followPosition, map]);
+
+  return null;
+}
+
+async function fetchOsrmPlaybackRoute(waypoints) {
+  if (!waypoints || waypoints.length < 2) return null;
+  try {
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    let directDist = 0;
+    for (let i = 0; i < waypoints.length; i++) {
+      const pt = waypoints[i];
+      if (pt.lat < minLat) minLat = pt.lat;
+      if (pt.lat > maxLat) maxLat = pt.lat;
+      if (pt.lng < minLng) minLng = pt.lng;
+      if (pt.lng > maxLng) maxLng = pt.lng;
+      if (i > 0) {
+        directDist += calculateDistance(waypoints[i-1].lat, waypoints[i-1].lng, pt.lat, pt.lng);
+      }
+    }
+    let selected = waypoints;
+    if (waypoints.length > 25) {
+      const step = Math.ceil(waypoints.length / 23);
+      selected = [
+        waypoints[0],
+        ...waypoints.slice(1, -1).filter((_, idx) => idx % step === 0),
+        waypoints[waypoints.length - 1],
+      ];
+    }
+    const coords = selected.map((pt) => `${Number(pt.lng).toFixed(6)},${Number(pt.lat).toFixed(6)}`).join(';');
+    const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.code === 'Ok' && data.routes?.[0]?.geometry?.coordinates) {
+      const osrmDist = data.routes[0].distance || 0;
+      if (directDist > 0 && osrmDist > directDist * 3.5) return null;
+      return data.routes[0].geometry.coordinates.map(([lng, lat]) => ({ lat: Number(lat), lng: Number(lng) }));
+    }
+  } catch (err) {
+    console.warn('Playback OSRM route warning:', err);
+  }
+  return null;
+}
+
 const STATIC_MAP_OPTIONS = {
   disableDefaultUI: false,
   zoomControl: true,
@@ -147,6 +248,7 @@ export default function DailyRoutePlaybackMap({
   isLoading = false,
   onSelectVisit = () => {},
   onBackToFleet = null,
+  isGoogleLoaded = false,
 }) {
   const googleMapRef = useRef(null);
   const [infoWindowTarget, setInfoWindowTarget] = useState(null);
@@ -159,14 +261,29 @@ export default function DailyRoutePlaybackMap({
   const playbackAnimRef = useRef(null);
   const [isFollowCamera, setIsFollowCamera] = useState(true);
   const lastPanTimeRef = useRef(0);
+  const [playbackRoadCoords, setPlaybackRoadCoords] = useState(null);
 
   // Synchronize mutable progressRef
   useEffect(() => {
     progressRef.current = playbackProgress;
   }, [playbackProgress]);
 
-  // Parse pure GPS points into verified polyline coordinate array
-  const routeCoords = useMemo(() => {
+  // Summary Metrics (declared early to prevent temporal dead zone)
+  const summary = useMemo(() => {
+    return routeSummary?.summary || routeSummary || {};
+  }, [routeSummary]);
+
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }, []);
+  const isViewingToday = !selectedDate || selectedDate === todayStr;
+
+  // Check if actual GPS route breadcrumbs were recorded in the database
+  const rawRoutePoints = useMemo(() => {
     let raw = [];
     if (Array.isArray(timelinePoints) && timelinePoints.length > 0) {
       raw = timelinePoints;
@@ -177,8 +294,22 @@ export default function DailyRoutePlaybackMap({
     } else if (Array.isArray(routeSummary?.data) && routeSummary.data.length > 0) {
       raw = routeSummary.data;
     }
+    return raw.filter((pt) => {
+      const lat = Number(pt?.latitude ?? pt?.lat);
+      const lng = Number(pt?.longitude ?? pt?.lng);
+      return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    });
+  }, [timelinePoints, routeSummary]);
 
-    let pts = raw
+  const hasRecordedRoute = rawRoutePoints.length > 0;
+
+  // Parse pure GPS points into verified polyline coordinate array
+  const routeCoords = useMemo(() => {
+    if (!hasRecordedRoute) {
+      return [];
+    }
+
+    let pts = rawRoutePoints
       .map((pt, idx) => {
         const lat = Number(pt.latitude ?? pt.lat);
         const lng = Number(pt.longitude ?? pt.lng);
@@ -233,11 +364,16 @@ export default function DailyRoutePlaybackMap({
     }
 
     // Incorporate Client Visits as waypoints if not yet present
-    const clientVisits = routeSummary?.markers?.visits || routeSummary?.client_visit_markers || [];
-    if (Array.isArray(clientVisits) && clientVisits.length > 0) {
+    const clientVisits = Array.isArray(routeSummary?.markers?.visits)
+      ? routeSummary.markers.visits
+      : Array.isArray(routeSummary?.client_visit_markers)
+      ? routeSummary.client_visit_markers
+      : [];
+
+    if (clientVisits.length > 0) {
       clientVisits.forEach((v) => {
-        const vLat = Number(v.latitude);
-        const vLng = Number(v.longitude);
+        const vLat = Number(v.latitude ?? v.lat);
+        const vLng = Number(v.longitude ?? v.lng);
         if (!isNaN(vLat) && !isNaN(vLng) && vLat !== 0 && vLng !== 0) {
           const exists = pts.some(
             (p) => Math.abs(p.lat - vLat) < 0.0003 && Math.abs(p.lng - vLng) < 0.0003
@@ -266,18 +402,7 @@ export default function DailyRoutePlaybackMap({
     const cOutLat = Number(routeSummary?.check_out_latitude ?? selectedEmployee?.check_out_latitude);
     const cOutLng = Number(routeSummary?.check_out_longitude ?? selectedEmployee?.check_out_longitude);
     if (!isNaN(cOutLat) && !isNaN(cOutLng) && cOutLat !== 0 && cOutLng !== 0) {
-      if (pts.length === 1 && (Math.abs(pts[0].lat - cOutLat) > 0.0002 || Math.abs(pts[0].lng - cOutLng) > 0.0002)) {
-        pts.push({
-          lat: cOutLat,
-          lng: cOutLng,
-          latitude: cOutLat,
-          longitude: cOutLng,
-          time: routeSummary?.check_out_time || "Check-out",
-          label: "Shift Check-out",
-          logType: "DUTY_END",
-          index: pts.length,
-        });
-      } else if (pts.length > 1) {
+      if (pts.length > 0) {
         const last = pts[pts.length - 1];
         if (Math.abs(last.lat - cOutLat) > 0.0003 || Math.abs(last.lng - cOutLng) > 0.0003) {
           pts.push({
@@ -294,45 +419,25 @@ export default function DailyRoutePlaybackMap({
       }
     }
 
-    // If only 1 coordinate exists but employee has travel distance, generate smooth intermediate waypoints so route can play
-    const distKm = Number(routeSummary?.total_distance_km || summary?.total_distance_km || 0);
-    if (pts.length === 1 && distKm > 0.05) {
-      const baseLat = pts[0].lat;
-      const baseLng = pts[0].lng;
-      pts.push(
-        {
-          lat: baseLat + distKm * 0.002,
-          lng: baseLng + distKm * 0.0025,
-          latitude: baseLat + distKm * 0.002,
-          longitude: baseLng + distKm * 0.0025,
-          time: "En Route",
-          label: "Waypoint 2",
-          index: 1,
-        },
-        {
-          lat: baseLat + distKm * 0.004,
-          lng: baseLng + distKm * 0.0015,
-          latitude: baseLat + distKm * 0.004,
-          longitude: baseLng + distKm * 0.0015,
-          time: "Checkpoint",
-          label: "Waypoint 3",
-          index: 2,
-        },
-        {
-          lat: baseLat + distKm * 0.0055,
-          lng: baseLng + distKm * 0.0038,
-          latitude: baseLat + distKm * 0.0055,
-          longitude: baseLng + distKm * 0.0038,
-          time: routeSummary?.check_out_time || "Check-out",
-          label: "Shift Check-out",
-          logType: "DUTY_END",
-          index: 3,
-        }
-      );
-    }
-
     return pts;
-  }, [timelinePoints, routeSummary]);
+  }, [hasRecordedRoute, rawRoutePoints, routeSummary, selectedEmployee]);
+
+  // Turn-by-Turn Road Route Geometry for Playback (snaps route to real streets)
+  useEffect(() => {
+    if (!routeCoords || routeCoords.length < 2) {
+      setPlaybackRoadCoords(null);
+      return;
+    }
+    let isSubscribed = true;
+    fetchOsrmPlaybackRoute(routeCoords).then((roadPts) => {
+      if (isSubscribed && roadPts && roadPts.length > 0) {
+        setPlaybackRoadCoords(roadPts);
+      }
+    });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [routeCoords]);
 
   // Fit bounds ONLY once when route data initially arrives or when employee/date changes
   const lastFittedRouteKey = useRef("");
@@ -620,13 +725,105 @@ export default function DailyRoutePlaybackMap({
   };
 
   // Extract Milestone Markers
-  const checkInMarker = routeSummary?.markers?.check_in || (routeCoords.length > 0 ? routeCoords[0] : null);
-  const checkOutMarker = routeSummary?.markers?.check_out || (routeCoords.length > 1 ? routeCoords[routeCoords.length - 1] : null);
-  const clientVisitMarkers = routeSummary?.markers?.visits || routeSummary?.client_visit_markers || [];
-  const idleMarkers = routeSummary?.markers?.idle_stops || routeSummary?.idle_markers || [];
+  const checkInMarker = useMemo(() => {
+    if (routeSummary?.markers?.check_in) return routeSummary.markers.check_in;
+    const lat = Number(routeSummary?.check_in_latitude ?? selectedEmployee?.check_in_latitude);
+    const lng = Number(routeSummary?.check_in_longitude ?? selectedEmployee?.check_in_longitude);
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      return {
+        latitude: lat,
+        longitude: lng,
+        lat,
+        lng,
+        address: routeSummary?.check_in_address || selectedEmployee?.check_in_address || "Start Location",
+      };
+    }
+    return routeCoords.length > 0 ? routeCoords[0] : null;
+  }, [routeSummary, selectedEmployee, routeCoords]);
+
+  const checkOutMarker = useMemo(() => {
+    if (routeSummary?.markers?.check_out) return routeSummary.markers.check_out;
+    const lat = Number(routeSummary?.check_out_latitude ?? selectedEmployee?.check_out_latitude);
+    const lng = Number(routeSummary?.check_out_longitude ?? selectedEmployee?.check_out_longitude);
+    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+      return {
+        latitude: lat,
+        longitude: lng,
+        lat,
+        lng,
+        address: routeSummary?.check_out_address || selectedEmployee?.check_out_address || "End Location",
+      };
+    }
+    return routeCoords.length > 1 ? routeCoords[routeCoords.length - 1] : null;
+  }, [routeSummary, selectedEmployee, routeCoords]);
+
+  const inLat = Number(checkInMarker?.latitude ?? checkInMarker?.lat);
+  const inLng = Number(checkInMarker?.longitude ?? checkInMarker?.lng);
+  const hasInMarker = !isNaN(inLat) && !isNaN(inLng) && (inLat !== 0 || inLng !== 0);
+
+  const outLat = Number(checkOutMarker?.latitude ?? checkOutMarker?.lat);
+  const outLng = Number(checkOutMarker?.longitude ?? checkOutMarker?.lng);
+  const hasOutMarker = !isNaN(outLat) && !isNaN(outLng) && (outLat !== 0 || outLng !== 0);
+
+  const clientVisitMarkers = useMemo(() => {
+    const raw = Array.isArray(routeSummary?.markers?.visits)
+      ? routeSummary.markers.visits
+      : Array.isArray(routeSummary?.client_visit_markers)
+      ? routeSummary.client_visit_markers
+      : [];
+    return raw.filter((v) => {
+      const lat = Number(v?.latitude ?? v?.lat);
+      const lng = Number(v?.longitude ?? v?.lng);
+      return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    });
+  }, [routeSummary]);
+
+  const idleMarkers = useMemo(() => {
+    const raw = Array.isArray(routeSummary?.markers?.idle_stops)
+      ? routeSummary.markers.idle_stops
+      : Array.isArray(routeSummary?.idle_markers)
+      ? routeSummary.idle_markers
+      : [];
+    return raw.filter((m) => {
+      const lat = Number(m?.latitude ?? m?.lat);
+      const lng = Number(m?.longitude ?? m?.lng);
+      return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+    });
+  }, [routeSummary]);
 
   // Summary Metrics
-  const summary = routeSummary?.summary || routeSummary || {};
+  const hasGoogle = Boolean(isGoogleLoaded && window.google?.maps);
+  const effectiveRoutePath = useMemo(() => {
+    if (playbackRoadCoords && playbackRoadCoords.length > 0) return playbackRoadCoords;
+    return routeCoords;
+  }, [playbackRoadCoords, routeCoords]);
+
+  const defaultCenter = useMemo(() => {
+    if (routeCoords.length > 0) {
+      const lat = Number(routeCoords[0].lat);
+      const lng = Number(routeCoords[0].lng);
+      if (!isNaN(lat) && !isNaN(lng) && lat !== 0) return [lat, lng];
+    }
+    if (hasInMarker) return [inLat, inLng];
+    const empLat = Number(selectedEmployee?.latitude ?? selectedEmployee?.check_in_latitude);
+    const empLng = Number(selectedEmployee?.longitude ?? selectedEmployee?.check_in_longitude);
+    if (!isNaN(empLat) && !isNaN(empLng) && empLat !== 0) return [empLat, empLng];
+    return [28.5355, 77.3910];
+  }, [routeCoords, hasInMarker, inLat, inLng, selectedEmployee]);
+
+  const leafletBounds = useMemo(() => {
+    if (!effectiveRoutePath || effectiveRoutePath.length === 0) return null;
+    const validPts = effectiveRoutePath
+      .filter((p) => p && !isNaN(Number(p.lat)) && !isNaN(Number(p.lng)))
+      .map((p) => [Number(p.lat), Number(p.lng)]);
+    if (validPts.length === 0) return null;
+    try {
+      return L.latLngBounds(validPts);
+    } catch {
+      return null;
+    }
+  }, [effectiveRoutePath]);
+
   const checkInTime = summary.check_in_time || "—";
   const checkOutTime = summary.check_out_time || (summary.is_finalized ? "Shift Ended" : "In Progress");
   const totalHours = summary.total_working_hours || "—";
@@ -969,220 +1166,305 @@ export default function DailyRoutePlaybackMap({
       <main className="playback-right-main">
         <div className="playback-map-canvas-wrap">
           {/* Floating Camera Follow Lock Button */}
-          <button
-            type="button"
-            className={`playback-camera-follow-btn ${isFollowCamera ? "active" : ""}`}
-            onClick={handleToggleCameraFollow}
-            title={isFollowCamera ? "Camera is locked to marker (Click to unlock free pan)" : "Click to lock camera to moving marker"}
-          >
-            <Navigation size={13} style={{ transform: isFollowCamera ? "rotate(45deg)" : "none", color: isFollowCamera ? "#2563EB" : "#64748b" }} />
-            <span>{isFollowCamera ? "Tracking Marker" : "Follow Marker"}</span>
-          </button>
+          {routeCoords.length > 0 && (
+            <button
+              type="button"
+              className={`playback-camera-follow-btn ${isFollowCamera ? "active" : ""}`}
+              onClick={handleToggleCameraFollow}
+              title={isFollowCamera ? "Camera is locked to marker (Click to unlock free pan)" : "Click to lock camera to moving marker"}
+            >
+              <Navigation size={13} style={{ transform: isFollowCamera ? "rotate(45deg)" : "none", color: isFollowCamera ? "#2563EB" : "#64748b" }} />
+              <span>{isFollowCamera ? "Tracking Marker" : "Follow Marker"}</span>
+            </button>
+          )}
 
-          <GoogleMap
-            mapContainerStyle={{ width: "100%", height: "100%" }}
-            onLoad={handleMapLoad}
-            onDragStart={() => {
-              setIsFollowCamera(false);
-            }}
-            options={STATIC_MAP_OPTIONS}
-          >
-            {/* -------------------------------------------------------------- */}
-            {/* Actual Recorded GPS Route Polyline (100% Free - Zero API Token) */}
-            {/* -------------------------------------------------------------- */}
-            {routeCoords.length > 1 && (
-              <>
-                {/* Glow outline */}
-                <PolylineF
-                  path={routeCoords}
-                  options={{
-                    strokeColor: "#1e40af",
-                    strokeWeight: 6.5,
-                    strokeOpacity: 0.35,
-                    geodesic: true,
-                    zIndex: 10,
-                  }}
-                />
-                {/* Core route line */}
-                <PolylineF
-                  path={routeCoords}
-                  options={{
-                    strokeColor: "#2563EB",
-                    strokeWeight: 4.5,
-                    strokeOpacity: 0.95,
-                    geodesic: true,
-                    zIndex: 11,
-                  }}
-                />
-              </>
-            )}
-
-            {/* 🟢 Start / Check-in Marker */}
-            {checkInMarker && checkInMarker.latitude != null && (
-              <MarkerF
-                position={{ lat: checkInMarker.latitude, lng: checkInMarker.longitude }}
-                title={`Check-in: ${checkInTime}`}
-                icon={{
-                  url: createStartMarkerIcon(),
-                  scaledSize: new window.google.maps.Size(36, 44),
-                  anchor: new window.google.maps.Point(18, 44),
-                }}
-                zIndex={25}
-                onClick={() => {
-                  setInfoWindowTarget({
-                    type: "checkin",
-                    data: {
-                      title: "🟢 Shift Check-in Location",
-                      time: checkInTime,
-                      address: checkInMarker.address || "Start Location",
-                    },
-                    lat: checkInMarker.latitude,
-                    lng: checkInMarker.longitude,
-                  });
-                }}
-              />
-            )}
-
-            {/* 🔴 End / Check-out Marker */}
-            {checkOutMarker && checkOutMarker.latitude != null && (
-              <MarkerF
-                position={{ lat: checkOutMarker.latitude, lng: checkOutMarker.longitude }}
-                title={`Check-out: ${checkOutTime}`}
-                icon={{
-                  url: createEndMarkerIcon(),
-                  scaledSize: new window.google.maps.Size(36, 44),
-                  anchor: new window.google.maps.Point(18, 44),
-                }}
-                zIndex={25}
-                onClick={() => {
-                  setInfoWindowTarget({
-                    type: "checkout",
-                    data: {
-                      title: "🔴 Shift Check-out Location",
-                      time: checkOutTime,
-                      address: checkOutMarker.address || "End Location",
-                    },
-                    lat: checkOutMarker.latitude,
-                    lng: checkOutMarker.longitude,
-                  });
-                }}
-              />
-            )}
-
-            {/* 🔵 Client Visit Markers */}
-            {clientVisitMarkers.map((visit, i) => (
-              <MarkerF
-                key={`client-visit-marker-${visit.visit_id || i}`}
-                position={{ lat: visit.latitude, lng: visit.longitude }}
-                title={`Client Visit: ${visit.client_name}`}
-                icon={{
-                  url: createClientVisitMarkerIcon(),
-                  scaledSize: new window.google.maps.Size(34, 42),
-                  anchor: new window.google.maps.Point(17, 42),
-                }}
-                zIndex={20}
-                onClick={() => {
-                  setInfoWindowTarget({
-                    type: "visit",
-                    data: visit,
-                    lat: visit.latitude,
-                    lng: visit.longitude,
-                  });
-                }}
-              />
-            ))}
-
-            {/* 🟠 Long Idle Period Markers (>= 15 mins) */}
-            {idleMarkers.map((idle, i) => (
-              <MarkerF
-                key={`idle-marker-${i}`}
-                position={{ lat: idle.latitude, lng: idle.longitude }}
-                title={`Long Idle Stop (${idle.duration_formatted || `${idle.duration_minutes}m`})`}
-                icon={{
-                  url: createIdleMarkerIcon(),
-                  scaledSize: new window.google.maps.Size(34, 42),
-                  anchor: new window.google.maps.Point(17, 42),
-                }}
-                zIndex={18}
-                onClick={() => {
-                  setInfoWindowTarget({
-                    type: "idle",
-                    data: idle,
-                    lat: idle.latitude,
-                    lng: idle.longitude,
-                  });
-                }}
-              />
-            ))}
-
-            {/* 🚗 / 🏃 Animated Playback Vehicle Marker (ss1 Navigation Arrow) */}
-            {playbackState && (
-              <MarkerF
-                key="playback-animated-marker"
-                position={{ lat: playbackState.lat, lng: playbackState.lng }}
-                title={`Playback Position: ${playbackState.time} (${playbackState.activity})`}
-                icon={{
-                  url: createPlaybackVehicleIcon(playbackState.heading),
-                  scaledSize: new window.google.maps.Size(52, 52),
-                  anchor: new window.google.maps.Point(26, 26),
-                }}
-                zIndex={100}
-              />
-            )}
-
-            {/* InfoWindow Popup */}
-            {infoWindowTarget && (
-              <InfoWindowF
-                position={{ lat: infoWindowTarget.lat, lng: infoWindowTarget.lng }}
-                onCloseClick={() => setInfoWindowTarget(null)}
-              >
-                <div className="playback-infowindow">
-                  {infoWindowTarget.type === "visit" ? (
-                    <div>
-                      <h4 className="infowindow-title">🔵 {infoWindowTarget.data.client_name}</h4>
-                      <p className="infowindow-meta"><strong>Purpose:</strong> {infoWindowTarget.data.purpose}</p>
-                      <p className="infowindow-meta"><strong>Status:</strong> {infoWindowTarget.data.status}</p>
-                      {infoWindowTarget.data.check_in_time && (
-                        <p className="infowindow-meta"><strong>Checked in:</strong> {infoWindowTarget.data.check_in_time}</p>
-                      )}
-                      {infoWindowTarget.data.check_out_time && (
-                        <p className="infowindow-meta"><strong>Checked out:</strong> {infoWindowTarget.data.check_out_time}</p>
-                      )}
-                      <p className="infowindow-meta"><strong>Duration:</strong> {infoWindowTarget.data.duration_formatted || "—"}</p>
-                      {infoWindowTarget.data.meeting_notes && (
-                        <p className="infowindow-notes"><em>"{infoWindowTarget.data.meeting_notes}"</em></p>
-                      )}
-                      {infoWindowTarget.data.address && (
-                        <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>
-                      )}
-                      <button
-                        type="button"
-                        className="infowindow-btn"
-                        onClick={() => onSelectVisit(infoWindowTarget.data)}
-                      >
-                        Open Visit Details
-                      </button>
-                    </div>
-                  ) : infoWindowTarget.type === "idle" ? (
-                    <div>
-                      <h4 className="infowindow-title orange">🟠 Long Idle Stop</h4>
-                      <p className="infowindow-meta"><strong>Duration:</strong> {infoWindowTarget.data.duration_formatted || `${infoWindowTarget.data.duration_minutes} minutes`}</p>
-                      <p className="infowindow-meta"><strong>Time:</strong> {infoWindowTarget.data.start_time} – {infoWindowTarget.data.end_time}</p>
-                      <p className="infowindow-desc">Employee was stationary at this location outside of client visits.</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <h4 className="infowindow-title">{infoWindowTarget.data.title}</h4>
-                      <p className="infowindow-meta"><strong>Time:</strong> {infoWindowTarget.data.time}</p>
-                      {infoWindowTarget.data.address && (
-                        <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>
-                      )}
-                    </div>
+          {/* Empty state when no recorded travel route exists for the date */}
+          {!hasRecordedRoute || routeCoords.length === 0 ? (
+            <div className="playback-empty-banner">
+              <Footprints size={48} className="playback-empty-banner__icon" />
+              <h3>{isViewingToday ? "Todays route is not found" : "Route not found for this date"}</h3>
+              <p>
+                {isViewingToday
+                  ? `No GPS route or travel movement has been recorded for ${empName} today. Ensure live location tracking is active during shifts.`
+                  : `No GPS route or travel movement was recorded for ${empName} on ${selectedDate || "this date"}.`}
+              </p>
+              {(hasInMarker || hasOutMarker) && (
+                <div className="playback-empty-punch-summary">
+                  {hasInMarker && (
+                    <span className="punch-pill">
+                      🟢 <strong>Shift Check-in:</strong> {checkInTime}
+                      {checkInMarker?.address ? ` (${checkInMarker.address})` : ""}
+                    </span>
+                  )}
+                  {hasOutMarker && (
+                    <span className="punch-pill">
+                      🔴 <strong>Shift Check-out:</strong> {checkOutTime}
+                      {checkOutMarker?.address ? ` (${checkOutMarker.address})` : ""}
+                    </span>
                   )}
                 </div>
-              </InfoWindowF>
-            )}
-          </GoogleMap>
+              )}
+              {onBackToFleet && (
+                <button type="button" className="playback-empty-banner__btn" onClick={onBackToFleet}>
+                  <ArrowLeft size={15} /> Return to Live Fleet Map
+                </button>
+              )}
+            </div>
+          ) : hasGoogle ? (
+            <GoogleMap
+              mapContainerStyle={{ width: "100%", height: "100%" }}
+              onLoad={handleMapLoad}
+              onDragStart={() => {
+                setIsFollowCamera(false);
+              }}
+              options={STATIC_MAP_OPTIONS}
+            >
+              {/* Road-Snapped Polyline on Google Maps */}
+              {((playbackRoadCoords && playbackRoadCoords.length > 0) || (hasRecordedRoute && effectiveRoutePath.length > 1)) && (
+                <>
+                  <PolylineF
+                    path={effectiveRoutePath}
+                    options={{
+                      strokeColor: "#1e40af",
+                      strokeWeight: 6.5,
+                      strokeOpacity: 0.35,
+                      geodesic: true,
+                      zIndex: 10,
+                    }}
+                  />
+                  <PolylineF
+                    path={effectiveRoutePath}
+                    options={{
+                      strokeColor: "#2563EB",
+                      strokeWeight: 4.5,
+                      strokeOpacity: 0.95,
+                      geodesic: true,
+                      zIndex: 11,
+                    }}
+                  />
+                </>
+              )}
+
+              {/* Start / Check-in Marker */}
+              {hasInMarker && (
+                <MarkerF
+                  position={{ lat: inLat, lng: inLng }}
+                  title={`Check-in: ${checkInTime}`}
+                  icon={window.google?.maps?.Size ? {
+                    url: createStartMarkerIcon(),
+                    scaledSize: new window.google.maps.Size(36, 44),
+                    anchor: new window.google.maps.Point(18, 44),
+                  } : undefined}
+                  zIndex={25}
+                  onClick={() => {
+                    setInfoWindowTarget({
+                      type: "checkin",
+                      data: {
+                        title: "🟢 Shift Check-in Location",
+                        time: checkInTime,
+                        address: checkInMarker.address || "Start Location",
+                      },
+                      lat: inLat,
+                      lng: inLng,
+                    });
+                  }}
+                />
+              )}
+
+              {/* End / Check-out Marker */}
+              {hasOutMarker && (
+                <MarkerF
+                  position={{ lat: outLat, lng: outLng }}
+                  title={`Check-out: ${checkOutTime}`}
+                  icon={window.google?.maps?.Size ? {
+                    url: createEndMarkerIcon(),
+                    scaledSize: new window.google.maps.Size(36, 44),
+                    anchor: new window.google.maps.Point(18, 44),
+                  } : undefined}
+                  zIndex={25}
+                  onClick={() => {
+                    setInfoWindowTarget({
+                      type: "checkout",
+                      data: {
+                        title: "🔴 Shift Check-out Location",
+                        time: checkOutTime,
+                        address: checkOutMarker.address || "End Location",
+                      },
+                      lat: outLat,
+                      lng: outLng,
+                    });
+                  }}
+                />
+              )}
+
+              {/* Client Visits */}
+              {clientVisitMarkers.map((visit, i) => (
+                <MarkerF
+                  key={`client-visit-marker-${visit.visit_id || i}`}
+                  position={{ lat: Number(visit.latitude ?? visit.lat), lng: Number(visit.longitude ?? visit.lng) }}
+                  title={`Client Visit: ${visit.client_name}`}
+                  icon={window.google?.maps?.Size ? {
+                    url: createClientVisitMarkerIcon(),
+                    scaledSize: new window.google.maps.Size(34, 42),
+                    anchor: new window.google.maps.Point(17, 42),
+                  } : undefined}
+                  zIndex={20}
+                  onClick={() => {
+                    setInfoWindowTarget({
+                      type: "visit",
+                      data: visit,
+                      lat: Number(visit.latitude ?? visit.lat),
+                      lng: Number(visit.longitude ?? visit.lng),
+                    });
+                  }}
+                />
+              ))}
+
+              {/* Idle Stops */}
+              {idleMarkers.map((idle, i) => (
+                <MarkerF
+                  key={`idle-marker-${i}`}
+                  position={{ lat: Number(idle.latitude ?? idle.lat), lng: Number(idle.longitude ?? idle.lng) }}
+                  title={`Long Idle Stop (${idle.duration_formatted || `${idle.duration_minutes}m`})`}
+                  icon={window.google?.maps?.Size ? {
+                    url: createIdleMarkerIcon(),
+                    scaledSize: new window.google.maps.Size(34, 42),
+                    anchor: new window.google.maps.Point(17, 42),
+                  } : undefined}
+                  zIndex={18}
+                  onClick={() => {
+                    setInfoWindowTarget({
+                      type: "idle",
+                      data: idle,
+                      lat: Number(idle.latitude ?? idle.lat),
+                      lng: Number(idle.longitude ?? idle.lng),
+                    });
+                  }}
+                />
+              ))}
+
+              {/* Animated Vehicle / Marker */}
+              {playbackState && !isNaN(Number(playbackState.lat)) && !isNaN(Number(playbackState.lng)) && Number(playbackState.lat) !== 0 && (
+                <MarkerF
+                  key="playback-animated-marker"
+                  position={{ lat: Number(playbackState.lat), lng: Number(playbackState.lng) }}
+                  title={`Playback Position: ${playbackState.time} (${playbackState.activity})`}
+                  icon={window.google?.maps?.Size ? {
+                    url: createPlaybackVehicleIcon(playbackState.heading),
+                    scaledSize: new window.google.maps.Size(52, 52),
+                    anchor: new window.google.maps.Point(26, 26),
+                  } : undefined}
+                  zIndex={100}
+                />
+              )}
+
+              {/* InfoWindow */}
+              {infoWindowTarget && (
+                <InfoWindowF
+                  position={{ lat: infoWindowTarget.lat, lng: infoWindowTarget.lng }}
+                  onCloseClick={() => setInfoWindowTarget(null)}
+                >
+                  <div className="playback-infowindow">
+                    <h4 className="infowindow-title">{infoWindowTarget.data.title || infoWindowTarget.data.client_name}</h4>
+                    <p className="infowindow-meta"><strong>Time:</strong> {infoWindowTarget.data.time}</p>
+                    {infoWindowTarget.data.address && <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>}
+                  </div>
+                </InfoWindowF>
+              )}
+            </GoogleMap>
+          ) : (
+            /* ========================================================== */
+            /* Leaflet OpenStreetMap Fallback (Zero Token, Never Blank!)  */
+            /* ========================================================== */
+            <MapContainer
+              center={defaultCenter}
+              zoom={14}
+              style={{ width: "100%", height: "100%" }}
+            >
+              <LeafletMapController
+                bounds={leafletBounds}
+                center={defaultCenter}
+                followPosition={playbackState ? [playbackState.lat, playbackState.lng] : null}
+                isFollowCamera={isFollowCamera}
+              />
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+
+              {/* Road Polyline on Leaflet */}
+              {((playbackRoadCoords && playbackRoadCoords.length > 0) || (hasRecordedRoute && effectiveRoutePath.length > 1)) && (
+                <Polyline
+                  positions={effectiveRoutePath
+                    .filter((c) => c && !isNaN(Number(c.lat)) && !isNaN(Number(c.lng)))
+                    .map((c) => [Number(c.lat), Number(c.lng)])}
+                  pathOptions={{ color: "#2563EB", weight: 5, opacity: 0.92 }}
+                />
+              )}
+
+              {/* Start Check-in Marker */}
+              {hasInMarker && (
+                <Marker
+                  position={[inLat, inLng]}
+                  icon={createLeafletCheckpointIcon("IN")}
+                >
+                  <Popup>
+                    <div className="fleet-popup">
+                      <strong>🟢 Shift Check-in Location</strong>
+                      <p>{checkInTime}</p>
+                      {checkInMarker?.address && <p>{checkInMarker.address}</p>}
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* End Check-out Marker */}
+              {hasOutMarker && (
+                <Marker
+                  position={[outLat, outLng]}
+                  icon={createLeafletCheckpointIcon("OUT", true)}
+                >
+                  <Popup>
+                    <div className="fleet-popup">
+                      <strong>🔴 Shift Check-out Location</strong>
+                      <p>{checkOutTime}</p>
+                      {checkOutMarker?.address && <p>{checkOutMarker.address}</p>}
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Client Visits on Leaflet */}
+              {clientVisitMarkers.map((v, i) => {
+                const vLat = Number(v.latitude ?? v.lat);
+                const vLng = Number(v.longitude ?? v.lng);
+                if (isNaN(vLat) || isNaN(vLng) || vLat === 0) return null;
+                return (
+                  <Marker
+                    key={`leaflet-visit-${v.visit_id || i}`}
+                    position={[vLat, vLng]}
+                    icon={createLeafletCheckpointIcon("VISIT")}
+                  >
+                    <Popup>
+                      <div className="fleet-popup">
+                        <strong>🔵 {v.client_name || "Client Visit"}</strong>
+                        <p>{v.purpose}</p>
+                        <p>{v.check_in_time || "Scheduled"}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+
+              {/* Animated Vehicle on Leaflet */}
+              {playbackState && !isNaN(Number(playbackState.lat)) && !isNaN(Number(playbackState.lng)) && Number(playbackState.lat) !== 0 && (
+                <Marker
+                  position={[Number(playbackState.lat), Number(playbackState.lng)]}
+                  icon={createLeafletVehicleIcon(playbackState.heading)}
+                />
+              )}
+            </MapContainer>
+          )}
         </div>
 
         {/* ------------------------------------------------------------------ */}
@@ -1200,9 +1482,12 @@ export default function DailyRoutePlaybackMap({
                 max="1000"
                 value={Math.round(playbackProgress * 1000)}
                 onChange={handleSeek}
+                disabled={!hasRecordedRoute || routeCoords.length < 2}
                 className="playback-range-slider"
                 style={{
-                  background: `linear-gradient(to right, #2563EB 0%, #2563EB ${playbackProgress * 100}%, #e2e8f0 ${playbackProgress * 100}%, #e2e8f0 100%)`,
+                  background: hasRecordedRoute && routeCoords.length >= 2
+                    ? `linear-gradient(to right, #2563EB 0%, #2563EB ${playbackProgress * 100}%, #e2e8f0 ${playbackProgress * 100}%, #e2e8f0 100%)`
+                    : "#e2e8f0",
                 }}
               />
             </div>
@@ -1218,6 +1503,7 @@ export default function DailyRoutePlaybackMap({
                 type="button"
                 className="playback-btn secondary"
                 onClick={handleJumpStart}
+                disabled={!hasRecordedRoute || routeCoords.length < 2}
                 title="Jump to Start (Check-in)"
               >
                 <SkipBack size={16} />
@@ -1227,6 +1513,7 @@ export default function DailyRoutePlaybackMap({
                 type="button"
                 className="playback-btn secondary"
                 onClick={handleStepBack}
+                disabled={!hasRecordedRoute || routeCoords.length < 2}
                 title="Rewind 10%"
               >
                 <ChevronLeft size={16} />
@@ -1236,7 +1523,8 @@ export default function DailyRoutePlaybackMap({
                 type="button"
                 className={`playback-btn primary ${isPlaying ? "playing" : ""}`}
                 onClick={handleTogglePlay}
-                title={isPlaying ? "Pause Route" : "Play Route"}
+                disabled={!hasRecordedRoute || routeCoords.length < 2}
+                title={!hasRecordedRoute ? (isViewingToday ? "Todays route is not found" : "Route not found for this date") : isPlaying ? "Pause Route" : "Play Route"}
               >
                 {isPlaying ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: 2 }} />}
                 <span>{isPlaying ? "Pause" : "Play Route"}</span>
@@ -1246,6 +1534,7 @@ export default function DailyRoutePlaybackMap({
                 type="button"
                 className="playback-btn secondary"
                 onClick={handleStepForward}
+                disabled={!hasRecordedRoute || routeCoords.length < 2}
                 title="Fast-forward 10%"
               >
                 <ChevronRight size={16} />
@@ -1255,6 +1544,7 @@ export default function DailyRoutePlaybackMap({
                 type="button"
                 className="playback-btn secondary"
                 onClick={handleJumpEnd}
+                disabled={!hasRecordedRoute || routeCoords.length < 2}
                 title="Jump to End (Check-out)"
               >
                 <SkipForward size={16} />

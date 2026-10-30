@@ -836,6 +836,7 @@ const Visits = () => {
       mapEmployee.last_visit_client = location.last_visit_client;
       mapEmployee.attendance_status = location.attendance_status || mapEmployee.attendance_status;
       mapEmployee.today_distance_km = location.today_distance_km ?? location.total_distance_km ?? mapEmployee.today_distance_km;
+      mapEmployee.today_distance_km = location.today_distance_km ?? location.total_distance_km ?? mapEmployee.today_distance_km;
       mapEmployee.check_in_latitude = location.check_in_latitude ?? mapEmployee.check_in_latitude;
       mapEmployee.check_in_longitude = location.check_in_longitude ?? mapEmployee.check_in_longitude;
       mapEmployee.check_in_address = location.check_in_address || mapEmployee.check_in_address;

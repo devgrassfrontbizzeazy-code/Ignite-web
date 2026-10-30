@@ -252,7 +252,7 @@ async function fetchOsrmMultiRoute(waypoints) {
           waypoints[i - 1].lng,
           pt.lat,
           pt.lng
-        ) || 0) * 1000;
+        ) || 0);
       }
     }
 
@@ -274,15 +274,15 @@ async function fetchOsrmMultiRoute(waypoints) {
     const data = await res.json();
     if (data.code === "Ok" && data.routes?.[0]?.geometry?.coordinates) {
       const osrmDist = data.routes[0].distance || 0;
-      // Guard against wild highway detours (e.g. OSRM routing miles away to highway junctions)
-      if (directDistMeters > 0 && osrmDist > directDistMeters * 1.8) {
+      // Allow driving road distance up to 3.5x direct distance (bridges, river crossings, ring roads)
+      if (directDistMeters > 0 && osrmDist > directDistMeters * 3.5) {
         console.warn(`OSRM detour rejected: route distance ${Math.round(osrmDist)}m vs direct ${Math.round(directDistMeters)}m`);
         return null;
       }
 
-      // Guard against wander outside the waypoints bounding box (max 0.015 deg ~ 1.5 km buffer)
-      const latBuffer = 0.015;
-      const lngBuffer = 0.015;
+      // Safe buffer around bounding box (0.08 deg ~ 8.5 km to allow for river bridge crossings like Hindon/Yamuna)
+      const latBuffer = 0.08;
+      const lngBuffer = 0.08;
       const coords = data.routes[0].geometry.coordinates;
       const hasWildDetour = coords.some(
         ([lng, lat]) =>
@@ -382,6 +382,48 @@ const mapContainerStyle = {
 };
 
 const defaultCenter = { lat: 18.5204, lng: 73.8567 }; // Pune default
+
+/* -------------------------------------------------------------------------- */
+/* Route Playback Error Boundary (Guarantees zero blank pages)                 */
+/* -------------------------------------------------------------------------- */
+class RoutePlaybackErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.warn("DailyRoutePlaybackMap caught rendering error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="playback-empty-banner" style={{ minHeight: "550px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 24px", textAlign: "center", background: "#ffffff" }}>
+          <Footprints size={48} style={{ color: "#94a3b8", marginBottom: 12 }} />
+          <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#1e293b", margin: "0 0 8px" }}>
+            {this.props.isViewingToday ? "Todays route is not found" : "Route not found for this date"}
+          </h3>
+          <p style={{ fontSize: "13px", color: "#64748b", maxWidth: "440px", margin: "0 0 16px", lineHeight: "1.5" }}>
+            No GPS travel route was recorded for this date.
+          </p>
+          {this.props.onBackToFleet && (
+            <button
+              type="button"
+              className="playback-empty-banner__btn"
+              onClick={this.props.onBackToFleet}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", background: "#2563eb", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              <ArrowLeft size={15} /> Return to Fleet Command Map
+            </button>
+          )}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function LiveFleetCommandMap({
   visits = [],
@@ -560,11 +602,27 @@ export default function LiveFleetCommandMap({
     );
   }, [routeSummary, isViewingToday, selectedEmployee]);
 
+  // Raw route timeline breadcrumbs recorded in the database
+  const rawTimelinePoints = useMemo(() => {
+    if (Array.isArray(timelinePoints) && timelinePoints.length > 0) return timelinePoints;
+    if (Array.isArray(routeSummary?.route_points) && routeSummary.route_points.length > 0) return routeSummary.route_points;
+    if (Array.isArray(routeSummary?.timeline) && routeSummary.timeline.length > 0) return routeSummary.timeline;
+    if (Array.isArray(routeSummary?.data) && routeSummary.data.length > 0) return routeSummary.data;
+    return [];
+  }, [timelinePoints, routeSummary]);
+
+  const hasRecordedRoute = useMemo(() => {
+    return rawTimelinePoints.some((pt) => {
+      const coords = isValidCoordinatePair(pt?.latitude ?? pt?.lat, pt?.longitude ?? pt?.lng);
+      return Boolean(coords && (coords.lat !== 0 || coords.lng !== 0));
+    });
+  }, [rawTimelinePoints]);
+
   // Parse 5-day route waypoints into coordinates array (guarantees polyline and OUT marker when check-out / distance exists)
   const historyRouteCoords = useMemo(() => {
     let pts = [];
-    if (timelinePoints && timelinePoints.length) {
-      pts = timelinePoints
+    if (rawTimelinePoints && rawTimelinePoints.length) {
+      pts = rawTimelinePoints
         .map((pt, idx) => {
           const coords = isValidCoordinatePair(pt.latitude ?? pt.lat, pt.longitude ?? pt.lng);
           if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
@@ -656,7 +714,7 @@ export default function LiveFleetCommandMap({
 
     return pts;
   }, [
-    timelinePoints,
+    rawTimelinePoints,
     routeSummary,
     selectedEmployee,
     activeCheckInTime,
@@ -668,19 +726,21 @@ export default function LiveFleetCommandMap({
   ]);
 
   const calculatedRouteDistanceKm = useMemo(() => {
-    if (!historyRouteCoords || historyRouteCoords.length < 2) return 0;
+    if (!hasRecordedRoute && (!historyRoadCoords || historyRoadCoords.length === 0)) return 0;
+    const pts = (historyRoadCoords && historyRoadCoords.length >= 2) ? historyRoadCoords : historyRouteCoords;
+    if (!pts || pts.length < 2) return 0;
     let totalMeters = 0;
-    for (let i = 0; i < historyRouteCoords.length - 1; i++) {
+    for (let i = 0; i < pts.length - 1; i++) {
       const d = calculateDistance(
-        historyRouteCoords[i].lat,
-        historyRouteCoords[i].lng,
-        historyRouteCoords[i + 1].lat,
-        historyRouteCoords[i + 1].lng
+        pts[i].lat,
+        pts[i].lng,
+        pts[i + 1].lat,
+        pts[i + 1].lng
       );
       if (d) totalMeters += d;
     }
     return Number((totalMeters / 1000).toFixed(2));
-  }, [historyRouteCoords]);
+  }, [historyRoadCoords, historyRouteCoords, hasRecordedRoute]);
 
   const activeDistanceKm = useMemo(() => {
     let dist = null;
@@ -695,11 +755,11 @@ export default function LiveFleetCommandMap({
     if (dist != null && Number(dist) > 0) {
       return Number(dist);
     }
-    if (calculatedRouteDistanceKm > 0) {
+    if (hasRecordedRoute && calculatedRouteDistanceKm > 0) {
       return calculatedRouteDistanceKm;
     }
-    return dist != null ? Number(dist) : 0;
-  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon, calculatedRouteDistanceKm]);
+    return 0;
+  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon, calculatedRouteDistanceKm, hasRecordedRoute]);
 
   // Fit bounds when employee 5-day route changes
   useEffect(() => {
@@ -1154,19 +1214,25 @@ export default function LiveFleetCommandMap({
   if (mapViewSubMode === "playback") {
     return (
       <div className="live-fleet-command">
-        <DailyRoutePlaybackMap
-          selectedEmployee={selectedEmployee || (employees.length > 0 ? employees[0] : null)}
-          employees={employees}
-          onSelectEmployee={(emp) => handleSelectRep(emp)}
-          selectedDate={selectedRouteDate || routeSummary?.selected_date || ""}
-          onSelectDate={onSelectRouteDate}
-          routeSummary={routeSummary}
-          timelinePoints={timelinePoints}
-          availableDays={availableDays}
-          isLoading={timelineLoading}
-          onSelectVisit={onSelectVisit}
+        <RoutePlaybackErrorBoundary
+          isViewingToday={isViewingToday}
           onBackToFleet={() => setMapViewSubMode("fleet")}
-        />
+        >
+          <DailyRoutePlaybackMap
+            selectedEmployee={selectedEmployee || (employees.length > 0 ? employees[0] : null)}
+            employees={employees}
+            onSelectEmployee={(emp) => handleSelectRep(emp)}
+            selectedDate={selectedRouteDate || routeSummary?.selected_date || ""}
+            onSelectDate={onSelectRouteDate}
+            routeSummary={routeSummary}
+            timelinePoints={timelinePoints}
+            availableDays={availableDays}
+            isLoading={timelineLoading}
+            onSelectVisit={onSelectVisit}
+            onBackToFleet={() => setMapViewSubMode("fleet")}
+            isGoogleLoaded={isGoogleLoaded}
+          />
+        </RoutePlaybackErrorBoundary>
       </div>
     );
   }
@@ -1485,7 +1551,9 @@ export default function LiveFleetCommandMap({
                 ) : null}
                 <div className="fleet-metric-item">
                   <span className="fleet-metric-label">Waypoints</span>
-                  <strong className="fleet-metric-val">{historyRouteCoords.length} pts</strong>
+                  <strong className="fleet-metric-val">
+                    {hasRecordedRoute ? `${historyRouteCoords.length} pts` : "0 pts"}
+                  </strong>
                 </div>
               </div>
             </div>
@@ -1553,13 +1621,16 @@ export default function LiveFleetCommandMap({
             </div>
 
             <div className="fleet-history-state" role="status">
-              {timelineLoading
-                ? "Loading location history…"
-                : timelineError
-                  ? "Location history could not be loaded for this date."
-                  : historyRouteCoords.length === 0
-                    ? "No location history recorded for this date."
-                    : `${historyRouteCoords.length} historical GPS points`}
+              {timelineLoading ? (
+                "Loading location history…"
+              ) : timelineError || !hasRecordedRoute ? (
+                <span className="fleet-route-not-found-msg">
+                  ⚠️ {isViewingToday ? "Todays route is not found" : "Route not found for this date"}
+                  {historyRouteCoords.length > 0 && " (Attendance punch-in & out locations shown; no travel route recorded)"}
+                </span>
+              ) : (
+                `${historyRouteCoords.length} historical GPS points`
+              )}
             </div>
 
             {/* Scrollable Month Days Ribbon */}
@@ -1591,6 +1662,17 @@ export default function LiveFleetCommandMap({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Floating pill banner if no recorded route */}
+        {selectedEmployee && !hasRecordedRoute && !timelineLoading && (
+          <div className="fleet-map-empty-route-pill">
+            <AlertCircle size={14} style={{ flexShrink: 0 }} />
+            <span>
+              {isViewingToday ? "Todays route is not found" : "Route not found for this date"}
+              {historyRouteCoords.length > 0 && " — Shift punch locations shown; no travel route was recorded."}
+            </span>
           </div>
         )}
 
@@ -1763,8 +1845,8 @@ export default function LiveFleetCommandMap({
               </>
             )}
 
-            {/* Continuous Fallback History Polyline if neither DirectionsService nor OSRM road route loaded */}
-            {!historyDirectionsResult && (!historyRoadCoords || historyRoadCoords.length === 0) && historyRouteCoords.length > 1 && (
+            {/* Continuous Fallback History Polyline ONLY IF actual recorded GPS breadcrumbs exist */}
+            {!historyDirectionsResult && (!historyRoadCoords || historyRoadCoords.length === 0) && hasRecordedRoute && historyRouteCoords.length > 1 && (
               <>
                 <PolylineF
                   path={historyRouteCoords}
@@ -2244,8 +2326,8 @@ export default function LiveFleetCommandMap({
               )
             )}
 
-            {/* 5-Day Road Route Polyline on Leaflet (Snaps along actual street driving paths) */}
-            {historyRouteCoords.length > 1 && (
+            {/* 5-Day Road Route Polyline on Leaflet - Only if road snapped OR actual route points recorded */}
+            {((historyRoadCoords && historyRoadCoords.length > 0) || (hasRecordedRoute && historyRouteCoords.length > 1)) && (
               <Polyline
                 positions={
                   historyRoadCoords && historyRoadCoords.length > 0
