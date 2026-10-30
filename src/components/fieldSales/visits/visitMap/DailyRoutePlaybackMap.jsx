@@ -204,8 +204,8 @@ export default function DailyRoutePlaybackMap({
       .filter(Boolean);
 
     // Ensure Check-in start point is at the beginning
-    const cInLat = Number(routeSummary?.check_in_latitude);
-    const cInLng = Number(routeSummary?.check_in_longitude);
+    const cInLat = Number(routeSummary?.check_in_latitude ?? selectedEmployee?.check_in_latitude);
+    const cInLng = Number(routeSummary?.check_in_longitude ?? selectedEmployee?.check_in_longitude);
     if (!isNaN(cInLat) && !isNaN(cInLng) && cInLat !== 0 && cInLng !== 0) {
       if (pts.length === 0) {
         pts.push({
@@ -263,8 +263,8 @@ export default function DailyRoutePlaybackMap({
     }
 
     // Ensure Check-out end point is at the end
-    const cOutLat = Number(routeSummary?.check_out_latitude);
-    const cOutLng = Number(routeSummary?.check_out_longitude);
+    const cOutLat = Number(routeSummary?.check_out_latitude ?? selectedEmployee?.check_out_latitude);
+    const cOutLng = Number(routeSummary?.check_out_longitude ?? selectedEmployee?.check_out_longitude);
     if (!isNaN(cOutLat) && !isNaN(cOutLng) && cOutLat !== 0 && cOutLng !== 0) {
       if (pts.length === 1 && (Math.abs(pts[0].lat - cOutLat) > 0.0002 || Math.abs(pts[0].lng - cOutLng) > 0.0002)) {
         pts.push({

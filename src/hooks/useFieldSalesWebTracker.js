@@ -40,7 +40,10 @@ export default function useFieldSalesWebTracker() {
       !isManagerRole &&
       (role === "SALES_PERSON" ||
         role.includes("SALES") ||
-        Boolean(storedUser.is_sales_person));
+        role === "MEMBER" ||
+        storedUser.department === "Field Sales" ||
+        Boolean(storedUser.is_sales_person) ||
+        Boolean(storedUser.is_field_sales));
 
     if (!isSalesPerson) return;
     if (!navigator.geolocation) return;

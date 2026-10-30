@@ -46,6 +46,26 @@ const getInactiveCount = (items) => {
     ).length;
 };
 
+const getDeviceLocationPayload = () => {
+    return new Promise((resolve) => {
+        if (typeof navigator === "undefined" || !navigator.geolocation) {
+            resolve({});
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                resolve({
+                    latitude: pos.coords.latitude,
+                    longitude: pos.coords.longitude,
+                    accuracy: Math.round(pos.coords.accuracy),
+                });
+            },
+            () => resolve({}),
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+        );
+    });
+};
+
 const useDashboardData = () => {
     const { company } = useOrganization() || {};
 
@@ -464,7 +484,8 @@ const useDashboardData = () => {
             setAttendanceActionLoading(true);
             setError(null);
 
-            await attendanceAPI.punchIn();
+            const gps = await getDeviceLocationPayload();
+            await attendanceAPI.punchIn(gps);
             await refreshAttendance();
         } catch (err) {
             console.error("Failed to punch in:", err);
@@ -480,7 +501,8 @@ const useDashboardData = () => {
             setAttendanceActionLoading(true);
             setError(null);
 
-            await attendanceAPI.punchOut();
+            const gps = await getDeviceLocationPayload();
+            await attendanceAPI.punchOut(gps);
             await refreshAttendance();
         } catch (err) {
             console.error("Failed to punch out:", err);

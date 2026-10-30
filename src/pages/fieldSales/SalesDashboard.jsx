@@ -109,20 +109,34 @@ const SalesDashboard = () => {
   const attendanceChartData = useMemo(() => {
     const history = hrmsData?.attendanceHistory;
     const attendanceData = Array.isArray(history?.data)
-      ? history.data
+      ? [...history.data]
       : Array.isArray(history)
-      ? history
+      ? [...history]
       : [];
+
+    // Ensure today's attendance is displayed in the graph when checked in / checked out
+    const todayAtt = hrmsData?.attendance;
+    if (todayAtt && (todayAtt.checkInAt || todayAtt.checkIn || todayAtt.workingDuration || todayAtt.workingSeconds)) {
+      const todayDateStr = todayAtt.attendanceDate || todayAtt.date || new Date().toISOString().split("T")[0];
+      const exists = attendanceData.some((item) => (item?.attendanceDate || item?.date) === todayDateStr);
+      if (!exists) {
+        attendanceData.push({
+          date: todayDateStr,
+          workingSeconds: todayAtt.workingDuration || todayAtt.workingSeconds || 0,
+          status: todayAtt.status || "WORKING",
+        });
+      }
+    }
 
     return attendanceData
       .filter((item) => item?.status !== "Holiday")
       .map((item) => ({
         date: item?.attendanceDate || item?.date || "--",
         hours: Number(
-          (Number(item?.workingSeconds || item?.working_seconds || 0) / 3600).toFixed(2)
+          (Number(item?.workingSeconds || item?.working_seconds || item?.workingDuration || 0) / 3600).toFixed(2)
         ),
       }));
-  }, [hrmsData?.attendanceHistory]);
+  }, [hrmsData?.attendanceHistory, hrmsData?.attendance]);
 
   // Leave Modal State
   const [showApplyLeave, setShowApplyLeave] = useState(false);

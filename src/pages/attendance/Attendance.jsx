@@ -19,6 +19,28 @@ import { attendanceAPI } from "../../services/api/attendanceAPI";
 import { useNotification } from "../../context/NotificationContext";
 import "./Attendance.css";
 
+const getDeviceGpsPayload = () => {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve({});
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        resolve({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy),
+        });
+      },
+      () => {
+        resolve({});
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+    );
+  });
+};
+
 const STATUS_LABELS = {
   NOT_STARTED: "Not Checked In",
   WORKING: "Currently Working",

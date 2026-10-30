@@ -569,12 +569,12 @@ const Visits = () => {
             end_location_name: res.end_location_name || res.end_location,
             is_finalized: res.is_finalized,
             attendance_status: res.attendance_status,
-            check_in_latitude: res.check_in_latitude,
-            check_in_longitude: res.check_in_longitude,
-            check_in_address: res.check_in_address,
-            check_out_latitude: res.check_out_latitude,
-            check_out_longitude: res.check_out_longitude,
-            check_out_address: res.check_out_address,
+            check_in_latitude: res.check_in_latitude ?? res.summary?.check_in_latitude ?? res.start_latitude ?? res.summary?.start_latitude ?? selectedEntity?.check_in_latitude,
+            check_in_longitude: res.check_in_longitude ?? res.summary?.check_in_longitude ?? res.start_longitude ?? res.summary?.start_longitude ?? selectedEntity?.check_in_longitude,
+            check_in_address: res.check_in_address ?? res.summary?.check_in_address ?? selectedEntity?.check_in_address ?? "",
+            check_out_latitude: res.check_out_latitude ?? res.summary?.check_out_latitude ?? res.end_latitude ?? res.summary?.end_latitude ?? selectedEntity?.check_out_latitude,
+            check_out_longitude: res.check_out_longitude ?? res.summary?.check_out_longitude ?? res.end_longitude ?? res.summary?.end_longitude ?? selectedEntity?.check_out_longitude,
+            check_out_address: res.check_out_address ?? res.summary?.check_out_address ?? selectedEntity?.check_out_address ?? "",
           });
         } else if (isMounted) {
           setTimelinePoints([]);
@@ -746,12 +746,12 @@ const Visits = () => {
         shiftCheckIn: attendance?.checkIn ?? null,
         shiftCheckOut: attendance?.checkOut ?? null,
         attendance_status: attendanceStatus,
-        check_in_latitude: attendance?.checkInLatitude ?? null,
-        check_in_longitude: attendance?.checkInLongitude ?? null,
-        check_in_address: attendance?.checkInAddress || "",
-        check_out_latitude: attendance?.checkOutLatitude ?? null,
-        check_out_longitude: attendance?.checkOutLongitude ?? null,
-        check_out_address: attendance?.checkOutAddress || "",
+        check_in_latitude: attendance?.checkInLatitude ?? attendance?.check_in_latitude ?? attendance?.check_in_lat ?? attendance?.punch_in_latitude ?? null,
+        check_in_longitude: attendance?.checkInLongitude ?? attendance?.check_in_longitude ?? attendance?.check_in_lng ?? attendance?.punch_in_longitude ?? null,
+        check_in_address: attendance?.checkInAddress || attendance?.check_in_address || "",
+        check_out_latitude: attendance?.checkOutLatitude ?? attendance?.check_out_latitude ?? attendance?.check_out_lat ?? attendance?.punch_out_latitude ?? null,
+        check_out_longitude: attendance?.checkOutLongitude ?? attendance?.check_out_longitude ?? attendance?.check_out_lng ?? attendance?.punch_out_longitude ?? null,
+        check_out_address: attendance?.checkOutAddress || attendance?.check_out_address || "",
       };
       employeesById.set(employeeId, mapEmployee);
       [employee.id, employee.employee_id, employee.employeeId, employee.pk]
@@ -835,6 +835,7 @@ const Visits = () => {
       mapEmployee.check_out_time_formatted = location.check_out_time_formatted;
       mapEmployee.last_visit_client = location.last_visit_client;
       mapEmployee.attendance_status = location.attendance_status || mapEmployee.attendance_status;
+      mapEmployee.today_distance_km = location.today_distance_km ?? location.total_distance_km ?? mapEmployee.today_distance_km;
       mapEmployee.check_in_latitude = location.check_in_latitude ?? mapEmployee.check_in_latitude;
       mapEmployee.check_in_longitude = location.check_in_longitude ?? mapEmployee.check_in_longitude;
       mapEmployee.check_in_address = location.check_in_address || mapEmployee.check_in_address;

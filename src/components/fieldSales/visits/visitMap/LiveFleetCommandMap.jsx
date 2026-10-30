@@ -525,15 +525,7 @@ export default function LiveFleetCommandMap({
     );
   }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
 
-  const activeDistanceKm = useMemo(() => {
-    if (isViewingToday) {
-      if (selectedEmployee?.today_distance_km != null) {
-        return selectedEmployee.today_distance_km;
-      }
-      return routeSummary?.total_distance_km ?? currentDayFromRibbon?.distance_km ?? 0;
-    }
-    return routeSummary?.total_distance_km ?? currentDayFromRibbon?.distance_km ?? 0;
-  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
+
 
   const activeAttendanceStatus = useMemo(() => {
     if (isViewingToday) {
@@ -574,7 +566,7 @@ export default function LiveFleetCommandMap({
     if (timelinePoints && timelinePoints.length) {
       pts = timelinePoints
         .map((pt, idx) => {
-          const coords = isValidCoordinatePair(pt.latitude, pt.longitude);
+          const coords = isValidCoordinatePair(pt.latitude ?? pt.lat, pt.longitude ?? pt.lng);
           if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
           return {
             ...coords,
@@ -591,37 +583,74 @@ export default function LiveFleetCommandMap({
         .filter(Boolean);
     }
 
-    // Defensive fallback if points are empty but routeSummary has check-in coordinates
-    if (pts.length === 0 && routeSummary) {
-      const startCoord = isValidCoordinatePair(
-        routeSummary.check_in_latitude,
-        routeSummary.check_in_longitude
-      );
+    // Resolve start / check-in coordinate from routeSummary or selectedEmployee
+    const startCoord = isValidCoordinatePair(
+      routeSummary?.check_in_latitude ?? routeSummary?.start_latitude ?? routeSummary?.check_in_lat ?? selectedEmployee?.check_in_latitude,
+      routeSummary?.check_in_longitude ?? routeSummary?.start_longitude ?? routeSummary?.check_in_lng ?? selectedEmployee?.check_in_longitude
+    );
+
+    // Resolve end / check-out coordinate from routeSummary or selectedEmployee
+    const endCoord = isValidCoordinatePair(
+      routeSummary?.check_out_latitude ?? routeSummary?.end_latitude ?? routeSummary?.check_out_lat ?? selectedEmployee?.check_out_latitude,
+      routeSummary?.check_out_longitude ?? routeSummary?.end_longitude ?? routeSummary?.check_out_lng ?? selectedEmployee?.check_out_longitude
+    );
+
+    if (pts.length === 0) {
       if (startCoord) {
         pts.push({
           ...startCoord,
           logType: "DUTY_START",
-          time: activeCheckInTime,
+          time: activeCheckInTime || "Check-in",
           address: activeCheckInAddress,
           index: 0,
         });
       }
-    }
-
-    // If we only have 1 point (or if checkout exists), ensure end/checkout point is present on historical / finalized days so graph and OUT marker render!
-    if (pts.length === 1) {
-      const endCoord = isValidCoordinatePair(
-        routeSummary?.check_out_latitude,
-        routeSummary?.check_out_longitude
-      );
-      if (endCoord && (Math.abs(endCoord.lat - pts[0].lat) > 0.0001 || Math.abs(endCoord.lng - pts[0].lng) > 0.0001)) {
+      if (endCoord) {
         pts.push({
           ...endCoord,
           logType: "DUTY_END",
-          time: activeCheckOutTime,
+          time: activeCheckOutTime || "Check-out",
           address: activeCheckOutAddress,
-          index: 1,
+          index: pts.length,
         });
+      } else if (isViewingToday && selectedEmployee?.latitude && selectedEmployee?.longitude) {
+        const liveCoord = isValidCoordinatePair(selectedEmployee.latitude, selectedEmployee.longitude);
+        if (liveCoord && (!startCoord || Math.abs(liveCoord.lat - startCoord.lat) > 0.0001 || Math.abs(liveCoord.lng - startCoord.lng) > 0.0001)) {
+          pts.push({
+            ...liveCoord,
+            logType: "LIVE_POSITION",
+            time: "Current",
+            address: selectedEmployee.address || "",
+            index: pts.length,
+          });
+        }
+      }
+    } else {
+      // Prepend check-in if not present at start
+      if (startCoord) {
+        const first = pts[0];
+        if (Math.abs(first.lat - startCoord.lat) > 0.0002 || Math.abs(first.lng - startCoord.lng) > 0.0002) {
+          pts.unshift({
+            ...startCoord,
+            logType: "DUTY_START",
+            time: activeCheckInTime || "Check-in",
+            address: activeCheckInAddress,
+            index: 0,
+          });
+        }
+      }
+      // Append check-out if not present at end
+      if (endCoord) {
+        const last = pts[pts.length - 1];
+        if (Math.abs(last.lat - endCoord.lat) > 0.0002 || Math.abs(last.lng - endCoord.lng) > 0.0002) {
+          pts.push({
+            ...endCoord,
+            logType: "DUTY_END",
+            time: activeCheckOutTime || "Check-out",
+            address: activeCheckOutAddress,
+            index: pts.length,
+          });
+        }
       }
     }
 
@@ -629,14 +658,48 @@ export default function LiveFleetCommandMap({
   }, [
     timelinePoints,
     routeSummary,
+    selectedEmployee,
     activeCheckInTime,
     activeCheckOutTime,
     activeCheckInAddress,
     activeCheckOutAddress,
     currentDayFromRibbon,
-    activeDistanceKm,
     isViewingToday,
   ]);
+
+  const calculatedRouteDistanceKm = useMemo(() => {
+    if (!historyRouteCoords || historyRouteCoords.length < 2) return 0;
+    let totalMeters = 0;
+    for (let i = 0; i < historyRouteCoords.length - 1; i++) {
+      const d = calculateDistance(
+        historyRouteCoords[i].lat,
+        historyRouteCoords[i].lng,
+        historyRouteCoords[i + 1].lat,
+        historyRouteCoords[i + 1].lng
+      );
+      if (d) totalMeters += d;
+    }
+    return Number((totalMeters / 1000).toFixed(2));
+  }, [historyRouteCoords]);
+
+  const activeDistanceKm = useMemo(() => {
+    let dist = null;
+    if (isViewingToday) {
+      if (selectedEmployee?.today_distance_km != null && Number(selectedEmployee.today_distance_km) > 0) {
+        return Number(selectedEmployee.today_distance_km);
+      }
+      dist = routeSummary?.total_distance_km ?? currentDayFromRibbon?.distance_km;
+    } else {
+      dist = routeSummary?.total_distance_km ?? currentDayFromRibbon?.distance_km;
+    }
+    if (dist != null && Number(dist) > 0) {
+      return Number(dist);
+    }
+    if (calculatedRouteDistanceKm > 0) {
+      return calculatedRouteDistanceKm;
+    }
+    return dist != null ? Number(dist) : 0;
+  }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon, calculatedRouteDistanceKm]);
 
   // Fit bounds when employee 5-day route changes
   useEffect(() => {
