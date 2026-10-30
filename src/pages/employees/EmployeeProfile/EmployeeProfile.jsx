@@ -305,7 +305,7 @@ const EmployeeProfile = () => {
           </div>
 
           <p className="employee-profile__subtitle">
-            {employee.employee_code || "—"}
+            {employee.employee_code || employee.employeeCode || "—"}
             {" · "}
             {employee.designation_name || "Team Member"}
           </p>
@@ -482,7 +482,7 @@ const EmployeeProfile = () => {
 
           <InfoItem
             label="Date of Birth"
-            value={formatDate(employee.date_of_birth)}
+            value={formatDate(employee.date_of_birth || employee.dateOfBirth)}
           />
         </div>
       </section>
@@ -519,8 +519,22 @@ const EmployeeProfile = () => {
 
         <div className="employee-profile__grid">
           <InfoItem
+            label="Employee ID"
+            value={employee.employee_code || employee.employeeCode}
+          />
+
+          <InfoItem
             label="Date of Joining"
-            value={formatDate(employee.date_of_joining)}
+            value={formatDate(employee.date_of_joining || employee.dateOfJoining)}
+          />
+
+          <InfoItem
+            label="Shift"
+            value={
+              employee.shift?.timingDisplay
+                ? `${employee.shift?.name || "Shift"} (${employee.shift.timingDisplay})`
+                : employee.shift?.name || employee.shift_timing || employee.shift_name || "—"
+            }
           />
 
           <InfoItem
