@@ -77,10 +77,13 @@ const svgDataUri = (svg) =>
 /* Leaflet Fallback Helpers & OSRM Road Geometry                              */
 /* -------------------------------------------------------------------------- */
 function createLeafletCheckpointIcon(label, isFinalized = false) {
-  const bg = label === "IN" ? "#10b981" : isFinalized ? "#ef4444" : "#3b82f6";
+  let bg = "#3b82f6";
+  if (label === "IN") bg = "#10b981";
+  else if (label === "IDLE" || label === "STOP") bg = "#f97316";
+  else if (isFinalized) bg = "#ef4444";
   return L.divIcon({
     className: "playback-leaflet-icon",
-    html: `<div style="background:${bg};color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);">${label}</div>`,
+    html: `<div style="background:${bg};color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.35);">${label === "IDLE" ? "⏱" : label}</div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 16],
   });
@@ -1072,13 +1075,19 @@ export default function DailyRoutePlaybackMap({
                 className="playback-milestone-item visit"
                 onClick={() => {
                   setIsFollowCamera(false);
-                  googleMapRef.current?.panTo({ lat: v.latitude, lng: v.longitude });
+                  const vLat = Number(v.latitude ?? v.lat);
+                  const vLng = Number(v.longitude ?? v.lng);
+                  googleMapRef.current?.panTo({ lat: vLat, lng: vLng });
                   googleMapRef.current?.setZoom(16);
                   setInfoWindowTarget({
                     type: "visit",
-                    data: v,
-                    lat: v.latitude,
-                    lng: v.longitude,
+                    data: {
+                      ...v,
+                      title: `🔵 ${v.client_name || "Client Visit"}`,
+                      time: v.check_in_time || v.time || "Scheduled Visit",
+                    },
+                    lat: vLat,
+                    lng: vLng,
                   });
                 }}
               >
@@ -1100,13 +1109,21 @@ export default function DailyRoutePlaybackMap({
                 className="playback-milestone-item idle"
                 onClick={() => {
                   setIsFollowCamera(false);
-                  googleMapRef.current?.panTo({ lat: idle.latitude, lng: idle.longitude });
+                  const iLat = Number(idle.latitude ?? idle.lat);
+                  const iLng = Number(idle.longitude ?? idle.lng);
+                  googleMapRef.current?.panTo({ lat: iLat, lng: iLng });
                   googleMapRef.current?.setZoom(16);
                   setInfoWindowTarget({
                     type: "idle",
-                    data: idle,
-                    lat: idle.latitude,
-                    lng: idle.longitude,
+                    data: {
+                      ...idle,
+                      title: `🛑 Idle Stop (${idle.duration_formatted || `${idle.duration_minutes || 0}m`})`,
+                      time: idle.start_time && idle.end_time ? `${idle.start_time} - ${idle.end_time}` : (idle.time || idle.start_time || "—"),
+                      duration: idle.duration_formatted || `${idle.duration_minutes || 0}m`,
+                      address: idle.address || "Stationary stop (≥ 15 mins)",
+                    },
+                    lat: iLat,
+                    lng: iLng,
                   });
                 }}
               >
@@ -1324,7 +1341,11 @@ export default function DailyRoutePlaybackMap({
                   onClick={() => {
                     setInfoWindowTarget({
                       type: "visit",
-                      data: visit,
+                      data: {
+                        ...visit,
+                        title: `🔵 ${visit.client_name || "Client Visit"}`,
+                        time: visit.check_in_time || visit.time || "Scheduled Visit",
+                      },
                       lat: Number(visit.latitude ?? visit.lat),
                       lng: Number(visit.longitude ?? visit.lng),
                     });
@@ -1347,7 +1368,13 @@ export default function DailyRoutePlaybackMap({
                   onClick={() => {
                     setInfoWindowTarget({
                       type: "idle",
-                      data: idle,
+                      data: {
+                        ...idle,
+                        title: `🛑 Idle Stop (${idle.duration_formatted || `${idle.duration_minutes || 0}m`})`,
+                        time: idle.start_time && idle.end_time ? `${idle.start_time} - ${idle.end_time}` : (idle.time || idle.start_time || "—"),
+                        duration: idle.duration_formatted || `${idle.duration_minutes || 0}m`,
+                        address: idle.address || "Stationary stop (≥ 15 mins)",
+                      },
                       lat: Number(idle.latitude ?? idle.lat),
                       lng: Number(idle.longitude ?? idle.lng),
                     });
@@ -1377,9 +1404,69 @@ export default function DailyRoutePlaybackMap({
                   onCloseClick={() => setInfoWindowTarget(null)}
                 >
                   <div className="playback-infowindow">
-                    <h4 className="infowindow-title">{infoWindowTarget.data.title || infoWindowTarget.data.client_name}</h4>
-                    <p className="infowindow-meta"><strong>Time:</strong> {infoWindowTarget.data.time}</p>
-                    {infoWindowTarget.data.address && <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>}
+                    {infoWindowTarget.type === "idle" ? (
+                      <div>
+                        <h4 className="infowindow-title orange">
+                          🛑 Idle Stop ({infoWindowTarget.data?.duration_formatted || `${infoWindowTarget.data?.duration_minutes || 0}m`})
+                        </h4>
+                        <p className="infowindow-meta">
+                          <strong>Time:</strong>{" "}
+                          {infoWindowTarget.data?.start_time && infoWindowTarget.data?.end_time
+                            ? `${infoWindowTarget.data.start_time} - ${infoWindowTarget.data.end_time}`
+                            : (infoWindowTarget.data?.time || infoWindowTarget.data?.start_time || "—")}
+                        </p>
+                        <p className="infowindow-meta">
+                          <strong>Duration:</strong> {infoWindowTarget.data?.duration_formatted || `${infoWindowTarget.data?.duration_minutes || 0}m`}
+                        </p>
+                        <p className="infowindow-desc">Stationary stop (≥ 15 mins)</p>
+                        {infoWindowTarget.data?.address && (
+                          <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>
+                        )}
+                      </div>
+                    ) : infoWindowTarget.type === "visit" ? (
+                      <div>
+                        <h4 className="infowindow-title">
+                          🔵 {infoWindowTarget.data?.client_name || infoWindowTarget.data?.title || "Client Visit"}
+                        </h4>
+                        {(infoWindowTarget.data?.check_in_time || infoWindowTarget.data?.time) && (
+                          <p className="infowindow-meta">
+                            <strong>Time:</strong> {infoWindowTarget.data.check_in_time || infoWindowTarget.data.time}
+                          </p>
+                        )}
+                        {infoWindowTarget.data?.purpose && (
+                          <p className="infowindow-meta">
+                            <strong>Purpose:</strong> {infoWindowTarget.data.purpose}
+                          </p>
+                        )}
+                        {infoWindowTarget.data?.duration_formatted && (
+                          <p className="infowindow-meta">
+                            <strong>Duration:</strong> {infoWindowTarget.data.duration_formatted}
+                          </p>
+                        )}
+                        {infoWindowTarget.data?.address && (
+                          <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <h4 className="infowindow-title">
+                          {infoWindowTarget.data?.title || infoWindowTarget.data?.client_name || "Location Details"}
+                        </h4>
+                        {infoWindowTarget.data?.time && (
+                          <p className="infowindow-meta">
+                            <strong>Time:</strong> {infoWindowTarget.data.time}
+                          </p>
+                        )}
+                        {infoWindowTarget.data?.duration && (
+                          <p className="infowindow-meta">
+                            <strong>Duration:</strong> {infoWindowTarget.data.duration}
+                          </p>
+                        )}
+                        {infoWindowTarget.data?.address && (
+                          <p className="infowindow-addr">📍 {infoWindowTarget.data.address}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </InfoWindowF>
               )}
@@ -1462,6 +1549,39 @@ export default function DailyRoutePlaybackMap({
                         <strong>🔵 {v.client_name || "Client Visit"}</strong>
                         <p>{v.purpose}</p>
                         <p>{v.check_in_time || "Scheduled"}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+
+              {/* Idle Stops on Leaflet */}
+              {idleMarkers.map((idle, i) => {
+                const idleLat = Number(idle.latitude ?? idle.lat);
+                const idleLng = Number(idle.longitude ?? idle.lng);
+                if (isNaN(idleLat) || isNaN(idleLng) || idleLat === 0) return null;
+                return (
+                  <Marker
+                    key={`leaflet-idle-${i}`}
+                    position={[idleLat, idleLng]}
+                    icon={createLeafletCheckpointIcon("IDLE")}
+                  >
+                    <Popup>
+                      <div className="fleet-popup">
+                        <strong style={{ color: "#ea580c" }}>
+                          🛑 Idle Stop ({idle.duration_formatted || `${idle.duration_minutes || 0}m`})
+                        </strong>
+                        <p style={{ margin: "2px 0", fontSize: "12px", color: "#334155" }}>
+                          <strong>Time:</strong> {idle.start_time && idle.end_time ? `${idle.start_time} - ${idle.end_time}` : (idle.time || idle.start_time || "—")}
+                        </p>
+                        <p style={{ margin: "2px 0", fontSize: "11px", color: "#64748b" }}>
+                          Stationary stop (≥ 15 mins)
+                        </p>
+                        {idle.address && (
+                          <p style={{ margin: "4px 0 0", fontSize: "11px", color: "#64748b" }}>
+                            📍 {idle.address}
+                          </p>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
