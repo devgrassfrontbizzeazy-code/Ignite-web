@@ -479,10 +479,13 @@ const Visits = () => {
 
   useSmartPolling(fetchTeamLive, 5000, { enabled: isManager });
 
+  const loadTimelineRef = useRef(null);
+
   const refreshManagerTracking = useCallback(async () => {
     const results = await Promise.all([
       loadLiveVisits(true),
       fetchTeamLive(),
+      loadTimelineRef.current ? loadTimelineRef.current(true) : Promise.resolve(true),
     ]);
     if (results.some((result) => !result)) {
       showNotification({
@@ -510,94 +513,142 @@ const Visits = () => {
     setSelectedRouteDate("");
   }, []);
 
-  useEffect(() => {
+  const fetchTimeline = useCallback(async (silent = false) => {
     if (!selectedEntity || selectedEntity.type !== "employee") {
       setTimelinePoints([]);
       setAvailableRouteDays([]);
       setRouteSummaryData(null);
       setTimelineLoading(false);
       setTimelineError(false);
-      return;
+      return false;
     }
 
-    let isMounted = true;
-    const loadTimeline = async () => {
-      setTimelineLoading(true);
-      setTimelineError(false);
-      setTimelinePoints([]);
-      setAvailableRouteDays([]);
-      setRouteSummaryData(null);
-      try {
-        const res = await getEmployeeTimelineHistory(
-          selectedEntity.id,
-          selectedRouteDate,
-          selectedRouteMonth,
-          selectedRouteYear
-        );
-        if (res?.success === false) {
-          throw new Error(res.message || "Timeline history request failed.");
-        }
-        if (isMounted && res) {
-          const points = res.timeline || res.route_points || res.data || [];
-          setTimelinePoints(Array.isArray(points) ? points : []);
-          setAvailableRouteDays(res.available_days || []);
-          setRouteSummaryData({
-            ...res,
-            ...(res.summary || {}),
-            date: res.date || res.selected_date,
-            selected_date: res.selected_date,
-            selected_date_label: res.selected_date_label,
-            month: res.month,
-            year: res.year,
-            month_label: res.month_label,
-            month_total_distance_km: res.month_total_distance_km,
-            month_active_days: res.month_active_days,
-            total_distance_km: res.total_distance_km ?? res.summary?.total_distance_km,
-            check_in_time: res.check_in_time ?? res.summary?.check_in_time,
-            check_out_time: res.check_out_time ?? res.summary?.check_out_time,
-            total_working_hours: res.total_working_hours ?? res.summary?.total_working_hours,
-            client_visit_time: res.client_visit_time ?? res.summary?.client_visit_time,
-            idle_time: res.idle_time ?? res.summary?.idle_time,
-            travel_time: res.travel_time ?? res.summary?.travel_time,
-            total_visits: res.total_visits ?? res.summary?.total_visits,
-            completed_visits: res.completed_visits ?? res.summary?.completed_visits,
-            markers: res.markers,
-            idle_markers: res.idle_markers ?? res.markers?.idle_stops ?? [],
-            client_visit_markers: res.client_visit_markers ?? res.markers?.visits ?? [],
-            employee: res.employee,
-            start_location_name: res.start_location_name || res.start_location,
-            end_location_name: res.end_location_name || res.end_location,
-            is_finalized: res.is_finalized,
-            attendance_status: res.attendance_status,
-            check_in_latitude: res.check_in_latitude ?? res.summary?.check_in_latitude ?? res.start_latitude ?? res.summary?.start_latitude ?? selectedEntity?.check_in_latitude,
-            check_in_longitude: res.check_in_longitude ?? res.summary?.check_in_longitude ?? res.start_longitude ?? res.summary?.start_longitude ?? selectedEntity?.check_in_longitude,
-            check_in_address: res.check_in_address ?? res.summary?.check_in_address ?? selectedEntity?.check_in_address ?? "",
-            check_out_latitude: res.check_out_latitude ?? res.summary?.check_out_latitude ?? res.end_latitude ?? res.summary?.end_latitude ?? selectedEntity?.check_out_latitude,
-            check_out_longitude: res.check_out_longitude ?? res.summary?.check_out_longitude ?? res.end_longitude ?? res.summary?.end_longitude ?? selectedEntity?.check_out_longitude,
-            check_out_address: res.check_out_address ?? res.summary?.check_out_address ?? selectedEntity?.check_out_address ?? "",
-          });
-        } else if (isMounted) {
-          setTimelinePoints([]);
-          setAvailableRouteDays([]);
-          setRouteSummaryData(null);
-          setTimelineError(true);
-        }
-      } catch (err) {
-        console.warn("Timeline history fetch error:", err);
-        if (isMounted) {
-          setTimelinePoints([]);
-          setAvailableRouteDays([]);
-          setRouteSummaryData(null);
-          setTimelineError(true);
-        }
-      } finally {
-        if (isMounted) setTimelineLoading(false);
-      }
-    };
+    if (!silent) setTimelineLoading(true);
+    setTimelineError(false);
 
-    loadTimeline();
-    return () => { isMounted = false; };
-  }, [selectedEntity?.id, selectedEntity?.type, selectedRouteDate, selectedRouteMonth, selectedRouteYear]);
+    try {
+      const now = new Date();
+      const targetDate = selectedRouteDate || getToday();
+      const targetMonth = selectedRouteMonth || (now.getMonth() + 1);
+      const targetYear = selectedRouteYear || now.getFullYear();
+
+      const res = await getEmployeeTimelineHistory(
+        selectedEntity.id,
+        targetDate,
+        targetMonth,
+        targetYear
+      );
+      if (res?.success === false) {
+        throw new Error(res.message || "Timeline history request failed.");
+      }
+      if (res) {
+        const root = res?.data && typeof res.data === "object" && !Array.isArray(res.data) ? { ...res, ...res.data } : res;
+        const candidates = [
+          root?.timeline,
+          root?.route_points,
+          root?.waypoints,
+          root?.points,
+          root?.breadcrumbs,
+          root?.locations,
+          root?.history,
+          res?.timeline,
+          res?.route_points,
+          res?.waypoints,
+          res?.points,
+          res?.data,
+          res?.results,
+        ];
+        let foundPoints = [];
+        for (const c of candidates) {
+          if (Array.isArray(c) && c.length > 0) {
+            foundPoints = c;
+            break;
+          }
+        }
+        if (foundPoints.length === 0) {
+          for (const c of candidates) {
+            if (Array.isArray(c)) {
+              foundPoints = c;
+              break;
+            }
+          }
+        }
+
+        setTimelinePoints(foundPoints);
+        setAvailableRouteDays(root?.available_days || res?.available_days || []);
+
+        const summary = root?.summary || res?.summary || {};
+        setRouteSummaryData({
+          ...root,
+          ...summary,
+          date: root.date || root.selected_date,
+          selected_date: root.selected_date,
+          selected_date_label: root.selected_date_label,
+          month: root.month,
+          year: root.year,
+          month_label: root.month_label,
+          month_total_distance_km: root.month_total_distance_km,
+          month_active_days: root.month_active_days,
+          total_distance_km: root.total_distance_km ?? summary?.total_distance_km,
+          check_in_time: root.check_in_time ?? summary?.check_in_time,
+          check_out_time: root.check_out_time ?? summary?.check_out_time,
+          total_working_hours: root.total_working_hours ?? summary?.total_working_hours,
+          client_visit_time: root.client_visit_time ?? summary?.client_visit_time,
+          idle_time: root.idle_time ?? summary?.idle_time,
+          travel_time: root.travel_time ?? summary?.travel_time,
+          total_visits: root.total_visits ?? summary?.total_visits,
+          completed_visits: root.completed_visits ?? summary?.completed_visits,
+          markers: root.markers,
+          idle_markers: root.idle_markers ?? root.markers?.idle_stops ?? [],
+          client_visit_markers: root.client_visit_markers ?? root.markers?.visits ?? [],
+          employee: root.employee,
+          start_location_name: root.start_location_name || root.start_location,
+          end_location_name: root.end_location_name || root.end_location,
+          is_finalized: root.is_finalized,
+          attendance_status: root.attendance_status,
+          check_in_latitude: root.check_in_latitude ?? summary?.check_in_latitude ?? root.start_latitude ?? summary?.start_latitude ?? selectedEntity?.check_in_latitude,
+          check_in_longitude: root.check_in_longitude ?? summary?.check_in_longitude ?? root.start_longitude ?? summary?.start_longitude ?? selectedEntity?.check_in_longitude,
+          check_in_address: root.check_in_address ?? summary?.check_in_address ?? selectedEntity?.check_in_address ?? "",
+          check_out_latitude: root.check_out_latitude ?? summary?.check_out_latitude ?? root.end_latitude ?? summary?.end_latitude ?? selectedEntity?.check_out_latitude,
+          check_out_longitude: root.check_out_longitude ?? summary?.check_out_longitude ?? root.end_longitude ?? summary?.end_longitude ?? selectedEntity?.check_out_longitude,
+          check_out_address: root.check_out_address ?? summary?.check_out_address ?? selectedEntity?.check_out_address ?? "",
+        });
+        return true;
+      }
+    } catch (err) {
+      console.warn("Timeline history fetch error:", err);
+      if (!silent) {
+        setTimelinePoints([]);
+        setAvailableRouteDays([]);
+        setRouteSummaryData(null);
+        setTimelineError(true);
+      }
+    } finally {
+      if (!silent) setTimelineLoading(false);
+    }
+    return false;
+  }, [selectedEntity, selectedRouteDate, selectedRouteMonth, selectedRouteYear]);
+
+  loadTimelineRef.current = fetchTimeline;
+
+  useEffect(() => {
+    fetchTimeline(false);
+  }, [fetchTimeline]);
+
+  // Periodic Auto-Refresh of Timeline (every 10s when manager is viewing today's route)
+  useEffect(() => {
+    if (!isManager || !selectedEntity || selectedEntity.type !== "employee") return;
+    const isToday = !selectedRouteDate || selectedRouteDate === getToday();
+    if (!isToday) return;
+
+    const intervalId = setInterval(() => {
+      if (typeof loadTimelineRef.current === "function") {
+        loadTimelineRef.current(true);
+      }
+    }, 10000);
+
+    return () => clearInterval(intervalId);
+  }, [isManager, selectedEntity?.id, selectedEntity?.type, selectedRouteDate]);
 
   /* ---------------------------------------------------------------------- */
   /* Keep visit distance synced with current GPS                             */
@@ -727,8 +778,24 @@ const Visits = () => {
       const fullName = String(employee.name || "").trim();
       const normalizedName = fullName.toLocaleLowerCase();
       const attendance = attendanceForEmployee(employee);
+      const rawCheckOut = attendance?.checkOut ?? attendance?.check_out ?? null;
+      const isActualCheckOut =
+        Boolean(rawCheckOut) &&
+        !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
+          String(rawCheckOut).trim().toUpperCase()
+        );
+      const isWorking =
+        attendance?.status === "WORKING" ||
+        attendance?.status === "ON_BREAK" ||
+        attendance?.status === "PRESENT" ||
+        attendance?.status === "ACTIVE" ||
+        (Boolean(attendance?.checkIn) && !isActualCheckOut);
       const attendanceStatus = attendance
-        ? (attendance.status === "WORKING" || attendance.status === "ON_BREAK" ? "CHECKED_IN" : attendance.checkOut ? "CHECKED_OUT" : "NOT_CHECKED_IN")
+        ? isWorking
+          ? "CHECKED_IN"
+          : isActualCheckOut
+          ? "CHECKED_OUT"
+          : "NOT_CHECKED_IN"
         : "NOT_CHECKED_IN";
       const mapEmployee = {
         id: employeeId,
@@ -742,16 +809,20 @@ const Visits = () => {
         isActiveTracking: false,
         lastUpdated: "Location unavailable",
         currentVisit: null,
-        shiftStatus: attendance?.status || null,
+        shiftStatus: attendance?.status || (isWorking ? "WORKING" : null),
         shiftCheckIn: attendance?.checkIn ?? null,
-        shiftCheckOut: attendance?.checkOut ?? null,
+        shiftCheckOut: isActualCheckOut ? rawCheckOut : null,
         attendance_status: attendanceStatus,
         check_in_latitude: attendance?.checkInLatitude ?? attendance?.check_in_latitude ?? attendance?.check_in_lat ?? attendance?.punch_in_latitude ?? null,
         check_in_longitude: attendance?.checkInLongitude ?? attendance?.check_in_longitude ?? attendance?.check_in_lng ?? attendance?.punch_in_longitude ?? null,
         check_in_address: attendance?.checkInAddress || attendance?.check_in_address || "",
-        check_out_latitude: attendance?.checkOutLatitude ?? attendance?.check_out_latitude ?? attendance?.check_out_lat ?? attendance?.punch_out_latitude ?? null,
-        check_out_longitude: attendance?.checkOutLongitude ?? attendance?.check_out_longitude ?? attendance?.check_out_lng ?? attendance?.punch_out_longitude ?? null,
-        check_out_address: attendance?.checkOutAddress || attendance?.check_out_address || "",
+        check_out_latitude: isActualCheckOut
+          ? (attendance?.checkOutLatitude ?? attendance?.check_out_latitude ?? attendance?.check_out_lat ?? attendance?.punch_out_latitude ?? null)
+          : null,
+        check_out_longitude: isActualCheckOut
+          ? (attendance?.checkOutLongitude ?? attendance?.check_out_longitude ?? attendance?.check_out_lng ?? attendance?.punch_out_longitude ?? null)
+          : null,
+        check_out_address: isActualCheckOut ? (attendance?.checkOutAddress || attendance?.check_out_address || "") : "",
       };
       employeesById.set(employeeId, mapEmployee);
       [employee.id, employee.employee_id, employee.employeeId, employee.pk]

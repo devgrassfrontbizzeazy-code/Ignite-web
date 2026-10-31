@@ -552,29 +552,33 @@ export default function LiveFleetCommandMap({
   }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
 
   const activeCheckOutTime = useMemo(() => {
+    let raw = null;
     if (isViewingToday) {
-      return (
+      raw =
         selectedEmployee?.shiftCheckOut ||
         selectedEmployee?.check_out_time_formatted ||
         routeSummary?.check_out_time ||
         currentDayFromRibbon?.check_out_time ||
-        null
-      );
+        null;
+    } else {
+      raw =
+        routeSummary?.check_out_time ||
+        currentDayFromRibbon?.check_out_time ||
+        null;
     }
-    return (
-      routeSummary?.check_out_time ||
-      currentDayFromRibbon?.check_out_time ||
-      null
-    );
+    if (!raw) return null;
+    const str = String(raw).trim().toUpperCase();
+    if (["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(str)) {
+      return null;
+    }
+    return raw;
   }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
-
-
 
   const activeAttendanceStatus = useMemo(() => {
     if (isViewingToday) {
-      if (selectedEmployee?.attendance_status) return String(selectedEmployee.attendance_status);
       if (isEmployeeOnShift(selectedEmployee)) return "CHECKED_IN";
-      if (selectedEmployee?.shiftCheckOut) return "CHECKED_OUT";
+      if (selectedEmployee?.attendance_status) return String(selectedEmployee.attendance_status);
+      if (activeCheckOutTime) return "CHECKED_OUT";
       return "NOT_CHECKED_IN";
     }
     if (routeSummary?.attendance_status) return String(routeSummary.attendance_status);
@@ -605,16 +609,40 @@ export default function LiveFleetCommandMap({
 
   // Raw route timeline breadcrumbs recorded in the database
   const rawTimelinePoints = useMemo(() => {
-    if (Array.isArray(timelinePoints) && timelinePoints.length > 0) return timelinePoints;
-    if (Array.isArray(routeSummary?.route_points) && routeSummary.route_points.length > 0) return routeSummary.route_points;
-    if (Array.isArray(routeSummary?.timeline) && routeSummary.timeline.length > 0) return routeSummary.timeline;
-    if (Array.isArray(routeSummary?.data) && routeSummary.data.length > 0) return routeSummary.data;
+    const candidates = [
+      timelinePoints,
+      routeSummary?.timeline,
+      routeSummary?.route_points,
+      routeSummary?.waypoints,
+      routeSummary?.points,
+      routeSummary?.locations,
+      routeSummary?.history,
+      routeSummary?.breadcrumbs,
+      routeSummary?.data?.timeline,
+      routeSummary?.data?.route_points,
+      routeSummary?.data?.waypoints,
+      routeSummary?.data?.points,
+      routeSummary?.data,
+    ];
+    for (const c of candidates) {
+      if (Array.isArray(c) && c.length > 0) return c;
+    }
     return [];
   }, [timelinePoints, routeSummary]);
 
+  const getPointCoords = (pt) => {
+    if (!pt) return null;
+    if (Array.isArray(pt) && pt.length >= 2) {
+      return isValidCoordinatePair(pt[0], pt[1]) || isValidCoordinatePair(pt[1], pt[0]);
+    }
+    const lat = pt.latitude ?? pt.lat ?? pt.location?.latitude ?? pt.location?.lat ?? pt.coords?.latitude ?? pt.coords?.lat;
+    const lng = pt.longitude ?? pt.lng ?? pt.location?.longitude ?? pt.location?.lng ?? pt.coords?.longitude ?? pt.coords?.lng;
+    return isValidCoordinatePair(lat, lng);
+  };
+
   const hasRecordedRoute = useMemo(() => {
     return rawTimelinePoints.some((pt) => {
-      const coords = isValidCoordinatePair(pt?.latitude ?? pt?.lat, pt?.longitude ?? pt?.lng);
+      const coords = getPointCoords(pt);
       return Boolean(coords && (coords.lat !== 0 || coords.lng !== 0));
     });
   }, [rawTimelinePoints]);
@@ -625,17 +653,17 @@ export default function LiveFleetCommandMap({
     if (rawTimelinePoints && rawTimelinePoints.length) {
       pts = rawTimelinePoints
         .map((pt, idx) => {
-          const coords = isValidCoordinatePair(pt.latitude ?? pt.lat, pt.longitude ?? pt.lng);
+          const coords = getPointCoords(pt);
           if (!coords || (coords.lat === 0 && coords.lng === 0)) return null;
           return {
             ...coords,
-            timestamp: pt.timestamp,
+            timestamp: pt.timestamp || pt.created_at || pt.time,
             speed: pt.speed,
-            battery: pt.battery_percentage,
+            battery: pt.battery_percentage ?? pt.battery,
             accuracy: pt.accuracy,
-            logType: pt.log_type,
-            time: pt.time,
-            address: pt.address,
+            logType: pt.log_type || pt.type,
+            time: pt.time || pt.created_at,
+            address: pt.address || "",
             index: idx,
           };
         })
@@ -664,7 +692,7 @@ export default function LiveFleetCommandMap({
           index: 0,
         });
       }
-      if (endCoord) {
+      if (endCoord && (activeCheckOutTime || !isViewingToday)) {
         pts.push({
           ...endCoord,
           logType: "DUTY_END",
@@ -699,7 +727,7 @@ export default function LiveFleetCommandMap({
         }
       }
       // Append check-out if not present at end
-      if (endCoord) {
+      if (endCoord && (activeCheckOutTime || !isViewingToday)) {
         const last = pts[pts.length - 1];
         if (Math.abs(last.lat - endCoord.lat) > 0.0002 || Math.abs(last.lng - endCoord.lng) > 0.0002) {
           pts.push({
@@ -709,6 +737,20 @@ export default function LiveFleetCommandMap({
             address: activeCheckOutAddress,
             index: pts.length,
           });
+        }
+      } else if (isViewingToday && selectedEmployee?.latitude && selectedEmployee?.longitude) {
+        const liveCoord = isValidCoordinatePair(selectedEmployee.latitude, selectedEmployee.longitude);
+        if (liveCoord) {
+          const last = pts[pts.length - 1];
+          if (Math.abs(last.lat - liveCoord.lat) > 0.0002 || Math.abs(last.lng - liveCoord.lng) > 0.0002) {
+            pts.push({
+              ...liveCoord,
+              logType: "LIVE_POSITION",
+              time: "Current",
+              address: selectedEmployee.address || "",
+              index: pts.length,
+            });
+          }
         }
       }
     }
@@ -1553,7 +1595,7 @@ export default function LiveFleetCommandMap({
                 <div className="fleet-metric-item">
                   <span className="fleet-metric-label">Waypoints</span>
                   <strong className="fleet-metric-val">
-                    {hasRecordedRoute ? `${historyRouteCoords.length} pts` : "0 pts"}
+                    {historyRouteCoords.length > 0 ? `${historyRouteCoords.length} pts` : "0 pts"}
                   </strong>
                 </div>
               </div>
@@ -1627,7 +1669,10 @@ export default function LiveFleetCommandMap({
               ) : timelineError || !hasRecordedRoute ? (
                 <span className="fleet-route-not-found-msg">
                   ⚠️ {isViewingToday ? "Todays route is not found" : "Route not found for this date"}
-                  {historyRouteCoords.length > 0 && " (Attendance punch-in & out locations shown; no travel route recorded)"}
+                  {historyRouteCoords.length > 0 &&
+                    (isViewingToday && !activeCheckOutTime
+                      ? " (Shift punch-in & current live location shown; travel route in progress)"
+                      : " (Attendance punch-in & out locations shown; no travel route recorded)")}
                 </span>
               ) : (
                 `${historyRouteCoords.length} historical GPS points`
@@ -1672,7 +1717,10 @@ export default function LiveFleetCommandMap({
             <AlertCircle size={14} style={{ flexShrink: 0 }} />
             <span>
               {isViewingToday ? "Todays route is not found" : "Route not found for this date"}
-              {historyRouteCoords.length > 0 && " — Shift punch locations shown; no travel route was recorded."}
+              {historyRouteCoords.length > 0 &&
+                (isViewingToday && !activeCheckOutTime
+                  ? " — Shift punch-in & current live location shown; travel route in progress."
+                  : " — Shift punch locations shown; no travel route was recorded.")}
             </span>
           </div>
         )}
@@ -1944,56 +1992,58 @@ export default function LiveFleetCommandMap({
             )}
 
             {/* End / Check-out Marker (Red if checked out / finalized, Blue if in progress) */}
-            {historyRouteCoords.length > 1 && (
-              <MarkerF
-                key={`route-end-${historyRouteCoords[historyRouteCoords.length - 1].timestamp || 1}`}
-                position={{
-                  lat: historyRouteCoords[historyRouteCoords.length - 1].lat,
-                  lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
-                }}
-                title={
-                  activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday
-                    ? `Shift Check-out: ${activeCheckOutTime || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
-                    : `Live Location: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
-                }
-                onClick={() => {
-                  const isCheckout = Boolean(activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday);
-                  setInfoWindowTarget({
-                    type: "checkpoint",
-                    data: {
-                      title: isCheckout ? "🔴 Shift Check-out Location" : "🔵 Current Live Position",
-                      time: isCheckout
-                        ? (activeCheckOutTime || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp))
-                        : formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp),
-                      address: activeCheckOutAddress || "",
-                      battery: historyRouteCoords[historyRouteCoords.length - 1].battery,
-                      speed: historyRouteCoords[historyRouteCoords.length - 1].speed,
-                    },
+            {historyRouteCoords.length > 1 && (() => {
+              const isCheckout = Boolean(activeCheckOutTime || (!isViewingToday && (routeSummary?.is_finalized || currentDayFromRibbon?.is_finalized)));
+              return (
+                <MarkerF
+                  key={`route-end-${historyRouteCoords[historyRouteCoords.length - 1].timestamp || 1}`}
+                  position={{
                     lat: historyRouteCoords[historyRouteCoords.length - 1].lat,
                     lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
-                  });
-                }}
-                icon={
-                  window.google?.maps?.Size
-                    ? {
-                        url: createCheckpointMarkerIcon(
-                          activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday ? "OUT" : "NOW",
-                          Boolean(activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday)
-                        ),
-                        scaledSize: new window.google.maps.Size(32, 32),
-                        anchor: new window.google.maps.Point(16, 16),
-                      }
-                    : {
-                        path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
-                        scale: 9,
-                        fillColor: activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday ? "#ef4444" : "#3b82f6",
-                        fillOpacity: 1,
-                        strokeColor: "#ffffff",
-                        strokeWeight: 2.5,
-                      }
-                }
-              />
-            )}
+                  }}
+                  title={
+                    isCheckout
+                      ? `Shift Check-out: ${activeCheckOutTime || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
+                      : `Live Location: ${formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp)}`
+                  }
+                  onClick={() => {
+                    setInfoWindowTarget({
+                      type: "checkpoint",
+                      data: {
+                        title: isCheckout ? "🔴 Shift Check-out Location" : "🔵 Current Live Position",
+                        time: isCheckout
+                          ? (activeCheckOutTime || formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp))
+                          : formatPingTimestamp(historyRouteCoords[historyRouteCoords.length - 1].timestamp),
+                        address: isCheckout ? (activeCheckOutAddress || "") : (selectedEmployee?.address || activeCheckOutAddress || ""),
+                        battery: historyRouteCoords[historyRouteCoords.length - 1].battery,
+                        speed: historyRouteCoords[historyRouteCoords.length - 1].speed,
+                      },
+                      lat: historyRouteCoords[historyRouteCoords.length - 1].lat,
+                      lng: historyRouteCoords[historyRouteCoords.length - 1].lng,
+                    });
+                  }}
+                  icon={
+                    window.google?.maps?.Size
+                      ? {
+                          url: createCheckpointMarkerIcon(
+                            isCheckout ? "OUT" : "NOW",
+                            isCheckout
+                          ),
+                          scaledSize: new window.google.maps.Size(32, 32),
+                          anchor: new window.google.maps.Point(16, 16),
+                        }
+                      : {
+                          path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
+                          scale: 9,
+                          fillColor: isCheckout ? "#ef4444" : "#3b82f6",
+                          fillOpacity: 1,
+                          strokeColor: "#ffffff",
+                          strokeWeight: 2.5,
+                        }
+                  }
+                />
+              );
+            })()}
 
             {/* Intermediate 10-Minute Checkpoint Dots */}
             {historyRouteCoords.slice(1, -1).map((pt, i) => (
@@ -2375,35 +2425,42 @@ export default function LiveFleetCommandMap({
             )}
 
             {/* End Marker Leaflet */}
-            {historyRouteCoords.length > 1 && (
-              <Marker
-                key="leaflet-route-end"
-                position={[
-                  historyRouteCoords[historyRouteCoords.length - 1].lat,
-                  historyRouteCoords[historyRouteCoords.length - 1].lng,
-                ]}
-                icon={createLeafletCheckpointIcon(
-                  activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday ? "OUT" : "NOW",
-                  Boolean(activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday)
-                )}
-              >
-                <Popup>
-                  <div className="fleet-popup">
-                    <strong>
-                      {activeCheckOutTime || routeSummary?.is_finalized || !isViewingToday
-                        ? "🔴 Shift Check-out Location"
-                        : "Last recorded location"}
-                    </strong>
-                    <p>
-                      {activeCheckOutTime || formatPingTimestamp(
-                        historyRouteCoords[historyRouteCoords.length - 1].timestamp
-                      )}
-                    </p>
-                    {activeCheckOutAddress && <p>{activeCheckOutAddress}</p>}
-                  </div>
-                </Popup>
-              </Marker>
-            )}
+            {historyRouteCoords.length > 1 && (() => {
+              const isCheckout = Boolean(activeCheckOutTime || (!isViewingToday && (routeSummary?.is_finalized || currentDayFromRibbon?.is_finalized)));
+              return (
+                <Marker
+                  key="leaflet-route-end"
+                  position={[
+                    historyRouteCoords[historyRouteCoords.length - 1].lat,
+                    historyRouteCoords[historyRouteCoords.length - 1].lng,
+                  ]}
+                  icon={createLeafletCheckpointIcon(
+                    isCheckout ? "OUT" : "NOW",
+                    isCheckout
+                  )}
+                >
+                  <Popup>
+                    <div className="fleet-popup">
+                      <strong>
+                        {isCheckout
+                          ? "🔴 Shift Check-out Location"
+                          : "🔵 Current Live Position"}
+                      </strong>
+                      <p>
+                        {isCheckout
+                          ? (activeCheckOutTime || formatPingTimestamp(
+                              historyRouteCoords[historyRouteCoords.length - 1].timestamp
+                            ))
+                          : formatPingTimestamp(
+                              historyRouteCoords[historyRouteCoords.length - 1].timestamp
+                            )}
+                      </p>
+                      {isCheckout ? activeCheckOutAddress && <p>{activeCheckOutAddress}</p> : selectedEmployee?.address && <p>{selectedEmployee.address}</p>}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })()}
           </MapContainer>
         )}
 

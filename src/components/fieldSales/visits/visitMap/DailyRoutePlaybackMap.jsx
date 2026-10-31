@@ -741,7 +741,15 @@ export default function DailyRoutePlaybackMap({
     return routeCoords.length > 0 ? routeCoords[0] : null;
   }, [routeSummary, selectedEmployee, routeCoords]);
 
+  const rawCheckOut = summary.check_out_time;
+  const isActualCheckOut =
+    Boolean(rawCheckOut) &&
+    !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
+      String(rawCheckOut).trim().toUpperCase()
+    );
+
   const checkOutMarker = useMemo(() => {
+    if (!isActualCheckOut && !summary.is_finalized) return null;
     if (routeSummary?.markers?.check_out) return routeSummary.markers.check_out;
     const lat = Number(routeSummary?.check_out_latitude ?? selectedEmployee?.check_out_latitude);
     const lng = Number(routeSummary?.check_out_longitude ?? selectedEmployee?.check_out_longitude);
@@ -755,7 +763,7 @@ export default function DailyRoutePlaybackMap({
       };
     }
     return routeCoords.length > 1 ? routeCoords[routeCoords.length - 1] : null;
-  }, [routeSummary, selectedEmployee, routeCoords]);
+  }, [routeSummary, selectedEmployee, routeCoords, isActualCheckOut, summary.is_finalized]);
 
   const inLat = Number(checkInMarker?.latitude ?? checkInMarker?.lat);
   const inLng = Number(checkInMarker?.longitude ?? checkInMarker?.lng);
@@ -825,7 +833,11 @@ export default function DailyRoutePlaybackMap({
   }, [effectiveRoutePath]);
 
   const checkInTime = summary.check_in_time || "—";
-  const checkOutTime = summary.check_out_time || (summary.is_finalized ? "Shift Ended" : "In Progress");
+  const checkOutTime = isActualCheckOut
+    ? rawCheckOut
+    : summary.is_finalized
+    ? "Shift Ended"
+    : "In Progress";
   const totalHours = summary.total_working_hours || "—";
   const totalDistance = summary.total_distance_km != null ? `${summary.total_distance_km} KM` : "0.0 KM";
   const totalVisits = summary.total_visits != null ? summary.total_visits : clientVisitMarkers.length;

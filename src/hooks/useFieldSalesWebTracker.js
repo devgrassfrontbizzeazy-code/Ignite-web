@@ -93,9 +93,16 @@ export default function useFieldSalesWebTracker() {
           const att = attRes?.data;
           if (att) {
             const status = String(att.status || "").toUpperCase();
+            const rawCheckOut = att.checkOutAt || att.checkOut || att.check_out || null;
+            const isActualCheckOut =
+              Boolean(rawCheckOut) &&
+              !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
+                String(rawCheckOut).trim().toUpperCase()
+              );
+            const hasCheckIn = Boolean(att.checkInAt || att.checkIn || att.check_in);
             isUserOnShift =
-              (status === "WORKING" || status === "ON_BREAK" || Boolean(att.checkInAt)) &&
-              !att.checkOutAt;
+              (status === "WORKING" || status === "ON_BREAK" || status === "PRESENT" || status === "ACTIVE" || hasCheckIn) &&
+              !isActualCheckOut;
           }
         } catch {
           // fallback
@@ -104,10 +111,17 @@ export default function useFieldSalesWebTracker() {
         if (!isUserOnShift) {
           try {
             const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+            const rawCheckOut = userObj?.shiftCheckOut || userObj?.check_out_time || null;
+            const isActualCheckOut =
+              Boolean(rawCheckOut) &&
+              !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
+                String(rawCheckOut).trim().toUpperCase()
+              );
             isUserOnShift =
-              userObj?.attendance_status === "CHECKED_IN" ||
-              userObj?.shiftStatus === "WORKING" ||
-              userObj?.is_on_shift === true;
+              (userObj?.attendance_status === "CHECKED_IN" ||
+                userObj?.shiftStatus === "WORKING" ||
+                userObj?.is_on_shift === true) &&
+              !isActualCheckOut;
           } catch {
             // fallback
           }
