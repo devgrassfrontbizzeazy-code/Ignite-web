@@ -94,6 +94,27 @@ export const attendanceAPI = {
   /**
    * Reject an attendance session
    */
+  /**
+   * Fetch all pending attendance approvals across dates for authorized approver
+   */
+  getPendingAttendanceApprovals: async (params = {}) => {
+    const response = await api.get("/attendance/pending-approvals/", { params });
+    return response.data;
+  },
+
+  /**
+   * Bulk approve multiple attendance records
+   * @param {Array<number>} attendanceIds
+   * @param {string} remarks
+   */
+  bulkApproveAttendance: async (attendanceIds = [], remarks = "") => {
+    const response = await api.post("/attendance/bulk-approve/", {
+      attendance_ids: attendanceIds,
+      remarks,
+    });
+    return response.data;
+  },
+
   rejectAttendance: async (attendanceId, reason = "") => {
     const response = await api.post(`/attendance/${attendanceId}/reject/`, {
       action: "REJECT",
