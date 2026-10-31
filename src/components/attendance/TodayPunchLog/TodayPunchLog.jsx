@@ -26,7 +26,7 @@ const TodayPunchLog = ({
   checkInTime = null,
   checkOutTime = null,
   timeline = [],
-  shiftEnd = "07:30 PM",
+  shiftEnd = "07:00 PM",
   location = "Office HQ",
 }) => {
   // If backend provided rich dynamic timeline events

@@ -7,6 +7,7 @@ import AttendanceStats from "../../components/attendance/AttendanceStats/Attenda
 import AttendanceHistory from "../../components/attendance/AttendanceHistory/AttendanceHistory";
 import AttendanceDetailModal from "../../components/attendance/AttendanceDetailModal/AttendanceDetailModal";
 import EmployeeAttendance from "../../components/attendance/EmployeeAttendance/EmployeeAttendance";
+import PendingAttendanceApprovals from "../../components/attendance/PendingAttendanceApprovals/PendingAttendanceApprovals";
 import Modal from "../../components/common/Modal/Modal";
 import Button from "../../components/common/Button/Button";
 import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
@@ -95,9 +96,31 @@ const Attendance = () => {
     userPermissions.includes("view_employee_attendance") ||
     userPermissions.includes("attendance.view_employees");
 
-  // Tab State: 'my' | 'employees'
+  const canApprove = canApproveAttendance(user);
+
+  // Tab State: 'my' | 'employees' | 'pending'
   const [activeTab, setActiveTab] = useState("my");
-  const effectiveTab = canViewEmployees ? activeTab : "my";
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const effectiveTab = (activeTab === "pending" && canApprove)
+    ? "pending"
+    : (activeTab === "employees" && canViewEmployees)
+    ? "employees"
+    : "my";
+
+  // Initial fetch of pending approvals count for authorized approver
+  useEffect(() => {
+    if (canApprove) {
+      attendanceAPI
+        .getPendingAttendanceApprovals()
+        .then((res) => {
+          if (res?.success && Array.isArray(res.data)) {
+            setPendingCount(res.data.length);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [canApprove]);
 
   // Today's attendance state
   const [todayData, setTodayData] = useState(null);
@@ -356,10 +379,12 @@ const Attendance = () => {
       <header className="attendance-page__header">
         <div>
           <span className="attendance-page__eyebrow">ATTENDANCE</span>
-          <h1>{effectiveTab === "my" ? "My Attendance" : "Employee Attendance"}</h1>
+          <h1>{effectiveTab === "my" ? "My Attendance" : effectiveTab === "pending" ? "Pending Attendance Approvals" : "Employee Attendance"}</h1>
           <p>
             {effectiveTab === "my"
               ? "Track your daily attendance, working hours and punch activity."
+              : effectiveTab === "pending"
+              ? "Review and approve pending employee attendance requests."
               : "Monitor company-wide employee attendance, live status, and approvals."}
           </p>
         </div>
@@ -379,8 +404,8 @@ const Attendance = () => {
         </div>
       </header>
 
-      {/* SUB-NAVIGATION TABS (Rendered only if user has permission to view employee attendance) */}
-      {canViewEmployees && (
+      {/* SUB-NAVIGATION TABS (Rendered if user has employee view or approval permission) */}
+      {(canViewEmployees || canApprove) && (
         <div className="attendance-page__nav-tabs">
           <button
             type="button"
@@ -389,13 +414,27 @@ const Attendance = () => {
           >
             My Attendance
           </button>
-          <button
-            type="button"
-            className={`attendance-page__nav-tab ${effectiveTab === "employees" ? "active" : ""}`}
-            onClick={() => setActiveTab("employees")}
-          >
-            Employee Attendance
-          </button>
+          {canViewEmployees && (
+            <button
+              type="button"
+              className={`attendance-page__nav-tab ${effectiveTab === "employees" ? "active" : ""}`}
+              onClick={() => setActiveTab("employees")}
+            >
+              Employee Attendance
+            </button>
+          )}
+          {canApprove && (
+            <button
+              type="button"
+              className={`attendance-page__nav-tab ${effectiveTab === "pending" ? "active" : ""}`}
+              onClick={() => setActiveTab("pending")}
+            >
+              Pending Approvals
+              {pendingCount > 0 && (
+                <span className="attendance-page__tab-badge">{pendingCount}</span>
+              )}
+            </button>
+          )}
         </div>
       )}
 
@@ -410,8 +449,8 @@ const Attendance = () => {
               workedSeconds={todayData?.workingDuration || 0}
               breakSeconds={todayData?.totalBreakDuration || 0}
               currentBreak={todayData?.currentBreak}
-              shiftStart={todayData?.shift?.shiftStart || "09:30 AM"}
-              shiftEnd={todayData?.shift?.shiftEnd || "07:30 PM"}
+              shiftStart={todayData?.shift?.shiftStart || "10:00 AM"}
+              shiftEnd={todayData?.shift?.shiftEnd || "07:00 PM"}
               targetSeconds={todayData?.shift?.targetSeconds || 28800}
               onCheckIn={handleRequestPunchIn}
               onCheckOut={handleRequestPunchOut}
@@ -425,7 +464,7 @@ const Attendance = () => {
               checkInTime={todayData?.checkInAt}
               checkOutTime={todayData?.checkOutAt}
               timeline={todayData?.timeline || []}
-              shiftEnd={todayData?.shift?.shiftEnd || "07:30 PM"}
+              shiftEnd={todayData?.shift?.shiftEnd || "07:00 PM"}
               location="Office HQ"
             />
           </section>
@@ -446,7 +485,22 @@ const Attendance = () => {
 
       {/* TAB 2: EMPLOYEE ATTENDANCE CONTENT */}
       {effectiveTab === "employees" && canViewEmployees && (
-        <EmployeeAttendance onShowToast={showToast} />
+        <EmployeeAttendance
+          onShowToast={showToast}
+          onOpenPendingApprovals={canApprove ? () => setActiveTab("pending") : undefined}
+          pendingCount={pendingCount}
+        />
+      )}
+
+      {/* TAB 3: PENDING ATTENDANCE APPROVALS CONTENT */}
+      {effectiveTab === "pending" && canApprove && (
+        <PendingAttendanceApprovals
+          onShowToast={showToast}
+          onPendingCountChange={setPendingCount}
+          onRefreshParent={() => {
+            fetchTodayAttendance();
+          }}
+        />
       )}
 
       {/* CONFIRMATION MODAL */}

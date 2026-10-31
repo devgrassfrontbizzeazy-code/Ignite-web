@@ -28,7 +28,7 @@ const EmployeeRowActions = ({
   const canDelete = canDeleteEmployees();
   const canResend = canCreateEmployees() || canEdit;
 
-  const isActive = employee.employment_status === "ACTIVE";
+  const isActive = String(employee.employment_status || "").trim().toLowerCase() === "active";
   const isPendingInvite =
     employee.invitation_status === "PENDING" ||
     employee.invitation_status === "SENT";

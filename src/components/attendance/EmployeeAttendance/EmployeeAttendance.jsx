@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   FiUsers,
+  FiCheckCircle,
   FiUserCheck,
   FiCoffee,
   FiUserX,
@@ -31,7 +32,48 @@ const STATUS_OPTIONS = [
   { value: "ABSENT", label: "Absent / Not Checked In" },
 ];
 
-const EmployeeAttendance = ({ onShowToast }) => {
+/**
+ * Format shift duration for display in the table.
+ * If backend already provided formatted duration (e.g. "8 hrs"), returns it.
+ * If fallback timing string like "10:00 PM — 06:00 AM" was provided, parses and calculates duration.
+ */
+const formatShiftHours = (record) => {
+  if (!record) return "—";
+  if (record.shiftHours && record.shiftHours !== "—") return record.shiftHours;
+  if (record.shift && record.shift !== "—") {
+    if (record.shift.includes("hr") || record.shift.includes("min") || record.shift === "—") {
+      return record.shift;
+    }
+    const parts = record.shift.split(/[—–-]/).map((s) => s.trim());
+    if (parts.length === 2 && (parts[0].includes(":") || parts[1].includes(":"))) {
+      const parseMinutes = (str) => {
+        const m = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+        if (!m) return null;
+        let h = parseInt(m[1], 10);
+        const min = parseInt(m[2], 10);
+        const p = m[3] ? m[3].toUpperCase() : null;
+        if (p === "PM" && h !== 12) h += 12;
+        if (p === "AM" && h === 12) h = 0;
+        return h * 60 + min;
+      };
+      const startMin = parseMinutes(parts[0]);
+      const endMin = parseMinutes(parts[1]);
+      if (startMin !== null && endMin !== null) {
+        let dur = endMin - startMin;
+        if (dur <= 0) dur += 1440; // overnight
+        const h = Math.floor(dur / 60);
+        const m = dur % 60;
+        if (m === 0) return `${h} hrs`;
+        if (h === 0) return `${m} mins`;
+        return `${h} hrs ${m} mins`;
+      }
+    }
+    return record.shift;
+  }
+  return "—";
+};
+
+const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount }) => {
   const currentUser = (() => {
     try {
       return JSON.parse(localStorage.getItem("user") || "{}");
@@ -210,7 +252,8 @@ const EmployeeAttendance = ({ onShowToast }) => {
       "Department",
       "Designation",
       "Date",
-      "Shift",
+      "Shift Hours",
+      "Shift Timings",
       "Check In",
       "Check Out",
       "Breaks",
@@ -226,7 +269,8 @@ const EmployeeAttendance = ({ onShowToast }) => {
       `"${r.department || ""}"`,
       `"${r.designation || ""}"`,
       `"${r.attendanceDate || selectedDate}"`,
-      `"${r.shift || ""}"`,
+      `"${formatShiftHours(r)}"`,
+      `"${r.shiftTiming && r.shiftTiming !== "—" ? r.shiftTiming : ""}"`,
       `"${r.checkIn || ""}"`,
       `"${r.checkOut || ""}"`,
       `"${r.breakSummary || ""}"`,
@@ -416,6 +460,23 @@ const EmployeeAttendance = ({ onShowToast }) => {
             <FiDownload />
             <span>Export CSV</span>
           </button>
+
+          {onOpenPendingApprovals && canApproveAttendance(currentUser) && (
+            <button
+              type="button"
+              className="employee-attendance__btn-bulk-queue"
+              onClick={onOpenPendingApprovals}
+              title="View and approve pending attendance requests in bulk"
+            >
+              <FiCheckCircle />
+              <span>Bulk Approvals</span>
+              {(pendingCount || summary.pendingApprovalCount) > 0 && (
+                <span className="employee-attendance__pending-badge">
+                  {pendingCount || summary.pendingApprovalCount}
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </section>
 
@@ -513,7 +574,12 @@ const EmployeeAttendance = ({ onShowToast }) => {
 
                       {/* Shift Hours */}
                       <td>
-                        <span className="employee-att-shift">{r.shift}</span>
+                        <div className="employee-att-shift-cell">
+                          <span className="employee-att-shift">{formatShiftHours(r)}</span>
+                          {r.shiftTiming && r.shiftTiming !== "—" && (
+                            <span className="employee-att-shift-sub">{r.shiftTiming}</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Check In */}

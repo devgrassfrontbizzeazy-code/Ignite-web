@@ -175,20 +175,20 @@ const Employees = () => {
   const stats = useMemo(() => {
     const total = employees.length;
     const active = employees.filter(
-      (e) => e.employment_status === "ACTIVE",
+      (e) => String(e.employment_status || "").trim().toLowerCase() === "active",
+    ).length;
+    const inactive = employees.filter(
+      (e) => String(e.employment_status || "").trim().toLowerCase() === "inactive",
+    ).length;
+    const contract = employees.filter(
+      (e) => String(e.employment_type || "").trim().toLowerCase() === "contract",
     ).length;
     const pending = employees.filter(
       (e) =>
         e.invitation_status === "PENDING" || e.invitation_status === "SENT",
     ).length;
-    const inactive = employees.filter(
-      (e) =>
-        e.employment_status === "INACTIVE" ||
-        e.employment_status === "TERMINATED" ||
-        e.employment_status === "RESIGNED",
-    ).length;
 
-    return { total, active, pending, inactive };
+    return { total, active, inactive, contract, pending };
   }, [employees]);
 
   /*
@@ -228,7 +228,7 @@ const Employees = () => {
    * TOGGLE STATUS
    */
   const handleToggleStatus = (employee) => {
-    const isActive = employee.employment_status === "ACTIVE";
+    const isActive = String(employee.employment_status || "").trim().toLowerCase() === "active";
     const nextStatus = isActive ? "INACTIVE" : "ACTIVE";
     const actionText = isActive ? "deactivate" : "activate";
 
