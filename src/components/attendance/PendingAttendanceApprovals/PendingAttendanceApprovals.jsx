@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   FiCheckCircle,
   FiClock,
@@ -10,11 +10,18 @@ import {
   FiAlertCircle,
   FiCheckSquare,
   FiSquare,
+  FiMinusSquare,
   FiInbox,
   FiFilter,
+  FiUser,
+  FiUsers,
+  FiCalendar,
+  FiChevronDown,
+  FiChevronUp,
 } from "react-icons/fi";
 import { attendanceAPI } from "../../../services/api/attendanceAPI";
 import { getDepartments } from "../../../services/api/departmentAPI";
+import { getEmployees } from "../../../services/api/employeeAPI";
 import AttendanceDetailModal from "../AttendanceDetailModal/AttendanceDetailModal";
 import Modal from "../../common/Modal/Modal";
 import ConfirmModal from "../../common/ConfirmModal/ConfirmModal";
@@ -69,10 +76,18 @@ const PendingAttendanceApprovals = ({
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [companyEmployees, setCompanyEmployees] = useState([]);
 
   // Search & filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+
+  // Searchable Employee Dropdown states
+  const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
+  const employeeDropdownRef = useRef(null);
 
   // Modals & alerts
   const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
@@ -93,61 +108,206 @@ const PendingAttendanceApprovals = ({
 
   // Fetch departments for filtering
   useEffect(() => {
+    let isMounted = true;
     const loadDepts = async () => {
       try {
         const res = await getDepartments();
         const list = Array.isArray(res) ? res : res?.data || [];
-        setDepartments(list);
+        if (isMounted) setDepartments(list);
       } catch (err) {
         console.error("Failed to load departments:", err);
       }
     };
     loadDepts();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Fetch pending attendance requests
-  const fetchPendingApprovals = useCallback(async (isSilent = false) => {
-    if (!hasApprovePerm) {
-      setLoading(false);
-      return;
-    }
+  // Fetch company employees for search dropdown options (graceful fallback to records)
+  useEffect(() => {
+    let isMounted = true;
+    const loadCompanyEmployees = async () => {
+      try {
+        const res = await getEmployees({ is_active: true });
+        const list = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res?.results)
+          ? res.results
+          : [];
+        if (isMounted) setCompanyEmployees(list);
+      } catch (err) {
+        // Fallback gracefully; employees will be computed directly from pending records
+        console.warn("Company employee listing restricted or unavailable:", err);
+      }
+    };
+    loadCompanyEmployees();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-    try {
-      if (!isSilent) setLoading(true);
-      const res = await attendanceAPI.getPendingAttendanceApprovals({
-        search: searchQuery.trim() || undefined,
-        department: selectedDepartment || undefined,
-      });
+  // Close employee dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        employeeDropdownRef.current &&
+        !employeeDropdownRef.current.contains(event.target)
+      ) {
+        setEmployeeDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-      if (res?.success) {
-        const list = Array.isArray(res.data) ? res.data : [];
-        setRecords(list);
-        if (onPendingCountChange) {
-          onPendingCountChange(list.length);
+  // Fetch pending attendance requests from backend
+  const fetchPendingApprovals = useCallback(
+    async (isSilent = false) => {
+      if (!hasApprovePerm) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        if (!isSilent) setLoading(true);
+        const res = await attendanceAPI.getPendingAttendanceApprovals({
+          search: searchQuery.trim() || undefined,
+          department: selectedDepartment || undefined,
+          employee_id: selectedEmployeeId || undefined,
+          date: selectedDate || undefined,
+        });
+
+        if (res?.success) {
+          const list = Array.isArray(res.data) ? res.data : [];
+          setRecords(list);
+          if (onPendingCountChange) {
+            onPendingCountChange(list.length);
+          }
+          // Prune selected IDs that are no longer in the list
+          setSelectedIds((prev) =>
+            prev.filter((id) => list.some((r) => r.id === id))
+          );
         }
-        // Prune selected IDs that are no longer in the list
-        setSelectedIds((prev) => prev.filter((id) => list.some((r) => r.id === id)));
+      } catch (err) {
+        console.error("Failed to fetch pending attendance approvals:", err);
+        if (onShowToast) {
+          const msg =
+            err.response?.data?.message ||
+            "Failed to load pending attendance requests.";
+          onShowToast(msg, "error");
+        }
+      } finally {
+        if (!isSilent) setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch pending attendance approvals:", err);
-      if (onShowToast) {
-        const msg =
-          err.response?.data?.message ||
-          "Failed to load pending attendance requests.";
-        onShowToast(msg, "error");
-      }
-    } finally {
-      if (!isSilent) setLoading(false);
-    }
-  }, [hasApprovePerm, searchQuery, selectedDepartment, onPendingCountChange, onShowToast]);
+    },
+    [
+      hasApprovePerm,
+      searchQuery,
+      selectedDepartment,
+      selectedEmployeeId,
+      selectedDate,
+      onPendingCountChange,
+      onShowToast,
+    ]
+  );
 
   useEffect(() => {
     fetchPendingApprovals();
   }, [fetchPendingApprovals]);
 
-  // Client-side filtered list based on search/department
+  // Compute distinct employees who have pending requests (and combine with company list)
+  const employeeOptions = useMemo(() => {
+    const pendingMap = new Map();
+
+    // 1. Gather all employees with pending requests from records
+    records.forEach((r) => {
+      if (!r.employeeId) return;
+      if (!pendingMap.has(r.employeeId)) {
+        pendingMap.set(r.employeeId, {
+          id: r.employeeId,
+          name: r.employeeName || `Employee #${r.employeeId}`,
+          code: r.employeeCode || "",
+          email: r.employeeEmail || "",
+          avatar: r.employeeAvatar || null,
+          department: r.department || "",
+          designation: r.designation || "",
+          pendingCount: 0,
+        });
+      }
+      pendingMap.get(r.employeeId).pendingCount += 1;
+    });
+
+    // 2. Also incorporate company employees if available
+    const combinedMap = new Map(pendingMap);
+    companyEmployees.forEach((emp) => {
+      if (!emp?.id) return;
+      const empName = `${emp.first_name || ""} ${emp.last_name || ""}`.trim() ||
+        emp.name ||
+        emp.email ||
+        `Employee #${emp.id}`;
+      const deptName =
+        typeof emp.department === "object"
+          ? emp.department?.name || emp.department?.department_name || ""
+          : emp.department || "";
+      const desigName =
+        typeof emp.designation === "object"
+          ? emp.designation?.name || emp.designation?.designation_name || ""
+          : emp.designation || "";
+
+      if (!combinedMap.has(emp.id)) {
+        combinedMap.set(emp.id, {
+          id: emp.id,
+          name: empName,
+          code: emp.employee_code || emp.code || "",
+          email: emp.email || "",
+          avatar: emp.profile_photo_url || emp.avatar || null,
+          department: deptName,
+          designation: desigName,
+          pendingCount: 0,
+        });
+      }
+    });
+
+    const list = Array.from(combinedMap.values());
+
+    // Sort: employees with pending requests first (descending pending count), then alphabetically by name
+    return list.sort((a, b) => {
+      if (b.pendingCount !== a.pendingCount) {
+        return b.pendingCount - a.pendingCount;
+      }
+      return a.name.localeCompare(b.name);
+    });
+  }, [records, companyEmployees]);
+
+  // Filtered employee options inside dropdown search
+  const filteredEmployeeOptions = useMemo(() => {
+    if (!employeeSearchTerm.trim()) return employeeOptions;
+    const term = employeeSearchTerm.toLowerCase().trim();
+    return employeeOptions.filter((emp) => {
+      return (
+        emp.name.toLowerCase().includes(term) ||
+        emp.code.toLowerCase().includes(term) ||
+        emp.email.toLowerCase().includes(term) ||
+        emp.department.toLowerCase().includes(term)
+      );
+    });
+  }, [employeeOptions, employeeSearchTerm]);
+
+  // Active selected employee object (for badge & details)
+  const currentSelectedEmployee = useMemo(() => {
+    if (!selectedEmployeeId) return null;
+    return employeeOptions.find((e) => String(e.id) === String(selectedEmployeeId)) || null;
+  }, [employeeOptions, selectedEmployeeId]);
+
+  // Client-side filtered list based on all active criteria
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
+      // 1. Text Search
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         !q ||
@@ -156,26 +316,54 @@ const PendingAttendanceApprovals = ({
         (r.employeeEmail || "").toLowerCase().includes(q) ||
         (r.department || "").toLowerCase().includes(q);
 
+      // 2. Specific Employee Filter
+      const matchesEmployee =
+        !selectedEmployeeId ||
+        String(r.employeeId) === String(selectedEmployeeId);
+
+      // 3. Department Filter
       const matchesDept =
         !selectedDepartment ||
         String(r.departmentId || r.department || "").toLowerCase() ===
-        String(selectedDepartment).toLowerCase();
+          String(selectedDepartment).toLowerCase();
 
-      return matchesSearch && matchesDept;
+      // 4. Date Filter
+      const matchesDate =
+        !selectedDate ||
+        String(r.attendanceDate || "").startsWith(selectedDate);
+
+      return matchesSearch && matchesEmployee && matchesDept && matchesDate;
     });
-  }, [records, searchQuery, selectedDepartment]);
+  }, [records, searchQuery, selectedEmployeeId, selectedDepartment, selectedDate]);
 
-  // Selection handlers
+  // CRITICAL REQUIREMENT: Whenever filters change, prune selectedIds so approvals
+  // are never accidentally applied to hidden or unselected employees/requests!
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.length === 0) return prev;
+      const validIds = new Set(filteredRecords.map((r) => r.id));
+      const pruned = prev.filter((id) => validIds.has(id));
+      return pruned.length === prev.length ? prev : pruned;
+    });
+  }, [filteredRecords]);
+
+  // Selection state helpers
   const allFilteredSelected =
     filteredRecords.length > 0 &&
     filteredRecords.every((r) => selectedIds.includes(r.id));
+
+  const someFilteredSelected =
+    selectedIds.length > 0 && !allFilteredSelected;
 
   const handleToggleSelectAll = () => {
     if (allFilteredSelected) {
       const filteredIdSet = new Set(filteredRecords.map((r) => r.id));
       setSelectedIds((prev) => prev.filter((id) => !filteredIdSet.has(id)));
     } else {
-      const combined = new Set([...selectedIds, ...filteredRecords.map((r) => r.id)]);
+      const combined = new Set([
+        ...selectedIds,
+        ...filteredRecords.map((r) => r.id),
+      ]);
       setSelectedIds(Array.from(combined));
     }
   };
@@ -185,6 +373,24 @@ const PendingAttendanceApprovals = ({
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  // Reset all active filters
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setSelectedEmployeeId("");
+    setSelectedDepartment("");
+    setSelectedDate("");
+  };
+
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    Boolean(selectedEmployeeId) ||
+    Boolean(selectedDepartment) ||
+    Boolean(selectedDate);
 
   // Bulk Approval Execution
   const handleConfirmBulkApprove = async () => {
@@ -201,7 +407,8 @@ const PendingAttendanceApprovals = ({
       if (approvedCount > 0) {
         if (onShowToast) {
           onShowToast(
-            res?.message || `Successfully approved ${approvedCount} attendance request(s).`,
+            res?.message ||
+              `Successfully approved ${approvedCount} attendance request(s).`,
             "success"
           );
         }
@@ -225,7 +432,8 @@ const PendingAttendanceApprovals = ({
       }
     } catch (err) {
       console.error("Bulk approval error:", err);
-      const msg = err.response?.data?.message || "Failed to process bulk approvals.";
+      const msg =
+        err.response?.data?.message || "Failed to process bulk approvals.";
       if (onShowToast) onShowToast(msg, "error");
     } finally {
       setBulkSubmitting(false);
@@ -250,7 +458,8 @@ const PendingAttendanceApprovals = ({
         onRefreshParent();
       }
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to approve attendance.";
+      const msg =
+        err.response?.data?.message || "Failed to approve attendance.";
       if (onShowToast) onShowToast(msg, "error");
     } finally {
       setActionLoading(false);
@@ -282,7 +491,9 @@ const PendingAttendanceApprovals = ({
           "success"
         );
       }
-      setSelectedIds((prev) => prev.filter((id) => id !== rejectModal.attendanceId));
+      setSelectedIds((prev) =>
+        prev.filter((id) => id !== rejectModal.attendanceId)
+      );
       setRejectModal({
         open: false,
         attendanceId: null,
@@ -308,7 +519,10 @@ const PendingAttendanceApprovals = ({
         <div className="pending-approvals__unauthorized-box">
           <FiAlertCircle size={36} />
           <h3>Access Restricted</h3>
-          <p>You do not have permission to review or approve employee attendance requests.</p>
+          <p>
+            You do not have permission to review or approve employee attendance
+            requests.
+          </p>
         </div>
       </section>
     );
@@ -316,19 +530,33 @@ const PendingAttendanceApprovals = ({
 
   return (
     <div className="pending-approvals">
-      {/* 1. HEADER & CONTROLS */}
+      {/* 1. HEADER & ACTION CONTROLS */}
       <section className="pending-approvals__header-card">
         <div className="pending-approvals__header-title">
           <div className="pending-approvals__eyebrow-row">
             <span className="pending-approvals__eyebrow">ATTENDANCE APPROVALS</span>
             <span className="pending-approvals__queue-badge">
+              <span className="badge-pulse-dot" />
               {records.length} Pending
             </span>
+            {selectedEmployeeId && currentSelectedEmployee && (
+              <span className="pending-approvals__filter-pill">
+                Filtered: <strong>{currentSelectedEmployee.name}</strong>
+                <button
+                  type="button"
+                  onClick={() => setSelectedEmployeeId("")}
+                  title="Clear employee filter"
+                  className="pending-approvals__pill-clear"
+                >
+                  <FiX size={12} />
+                </button>
+              </span>
+            )}
           </div>
           <h2>Pending Approvals Queue</h2>
           <p>
-            Review attendance records awaiting your authorization. You can approve multiple
-            requests simultaneously or review individual items.
+            Review and authorize employee attendance records, shift corrections,
+            and checkout submissions. Select multiple items to approve in bulk.
           </p>
         </div>
 
@@ -338,6 +566,16 @@ const PendingAttendanceApprovals = ({
             <span className="pending-approvals__selection-count">
               <strong>{selectedIds.length}</strong> of {filteredRecords.length} selected
             </span>
+            {selectedIds.length > 0 && (
+              <button
+                type="button"
+                className="pending-approvals__btn-clear-selection"
+                onClick={handleClearSelection}
+                title="Clear all selected items"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
           <Button
@@ -362,14 +600,62 @@ const PendingAttendanceApprovals = ({
         </div>
       </section>
 
-      {/* 2. FAILURE ALERTS (If any items failed during bulk approval) */}
+      {/* 2. DEDICATED SELECTION ACTION BAR (Visible when items selected) */}
+      {selectedIds.length > 0 && (
+        <section className="pending-approvals__selection-bar">
+          <div className="pending-approvals__selection-bar-left">
+            <FiCheckSquare className="selection-bar-icon" />
+            <div className="selection-bar-text">
+              <strong>{selectedIds.length}</strong> request{selectedIds.length !== 1 ? "s" : ""} selected
+              {currentSelectedEmployee && (
+                <span className="selection-bar-target">
+                  for {currentSelectedEmployee.name}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              className="pending-approvals__selection-bar-link"
+              onClick={handleToggleSelectAll}
+            >
+              {allFilteredSelected
+                ? "Deselect Visible"
+                : `Select All Visible (${filteredRecords.length})`}
+            </button>
+          </div>
+
+          <div className="pending-approvals__selection-bar-right">
+            <button
+              type="button"
+              className="pending-approvals__btn-bar-clear"
+              onClick={handleClearSelection}
+            >
+              <FiX size={14} /> Clear Selection
+            </button>
+            <Button
+              variant="primary"
+              icon={<FiCheckCircle size={16} />}
+              onClick={() => setBulkConfirmOpen(true)}
+              loading={bulkSubmitting}
+              className="pending-approvals__btn-bar-approve"
+            >
+              Approve Selected ({selectedIds.length})
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {/* 3. FAILURE ALERTS (If any items failed during bulk approval) */}
       {failedAlerts.length > 0 && (
         <section className="pending-approvals__alert-card">
           <div className="pending-approvals__alert-header">
             <FiAlertCircle className="pending-approvals__alert-icon" />
             <div>
               <h4>Some requests could not be approved</h4>
-              <p>The following {failedAlerts.length} item(s) were skipped or failed:</p>
+              <p>
+                The following {failedAlerts.length} item(s) were skipped or
+                failed validation:
+              </p>
             </div>
             <button
               type="button"
@@ -382,20 +668,22 @@ const PendingAttendanceApprovals = ({
           <ul className="pending-approvals__alert-list">
             {failedAlerts.map((f, idx) => (
               <li key={idx}>
-                <strong>{f.employee_name || `Record #${f.id}`}:</strong> {f.reason}
+                <strong>{f.employee_name || `Record #${f.id}`}:</strong>{" "}
+                {f.reason}
               </li>
             ))}
           </ul>
         </section>
       )}
 
-      {/* 3. FILTER & SEARCH BAR */}
+      {/* 4. FILTER & SEARCH TOOLBAR */}
       <section className="pending-approvals__filters-bar">
+        {/* Search by text */}
         <div className="pending-approvals__search">
           <FiSearch className="pending-approvals__search-icon" />
           <input
             type="text"
-            placeholder="Search by employee name, code, email, or department..."
+            placeholder="Search by name, ID, or department..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -404,12 +692,208 @@ const PendingAttendanceApprovals = ({
               type="button"
               className="pending-approvals__search-clear"
               onClick={() => setSearchQuery("")}
+              title="Clear search"
             >
               <FiX />
             </button>
           )}
         </div>
 
+        {/* Searchable Employee Dropdown */}
+        <div
+          className="pending-approvals__emp-dropdown-wrapper"
+          ref={employeeDropdownRef}
+        >
+          <button
+            type="button"
+            className={`pending-approvals__emp-trigger ${
+              selectedEmployeeId ? "has-value" : ""
+            } ${employeeDropdownOpen ? "open" : ""}`}
+            onClick={() => setEmployeeDropdownOpen((prev) => !prev)}
+            title="Filter by Employee"
+          >
+            <div className="pending-approvals__emp-trigger-content">
+              {currentSelectedEmployee ? (
+                <>
+                  <div className="emp-mini-avatar">
+                    {currentSelectedEmployee.avatar ? (
+                      <img
+                        src={currentSelectedEmployee.avatar}
+                        alt={currentSelectedEmployee.name}
+                      />
+                    ) : (
+                      <span>
+                        {currentSelectedEmployee.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="emp-mini-meta">
+                    <span className="emp-mini-name">
+                      {currentSelectedEmployee.name}
+                    </span>
+                    <span className="emp-mini-code">
+                      {currentSelectedEmployee.code || "EMP"}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <FiUsers className="pending-approvals__filter-icon" />
+                  <span className="emp-placeholder">All Employees</span>
+                </>
+              )}
+            </div>
+
+            <div className="pending-approvals__emp-trigger-actions">
+              {selectedEmployeeId ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="emp-clear-icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedEmployeeId("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.stopPropagation();
+                      setSelectedEmployeeId("");
+                    }
+                  }}
+                  title="Clear Employee filter"
+                >
+                  <FiX size={14} />
+                </span>
+              ) : employeeDropdownOpen ? (
+                <FiChevronUp size={16} />
+              ) : (
+                <FiChevronDown size={16} />
+              )}
+            </div>
+          </button>
+
+          {/* Dropdown Menu Popover */}
+          {employeeDropdownOpen && (
+            <div className="pending-approvals__emp-menu">
+              <div className="pending-approvals__emp-menu-search">
+                <FiSearch size={14} />
+                <input
+                  type="text"
+                  placeholder="Search employee by name, code..."
+                  value={employeeSearchTerm}
+                  onChange={(e) => setEmployeeSearchTerm(e.target.value)}
+                  autoFocus
+                />
+                {employeeSearchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setEmployeeSearchTerm("")}
+                    className="emp-menu-search-clear"
+                  >
+                    <FiX size={12} />
+                  </button>
+                )}
+              </div>
+
+              <div className="pending-approvals__emp-list">
+                {/* Option to select All Employees */}
+                <button
+                  type="button"
+                  className={`pending-approvals__emp-item ${
+                    !selectedEmployeeId ? "selected" : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedEmployeeId("");
+                    setEmployeeDropdownOpen(false);
+                    setEmployeeSearchTerm("");
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="pending-approvals__dropdown-checkbox"
+                    checked={!selectedEmployeeId}
+                    readOnly
+                  />
+                  <div className="emp-item-avatar emp-item-avatar--all">
+                    <FiUsers size={14} />
+                  </div>
+                  <div className="emp-item-info">
+                    <span className="emp-item-name">All Employees</span>
+                    <span className="emp-item-sub">Show all pending requests</span>
+                  </div>
+                  <span className="emp-item-count-badge">
+                    {records.length}
+                  </span>
+                </button>
+
+                {/* List of matching employees */}
+                {filteredEmployeeOptions.length === 0 ? (
+                  <div className="pending-approvals__emp-empty">
+                    <span>No employees match "{employeeSearchTerm}"</span>
+                  </div>
+                ) : (
+                  filteredEmployeeOptions.map((emp) => {
+                    const isSelected =
+                      String(emp.id) === String(selectedEmployeeId);
+                    return (
+                      <button
+                        key={emp.id}
+                        type="button"
+                        className={`pending-approvals__emp-item ${
+                          isSelected ? "selected" : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedEmployeeId(isSelected ? "" : emp.id);
+                          setEmployeeDropdownOpen(false);
+                          setEmployeeSearchTerm("");
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="pending-approvals__dropdown-checkbox"
+                          checked={isSelected}
+                          readOnly
+                        />
+                        <div className="emp-item-avatar">
+                          {emp.avatar ? (
+                            <img src={emp.avatar} alt={emp.name} />
+                          ) : (
+                            <span>
+                              {emp.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .slice(0, 2)
+                                .join("")
+                                .toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="emp-item-info">
+                          <span className="emp-item-name">{emp.name}</span>
+                          <span className="emp-item-sub">
+                            {emp.code} {emp.department ? `• ${emp.department}` : ""}
+                          </span>
+                        </div>
+                        {emp.pendingCount > 0 && (
+                          <span className="emp-item-pending-badge">
+                            {emp.pendingCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Department Filter */}
         <div className="pending-approvals__dept-select">
           <FiFilter className="pending-approvals__filter-icon" />
           <select
@@ -419,14 +903,48 @@ const PendingAttendanceApprovals = ({
             <option value="">All Departments</option>
             {departments.map((d) => (
               <option key={d.id} value={d.name || d.id}>
-                {d.name}
+                {d.name || d.department_name}
               </option>
             ))}
           </select>
         </div>
+
+        {/* Date Filter */}
+        <div className="pending-approvals__date-select">
+          <FiCalendar className="pending-approvals__filter-icon" />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="pending-approvals__date-input"
+            title="Filter by Attendance Date"
+          />
+          {selectedDate && (
+            <button
+              type="button"
+              className="pending-approvals__date-clear"
+              onClick={() => setSelectedDate("")}
+              title="Clear date filter"
+            >
+              <FiX size={14} />
+            </button>
+          )}
+        </div>
+
+        {/* Clear All Filters Button */}
+        {hasActiveFilters && (
+          <button
+            type="button"
+            className="pending-approvals__btn-reset-filters"
+            onClick={handleResetFilters}
+            title="Reset all search & filter criteria"
+          >
+            <FiX size={14} /> Clear Filters
+          </button>
+        )}
       </section>
 
-      {/* 4. TABLE VIEW */}
+      {/* 5. TABLE VIEW */}
       <section className="pending-approvals__table-card">
         {loading ? (
           <div className="pending-approvals__loading-state">
@@ -442,8 +960,17 @@ const PendingAttendanceApprovals = ({
             <p>
               {records.length === 0
                 ? "All attendance requests have been processed. Great job!"
-                : "No pending requests matched your search criteria."}
+                : "No pending requests matched your active filter criteria."}
             </p>
+            {hasActiveFilters && (
+              <Button
+                variant="secondary"
+                onClick={handleResetFilters}
+                className="pending-approvals__btn-empty-reset"
+              >
+                Clear All Filters
+              </Button>
+            )}
           </div>
         ) : (
           <div className="pending-approvals__table-responsive">
@@ -451,18 +978,27 @@ const PendingAttendanceApprovals = ({
               <thead>
                 <tr>
                   <th className="th-checkbox">
-                    <button
-                      type="button"
-                      className="pending-approvals__checkbox-btn"
-                      onClick={handleToggleSelectAll}
-                      title={allFilteredSelected ? "Deselect All" : "Select All"}
+                    <label
+                      className="pending-approvals__checkbox-label"
+                      title={
+                        allFilteredSelected
+                          ? "Deselect All Visible"
+                          : someFilteredSelected
+                          ? "Select All Visible"
+                          : "Select All Visible"
+                      }
                     >
-                      {allFilteredSelected ? (
-                        <FiCheckSquare className="checkbox-icon checked" />
-                      ) : (
-                        <FiSquare className="checkbox-icon" />
-                      )}
-                    </button>
+                      <input
+                        type="checkbox"
+                        className="pending-approvals__table-checkbox"
+                        checked={allFilteredSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someFilteredSelected;
+                        }}
+                        onChange={handleToggleSelectAll}
+                        aria-label="Select all visible pending requests"
+                      />
+                    </label>
                   </th>
                   <th>Employee</th>
                   <th>Date & Shift</th>
@@ -472,7 +1008,7 @@ const PendingAttendanceApprovals = ({
                   <th>Request / Change</th>
                   <th>Submitted</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th className="th-actions">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -483,21 +1019,39 @@ const PendingAttendanceApprovals = ({
                     <tr
                       key={r.id}
                       className={isSelected ? "row-selected" : ""}
+                      onClick={(e) => {
+                        // Allow clicking row to toggle selection, except on buttons, actions, or direct inputs
+                        if (
+                          e.target.closest("button") ||
+                          e.target.closest(".pending-att-actions") ||
+                          e.target.closest("input") ||
+                          e.target.closest("a")
+                        ) {
+                          return;
+                        }
+                        handleToggleSelectOne(r.id);
+                      }}
+                      style={{ cursor: "pointer" }}
                     >
                       {/* Checkbox */}
-                      <td className="td-checkbox">
-                        <button
-                          type="button"
-                          className="pending-approvals__checkbox-btn"
-                          onClick={() => handleToggleSelectOne(r.id)}
-                          title={isSelected ? "Deselect" : "Select"}
+                      <td
+                        className="td-checkbox"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <label
+                          className="pending-approvals__checkbox-label"
+                          title={isSelected ? `Deselect ${r.employeeName}` : `Select ${r.employeeName}`}
                         >
-                          {isSelected ? (
-                            <FiCheckSquare className="checkbox-icon checked" />
-                          ) : (
-                            <FiSquare className="checkbox-icon" />
-                          )}
-                        </button>
+                          <input
+                            type="checkbox"
+                            className="pending-approvals__table-checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectOne(r.id)}
+                            aria-label={`Select pending attendance for ${r.employeeName}`}
+                          />
+                        </label>
                       </td>
 
                       {/* Employee Info */}
@@ -505,24 +1059,33 @@ const PendingAttendanceApprovals = ({
                         <div className="pending-att-user">
                           <div className="pending-att-avatar">
                             {r.employeeAvatar ? (
-                              <img src={r.employeeAvatar} alt={r.employeeName} />
+                              <img
+                                src={r.employeeAvatar}
+                                alt={r.employeeName}
+                              />
                             ) : (
                               <span>
                                 {r.employeeName
                                   ? r.employeeName
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .slice(0, 2)
-                                    .join("")
-                                    .toUpperCase()
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .slice(0, 2)
+                                      .join("")
+                                      .toUpperCase()
                                   : "EM"}
                               </span>
                             )}
                           </div>
                           <div className="pending-att-user-meta">
-                            <span className="pending-att-name">{r.employeeName}</span>
-                            <span className="pending-att-code">{r.employeeCode}</span>
-                            <span className="pending-att-dept">{r.department} • {r.designation}</span>
+                            <span className="pending-att-name">
+                              {r.employeeName}
+                            </span>
+                            <span className="pending-att-code">
+                              {r.employeeCode}
+                            </span>
+                            <span className="pending-att-dept">
+                              {r.department} • {r.designation}
+                            </span>
                           </div>
                         </div>
                       </td>
@@ -533,16 +1096,23 @@ const PendingAttendanceApprovals = ({
                           <span className="pending-att-date">
                             {formatDate(r.attendanceDate)}
                           </span>
-                          <span className="pending-att-subtext">
-                            {r.attendanceType || r.shift || "General Shift"}
+                          <span className="pending-att-shift-badge">
+                            {r.shiftTiming || r.shift || "10:00 AM – 07:00 PM"}
                           </span>
+                          {r.shiftHours && (
+                            <span className="pending-att-shift-hours">
+                              {r.shiftHours}
+                            </span>
+                          )}
                         </div>
                       </td>
 
                       {/* Check In */}
                       <td>
                         <div className="pending-att-cell-stack">
-                          <span className="pending-att-time">{r.checkIn || "--:--"}</span>
+                          <span className="pending-att-time checkin-time">
+                            {r.checkIn || "--:--"}
+                          </span>
                           {r.checkInAddress && (
                             <span
                               className="pending-att-subtext pending-att-addr"
@@ -557,7 +1127,9 @@ const PendingAttendanceApprovals = ({
                       {/* Check Out */}
                       <td>
                         <div className="pending-att-cell-stack">
-                          <span className="pending-att-time">{r.checkOut || "--:--"}</span>
+                          <span className="pending-att-time checkout-time">
+                            {r.checkOut || "--:--"}
+                          </span>
                           {r.checkOutAddress && (
                             <span
                               className="pending-att-subtext pending-att-addr"
@@ -572,8 +1144,10 @@ const PendingAttendanceApprovals = ({
                       {/* Total Worked & Breaks */}
                       <td>
                         <div className="pending-att-cell-stack">
-                          <span className="pending-att-hours">{r.workedHours || "00:00"}</span>
-                          <span className="pending-att-subtext">
+                          <span className="pending-att-hours">
+                            {r.workedHours || "00:00"}
+                          </span>
+                          <span className="pending-att-break-badge">
                             Breaks: {r.breakDuration || "00:00"}
                           </span>
                         </div>
@@ -582,7 +1156,9 @@ const PendingAttendanceApprovals = ({
                       {/* Request Type / Requested Change */}
                       <td>
                         <span className="pending-att-change-tag">
-                          {r.requestedCorrection || r.requestType || "Standard Checkout"}
+                          {r.requestedCorrection ||
+                            r.requestType ||
+                            "Standard Checkout"}
                         </span>
                       </td>
 
@@ -602,7 +1178,7 @@ const PendingAttendanceApprovals = ({
                       </td>
 
                       {/* Actions */}
-                      <td>
+                      <td className="td-actions">
                         <div className="pending-att-actions">
                           <button
                             type="button"
@@ -649,19 +1225,23 @@ const PendingAttendanceApprovals = ({
         )}
       </section>
 
-      {/* 5. CONFIRMATION MODAL FOR BULK APPROVAL */}
+      {/* 6. CONFIRMATION MODAL FOR BULK APPROVAL */}
       <ConfirmModal
         open={bulkConfirmOpen}
         onClose={() => setBulkConfirmOpen(false)}
         onConfirm={handleConfirmBulkApprove}
         title="Approve Selected Attendance Requests"
-        description={`Are you sure you want to approve ${selectedIds.length} selected employee attendance request(s)? This will mark them as Approved and notify the employees.`}
+        description={
+          currentSelectedEmployee
+            ? `Are you sure you want to approve ${selectedIds.length} selected attendance request(s) for ${currentSelectedEmployee.name}? This will mark them as Approved and notify the employee.`
+            : `Are you sure you want to approve ${selectedIds.length} selected employee attendance request(s)? This will mark them as Approved and notify the employees.`
+        }
         confirmText={`Approve (${selectedIds.length})`}
         variant="primary"
         loading={bulkSubmitting}
       />
 
-      {/* 6. REJECT MODAL FOR SINGLE ITEM */}
+      {/* 7. REJECT MODAL FOR SINGLE ITEM */}
       <Modal
         open={rejectModal.open}
         onClose={() =>
@@ -677,7 +1257,14 @@ const PendingAttendanceApprovals = ({
         description={`Provide a reason for rejecting the attendance record for ${rejectModal.employeeName}.`}
         size="small"
         footer={
-          <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              justifyContent: "flex-end",
+              width: "100%",
+            }}
+          >
             <Button
               variant="secondary"
               onClick={() =>
@@ -706,7 +1293,11 @@ const PendingAttendanceApprovals = ({
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <label
             htmlFor="reject-reason"
-            style={{ fontSize: "13px", fontWeight: "600", color: "#374151" }}
+            style={{
+              fontSize: "13px",
+              fontWeight: "600",
+              color: "var(--ignite-charcoal, #1A1F24)",
+            }}
           >
             Rejection Reason (Optional)
           </label>
@@ -722,9 +1313,10 @@ const PendingAttendanceApprovals = ({
               width: "100%",
               padding: "10px 12px",
               borderRadius: "8px",
-              border: "1px solid #D1D5DB",
+              border: "1px solid var(--ignite-soft-gray, #E6EAEE)",
               fontSize: "13px",
-              fontFamily: "inherit",
+              fontFamily: "var(--font-family-base, 'Montserrat', sans-serif)",
+              color: "var(--ignite-charcoal, #1A1F24)",
               resize: "vertical",
               outline: "none",
             }}
@@ -732,16 +1324,17 @@ const PendingAttendanceApprovals = ({
         </div>
       </Modal>
 
-      {/* 7. ATTENDANCE DETAIL MODAL */}
+      {/* 8. ATTENDANCE DETAIL MODAL */}
       <AttendanceDetailModal
         open={detailModal.open}
         attendanceId={detailModal.attendanceId}
         initialData={detailModal.data}
-        onClose={() => setDetailModal({ open: false, attendanceId: null, data: null })}
+        onClose={() =>
+          setDetailModal({ open: false, attendanceId: null, data: null })
+        }
       />
     </div>
   );
 };
 
 export default PendingAttendanceApprovals;
-

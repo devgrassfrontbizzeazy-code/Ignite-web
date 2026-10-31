@@ -1,88 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import NotificationItem from "../NotificationItem/NotificationItem";
-import notificationAPI from "../../../services/api/notificationAPI";
+import { useUserNotifications } from "../../../context/UserNotificationContext";
 import "./NotificationDropdown.css";
 
-
 export default function NotificationDropdown() {
-    const [notifications, setNotifications] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const {
+        notifications,
+        unreadCount,
+        loading,
+        error,
+        fetchNotifications,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+    } = useUserNotifications();
+
     useEffect(() => {
-        const fetchNotifications = async () => {
-            try {
-                setLoading(true);
-                setError("");
-
-                const response = await notificationAPI.getNotifications();
-
-                console.log("Notifications API response:", response);
-
-                const notificationsData = Array.isArray(response)
-                    ? response
-                    : response?.data || [];
-
-                setNotifications(notificationsData);
-            } catch (error) {
-                console.error("Failed to fetch notifications:", error);
-                setError("Unable to load notifications.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchNotifications();
-    }, []);
-
-    const unreadCount = notifications.filter(
-        (notification) => !notification.is_read
-    ).length;
-
-    const handleMarkAllRead = async () => {
-        try {
-            await notificationAPI.markAllAsRead();
-
-            setNotifications((current) =>
-                current.map((notification) => ({
-                    ...notification,
-                    is_read: true,
-                }))
-            );
-        } catch (error) {
-            console.error("Failed to mark all notifications as read:", error);
-        }
-    };
-
-    const handleMarkRead = async (id) => {
-        try {
-            await notificationAPI.markAsRead(id);
-
-            setNotifications((previous) =>
-                previous.map((notification) =>
-                    notification.id === id
-                        ? {
-                            ...notification,
-                            is_read: true,
-                        }
-                        : notification
-                )
-            );
-        } catch (error) {
-            console.error("Failed to mark notification as read:", error);
-        }
-    };
-
-    const handleDelete = async (id) => {
-        try {
-            await notificationAPI.deleteNotification(id);
-
-            setNotifications((current) =>
-                current.filter((notification) => notification.id !== id)
-            );
-        } catch (error) {
-            console.error("Failed to delete notification:", error);
-        }
-    };
+    }, [fetchNotifications]);
 
     return (
         <div className="notification-dropdown">
@@ -100,7 +35,7 @@ export default function NotificationDropdown() {
                 {unreadCount > 0 && (
                     <button
                         type="button"
-                        onClick={handleMarkAllRead}
+                        onClick={markAllAsRead}
                     >
                         Mark all read
                     </button>
@@ -108,11 +43,11 @@ export default function NotificationDropdown() {
             </div>
 
             <div className="notification-dropdown__list">
-                {loading ? (
+                {loading && notifications.length === 0 ? (
                     <div className="notification-dropdown__empty">
                         <p>Loading notifications...</p>
                     </div>
-                ) : error ? (
+                ) : error && notifications.length === 0 ? (
                     <div className="notification-dropdown__empty">
                         <p>{error}</p>
                     </div>
@@ -126,8 +61,8 @@ export default function NotificationDropdown() {
                         <NotificationItem
                             key={notification.id}
                             notification={notification}
-                            onMarkRead={handleMarkRead}
-                            onDelete={handleDelete}
+                            onMarkRead={markAsRead}
+                            onDelete={deleteNotification}
                         />
                     ))
                 )}

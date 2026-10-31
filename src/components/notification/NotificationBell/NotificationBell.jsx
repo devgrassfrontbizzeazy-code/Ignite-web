@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import NotificationDropdown from "../NotificationDropdown/NotificationDropdown";
-import notificationAPI from "../../../services/api/notificationAPI";
+import { useUserNotifications } from "../../../context/UserNotificationContext";
 import "./NotificationBell.css";
 
 const iconProps = {
@@ -22,30 +22,8 @@ const BellIcon = () => (
 );
 
 export default function NotificationBell() {
-    const [isOpen, setIsOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
+    const { unreadCount, isOpen, setIsOpen } = useUserNotifications();
     const notificationRef = useRef(null);
-
-    useEffect(() => {
-        const fetchUnreadCount = async () => {
-            try {
-                const response = await notificationAPI.getUnreadCount();
-
-                console.log("Unread count response:", response);
-
-                const count =
-                    typeof response === "number"
-                        ? response
-                        : response?.unread_count ?? 0;
-
-                setUnreadCount(count);
-            } catch (error) {
-                console.error("Failed to fetch unread notification count:", error);
-            }
-        };
-
-        fetchUnreadCount();
-    }, []);
 
     useEffect(() => {
         const handleOutsideClick = (event) => {
@@ -62,7 +40,7 @@ export default function NotificationBell() {
         return () => {
             document.removeEventListener("mousedown", handleOutsideClick);
         };
-    }, []);
+    }, [setIsOpen]);
 
     return (
         <div className="notification-bell" ref={notificationRef}>

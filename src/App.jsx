@@ -9,6 +9,7 @@ import {
 
 import { OrganizationProvider } from "./context/OrganizationContext/OrganizationContext";
 import { NotificationProvider } from "./context/NotificationContext";
+import { UserNotificationProvider } from "./context/UserNotificationContext";
 import { isFieldSalesManager, canViewTeams } from "./utils/permissionUtils";
 
 /* Website */
@@ -232,7 +233,8 @@ export default function App() {
     <TeamsTasksProvider>
       <OrganizationProvider>
         <NotificationProvider>
-          <BrowserRouter>
+          <UserNotificationProvider>
+            <BrowserRouter>
             <CompanySetupProvider>
               <Routes>
                 {/* =====================================================
@@ -592,7 +594,8 @@ export default function App() {
                 </Route>
               </Routes>
             </CompanySetupProvider>
-          </BrowserRouter>
+            </BrowserRouter>
+          </UserNotificationProvider>
         </NotificationProvider>
       </OrganizationProvider>
     </TeamsTasksProvider>
