@@ -654,6 +654,11 @@ export default function LiveFleetCommandMap({
 
   // Parse 5-day route waypoints into coordinates array (guarantees polyline and OUT marker when check-out / distance exists)
   const historyRouteCoords = useMemo(() => {
+    // Guard against cross-employee data mixing if routeSummary has not yet finished loading for the selected employee
+    if (routeSummary?.employee?.id && selectedEmployee?.id && String(routeSummary.employee.id) !== String(selectedEmployee.id)) {
+      return [];
+    }
+
     let pts = [];
     if (rawTimelinePoints && rawTimelinePoints.length) {
       pts = rawTimelinePoints
@@ -718,10 +723,12 @@ export default function LiveFleetCommandMap({
         }
       }
     } else {
-      // Prepend check-in if not present at start
+      // Prepend check-in if not present at start (Guard against cross-city GPS jumps)
       if (startCoord) {
         const first = pts[0];
-        if (Math.abs(first.lat - startCoord.lat) > 0.0002 || Math.abs(first.lng - startCoord.lng) > 0.0002) {
+        const latDiff = Math.abs(first.lat - startCoord.lat);
+        const lngDiff = Math.abs(first.lng - startCoord.lng);
+        if ((latDiff > 0.0002 || lngDiff > 0.0002) && (latDiff < 0.4 && lngDiff < 0.4)) {
           pts.unshift({
             ...startCoord,
             logType: "DUTY_START",
@@ -731,10 +738,12 @@ export default function LiveFleetCommandMap({
           });
         }
       }
-      // Append check-out if not present at end
+      // Append check-out if not present at end (Guard against cross-city GPS jumps)
       if (endCoord && (activeCheckOutTime || !isViewingToday)) {
         const last = pts[pts.length - 1];
-        if (Math.abs(last.lat - endCoord.lat) > 0.0002 || Math.abs(last.lng - endCoord.lng) > 0.0002) {
+        const latDiff = Math.abs(last.lat - endCoord.lat);
+        const lngDiff = Math.abs(last.lng - endCoord.lng);
+        if ((latDiff > 0.0002 || lngDiff > 0.0002) && (latDiff < 0.4 && lngDiff < 0.4)) {
           pts.push({
             ...endCoord,
             logType: "DUTY_END",
@@ -747,7 +756,9 @@ export default function LiveFleetCommandMap({
         const liveCoord = isValidCoordinatePair(selectedEmployee.latitude, selectedEmployee.longitude);
         if (liveCoord) {
           const last = pts[pts.length - 1];
-          if (Math.abs(last.lat - liveCoord.lat) > 0.0002 || Math.abs(last.lng - liveCoord.lng) > 0.0002) {
+          const latDiff = Math.abs(last.lat - liveCoord.lat);
+          const lngDiff = Math.abs(last.lng - liveCoord.lng);
+          if ((latDiff > 0.0002 || lngDiff > 0.0002) && (latDiff < 0.4 && lngDiff < 0.4)) {
             pts.push({
               ...liveCoord,
               logType: "LIVE_POSITION",
@@ -865,6 +876,16 @@ export default function LiveFleetCommandMap({
       isSubscribed = false;
     };
   }, [historyRouteCoords, isGoogleLoaded]);
+
+  // Reset all road geometry when switching sales rep to prevent cross-rep route ghosting
+  useEffect(() => {
+    setHistoryDirectionsResult(null);
+    setHistoryRoadCoords(null);
+    lastHistoryRouteKeyRef.current = "";
+    setDirectionsResult(null);
+    setOsrmRoadCoords(null);
+    setRouteStats(null);
+  }, [selectedEmployee?.id]);
 
   // Real Road Route calculation (Zero loop, memoized by rep & lead coordinates)
   useEffect(() => {

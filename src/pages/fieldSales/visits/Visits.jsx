@@ -495,14 +495,20 @@ const Visits = () => {
     }
   }, [fetchTeamLive, loadLiveVisits, showNotification]);
 
+  const timelineRequestSeqRef = useRef(0);
+
   /* ---------------------------------------------------------------------- */
   /* Fetch Employee Timeline Journey Trail when Sales Person selected       */
   /* ---------------------------------------------------------------------- */
   const handleSelectEntity = useCallback((entity) => {
     if (entity?.type === "employee" && entity?.id !== selectedEntity?.id) {
+      timelineRequestSeqRef.current += 1;
       setSelectedRouteDate("");
       setSelectedRouteMonth("");
       setSelectedRouteYear("");
+      setTimelinePoints([]);
+      setRouteSummaryData(null);
+      setAvailableRouteDays([]);
     }
     setSelectedEntity(entity);
   }, [selectedEntity?.id]);
@@ -523,6 +529,9 @@ const Visits = () => {
       return false;
     }
 
+    const currentSeq = ++timelineRequestSeqRef.current;
+    const requestedEmployeeId = selectedEntity.id;
+
     if (!silent) setTimelineLoading(true);
     setTimelineError(false);
 
@@ -538,6 +547,11 @@ const Visits = () => {
         targetMonth,
         targetYear
       );
+
+      // Guard: Ignore if user switched to another employee while request was in-flight
+      if (currentSeq !== timelineRequestSeqRef.current || selectedEntity?.id !== requestedEmployeeId) {
+        return false;
+      }
       if (res?.success === false) {
         throw new Error(res.message || "Timeline history request failed.");
       }
