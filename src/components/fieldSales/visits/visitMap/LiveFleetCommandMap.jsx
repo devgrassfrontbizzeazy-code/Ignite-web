@@ -552,6 +552,11 @@ export default function LiveFleetCommandMap({
   }, [isViewingToday, selectedEmployee, routeSummary, currentDayFromRibbon]);
 
   const activeCheckOutTime = useMemo(() => {
+    // If viewing today AND employee is actively on shift, shift punch-out has NOT occurred
+    if (isViewingToday && (isEmployeeOnShift(selectedEmployee) || routeSummary?.attendance_status === "CHECKED_IN")) {
+      return null;
+    }
+
     let raw = null;
     if (isViewingToday) {
       raw =
