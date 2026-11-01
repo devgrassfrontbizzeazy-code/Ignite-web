@@ -332,8 +332,9 @@ const Visits = () => {
   useEffect(() => {
     loadLiveVisits(false);
     const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
       loadLiveVisits(true);
-    }, 8000);
+    }, 25000);
     return () => clearInterval(interval);
   }, [loadLiveVisits]);
 
@@ -433,6 +434,7 @@ const Visits = () => {
 
     let mounted = true;
     const doPing = async () => {
+      if (document.visibilityState === "hidden") return;
       const loc = userLocRef.current;
       if (!loc || !mounted) return;
       try {
@@ -447,7 +449,7 @@ const Visits = () => {
     };
 
     void doPing();
-    const interval = setInterval(doPing, 5000);
+    const interval = setInterval(doPing, 20000);
 
     return () => {
       mounted = false;
@@ -456,7 +458,7 @@ const Visits = () => {
   }, [isSales, gpsStatus]);
 
   /* ---------------------------------------------------------------------- */
-  /* Manager Live Team Locations Polling (Every 15s)                        */
+  /* Manager Live Team Locations Polling (Every 20s)                        */
   /* In-flight locked & pauses when tab is hidden (Zero loop & zero waste)  */
   /* ---------------------------------------------------------------------- */
   const fetchTeamLive = useCallback(async () => {
@@ -477,7 +479,7 @@ const Visits = () => {
     return false;
   }, []);
 
-  useSmartPolling(fetchTeamLive, 5000, { enabled: isManager });
+  useSmartPolling(fetchTeamLive, 20000, { enabled: isManager });
 
   const loadTimelineRef = useRef(null);
 
@@ -649,17 +651,18 @@ const Visits = () => {
     fetchTimeline(false);
   }, [fetchTimeline]);
 
-  // Periodic Auto-Refresh of Timeline (every 10s when manager is viewing today's route)
+  // Periodic Auto-Refresh of Timeline (every 30s when manager is viewing today's route)
   useEffect(() => {
     if (!isManager || !selectedEntity || selectedEntity.type !== "employee") return;
     const isToday = !selectedRouteDate || selectedRouteDate === getToday();
     if (!isToday) return;
 
     const intervalId = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
       if (typeof loadTimelineRef.current === "function") {
         loadTimelineRef.current(true);
       }
-    }, 10000);
+    }, 30000);
 
     return () => clearInterval(intervalId);
   }, [isManager, selectedEntity?.id, selectedEntity?.type, selectedRouteDate]);

@@ -17,6 +17,8 @@ export default function useFieldSalesWebTracker() {
   const lastCoordsRef = useRef(null);
   const watchIdRef = useRef(null);
   const isPingingRef = useRef(false);
+  const lastStatusCheckTimeRef = useRef(0);
+  const isTrackingAllowedRef = useRef(false);
 
   useEffect(() => {
     // 1. Resolve logged-in user from localStorage
@@ -50,11 +52,12 @@ export default function useFieldSalesWebTracker() {
 
     let isCancelled = false;
 
-    // 2. Sender function: sends GPS ping every 5 seconds
+    // 2. Sender function: sends GPS ping every 15-20 seconds
     const sendLocationPing = async (latitude, longitude, accuracy) => {
+      if (document.visibilityState === "hidden") return;
       const now = Date.now();
-      // Enforce 4.5s debounce so it sends cleanly on the 5-second cadence
-      if (now - lastPingTimeRef.current < 4500) return;
+      // Enforce 14s debounce so it sends cleanly on the 15-20 second cadence
+      if (now - lastPingTimeRef.current < 14000) return;
       if (isPingingRef.current) return;
 
       isPingingRef.current = true;
@@ -75,59 +78,67 @@ export default function useFieldSalesWebTracker() {
       }
     };
 
-    // 3. Check shift & visit status, then start tracking and send 5s heartbeats
-    const checkAndSyncTracking = async () => {
+    // 3. Check shift & visit status, then start tracking and send heartbeats
+    const checkAndSyncTracking = async (forceStatusCheck = false) => {
       if (isCancelled) return;
+      if (document.visibilityState === "hidden") return;
       try {
-        const res = await getTodayVisits().catch(() => null);
-        const visits = Array.isArray(res) ? res : res?.data || res?.results || [];
-        const hasActiveVisit = visits.some(
-          (v) =>
-            String(v.status || "").toUpperCase() === "IN_PROGRESS" ||
-            (Boolean(v.check_in_time) && !v.check_out_time)
-        );
+        const now = Date.now();
+        // Check shift/attendance status only every 60s or when explicitly forced
+        if (forceStatusCheck || now - lastStatusCheckTimeRef.current > 60000) {
+          lastStatusCheckTimeRef.current = now;
+          const res = await getTodayVisits().catch(() => null);
+          const visits = Array.isArray(res) ? res : res?.data || res?.results || [];
+          const hasActiveVisit = visits.some(
+            (v) =>
+              String(v.status || "").toUpperCase() === "IN_PROGRESS" ||
+              (Boolean(v.check_in_time) && !v.check_out_time)
+          );
 
-        let isUserOnShift = false;
-        try {
-          const attRes = await attendanceAPI.getTodayAttendance().catch(() => null);
-          const att = attRes?.data;
-          if (att) {
-            const status = String(att.status || "").toUpperCase();
-            const rawCheckOut = att.checkOutAt || att.checkOut || att.check_out || null;
-            const isActualCheckOut =
-              Boolean(rawCheckOut) &&
-              !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
-                String(rawCheckOut).trim().toUpperCase()
-              );
-            const hasCheckIn = Boolean(att.checkInAt || att.checkIn || att.check_in);
-            isUserOnShift =
-              (status === "WORKING" || status === "ON_BREAK" || status === "PRESENT" || status === "ACTIVE" || hasCheckIn) &&
-              !isActualCheckOut;
-          }
-        } catch {
-          // fallback
-        }
-
-        if (!isUserOnShift) {
+          let isUserOnShift = false;
           try {
-            const userObj = JSON.parse(localStorage.getItem("user") || "{}");
-            const rawCheckOut = userObj?.shiftCheckOut || userObj?.check_out_time || null;
-            const isActualCheckOut =
-              Boolean(rawCheckOut) &&
-              !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
-                String(rawCheckOut).trim().toUpperCase()
-              );
-            isUserOnShift =
-              (userObj?.attendance_status === "CHECKED_IN" ||
-                userObj?.shiftStatus === "WORKING" ||
-                userObj?.is_on_shift === true) &&
-              !isActualCheckOut;
+            const attRes = await attendanceAPI.getTodayAttendance().catch(() => null);
+            const att = attRes?.data;
+            if (att) {
+              const status = String(att.status || "").toUpperCase();
+              const rawCheckOut = att.checkOutAt || att.checkOut || att.check_out || null;
+              const isActualCheckOut =
+                Boolean(rawCheckOut) &&
+                !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
+                  String(rawCheckOut).trim().toUpperCase()
+                );
+              const hasCheckIn = Boolean(att.checkInAt || att.checkIn || att.check_in);
+              isUserOnShift =
+                (status === "WORKING" || status === "ON_BREAK" || status === "PRESENT" || status === "ACTIVE" || hasCheckIn) &&
+                !isActualCheckOut;
+            }
           } catch {
             // fallback
           }
+
+          if (!isUserOnShift) {
+            try {
+              const userObj = JSON.parse(localStorage.getItem("user") || "{}");
+              const rawCheckOut = userObj?.shiftCheckOut || userObj?.check_out_time || null;
+              const isActualCheckOut =
+                Boolean(rawCheckOut) &&
+                !["ACTIVE", "IN_PROGRESS", "IN PROGRESS", "—", "-", "NULL", "UNDEFINED"].includes(
+                  String(rawCheckOut).trim().toUpperCase()
+                );
+              isUserOnShift =
+                (userObj?.attendance_status === "CHECKED_IN" ||
+                  userObj?.shiftStatus === "WORKING" ||
+                  userObj?.is_on_shift === true) &&
+                !isActualCheckOut;
+            } catch {
+              // fallback
+            }
+          }
+
+          isTrackingAllowedRef.current = hasActiveVisit || isUserOnShift;
         }
 
-        const isTrackingAllowed = hasActiveVisit || isUserOnShift;
+        const isTrackingAllowed = isTrackingAllowedRef.current;
 
         if (!isTrackingAllowed) {
           if (watchIdRef.current !== null) {
@@ -179,7 +190,7 @@ export default function useFieldSalesWebTracker() {
             console.warn("Could not start geolocation watcher:", e);
           }
         } else if (lastCoordsRef.current) {
-          // Send 5-second heartbeat ping with current position (keeps status Active in real time even when stationary)
+          // Send 20-second heartbeat ping with current position (keeps status Active in real time even when stationary)
           sendLocationPing(
             lastCoordsRef.current.latitude,
             lastCoordsRef.current.longitude,
@@ -191,16 +202,17 @@ export default function useFieldSalesWebTracker() {
       }
     };
 
-    // Run immediately and poll every 5 seconds for real-time active/inactive status
-    void checkAndSyncTracking();
-    const syncIntervalId = setInterval(checkAndSyncTracking, 5000);
+    // Run immediately and poll every 20 seconds for real-time active/inactive status
+    void checkAndSyncTracking(true);
+    const syncIntervalId = setInterval(() => checkAndSyncTracking(false), 20000);
 
-    window.addEventListener("ignite:attendance-sync", checkAndSyncTracking);
+    const onAttendanceSync = () => checkAndSyncTracking(true);
+    window.addEventListener("ignite:attendance-sync", onAttendanceSync);
 
     return () => {
       isCancelled = true;
       clearInterval(syncIntervalId);
-      window.removeEventListener("ignite:attendance-sync", checkAndSyncTracking);
+      window.removeEventListener("ignite:attendance-sync", onAttendanceSync);
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
         watchIdRef.current = null;

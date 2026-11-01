@@ -337,14 +337,15 @@ const SalesDashboard = () => {
   const userLocRef = useRef(currentUserLocation);
   userLocRef.current = currentUserLocation;
 
-  // Periodic Location Ping (Every 15s) when field duty active - decoupled from coords state
+  // Periodic Location Ping (Every 20s) when field duty active - decoupled from coords state
   useEffect(() => {
     if (isManager || !isFieldDutyActive || gpsStatus !== "success") return;
     const interval = setInterval(() => {
+      if (document.visibilityState === "hidden") return;
       if (userLocRef.current) {
         pingFieldSalesLocation(userLocRef.current).catch(() => {});
       }
-    }, 15000);
+    }, 20000);
     return () => clearInterval(interval);
   }, [isManager, isFieldDutyActive, gpsStatus]);
 
