@@ -810,6 +810,17 @@ export default function LiveFleetCommandMap({
   }, [historyRoadCoords, historyRouteCoords, hasRecordedRoute]);
 
   const activeDistanceKm = useMemo(() => {
+    // Prevent stale routeSummary leaking from another employee
+    if (routeSummary?.employee?.id && selectedEmployee?.id && String(routeSummary.employee.id) !== String(selectedEmployee.id)) {
+      return 0;
+    }
+    // Strict Rule: If viewing today and employee has NOT checked in / shift not started, distance is strictly 0
+    if (isViewingToday && selectedEmployee) {
+      const isNotCheckedIn = selectedEmployee.attendance_status === "NOT_CHECKED_IN" || (!selectedEmployee.shiftCheckIn && selectedEmployee.shiftStatus === "NOT_STARTED");
+      if (isNotCheckedIn) {
+        return 0;
+      }
+    }
     let dist = null;
     if (isViewingToday) {
       if (selectedEmployee?.today_distance_km != null && Number(selectedEmployee.today_distance_km) > 0) {
