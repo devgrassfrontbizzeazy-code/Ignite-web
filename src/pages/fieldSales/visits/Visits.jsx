@@ -511,9 +511,32 @@ const Visits = () => {
       setTimelinePoints([]);
       setRouteSummaryData(null);
       setAvailableRouteDays([]);
+      setEmployee(String(entity.id));
+    } else if (!entity) {
+      setEmployee("");
+      setTimelinePoints([]);
+      setRouteSummaryData(null);
+      setAvailableRouteDays([]);
     }
     setSelectedEntity(entity);
   }, [selectedEntity?.id]);
+
+  const handleEmployeeFilterChange = useCallback((empId) => {
+    setEmployee(empId);
+    if (!empId || empId === "all") {
+      handleSelectEntity(null);
+    } else {
+      const match = filteredMapEmployees.find(
+        (e) => String(e.id) === String(empId) || String(e.employeeId) === String(empId)
+      );
+      if (match) {
+        handleSelectEntity({
+          ...match,
+          type: "employee",
+        });
+      }
+    }
+  }, [filteredMapEmployees, handleSelectEntity]);
 
   const handleChangeRouteMonth = useCallback((m, y) => {
     setSelectedRouteMonth(m);
@@ -1262,7 +1285,7 @@ const Visits = () => {
           date={date}
           onDateChange={setDate}
           employee={employee}
-          onEmployeeChange={setEmployee}
+          onEmployeeChange={handleEmployeeFilterChange}
           status={status}
           onStatusChange={setStatus}
           viewMode={viewMode}
@@ -1279,7 +1302,12 @@ const Visits = () => {
         {viewMode === "map" ? (
           <LiveFleetCommandMap
             visits={isManager ? visits : filteredVisits}
-            employees={filteredMapEmployees}
+            employees={(() => {
+              if (!employee || employee === "all") return filteredMapEmployees;
+              return filteredMapEmployees.filter(
+                (e) => String(e.id) === String(employee) || String(e.employeeId) === String(employee)
+              );
+            })()}
             isLoading={loading}
             currentUserLocation={currentUserLocation}
             selectedEntity={selectedEntity}

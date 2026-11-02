@@ -505,6 +505,8 @@ export default function LiveFleetCommandMap({
   useEffect(() => {
     if (selectedEntity?.type === "employee") {
       setSelectedRepId(String(selectedEntity.id));
+    } else if (!selectedEntity) {
+      setSelectedRepId(null);
     }
   }, [selectedEntity]);
 
@@ -512,6 +514,12 @@ export default function LiveFleetCommandMap({
   const selectedEmployee = useMemo(() => {
     if (!selectedRepId) return null;
     return employees.find((e) => String(e.id) === String(selectedRepId)) || null;
+  }, [employees, selectedRepId]);
+
+  // When an employee is selected, only show that employee on the map; otherwise show all employees
+  const displayedEmployees = useMemo(() => {
+    if (!selectedRepId) return employees;
+    return employees.filter((e) => String(e.id) === String(selectedRepId));
   }, [employees, selectedRepId]);
 
   // Selected Day & Shift Derivations for Route History
@@ -1564,6 +1572,17 @@ export default function LiveFleetCommandMap({
                 >
                   ▶ Replay Route
                 </button>
+                <button
+                  type="button"
+                  className="fleet-clear-rep-btn"
+                  title="Deselect employee and view entire team"
+                  onClick={() => {
+                    setSelectedRepId(null);
+                    onSelectEntity?.(null);
+                  }}
+                >
+                  ✕ All Team
+                </button>
                 <span
                   className={`fleet-badge ${isViewingToday ? (isEmployeeOnShift(selectedEmployee) ? "active" : "finalized") : "finalized"}`}
                   title="Shift status for selected date"
@@ -1775,7 +1794,7 @@ export default function LiveFleetCommandMap({
             }}
           >
             {/* Sales Rep Markers */}
-            {employees.map((emp) => {
+            {displayedEmployees.map((emp) => {
               const coords = isValidCoordinatePair(emp.latitude, emp.longitude);
               if (!coords) return null;
               const isSelected = String(selectedRepId) === String(emp.id);
@@ -2244,7 +2263,7 @@ export default function LiveFleetCommandMap({
             <LeafletMapController center={[currentMapCenter.lat, currentMapCenter.lng]} bounds={leafletRouteBounds} />
 
             {/* Rep Markers */}
-            {employees.map((emp) => {
+            {displayedEmployees.map((emp) => {
               const coords = isValidCoordinatePair(emp.latitude, emp.longitude);
               if (!coords) return null;
               const isSelected = String(selectedRepId) === String(emp.id);
