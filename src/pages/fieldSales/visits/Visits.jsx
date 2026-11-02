@@ -521,23 +521,6 @@ const Visits = () => {
     setSelectedEntity(entity);
   }, [selectedEntity?.id]);
 
-  const handleEmployeeFilterChange = useCallback((empId) => {
-    setEmployee(empId);
-    if (!empId || empId === "all") {
-      handleSelectEntity(null);
-    } else {
-      const match = filteredMapEmployees.find(
-        (e) => String(e.id) === String(empId) || String(e.employeeId) === String(empId)
-      );
-      if (match) {
-        handleSelectEntity({
-          ...match,
-          type: "employee",
-        });
-      }
-    }
-  }, [filteredMapEmployees, handleSelectEntity]);
-
   const handleChangeRouteMonth = useCallback((m, y) => {
     setSelectedRouteMonth(m);
     setSelectedRouteYear(y);
@@ -964,6 +947,23 @@ const Visits = () => {
 
     return Array.from(employeesById.values());
   }, [employees, liveLocations, attendanceByEmployeeId]);
+
+  const handleEmployeeFilterChange = useCallback((empId) => {
+    setEmployee(empId);
+    if (!empId || empId === "all") {
+      handleSelectEntity(null);
+    } else {
+      const match = filteredMapEmployees.find(
+        (e) => String(e.id) === String(empId) || String(e.employeeId) === String(empId)
+      );
+      if (match) {
+        handleSelectEntity({
+          ...match,
+          type: "employee",
+        });
+      }
+    }
+  }, [filteredMapEmployees, handleSelectEntity]);
 
   // Auto-select rep if repId is specified in URL query params
   useEffect(() => {
