@@ -680,6 +680,7 @@ export default function LiveFleetCommandMap({
             battery: pt.battery_percentage ?? pt.battery,
             accuracy: pt.accuracy,
             logType: pt.log_type || pt.type,
+            label: pt.label || "",
             time: pt.time || pt.created_at,
             address: pt.address || "",
             index: idx,
