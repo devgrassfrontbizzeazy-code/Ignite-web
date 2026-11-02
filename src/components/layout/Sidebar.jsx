@@ -290,7 +290,7 @@ const NAV_ITEMS = [
     label: "Organization Overview",
     path: "/organization-overview",
     icon: OrganizationIcon,
-    adminOnly: true,
+    permission: "view_companydetails",
   },
   {
     label: "Departments",
@@ -308,7 +308,7 @@ const NAV_ITEMS = [
     label: "Roles & Permissions",
     path: "/roles-permissions",
     icon: RolesIcon,
-    adminOnly: true,
+    permission: "view_role",
   },
   {
     label: "Employees",
@@ -747,6 +747,10 @@ export default function Sidebar({
     rawRole === "OWNER" ||
     rawRole === "ADMIN" ||
     rawRole === "ADMINISTRATOR" ||
+    rawRole === "FULL ACCESS" ||
+    rawRole === "FULL_ACCESS" ||
+    rawRole === "SUPERADMIN" ||
+    userPermissions.includes("*") ||
     user.is_superuser === true;
 
   const userPermissions = Array.isArray(user.permissions)
@@ -857,7 +861,17 @@ export default function Sidebar({
           (userPermissions.includes("employees.view") ||
             userPermissions.includes("employees.view_all") ||
             userPermissions.includes("employees.view_department") ||
-            userPermissions.includes("employees.view_team")))
+            userPermissions.includes("employees.view_team"))) ||
+        (p === "view_role" &&
+          (userPermissions.includes("roles.view") ||
+            userPermissions.includes("roles.view_all") ||
+            userPermissions.includes("roles_permissions.view") ||
+            userPermissions.includes("roles_permissions.view_all"))) ||
+        (p === "view_companydetails" &&
+          (userPermissions.includes("organization.view") ||
+            userPermissions.includes("organization_setup.view") ||
+            userPermissions.includes("company.view") ||
+            userPermissions.includes("company.view_all")))
       );
     }
 

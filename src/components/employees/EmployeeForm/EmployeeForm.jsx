@@ -209,6 +209,7 @@ const EmployeeForm = ({
           getDesignations(),
           getEmployeeManagers(),
           getShifts(),
+          roleService.syncRolesFromBackend(),
         ]);
 
         const departmentList =
@@ -592,11 +593,6 @@ const EmployeeForm = ({
 
     if (photoFile) {
       payload.photo = photoFile;
-    }
-
-    // Save override role in roleService cache if editing
-    if (initialData?.id) {
-      roleService.setEmployeeOverrideRole(initialData.id, selectedOverrideId);
     }
 
     onSubmit(payload);

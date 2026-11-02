@@ -28,8 +28,51 @@ export const isSuperOrAdmin = (user = null) => {
     rawRole === "OWNER" ||
     rawRole === "ADMIN" ||
     rawRole === "ADMINISTRATOR" ||
+    rawRole === "FULL ACCESS" ||
+    rawRole === "FULL_ACCESS" ||
+    rawRole === "SUPERADMIN" ||
     perms.includes("*")
   );
+};
+
+// ==========================================
+// ROLES & PERMISSIONS
+// ==========================================
+export const canViewRoles = (user = null) => {
+  return hasAnyPermission([
+    "view_role",
+    "roles.view",
+    "roles.view_all",
+    "roles_permissions.view",
+    "roles_permissions.view_all",
+  ], user);
+};
+
+export const canCreateRoles = (user = null) => {
+  return hasAnyPermission([
+    "add_role",
+    "roles.create",
+    "roles.create_all",
+    "roles_permissions.create",
+    "roles_permissions.create_all",
+  ], user);
+};
+
+export const canUpdateRoles = (user = null) => {
+  return hasAnyPermission([
+    "change_role",
+    "roles.update",
+    "roles.edit",
+    "roles_permissions.update",
+  ], user);
+};
+
+export const canDeleteRoles = (user = null) => {
+  return hasAnyPermission([
+    "delete_role",
+    "roles.delete",
+    "roles_permissions.delete",
+  ], user);
 };
 
 /**

@@ -11,16 +11,18 @@ const AddRole = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (roleData) => {
+  const handleSubmit = async (roleData) => {
     try {
       setLoading(true);
       setError("");
 
-      roleService.createRole(roleData);
+      await roleService.createRole(roleData);
       navigate("/roles-permissions");
     } catch (err) {
       console.error("Failed to create role:", err);
-      setError(err?.message || "Failed to create role. Please check the form data.");
+      const data = err?.response?.data;
+      const msg = data?.message || data?.detail || data?.role_name || data?.role_code || err?.message || "Failed to create role. Please check the form data.";
+      setError(Array.isArray(msg) ? msg[0] : (typeof msg === "object" ? Object.values(msg)[0] : String(msg)));
     } finally {
       setLoading(false);
     }

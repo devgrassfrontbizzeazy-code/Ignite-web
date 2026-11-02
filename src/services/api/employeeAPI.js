@@ -12,8 +12,20 @@ const buildFormData = (data) => {
   if (data instanceof FormData) return data;
   const formData = new FormData();
   Object.entries(data).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      if (value instanceof File || value instanceof Blob) {
+    if (value !== undefined) {
+      if (value === null) {
+        if (
+          key === "override_role" ||
+          key === "override_role_id" ||
+          key === "overrideRole" ||
+          key === "shift" ||
+          key === "shift_id" ||
+          key === "reporting_manager" ||
+          key === "reporting_manager_id"
+        ) {
+          formData.append(key, "");
+        }
+      } else if (value instanceof File || value instanceof Blob) {
         formData.append(key, value);
       } else if (typeof value === "object") {
         formData.append(key, JSON.stringify(value));

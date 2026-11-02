@@ -17,10 +17,14 @@ const EditRole = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchRole = () => {
+    const fetchRole = async () => {
       try {
         setLoading(true);
-        const data = roleService.getRoleById(id);
+        let data = roleService.getRoleById(id);
+        if (!data) {
+          await roleService.syncRolesFromBackend();
+          data = roleService.getRoleById(id);
+        }
         setRole(data);
       } catch (err) {
         console.error("Failed to load role:", err);
@@ -33,16 +37,18 @@ const EditRole = () => {
     fetchRole();
   }, [id]);
 
-  const handleSubmit = (roleData) => {
+  const handleSubmit = async (roleData) => {
     try {
       setSubmitting(true);
       setError("");
 
-      roleService.updateRole(id, roleData);
+      await roleService.updateRole(id, roleData);
       navigate("/roles-permissions");
     } catch (err) {
       console.error("Failed to update role:", err);
-      setError(err?.message || "Failed to update role. Please check the form data.");
+      const data = err?.response?.data;
+      const msg = data?.message || data?.detail || data?.role_name || data?.role_code || err?.message || "Failed to update role. Please check the form data.";
+      setError(Array.isArray(msg) ? msg[0] : (typeof msg === "object" ? Object.values(msg)[0] : String(msg)));
     } finally {
       setSubmitting(false);
     }

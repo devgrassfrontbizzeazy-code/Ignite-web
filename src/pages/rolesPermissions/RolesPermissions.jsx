@@ -47,6 +47,12 @@ const RolesPermissions = () => {
    * Sync role state with roleService updates.
    */
   useEffect(() => {
+    roleService.syncRolesFromBackend().then((fresh) => {
+      if (fresh && Array.isArray(fresh)) {
+        setRoles(fresh);
+      }
+    });
+
     const handleRolesUpdated = (event) => {
       if (event.detail && Array.isArray(event.detail)) {
         setRoles(event.detail);

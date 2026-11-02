@@ -21,6 +21,9 @@ export default function PermissionGuard({ requiredPermission, adminOnly = false 
     rawRole === "OWNER" ||
     rawRole === "ADMIN" ||
     rawRole === "ADMINISTRATOR" ||
+    rawRole === "FULL ACCESS" ||
+    rawRole === "FULL_ACCESS" ||
+    rawRole === "SUPERADMIN" ||
     user.is_superuser === true;
 
   const userPermissions = Array.isArray(user.permissions)
@@ -73,6 +76,20 @@ export default function PermissionGuard({ requiredPermission, adminOnly = false 
         userPermissions.includes("leaves.view_department") ||
         userPermissions.includes("leaves.view_team") ||
         userPermissions.includes("leaves.view_own")
+      )) ||
+      (requiredPermission === "view_role" && (
+        userPermissions.includes("view_role") ||
+        userPermissions.includes("roles.view") ||
+        userPermissions.includes("roles.view_all") ||
+        userPermissions.includes("roles_permissions.view") ||
+        userPermissions.includes("roles_permissions.view_all")
+      )) ||
+      (requiredPermission === "view_companydetails" && (
+        userPermissions.includes("view_companydetails") ||
+        userPermissions.includes("organization.view") ||
+        userPermissions.includes("organization_setup.view") ||
+        userPermissions.includes("company.view") ||
+        userPermissions.includes("company.view_all")
       ));
 
     if (!hasPerm) {

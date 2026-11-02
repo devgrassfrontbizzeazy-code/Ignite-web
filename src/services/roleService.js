@@ -158,36 +158,18 @@ export const createRole = async (roleData) => {
     })),
   };
 
-  // Optimistic local save
-  const tempRole = {
-    id: Date.now(),
-    roleName: payload.role_name,
-    roleCode: payload.role_code,
-    description: payload.description,
-    employeeCount: 0,
-    permissionCount: permissions.length,
-    status: payload.status,
-    createdAt: new Date().toISOString(),
-    assignedUsers: [],
-    permissions: payload.permissions,
-  };
-
-  const currentRoles = getRoles();
-  saveRoles([tempRole, ...currentRoles]);
-
   try {
     const backendRole = await roleAPI.createRole(payload);
     const normalized = normalizeRole(backendRole);
     if (normalized) {
-      const updated = getRoles().map((r) => (r.id === tempRole.id ? normalized : r));
-      saveRoles(updated);
+      saveRoles([normalized, ...getRoles()]);
       return normalized;
     }
+    return backendRole;
   } catch (err) {
-    console.error("Failed to create role in backend, keeping local optimistic role:", err);
+    console.error("Failed to create role on backend API:", err);
+    throw err;
   }
-
-  return tempRole;
 };
 
 /**
@@ -418,7 +400,37 @@ export const getEmployeeOverrideRole = (employeeId) => {
 export const getEffectiveRole = (employee = {}, designation = null) => {
   if (!employee && !designation) return null;
 
-  // 1. Check if employee has an explicit override role
+  // 1. Prioritize direct backend override role from employee record
+  const directOverrideId =
+    employee.override_role_id ??
+    (typeof employee.override_role === "object" ? employee.override_role?.id : employee.override_role) ??
+    (typeof employee.overrideRole === "object" ? employee.overrideRole?.id : employee.overrideRole) ??
+    employee.role_override;
+
+  const directOverrideRoleName =
+    employee.override_role_name ??
+    employee.overrideRoleName ??
+    (typeof employee.override_role === "object" ? employee.override_role?.role_name : null);
+
+  if (directOverrideId) {
+    const overrideRole = getRoleById(directOverrideId);
+    if (overrideRole) {
+      return {
+        role: overrideRole,
+        source: "override",
+        label: overrideRole.roleName,
+      };
+    }
+    if (directOverrideRoleName) {
+      return {
+        role: { id: directOverrideId, roleName: directOverrideRoleName },
+        source: "override",
+        label: directOverrideRoleName,
+      };
+    }
+  }
+
+  // 2. Check cached override if backend record had none
   const empId = employee.id ?? employee.employee_id ?? employee.pk;
   if (empId) {
     const cachedOverride = getEmployeeOverrideRole(empId);
@@ -427,25 +439,6 @@ export const getEffectiveRole = (employee = {}, designation = null) => {
         role: cachedOverride,
         source: "override",
         label: cachedOverride.roleName,
-      };
-    }
-  }
-
-  const directOverride =
-    employee.override_role_id ??
-    employee.override_role ??
-    employee.overrideRole ??
-    employee.role_override;
-
-  if (directOverride) {
-    const overrideRole =
-      (typeof directOverride === "object" ? directOverride : null) ||
-      getRoleById(directOverride);
-    if (overrideRole) {
-      return {
-        role: overrideRole,
-        source: "override",
-        label: overrideRole.roleName,
       };
     }
   }

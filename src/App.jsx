@@ -466,17 +466,22 @@ export default function App() {
                           ADMIN ONLY ROUTES
                       ================================================= */}
 
-                      <Route element={<PermissionGuard adminOnly />}>
+                      <Route
+                        element={
+                          <PermissionGuard requiredPermission="view_companydetails" />
+                        }
+                      >
                         <Route
                           path="/organization-overview"
                           element={<OrganizationOverview />}
                         />
+                      </Route>
 
-                        <Route
-                          path="/work-schedule"
-                          element={<WorkSchedule />}
-                        />
-
+                      <Route
+                        element={
+                          <PermissionGuard requiredPermission="view_role" />
+                        }
+                      >
                         <Route
                           path="/roles-permissions"
                           element={<RolesPermissions />}
@@ -495,6 +500,13 @@ export default function App() {
                         <Route
                           path="/roles-permissions/:id/edit"
                           element={<EditRole />}
+                        />
+                      </Route>
+
+                      <Route element={<PermissionGuard adminOnly />}>
+                        <Route
+                          path="/work-schedule"
+                          element={<WorkSchedule />}
                         />
 
                         <Route
