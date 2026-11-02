@@ -743,6 +743,10 @@ export default function Sidebar({
 
   const rawRole = String(user.role || userRole || "").toUpperCase();
 
+  const userPermissions = Array.isArray(user.permissions)
+    ? user.permissions
+    : [];
+
   const isAdminOrOwner =
     rawRole === "OWNER" ||
     rawRole === "ADMIN" ||
@@ -752,10 +756,6 @@ export default function Sidebar({
     rawRole === "SUPERADMIN" ||
     userPermissions.includes("*") ||
     user.is_superuser === true;
-
-  const userPermissions = Array.isArray(user.permissions)
-    ? user.permissions
-    : [];
 
   const isFieldSalesUser =
     user?.is_field_sales === true ||
