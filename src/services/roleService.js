@@ -100,7 +100,9 @@ export const syncRolesFromBackend = async () => {
     saveRoles(normalized);
     return normalized;
   } catch (err) {
-    console.warn("Could not sync roles from backend API, using local cache:", err);
+    if (err?.response?.status !== 403) {
+      console.warn("Could not sync roles from backend API, using local cache:", err);
+    }
   }
   return getRoles();
 };
