@@ -868,10 +868,9 @@ export default function Sidebar({
             userPermissions.includes("roles_permissions.view") ||
             userPermissions.includes("roles_permissions.view_all"))) ||
         (p === "view_companydetails" &&
-          (userPermissions.includes("organization.view") ||
-            userPermissions.includes("organization_setup.view") ||
-            userPermissions.includes("company.view") ||
-            userPermissions.includes("company.view_all")))
+          (userPermissions.includes("view_companydetails") ||
+            userPermissions.includes("organization.view") ||
+            userPermissions.includes("organization_setup.view")))
       );
     }
 

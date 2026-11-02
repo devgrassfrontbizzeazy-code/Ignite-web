@@ -64,7 +64,7 @@ const RoleForm = ({
       if (["dashboard", "employees", "leads", "customers", "visits", "tracking"].includes(func) && (mod === "sales" || mod === "hrms")) {
         mod = "field_sales";
       }
-      if (["teams", "tasks"].includes(func)) {
+      if (["teams", "tasks", "organization", "organization_setup"].includes(func)) {
         mod = "hrms";
       }
       if (func === "payroll" && act === "update") act = "edit";

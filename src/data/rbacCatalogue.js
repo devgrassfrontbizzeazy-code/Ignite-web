@@ -103,6 +103,15 @@ export const RBAC_MODULES = [
           manage: { label: "Manage (Admin)", supportsScope: true, defaultScope: "Company", codename: "change_task", dotNotation: "tasks.manage" },
         },
       },
+            {
+        key: "organization",
+        name: "Organization Overview",
+        description: "Company details, organizational structure overview, setup progress, and business settings.",
+        actions: {
+          view: { label: "View", supportsScope: false, codename: "view_companydetails", dotNotation: "organization.view" },
+          edit: { label: "Edit / Update", supportsScope: false, codename: "change_companydetails", dotNotation: "organization.update" },
+        },
+      },
       {
         key: "work_schedule",
         name: "Work Schedule",

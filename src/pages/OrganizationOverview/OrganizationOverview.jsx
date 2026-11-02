@@ -32,6 +32,7 @@ import holidayAPI from "../../services/api/holidayAPI";
 import { getFieldSalesStatus, toggleFieldSalesStatus } from "../../services/api/fieldSalesAPI";
 import { getPayrollSettings, getPayrollOverview } from "../../services/api/accountAPI";
 import { calculateOrganizationSetupProgress } from "../../utils/setupProgressUtils";
+import { canViewOrganization } from "../../utils/permissionUtils";
 import roleService from "../../services/roleService";
 
 import "./OrganizationOverview.css";
@@ -280,6 +281,16 @@ function SetupRow({ complete, label, description, action, onAction }) {
 
 export default function OrganizationOverview() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!canViewOrganization()) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
+  if (!canViewOrganization()) {
+    return null;
+  }
 
   const [company, setCompany] = useState(null);
   const [departments, setDepartments] = useState([]);

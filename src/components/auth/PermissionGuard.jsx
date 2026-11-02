@@ -87,9 +87,7 @@ export default function PermissionGuard({ requiredPermission, adminOnly = false 
       (requiredPermission === "view_companydetails" && (
         userPermissions.includes("view_companydetails") ||
         userPermissions.includes("organization.view") ||
-        userPermissions.includes("organization_setup.view") ||
-        userPermissions.includes("company.view") ||
-        userPermissions.includes("company.view_all")
+        userPermissions.includes("organization_setup.view")
       ));
 
     if (!hasPerm) {
