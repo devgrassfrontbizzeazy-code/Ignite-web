@@ -168,21 +168,7 @@ const Teams = () => {
     }
   }, []);
 
-  const rawRole = String(
-    currentUser?.role ||
-      currentUser?.user_type ||
-      currentUser?.userType ||
-      "",
-  ).toUpperCase();
-
-  const isAdminOrOwner =
-    currentUser?.is_superuser === true ||
-    [
-      "OWNER",
-      "ADMIN",
-      "ADMINISTRATOR",
-      "HR",
-    ].includes(rawRole);
+  const isAdminOrOwner = isSuperOrAdmin(currentUser);
 
   /*
    * ==========================================
@@ -190,12 +176,12 @@ const Teams = () => {
    * ==========================================
    */
 
-  const canCreateTeam = isAdminOrOwner;
+  const canCreateTeam = isAdminOrOwner || canCreateTeams(currentUser);
 
   const canEditTeam = (team) => {
     if (!team) return false;
 
-    if (isAdminOrOwner) {
+    if (isAdminOrOwner || canUpdateTeams(currentUser)) {
       return true;
     }
 
@@ -212,7 +198,7 @@ const Teams = () => {
   const canManageMembers = (team) => {
     if (!team) return false;
 
-    if (isAdminOrOwner) {
+    if (isAdminOrOwner || canUpdateTeams(currentUser)) {
       return true;
     }
 
@@ -229,7 +215,7 @@ const Teams = () => {
   const canDeleteTeam = (team) => {
     if (!team) return false;
 
-    if (isAdminOrOwner) {
+    if (isAdminOrOwner || canDeleteTeams(currentUser)) {
       return true;
     }
 

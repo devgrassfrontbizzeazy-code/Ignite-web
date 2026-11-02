@@ -642,3 +642,112 @@ export const canManagePayroll = (user = null) => {
     "account.payroll.manage",
   ], user);
 };
+
+// ==========================================
+// 11. FIELD SALES
+// ==========================================
+export const canViewFieldSales = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.view",
+    "field_sales.manage",
+    "field_sales.leads_view",
+    "field_sales.visits_view",
+    "field_sales.customers_view",
+    "field_sales.today_visits",
+  ], user);
+};
+
+export const canManageFieldSales = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.manage",
+  ], user);
+};
+
+export const canManageFieldSalesEmployees = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.employees_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canViewLeads = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.leads_view",
+    "field_sales.leads_manage",
+    "field_sales.view",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canCreateLeads = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.leads_create",
+    "field_sales.leads_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canManageLeads = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.leads_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canViewCustomers = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.customers_view",
+    "field_sales.customers_manage",
+    "field_sales.view",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canCreateCustomers = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.customers_create",
+    "field_sales.customers_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canManageCustomers = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.customers_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canViewVisits = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.visits_view",
+    "field_sales.visits_manage",
+    "field_sales.today_visits",
+    "field_sales.view",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canCreateVisits = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.visits_create",
+    "field_sales.visits_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canManageVisits = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.visits_manage",
+    "field_sales.manage",
+  ], user);
+};
+
+export const canCheckInVisits = (user = null) => {
+  return hasAnyPermission([
+    "field_sales.today_visits",
+    "field_sales.checkin",
+    "field_sales.visits_manage",
+    "field_sales.manage",
+  ], user);
+};

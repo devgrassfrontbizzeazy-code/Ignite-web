@@ -1,3 +1,4 @@
+import { isSuperOrAdmin, canUpdateTeams, canUpdateTasks } from "../../utils/permissionUtils";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -298,19 +299,7 @@ const TeamDetails = () => {
    * =========================
    */
 
-  const rawRole = String(
-    currentUser?.role ||
-      currentUser?.user_type ||
-      "",
-  ).toUpperCase();
-
-  const isAdmin =
-    currentUser?.is_superuser === true ||
-    [
-      "OWNER",
-      "ADMIN",
-      "ADMINISTRATOR",
-    ].includes(rawRole);
+  const isAdmin = isSuperOrAdmin(currentUser);
 
   /*
    * =========================
@@ -322,11 +311,11 @@ const TeamDetails = () => {
    */
 
   const canAssign = Boolean(
-    isAdmin || isLead,
+    isAdmin || isLead || canUpdateTasks(currentUser),
   );
 
   const canEditTeam = Boolean(
-    isAdmin || isLead,
+    isAdmin || isLead || canUpdateTeams(currentUser),
   );
 
   /*

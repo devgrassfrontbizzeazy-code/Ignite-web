@@ -41,8 +41,7 @@ const Tasks = () => {
       return {};
     }
   }, []);
-  const rawRole = String(currentUser?.role || currentUser?.user_type || "").toUpperCase();
-  const isAdmin = currentUser?.is_superuser === true || ["OWNER", "ADMIN", "ADMINISTRATOR"].includes(rawRole);
+  const isAdmin = isSuperOrAdmin(currentUser);
   const [scope, setScope] = useState("team");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("All");
@@ -68,7 +67,7 @@ const Tasks = () => {
 
   const accessibleTeams = teams;
 
-  const canAssign = isAdmin || teams.some((team) => String(team.teamLeadId ?? "") === String(currentEmployeeId));
+  const canAssign = isAdmin || canUpdateTasks(currentUser) || teams.some((team) => String(team.teamLeadId ?? "") === String(currentEmployeeId));
 
   const canEdit = (task) => {
     if (!task) return false;
@@ -80,7 +79,7 @@ const Tasks = () => {
         String(team.teamLeadId ?? "") === String(currentEmployeeId) &&
         String(team.id) === String(task.teamId)
     );
-    return isAdmin || isAssignedToMe || isCreatedByMe || isLeadOfTeam;
+    return isAdmin || canUpdateTasks(currentUser) || isAssignedToMe || isCreatedByMe || isLeadOfTeam;
   };
 
   const visibleTasks = useMemo(() => {

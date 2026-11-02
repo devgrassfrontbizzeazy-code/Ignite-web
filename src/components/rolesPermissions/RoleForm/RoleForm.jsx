@@ -60,7 +60,15 @@ const RoleForm = ({
       }
 
       if (mod === "accounts") mod = "account";
+      if (mod === "sales") mod = "field_sales";
+      if (["dashboard", "employees", "leads", "customers", "visits", "tracking"].includes(func) && (mod === "sales" || mod === "hrms")) {
+        mod = "field_sales";
+      }
+      if (["teams", "tasks"].includes(func)) {
+        mod = "hrms";
+      }
       if (func === "payroll" && act === "update") act = "edit";
+      if (act === "update") act = "edit";
 
       const key = buildPermissionKey(mod, func, act);
       map[key] = {
