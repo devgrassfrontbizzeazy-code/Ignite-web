@@ -338,7 +338,6 @@ const NAV_ITEMS = [
     label: "Attendance",
     path: "/attendance",
     icon: AttendanceIcon,
-    isEmployeeDefault: true,
     permission: "view_attendance",
   },
   {
@@ -416,8 +415,7 @@ const FIELD_SALES_NAV_ITEMS = [
     label: "Attendance",
     path: "/attendance",
     icon: AttendanceIcon,
-    isEmployeeDefault: true,
-    isPublic: true,
+    permission: "view_attendance",
   },
   {
     label: "Leaves",
@@ -862,6 +860,18 @@ export default function Sidebar({
             userPermissions.includes("employees.view_all") ||
             userPermissions.includes("employees.view_department") ||
             userPermissions.includes("employees.view_team"))) ||
+        (p === "view_attendance" &&
+          (userPermissions.includes("view_attendance") ||
+            userPermissions.includes("attendance.view") ||
+            userPermissions.includes("attendance.view_all") ||
+            userPermissions.includes("attendance.view_department") ||
+            userPermissions.includes("attendance.view_team") ||
+            userPermissions.includes("view_employee_attendance") ||
+            userPermissions.includes("attendance.view_employees") ||
+            userPermissions.includes("hrms.attendance.view") ||
+            userPermissions.includes("hrms.attendance.view_all") ||
+            userPermissions.includes("hrms.attendance.view_department") ||
+            userPermissions.includes("hrms.attendance.view_team"))) ||
         (p === "view_role" &&
           (userPermissions.includes("roles.view") ||
             userPermissions.includes("roles.view_all") ||
@@ -918,6 +928,21 @@ export default function Sidebar({
           userPermissions.includes("field_sales.today_visits") ||
           userPermissions.includes("field_sales.view") ||
           isFieldSalesUser
+        );
+      }
+      if (p === "view_attendance") {
+        return (
+          userPermissions.includes("view_attendance") ||
+          userPermissions.includes("attendance.view") ||
+          userPermissions.includes("attendance.view_all") ||
+          userPermissions.includes("attendance.view_department") ||
+          userPermissions.includes("attendance.view_team") ||
+          userPermissions.includes("view_employee_attendance") ||
+          userPermissions.includes("attendance.view_employees") ||
+          userPermissions.includes("hrms.attendance.view") ||
+          userPermissions.includes("hrms.attendance.view_all") ||
+          userPermissions.includes("hrms.attendance.view_department") ||
+          userPermissions.includes("hrms.attendance.view_team")
         );
       }
       return (

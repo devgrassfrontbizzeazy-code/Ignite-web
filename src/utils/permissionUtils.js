@@ -410,7 +410,48 @@ export const canViewAttendance = (user = null) => {
     "attendance.view_all",
     "attendance.view_department",
     "attendance.view_team",
+    "view_employee_attendance",
+    "attendance.view_employees",
+    "hrms.attendance.view",
+    "hrms.attendance.view_all",
+    "hrms.attendance.view_department",
+    "hrms.attendance.view_team",
+  ], user);
+};
+
+export const canViewEmployeeAttendance = (user = null) => {
+  return canViewAttendance(user);
+};
+
+export const canViewAllEmployeeAttendance = (user = null) => {
+  return hasAnyPermission([
+    "view_attendance",
+    "attendance.view",
+    "attendance.view_all",
+    "view_employee_attendance",
+    "attendance.view_employees",
+    "hrms.attendance.view",
+    "hrms.attendance.view_all",
+  ], user);
+};
+
+export const canViewDepartmentAttendance = (user = null) => {
+  return hasAnyPermission([
+    "attendance.view_department",
+    "hrms.attendance.view_department",
+  ], user);
+};
+
+export const canViewOwnAttendance = (user = null) => {
+  return hasAnyPermission([
+    "view_attendance",
+    "attendance.view",
+    "attendance.view_all",
+    "attendance.view_department",
+    "attendance.view_team",
     "attendance.view_own",
+    "hrms.attendance.view",
+    "hrms.attendance.view_own",
   ], user);
 };
 

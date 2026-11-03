@@ -109,6 +109,7 @@ const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [isForbidden, setIsForbidden] = useState(false);
 
   // Modals
   const [detailModal, setDetailModal] = useState({
@@ -162,6 +163,9 @@ const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount 
       }
     } catch (err) {
       console.error("Failed to fetch employee attendance", err);
+      if (err.response?.status === 403) {
+        setIsForbidden(true);
+      }
       if (onShowToastRef.current) {
         const msg = err.response?.data?.message || "Failed to load employee attendance.";
         onShowToastRef.current(msg, "error");
@@ -311,6 +315,58 @@ const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount 
         return "employee-att-badge--default";
     }
   };
+
+  if (isForbidden) {
+    return (
+      <div
+        className="employee-attendance__unauthorized"
+        style={{
+          textAlign: "center",
+          padding: "4rem 2rem",
+          background: "#fff",
+          borderRadius: "12px",
+          border: "1px solid #e2e8f0",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+        }}
+      >
+        <div
+          style={{
+            width: "56px",
+            height: "56px",
+            margin: "0 auto 1.25rem",
+            borderRadius: "50%",
+            background: "#fee2e2",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#ef4444",
+          }}
+        >
+          <FiAlertCircle size={28} />
+        </div>
+        <h3
+          style={{
+            fontSize: "1.25rem",
+            fontWeight: 700,
+            color: "#1e293b",
+            marginBottom: "0.5rem",
+          }}
+        >
+          Access Denied
+        </h3>
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "0.875rem",
+            maxWidth: "420px",
+            margin: "0 auto",
+          }}
+        >
+          You do not have permission to view employee attendance records.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="employee-attendance">

@@ -14,6 +14,7 @@ import IgniteLoader from "../../components/common/IgniteLoader/IgniteLoader";
 
 import {
   canApproveAttendance,
+  canViewAttendance,
   isFieldSalesManager,
 } from "../../utils/permissionUtils";
 import { attendanceAPI } from "../../services/api/attendanceAPI";
@@ -80,21 +81,9 @@ const Attendance = () => {
 
   const canViewEmployees =
     isAdminOrOwner ||
-    isManager ||
-    canApproveAttendance(user) ||
     userPermissions.includes("*") ||
-    userPermissions.includes("attendance.view_all") ||
-    userPermissions.includes("view_all_attendance") ||
-    userPermissions.includes("attendance.view_team") ||
-    userPermissions.includes("attendance.view_department") ||
-    userPermissions.includes("attendance.approve") ||
-    userPermissions.includes("attendance.approve_team") ||
-    userPermissions.includes("attendance.approve_department") ||
-    userPermissions.includes("approve_attendance") ||
-    userPermissions.includes("attendance.manage") ||
-    userPermissions.includes("manage_attendance") ||
-    userPermissions.includes("view_employee_attendance") ||
-    userPermissions.includes("attendance.view_employees");
+    canViewAttendance(user) ||
+    canApproveAttendance(user);
 
   const canApprove = canApproveAttendance(user);
 
@@ -206,6 +195,82 @@ const Attendance = () => {
     setActivePeriod(period);
     fetchHistory(period);
   };
+
+  if (!canViewEmployees && !canApprove) {
+    return (
+      <main className="attendance-page">
+        <div
+          className="access-denied-container"
+          style={{
+            minHeight: "60vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "2rem",
+          }}
+        >
+          <div
+            className="access-denied-card"
+            style={{
+              maxWidth: "480px",
+              width: "100%",
+              textAlign: "center",
+              background: "#fff",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "2.5rem 2rem",
+              boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                margin: "0 auto 1.25rem",
+                borderRadius: "50%",
+                background: "#fee2e2",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#ef4444",
+              }}
+            >
+              <FiAlertCircle size={28} />
+            </div>
+            <h2
+              style={{
+                fontSize: "1.25rem",
+                fontWeight: 700,
+                color: "#1e293b",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Access Denied
+            </h2>
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "0.875rem",
+                lineHeight: 1.5,
+                marginBottom: "1.5rem",
+              }}
+            >
+              You do not have permission to view Employee Attendance. Please contact
+              your administrator if you require access.
+            </p>
+            <Button
+              variant="primary"
+              onClick={() => {
+                window.location.href = "/dashboard";
+              }}
+            >
+              Back to Dashboard
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (loadingToday) {
     return <IgniteLoader text="Loading attendance..." />;
