@@ -408,6 +408,14 @@ export const canViewWorkManagement = (user = null) => {
  * Checks if user has permission to view their OWN personal attendance.
  * All active employees with self-service / ViewOwn attendance have access.
  */
+// Helper to test if permission object is strictly for attendance
+const isAttendancePermObject = (p) => {
+  if (!p || typeof p !== "object") return false;
+  const func = String(p.functionality || p.resource || p.feature || "").toLowerCase();
+  const mod = String(p.module || "").toLowerCase();
+  return func === "attendance" || (mod === "attendance" && (!func || func === "attendance"));
+};
+
 export const canViewOwnAttendance = (user = null) => {
   const targetUser = user || getCurrentUser();
   if (isSuperOrAdmin(targetUser)) return true;
@@ -433,10 +441,9 @@ export const canViewOwnAttendance = (user = null) => {
   }
 
   return perms.some((p) => {
-    if (!p || typeof p !== "object") return false;
-    const mod = String(p.module || p.functionality || p.resource || "").toLowerCase();
+    if (!isAttendancePermObject(p)) return false;
     const act = String(p.action || "").toLowerCase();
-    return (mod === "attendance" || mod === "hrms") && act === "view";
+    return act === "view" || act === "read" || act === "list";
   });
 };
 
@@ -450,45 +457,29 @@ export const canViewEmployeeAttendance = (user = null) => {
 
   const perms = getUserPermissions(targetUser);
 
-  // Explicit employee/department/team viewing or approval permissions
-  const employeeAttendanceKeys = [
-    "attendance.view_all",
-    "hrms.attendance.view_all",
-    "view_all_attendance",
-    "view_employee_attendance",
-    "attendance.view_employees",
-    "attendance.view_department",
-    "hrms.attendance.view_department",
-    "attendance.view_team",
-    "hrms.attendance.view_team",
-    "attendance.approve",
-    "attendance.approve_all",
-    "attendance.approve_department",
-    "attendance.approve_team",
-    "approve_attendance",
-    "manage_attendance",
-    "attendance.manage",
-    "export_attendance",
-  ];
+  // If the user explicitly has "own" scope for attendance view in their assigned permission objects:
+  const hasOwnObject = perms.some((p) => {
+    if (!isAttendancePermObject(p)) return false;
+    const act = String(p.action || "").toLowerCase();
+    const scope = String(p.scope || "").toLowerCase();
+    return (act === "view" || act === "read" || act === "list") && scope === "own";
+  });
 
-  if (employeeAttendanceKeys.some((k) => perms.includes(k))) {
-    return true;
-  }
+  const hasOwnString =
+    perms.includes("attendance.view_own") ||
+    perms.includes("hrms.attendance.view_own");
 
   // Check object permissions: must have action view/approve and scope all/department/team (NEVER own)
   const hasObjectEmployeeView = perms.some((p) => {
-    if (!p || typeof p !== "object") return false;
-    const mod = String(p.module || p.functionality || p.resource || "").toLowerCase();
+    if (!isAttendancePermObject(p)) return false;
     const act = String(p.action || "").toLowerCase();
     const scope = String(p.scope || "").toLowerCase();
 
-    const isAttendanceMod = mod === "attendance" || mod === "hrms";
     const isViewAct = act === "view" || act === "read" || act === "list";
     const isApproveAct = act === "approve" || act === "manage";
 
-    if (isAttendanceMod && isApproveAct) return true;
+    if (isApproveAct) return true;
     if (
-      isAttendanceMod &&
       isViewAct &&
       (scope === "all" || scope === "company" || scope === "department" || scope === "team")
     ) {
@@ -501,23 +492,39 @@ export const canViewEmployeeAttendance = (user = null) => {
     return true;
   }
 
-  // If user only has generic view_attendance or attendance.view:
-  // If they have attendance.view_own or their scope is own, they do NOT have employee attendance view!
-  const hasOwnView =
-    perms.includes("attendance.view_own") ||
-    perms.includes("hrms.attendance.view_own");
+  // Explicit department/team viewing or approval keys that can grant access
+  const explicitDepartmentOrApproveKeys = [
+    "attendance.view_department",
+    "hrms.attendance.view_department",
+    "attendance.view_team",
+    "hrms.attendance.view_team",
+    "attendance.approve",
+    "attendance.approve_all",
+    "attendance.approve_department",
+    "attendance.approve_team",
+    "approve_attendance",
+    "manage_attendance",
+    "attendance.manage",
+  ];
 
-  const hasOwnObject = perms.some((p) => {
-    if (!p || typeof p !== "object") return false;
-    const mod = String(p.module || p.functionality || p.resource || "").toLowerCase();
-    const act = String(p.action || "").toLowerCase();
-    const scope = String(p.scope || "").toLowerCase();
-    return (mod === "attendance" || mod === "hrms") && act === "view" && scope === "own";
-  });
+  // If user has explicit "own" scope (via object or string), only explicit department/team/approval can override
+  if (hasOwnObject || hasOwnString) {
+    return explicitDepartmentOrApproveKeys.some((k) => perms.includes(k));
+  }
 
-  if (hasOwnView || hasOwnObject) {
-    // Strictly personal attendance only
-    return false;
+  // Explicit employee/department/team viewing or approval permissions
+  const employeeAttendanceKeys = [
+    "attendance.view_all",
+    "hrms.attendance.view_all",
+    "view_all_attendance",
+    "view_employee_attendance",
+    "attendance.view_employees",
+    ...explicitDepartmentOrApproveKeys,
+    "export_attendance",
+  ];
+
+  if (employeeAttendanceKeys.some((k) => perms.includes(k))) {
+    return true;
   }
 
   // Fallback: generic view_attendance WITHOUT own scope
@@ -530,6 +537,18 @@ export const canViewAllEmployeeAttendance = (user = null) => {
   if (isSuperOrAdmin(targetUser)) return true;
 
   const perms = getUserPermissions(targetUser);
+
+  // If user explicitly has "own" scope for attendance view, reject all-scope view
+  const hasOwnObject = perms.some((p) => {
+    if (!isAttendancePermObject(p)) return false;
+    const act = String(p.action || "").toLowerCase();
+    const scope = String(p.scope || "").toLowerCase();
+    return (act === "view" || act === "read" || act === "list") && scope === "own";
+  });
+
+  if (hasOwnObject) {
+    return false;
+  }
 
   const allAttendanceKeys = [
     "attendance.view_all",
@@ -547,13 +566,11 @@ export const canViewAllEmployeeAttendance = (user = null) => {
   }
 
   return perms.some((p) => {
-    if (!p || typeof p !== "object") return false;
-    const mod = String(p.module || p.functionality || p.resource || "").toLowerCase();
+    if (!isAttendancePermObject(p)) return false;
     const act = String(p.action || "").toLowerCase();
     const scope = String(p.scope || "").toLowerCase();
     return (
-      (mod === "attendance" || mod === "hrms") &&
-      act === "view" &&
+      (act === "view" || act === "read" || act === "list") &&
       (scope === "all" || scope === "company")
     );
   });
@@ -568,13 +585,11 @@ export const canViewDepartmentAttendance = (user = null) => {
     perms.includes("attendance.view_department") ||
     perms.includes("hrms.attendance.view_department") ||
     perms.some((p) => {
-      if (!p || typeof p !== "object") return false;
-      const mod = String(p.module || p.functionality || p.resource || "").toLowerCase();
+      if (!isAttendancePermObject(p)) return false;
       const act = String(p.action || "").toLowerCase();
       const scope = String(p.scope || "").toLowerCase();
       return (
-        (mod === "attendance" || mod === "hrms") &&
-        act === "view" &&
+        (act === "view" || act === "read" || act === "list") &&
         scope === "department"
       );
     })
@@ -586,13 +601,30 @@ export const canViewAttendance = (user = null) => {
 };
 
 export const canApproveAttendance = (user = null) => {
-  return hasAnyPermission([
+  const targetUser = user || getCurrentUser();
+  if (isSuperOrAdmin(targetUser)) return true;
+
+  const perms = getUserPermissions(targetUser);
+
+  const approveKeys = [
     "approve_attendance",
     "attendance.approve",
     "attendance.approve_all",
     "attendance.approve_department",
     "attendance.approve_team",
-  ], user);
+    "attendance.manage",
+    "manage_attendance",
+  ];
+
+  if (approveKeys.some((k) => perms.includes(k))) {
+    return true;
+  }
+
+  return perms.some((p) => {
+    if (!isAttendancePermObject(p)) return false;
+    const act = String(p.action || "").toLowerCase();
+    return act === "approve" || act === "manage";
+  });
 };
 
 export const canExportAttendance = (user = null) => {
