@@ -12,6 +12,7 @@ import {
   FiEye,
   FiCheck,
   FiX,
+  FiAlertCircle,
 } from "react-icons/fi";
 import { attendanceAPI } from "../../../services/api/attendanceAPI";
 import { getDepartments } from "../../../services/api/departmentAPI";
@@ -19,7 +20,11 @@ import AttendanceDetailModal from "../AttendanceDetailModal/AttendanceDetailModa
 import Modal from "../../common/Modal/Modal";
 import Button from "../../common/Button/Button";
 import DatePicker from "../../common/DatePicker/DatePicker";
-import { canApproveAttendance } from "../../../utils/permissionUtils";
+import {
+  canApproveAttendance,
+  canViewEmployeeAttendance,
+  getCurrentUser,
+} from "../../../utils/permissionUtils";
 import "./EmployeeAttendance.css";
 
 const STATUS_OPTIONS = [
@@ -127,6 +132,7 @@ const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount 
 
   // Fetch departments list for filter
   useEffect(() => {
+    if (!canViewEmployeeAttendance(getCurrentUser())) return;
     const fetchDepts = async () => {
       try {
         const res = await getDepartments();
@@ -146,6 +152,11 @@ const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount 
 
   // Fetch company employee attendance
   const fetchEmployeeAttendance = useCallback(async () => {
+    if (!canViewEmployeeAttendance(getCurrentUser())) {
+      setIsForbidden(true);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const params = {};
@@ -316,7 +327,7 @@ const EmployeeAttendance = ({ onShowToast, onOpenPendingApprovals, pendingCount 
     }
   };
 
-  if (isForbidden) {
+  if (isForbidden || !canViewEmployeeAttendance(getCurrentUser())) {
     return (
       <div
         className="employee-attendance__unauthorized"

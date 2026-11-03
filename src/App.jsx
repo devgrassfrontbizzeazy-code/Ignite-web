@@ -423,20 +423,7 @@ export default function App() {
                         <Route path="/field-sales/visits" element={<Visits />} />
                       </Route>
 
-                      {/* =================================================
-                          EMPLOYEE ATTENDANCE PERMISSION
-                      ================================================= */}
-
-                      <Route
-                        element={
-                          <PermissionGuard
-                            requiredPermission="view_attendance"
-                            showAccessDenied
-                          />
-                        }
-                      >
-                        <Route path="/attendance" element={<Attendance />} />
-                      </Route>
+                      <Route path="/attendance" element={<Attendance />} />
 
                       <Route path="/leaves" element={<Leaves />} />
 

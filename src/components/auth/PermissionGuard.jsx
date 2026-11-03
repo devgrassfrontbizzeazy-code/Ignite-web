@@ -1,5 +1,9 @@
 import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
+import {
+  canViewEmployeeAttendance,
+  canViewOwnAttendance,
+} from "../../utils/permissionUtils";
 
 /**
  * Route-level guard enforcing RBAC permissions.
@@ -109,7 +113,7 @@ export default function PermissionGuard({
             marginBottom: "1.5rem",
           }}
         >
-          You do not have permission to access Employee Attendance. Please contact
+          You do not have permission to access this page. Please contact
           your administrator if you require access.
         </p>
         <button
@@ -164,18 +168,10 @@ export default function PermissionGuard({
         userPermissions.includes("designations.view") ||
         userPermissions.includes("designations.view_all")
       )) ||
+      (requiredPermission === "view_employee_attendance" && canViewEmployeeAttendance(user)) ||
       (requiredPermission === "view_attendance" && (
-        userPermissions.includes("view_attendance") ||
-        userPermissions.includes("attendance.view") ||
-        userPermissions.includes("attendance.view_all") ||
-        userPermissions.includes("attendance.view_department") ||
-        userPermissions.includes("attendance.view_team") ||
-        userPermissions.includes("view_employee_attendance") ||
-        userPermissions.includes("attendance.view_employees") ||
-        userPermissions.includes("hrms.attendance.view") ||
-        userPermissions.includes("hrms.attendance.view_all") ||
-        userPermissions.includes("hrms.attendance.view_department") ||
-        userPermissions.includes("hrms.attendance.view_team")
+        canViewOwnAttendance(user) ||
+        canViewEmployeeAttendance(user)
       )) ||
       (requiredPermission === "view_leave" && (
         userPermissions.includes("leaves.view") ||

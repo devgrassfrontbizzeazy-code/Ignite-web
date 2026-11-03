@@ -338,6 +338,7 @@ const NAV_ITEMS = [
     label: "Attendance",
     path: "/attendance",
     icon: AttendanceIcon,
+    isEmployeeDefault: true,
     permission: "view_attendance",
   },
   {
@@ -415,6 +416,7 @@ const FIELD_SALES_NAV_ITEMS = [
     label: "Attendance",
     path: "/attendance",
     icon: AttendanceIcon,
+    isEmployeeDefault: true,
     permission: "view_attendance",
   },
   {
