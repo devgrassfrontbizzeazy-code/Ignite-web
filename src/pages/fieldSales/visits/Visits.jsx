@@ -674,7 +674,7 @@ const Visits = () => {
     fetchTimeline(false);
   }, [fetchTimeline]);
 
-  // Periodic Auto-Refresh of Timeline (every 30s when manager is viewing today's route)
+  // Periodic Auto-Refresh of Timeline (every 3 minutes instead of 30s to keep network & backend free)
   useEffect(() => {
     if (!isManager || !selectedEntity || selectedEntity.type !== "employee") return;
     const isToday = !selectedRouteDate || selectedRouteDate === getToday();
@@ -685,7 +685,7 @@ const Visits = () => {
       if (typeof loadTimelineRef.current === "function") {
         loadTimelineRef.current(true);
       }
-    }, 30000);
+    }, 180000); // 3 minutes (180,000 ms)
 
     return () => clearInterval(intervalId);
   }, [isManager, selectedEntity?.id, selectedEntity?.type, selectedRouteDate]);
