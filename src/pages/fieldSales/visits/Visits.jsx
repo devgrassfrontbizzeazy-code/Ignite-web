@@ -26,6 +26,7 @@ import {
 import { useNotification } from "../../../context/NotificationContext";
 import {
   getFieldSalesVisits,
+  getFieldSalesVisitDetail,
   getFieldSalesEmployees,
   checkInFieldSalesVisit,
   submitFieldSalesVisitReport,
@@ -164,14 +165,53 @@ const Visits = () => {
   const [currentUserLocation, setCurrentUserLocation] = useState(null);
   const [gpsStatus, setGpsStatus] = useState("loading");
 
-  // Load visits and employees with real-time periodic background sync
+  const SIX_MINUTES_MS = 6 * 60 * 1000; // 360,000 ms (6 minutes background sync)
+
+  // Load field sales employees list ONCE on page mount (not in live polling loop)
+  const loadEmployeesOnce = useCallback(async () => {
+    if (!isManager) return;
+    try {
+      const empsRes = await getFieldSalesEmployees();
+      const empData = getResponseItems(empsRes);
+      if (Array.isArray(empData)) {
+        setEmployees(
+          empData
+            .filter((e) => {
+              const r = String(e.role || "").toUpperCase();
+              return r !== "MANAGER" && !r.includes("MANAGER");
+            })
+            .map((e) => ({
+              id: String(e.id),
+              employee_id: e.employee_id ?? null,
+              employeeId: e.employeeId ?? null,
+              pk: e.pk ?? null,
+              name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
+              role: e.role || "Sales Person",
+              email: e.email,
+              phone: e.phone_number || e.phone,
+            }))
+        );
+        setEmployeesUnavailable(false);
+      } else {
+        setEmployeesUnavailable(true);
+      }
+    } catch (err) {
+      console.warn("Could not load field sales employees:", err);
+      setEmployeesUnavailable(true);
+    }
+  }, [isManager]);
+
+  useEffect(() => {
+    loadEmployeesOnce();
+  }, [loadEmployeesOnce]);
+
+  // Load visits and team attendance with periodic background sync (every 6 minutes)
   const loadLiveVisits = useCallback(async (silent = false) => {
     let hasLoadError = false;
     try {
       if (!silent) setLoading(true);
-      const [visitsRes, empsRes, attendanceRes] = await Promise.allSettled([
+      const [visitsRes, attendanceRes] = await Promise.allSettled([
         getFieldSalesVisits(),
-        isManager ? getFieldSalesEmployees() : Promise.resolve(null),
         canReadTeamAttendance
           ? attendanceAPI.getCompanyAttendance({ date: getToday() })
           : Promise.resolve(null),
@@ -250,38 +290,6 @@ const Visits = () => {
         console.warn("Could not load backend visits:", visitsRes.reason);
       }
 
-      if (empsRes.status === "fulfilled" && empsRes.value) {
-        const empData = getResponseItems(empsRes.value);
-        if (Array.isArray(empData)) {
-          setEmployees(
-            empData
-              .filter((e) => {
-                const r = String(e.role || "").toUpperCase();
-                return r !== "MANAGER" && !r.includes("MANAGER");
-              })
-              .map((e) => ({
-                id: String(e.id),
-                employee_id: e.employee_id ?? null,
-                employeeId: e.employeeId ?? null,
-                pk: e.pk ?? null,
-                name: e.full_name || `${e.first_name || ""} ${e.last_name || ""}`.trim() || e.email,
-                role: e.role || "Sales Person",
-                email: e.email,
-                phone: e.phone_number || e.phone,
-              }))
-          );
-          setEmployeesUnavailable(false);
-        } else {
-          hasLoadError = true;
-          setEmployeesUnavailable(true);
-          console.warn("Unexpected response shape from field sales employees endpoint.");
-        }
-      } else if (isManager) {
-        hasLoadError = true;
-        setEmployeesUnavailable(true);
-        console.warn("Could not load field sales employees:", empsRes.reason);
-      }
-
       if (canReadTeamAttendance && attendanceRes.status === "fulfilled") {
         const payload = attendanceRes.value;
         const rows = getResponseItems(payload);
@@ -327,14 +335,14 @@ const Visits = () => {
       if (!silent) setLoading(false);
     }
     return !hasLoadError;
-  }, [canReadTeamAttendance, isManager, currentUserLocation?.latitude, currentUserLocation?.longitude, currentUserLocation?.accuracy]);
+  }, [canReadTeamAttendance, currentUserLocation?.latitude, currentUserLocation?.longitude, currentUserLocation?.accuracy]);
 
   useEffect(() => {
     loadLiveVisits(false);
     const interval = setInterval(() => {
       if (document.visibilityState === "hidden") return;
       loadLiveVisits(true);
-    }, 25000);
+    }, SIX_MINUTES_MS);
     return () => clearInterval(interval);
   }, [loadLiveVisits]);
 
@@ -479,7 +487,16 @@ const Visits = () => {
     return false;
   }, []);
 
-  useSmartPolling(fetchTeamLive, 20000, { enabled: isManager });
+  // Live team tracking only polls when user is Manager AND currently viewing the Map tab!
+  // Paused on Table/List view and set to 6 minutes sync interval
+  useSmartPolling(fetchTeamLive, SIX_MINUTES_MS, { enabled: isManager && viewMode === "map" });
+
+  // When manager switches to map view, fetch team live locations once immediately
+  useEffect(() => {
+    if (isManager && viewMode === "map") {
+      fetchTeamLive();
+    }
+  }, [isManager, viewMode, fetchTeamLive]);
 
   const loadTimelineRef = useRef(null);
 
@@ -1012,9 +1029,24 @@ const Visits = () => {
   /* Select visit                                                             */
   /* ---------------------------------------------------------------------- */
 
-  const openVisit = (visit) => {
+  const openVisit = async (visit) => {
     setSelectedVisit(visit);
     setDetailsOpen(true);
+    if (visit?.id) {
+      try {
+        const res = await getFieldSalesVisitDetail(visit.id);
+        const full = res?.data || res;
+        if (full) {
+          setSelectedVisit((prev) => ({
+            ...prev,
+            ...full,
+            photos: full.photos || prev?.photos || [],
+          }));
+        }
+      } catch (err) {
+        console.warn("Could not load full visit details:", err);
+      }
+    }
   };
 
   /* ---------------------------------------------------------------------- */

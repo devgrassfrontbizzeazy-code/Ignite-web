@@ -162,6 +162,11 @@ export const getFieldSalesVisits = async (params = {}) => {
   return response.data;
 };
 
+export const getFieldSalesVisitDetail = async (visitId) => {
+  const response = await api.get(`/field-sales/visits/${visitId}/`);
+  return response.data;
+};
+
 export const getTodayFieldSalesVisits = async () => {
   const response = await api.get("/field-sales/visits/today/");
   return response.data;
