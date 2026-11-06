@@ -103,16 +103,34 @@
     padding: var(--space-4, 16px);
   }
 
-  /* When sidebar is collapsed on mobile, maintain a compact 64px width in the flow */
+  /* When collapsed on mobile, maintain a compact 64px icon rail in layout */
   .app-layout--sidebar-collapsed > .sidebar {
     flex: 0 0 64px;
     width: 64px;
+    min-width: 64px;
   }
 
-  /* When expanded on mobile, sidebar floats as an overlay; maintain 64px placeholder so content doesn't shift */
+  /* When expanded on mobile, sidebar floats as an overlay drawer (280px wide) */
   .app-layout--sidebar-expanded > .sidebar {
-    flex: 0 0 64px;
-    width: 64px;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1000 !important;
+    box-shadow: 6px 0 32px rgba(0, 0, 0, 0.45) !important;
+    background: #0f3d3e !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    animation: slideInSidebarDrawer 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Content maintains 64px left margin when expanded so it stays steady behind the backdrop */
+  .app-layout--sidebar-expanded .app-layout__content {
+    margin-left: 64px;
   }
 
   /* Smooth fade-in backdrop behind the expanded drawer */
@@ -120,20 +138,24 @@
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(10, 25, 35, 0.55);
+    background: rgba(10, 25, 35, 0.6);
     backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(2px);
-    z-index: 95;
+    z-index: 999;
     animation: fadeInSidebarBackdrop 180ms ease forwards;
     cursor: pointer;
   }
 }
 
 @media (max-width: 480px) {
-  .app-layout--sidebar-collapsed > .sidebar,
-  .app-layout--sidebar-expanded > .sidebar {
+  .app-layout--sidebar-collapsed > .sidebar {
     flex: 0 0 60px;
     width: 60px;
+    min-width: 60px;
+  }
+
+  .app-layout--sidebar-expanded .app-layout__content {
+    margin-left: 60px;
   }
 
   .app-layout__main {
