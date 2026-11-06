@@ -46,6 +46,10 @@
 
   flex-shrink: 0;
 
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
   border-radius: var(--radius-md);
 
   color: var(--color-text-secondary);
@@ -173,8 +177,14 @@
 }
 
 /* ==========================================================================
-   Mobile
+   Responsive (Tablet & Mobile)
    ========================================================================== */
+
+@media (max-width: 1024px) {
+  .top-navbar__menu {
+    display: flex;
+  }
+}
 
 @media (max-width: 768px) {
   .top-navbar {
@@ -191,59 +201,39 @@
   }
 
   .top-navbar__company {
-    max-width: 150px;
+    max-width: 120px;
     font-size: var(--font-size-xs);
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .top-navbar__actions {
     gap: var(--space-2);
+    min-width: 0;
   }
 }
 
-
-
-/* ==========================================================================
-   Mobile
-   ========================================================================== */
-
-@media (max-width: 768px) {
+@media (max-width: 480px) {
   .top-navbar {
-    padding: 0 var(--space-4);
-    gap: var(--space-2);
+    padding: 0 10px;
+    gap: 6px;
   }
 
-  .top-navbar__menu {
-    display: flex;
+  .top-navbar__title {
+    font-size: var(--font-size-base);
   }
 
-  .top-navbar__breadcrumb {
+  .top-navbar__company {
+    max-width: 90px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 360px) {
+  .top-navbar__company {
     display: none;
-  }
-
-  .top-navbar__search-label {
-    display: none;
-  }
-
-  .top-navbar__search {
-    width: 36px;
-    padding: 0;
-
-    justify-content: center;
-
-    border: none;
-  }
-
-  .top-navbar__user-info {
-    display: none;
-  }
-
-  .top-navbar__actions {
-    gap: var(--space-2);
-  }
-
-  .top-navbar__dropdown {
-    right: 0;
-    width: 210px;
   }
 }
 

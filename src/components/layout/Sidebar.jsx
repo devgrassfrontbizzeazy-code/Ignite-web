@@ -452,13 +452,57 @@ function getInitials(name) {
 export default function Sidebar({
   userName = "Guest User",
   userRole = "Member",
-  defaultCollapsed = false,
+  defaultCollapsed,
+  collapsed: controlledCollapsed,
+  onToggle: controlledOnToggle,
+  onClose: controlledOnClose,
 }) {
   const navigate = useNavigate();
 
-  const { workManagementAccess, loading: teamsLoading } = useTeamsTasks();
+  const { workManagementAccess } = useTeamsTasks();
 
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const isSmallScreen = () => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth <= 1024;
+  };
+
+  const isControlled = typeof controlledCollapsed === "boolean";
+
+  const [internalCollapsed, setInternalCollapsed] = useState(() => {
+    if (typeof defaultCollapsed === "boolean") return defaultCollapsed;
+    return isSmallScreen();
+  });
+
+  const collapsed = isControlled ? controlledCollapsed : internalCollapsed;
+
+  const handleToggle = () => {
+    if (isControlled && controlledOnToggle) {
+      controlledOnToggle();
+    } else {
+      setInternalCollapsed((prev) => !prev);
+    }
+    setProfileOpen(false);
+    setWorkspaceOpen(false);
+  };
+
+  const handleClose = () => {
+    if (isControlled && controlledOnClose) {
+      controlledOnClose();
+    } else if (isControlled && controlledOnToggle && !collapsed) {
+      controlledOnToggle();
+    } else {
+      setInternalCollapsed(true);
+    }
+    setProfileOpen(false);
+    setWorkspaceOpen(false);
+  };
+
+  const handleNavClick = () => {
+    if (isSmallScreen()) {
+      handleClose();
+    }
+  };
+
   const [profileOpen, setProfileOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [employeeName, setEmployeeName] = useState("");
@@ -1013,6 +1057,9 @@ export default function Sidebar({
 
   const handleViewProfile = () => {
     setProfileOpen(false);
+    if (isSmallScreen()) {
+      handleClose();
+    }
     navigate("/profile");
   };
 
@@ -1059,11 +1106,7 @@ export default function Sidebar({
         <button
           type="button"
           className="sidebar__toggle"
-          onClick={() => {
-            setCollapsed((prev) => !prev);
-            setProfileOpen(false);
-            setWorkspaceOpen(false);
-          }}
+          onClick={handleToggle}
           aria-label={
             collapsed
               ? "Expand sidebar"
@@ -1177,6 +1220,7 @@ export default function Sidebar({
                     to={path}
                     end
                     onMouseEnter={() => prefetchRoute(path)}
+                    onClick={handleNavClick}
                     className={({ isActive }) =>
                       `sidebar__nav-item${isActive ? " is-active" : ""
                       }`
@@ -1204,6 +1248,7 @@ export default function Sidebar({
                             key={childPath}
                             to={childPath}
                             onMouseEnter={() => prefetchRoute(childPath)}
+                            onClick={handleNavClick}
                             className={({ isActive }) =>
                               `sidebar__nav-item sidebar__nav-item--child${isActive
                                 ? " is-active"
@@ -1232,6 +1277,7 @@ export default function Sidebar({
                 key={path}
                 to={path}
                 end
+                onClick={handleNavClick}
                 className={({ isActive }) =>
                   `sidebar__nav-item${isActive ? " is-active" : ""
                   }`
@@ -1286,6 +1332,7 @@ export default function Sidebar({
             type="button"
             className={`sidebar__profile${profileOpen ? " is-open" : ""
               }`}
+            onClick={() => setProfileOpen((prev) => !prev)}
             aria-expanded={profileOpen}
             aria-label="Open profile menu"
           >

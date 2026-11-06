@@ -106,7 +106,7 @@ const getPageContext = (pathname) => {
    TopNavbar
    ========================================================================== */
 
-export default function TopNavbar({ onMenuClick }) {
+export default function TopNavbar({ onMenuClick, companyName: propCompanyName }) {
   const location = useLocation();
   const { company, setCompany } = useOrganization();
 
@@ -142,7 +142,7 @@ export default function TopNavbar({ onMenuClick }) {
     };
   }, [company, setCompany]);
 
-  const companyName = company?.name || "";
+  const companyName = company?.name || propCompanyName || "";
 
   /* ------------------------------------------------------------------------
      Page configuration

@@ -100,7 +100,15 @@
   border: 1px solid var(--color-border);
   border-radius: 12px;
   width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.attendance-page__nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .attendance-page__nav-tab {
@@ -189,6 +197,22 @@
   .attendance-page__date,
   .attendance-page__status {
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .attendance-page {
+    gap: 14px;
+    padding: 12px 10px;
+  }
+
+  .attendance-page__header h1 {
+    font-size: 20px;
+  }
+
+  .attendance-page__nav-tab {
+    padding: 6px 12px;
+    font-size: 12px;
   }
 }
 

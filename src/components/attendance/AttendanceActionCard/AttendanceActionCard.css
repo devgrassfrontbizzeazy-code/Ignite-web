@@ -304,16 +304,26 @@
 }
 
 @media (max-width: 500px) {
+  .attendance-action-card {
+    padding: 16px 14px;
+  }
+
   .attendance-action-card__top {
     flex-direction: column;
+    gap: 10px;
   }
 
   .attendance-action-card__status {
     align-self: flex-start;
   }
 
+  .attendance-action-card__ring-wrapper {
+    justify-content: center;
+  }
+
   .attendance-action-card__metrics {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .attendance-action-card__actions {

@@ -1,16 +1,14 @@
 import { dashboardWidgets } from "../widgetRegistry";
 
-const getGridColumn = (width) => {
+const getColSpan = (width) => {
   if (!width) {
-    return "span 12";
+    return 12;
   }
 
-  const normalizedWidth = Math.min(
+  return Math.min(
     Math.max(Number(width), 1),
     12,
   );
-
-  return `span ${normalizedWidth}`;
 };
 
 const WidgetRenderer = ({
@@ -46,21 +44,21 @@ const WidgetRenderer = ({
               })
             : {};
 
+        const span = getColSpan(widget.config?.width);
+
         return (
           <div
-            className="dashboard-grid__item"
+            className={`dashboard-grid__item dashboard-grid__item--span-${span}`}
             key={widget.key}
             style={{
-              gridColumn: getGridColumn(
-                widget.config?.width,
-              ),
+              "--col-span": span,
             }}
           >
             <WidgetComponent
-  {...widgetProps}
-  config={widget.config}
-  loading={dashboardData.loading}
-/>
+              {...widgetProps}
+              config={widget.config}
+              loading={dashboardData.loading}
+            />
           </div>
         );
       })}

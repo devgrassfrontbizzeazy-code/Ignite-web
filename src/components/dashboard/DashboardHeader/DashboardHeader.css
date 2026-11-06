@@ -22,6 +22,8 @@
   font-weight: 700;
   line-height: 1.3;
   letter-spacing: -0.3px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .dashboard-header__title span {

@@ -6,9 +6,11 @@
   display: flex;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   min-height: 0;
   overflow: hidden;
   background: var(--color-background, #f8fafc);
+  position: relative;
 }
 
 /* ==========================================================================
@@ -18,7 +20,13 @@
 .app-layout > .sidebar {
   flex: 0 0 auto;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
+}
+
+/* Backdrop for mobile overlay navigation */
+.sidebar-backdrop {
+  display: none;
 }
 
 /* ==========================================================================
@@ -32,6 +40,7 @@
   min-width: 0;
   min-height: 0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -55,6 +64,7 @@
   overflow-x: hidden;
   padding: var(--space-6, 24px);
   box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ==========================================================================
@@ -79,11 +89,63 @@
 }
 
 /* ==========================================================================
-   MOBILE
+   MOBILE & TABLET RESPONSIVE
    ========================================================================== */
+
+@media (max-width: 1024px) {
+  .app-layout__main {
+    padding: var(--space-5, 20px);
+  }
+}
 
 @media (max-width: 768px) {
   .app-layout__main {
     padding: var(--space-4, 16px);
+  }
+
+  /* When sidebar is collapsed on mobile, maintain a compact 64px width in the flow */
+  .app-layout--sidebar-collapsed > .sidebar {
+    flex: 0 0 64px;
+    width: 64px;
+  }
+
+  /* When expanded on mobile, sidebar floats as an overlay; maintain 64px placeholder so content doesn't shift */
+  .app-layout--sidebar-expanded > .sidebar {
+    flex: 0 0 64px;
+    width: 64px;
+  }
+
+  /* Smooth fade-in backdrop behind the expanded drawer */
+  .sidebar-backdrop.is-visible {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 25, 35, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 95;
+    animation: fadeInSidebarBackdrop 180ms ease forwards;
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-layout--sidebar-collapsed > .sidebar,
+  .app-layout--sidebar-expanded > .sidebar {
+    flex: 0 0 60px;
+    width: 60px;
+  }
+
+  .app-layout__main {
+    padding: 12px 10px;
+  }
+}
+
+@keyframes fadeInSidebarBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

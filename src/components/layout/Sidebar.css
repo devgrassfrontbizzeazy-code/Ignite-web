@@ -855,141 +855,162 @@
 
 
 /* ==========================================================================
-   EXPAND ON HOVER
+   EXPAND ON HOVER (DESKTOP MOUSE ONLY)
+   Only active on desktop screens with a fine pointer/mouse. Never active on
+   touchscreens or small devices so touches don't get stuck in hover expansion.
    ========================================================================== */
 
-.sidebar--collapsed:hover {
-  --sidebar-current-width: var(--sidebar-width);
+@media (hover: hover) and (pointer: fine) and (min-width: 1025px) {
+  .sidebar--collapsed:hover {
+    --sidebar-current-width: var(--sidebar-width);
 
-  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.14);
-}
-
-
-/* --------------------------------------------------------------------------
-   Hover Header
-   -------------------------------------------------------------------------- */
-
-.sidebar--collapsed:hover .sidebar__header {
-  justify-content: space-between;
-
-  padding-left: 18px;
-  padding-right: 18px;
-}
-
-.sidebar--collapsed:hover .sidebar__brand {
-  display: flex;
-}
-
-
-/* --------------------------------------------------------------------------
-   Hover Workspace
-   -------------------------------------------------------------------------- */
-
-.sidebar--collapsed:hover .sidebar__workspace-current {
-  width: 100%;
-
-  margin: 0;
-
-  justify-content: flex-start;
-
-  padding: 0 11px;
-}
-
-.sidebar--collapsed:hover .sidebar__workspace-current-name {
-  display: block;
-
-  flex: 1;
-  min-width: 0;
-
-  width: auto;
-  max-width: none;
-
-  opacity: 1;
-}
-
-.sidebar--collapsed:hover .sidebar__workspace-chevron {
-  display: flex;
-}
-
-
-/* --------------------------------------------------------------------------
-   Hover Navigation
-   -------------------------------------------------------------------------- */
-
-.sidebar--collapsed:hover .sidebar__nav {
-  margin-left: 8px;
-  margin-right: 8px;
-
-  padding-left: 6px;
-  padding-right: 6px;
-}
-
-.sidebar--collapsed:hover .sidebar__nav-item {
-  justify-content: flex-start;
-
-  padding: 0 12px;
-
-  gap: 12px;
-}
-
-.sidebar--collapsed:hover .sidebar__nav-label {
-  width: auto;
-  max-width: 220px;
-
-  opacity: 1;
-
-  transform: translateX(0);
-}
-
-.sidebar--collapsed:hover .sidebar__nav-children {
-  display: block;
-}
-
-
-/* --------------------------------------------------------------------------
-   Hover Profile
-   -------------------------------------------------------------------------- */
-
-.sidebar--collapsed:hover .sidebar__footer {
-  padding: 10px 12px;
-}
-
-.sidebar--collapsed:hover .sidebar__profile {
-  justify-content: flex-start;
-
-  padding: 6px 7px;
-
-  gap: 10px;
-}
-
-.sidebar--collapsed:hover .sidebar__profile-info,
-.sidebar--collapsed:hover .sidebar__profile-more {
-  display: flex;
-}
-
-.sidebar--collapsed:hover .sidebar__profile-menu {
-  left: 0;
-  right: 0;
-
-  width: auto;
-}
-
-
-/* ==========================================================================
-   RESPONSIVE
-   ========================================================================== */
-
-@media (max-width: 768px) {
-  .sidebar {
-    --sidebar-current-width: 220px;
+    box-shadow: 8px 0 28px rgba(0, 0, 0, 0.14);
   }
 
+  /* --------------------------------------------------------------------------
+     Hover Header
+     -------------------------------------------------------------------------- */
+
+  .sidebar--collapsed:hover .sidebar__header {
+    justify-content: space-between;
+
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .sidebar--collapsed:hover .sidebar__brand {
+    display: flex;
+  }
+
+  /* --------------------------------------------------------------------------
+     Hover Workspace
+     -------------------------------------------------------------------------- */
+
+  .sidebar--collapsed:hover .sidebar__workspace-current {
+    width: 100%;
+
+    margin: 0;
+
+    justify-content: flex-start;
+
+    padding: 0 11px;
+  }
+
+  .sidebar--collapsed:hover .sidebar__workspace-current-name {
+    display: block;
+
+    flex: 1;
+    min-width: 0;
+
+    width: auto;
+    max-width: none;
+
+    opacity: 1;
+  }
+
+  .sidebar--collapsed:hover .sidebar__workspace-chevron {
+    display: flex;
+  }
+
+  /* --------------------------------------------------------------------------
+     Hover Navigation
+     -------------------------------------------------------------------------- */
+
+  .sidebar--collapsed:hover .sidebar__nav {
+    margin-left: 8px;
+    margin-right: 8px;
+
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .sidebar--collapsed:hover .sidebar__nav-item {
+    justify-content: flex-start;
+
+    padding: 0 12px;
+
+    gap: 12px;
+  }
+
+  .sidebar--collapsed:hover .sidebar__nav-label {
+    width: auto;
+    max-width: 220px;
+
+    opacity: 1;
+
+    transform: translateX(0);
+  }
+
+  .sidebar--collapsed:hover .sidebar__nav-children {
+    display: block;
+  }
+
+  /* --------------------------------------------------------------------------
+     Hover Profile
+     -------------------------------------------------------------------------- */
+
+  .sidebar--collapsed:hover .sidebar__footer {
+    padding: 10px 12px;
+  }
+
+  .sidebar--collapsed:hover .sidebar__profile {
+    justify-content: flex-start;
+
+    padding: 6px 7px;
+
+    gap: 10px;
+  }
+
+  .sidebar--collapsed:hover .sidebar__profile-info,
+  .sidebar--collapsed:hover .sidebar__profile-more {
+    display: flex;
+  }
+
+  .sidebar--collapsed:hover .sidebar__profile-menu {
+    left: 0;
+    right: 0;
+
+    width: auto;
+  }
+}
+
+/* ==========================================================================
+   RESPONSIVE (TABLETS & PHONES)
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  /* On tablets and smaller screens, collapsed sidebar has compact width */
   .sidebar--collapsed {
     --sidebar-current-width: 68px;
   }
+}
 
-  .sidebar--collapsed:hover {
-    --sidebar-current-width: 220px;
+@media (max-width: 768px) {
+  /* On mobile, default collapsed state is a neat 64px icon rail */
+  .sidebar {
+    --sidebar-current-width: 260px;
+  }
+
+  .sidebar--collapsed {
+    --sidebar-current-width: 64px;
+    position: sticky;
+    top: 0;
+    box-shadow: none;
+  }
+
+  /* When expanded on mobile, sidebar floats as an overlay drawer over the page */
+  .sidebar:not(.sidebar--collapsed) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    max-width: 82vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: var(--z-sidebar);
+    box-shadow: 6px 0 32px rgba(0, 0, 0, 0.4);
+    animation: slideInSidebarDrawer 200ms ease forwards;
   }
 
   .sidebar__header {
@@ -1001,9 +1022,19 @@
     padding-left: 0;
     padding-right: 0;
   }
+}
 
-  .sidebar--collapsed:hover .sidebar__header {
-    padding-left: 16px;
-    padding-right: 16px;
+@keyframes slideInSidebarDrawer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar--collapsed {
+    --sidebar-current-width: 60px;
   }
 }

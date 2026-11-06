@@ -11,3 +11,9 @@
     padding: 20px 16px 30px;
   }
 }
+
+@media (max-width: 480px) {
+  .dashboard-page {
+    padding: 14px 10px 24px;
+  }
+}
