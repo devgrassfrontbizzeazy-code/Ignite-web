@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, CalendarDays } from "lucide-react";
+import { X, CalendarDays, AlertCircle } from "lucide-react";
 import DatePicker from "../../common/DatePicker/DatePicker";
 
 import "./ApplyLeaveModal.css";
@@ -16,13 +16,39 @@ const ApplyLeaveModal = ({
     toDate: "",
     reason: "",
   });
+  const [formError, setFormError] = useState("");
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+    setFormError("");
 
     setFormData((previous) => ({
       ...previous,
       [name]: value,
+    }));
+  };
+
+  const handleFromDateChange = (value) => {
+    setFormError("");
+    setFormData((previous) => {
+      // When fromDate is chosen, if toDate is empty or earlier than fromDate, sync it
+      const nextToDate =
+        !previous.toDate || previous.toDate < value ? value : previous.toDate;
+      return {
+        ...previous,
+        fromDate: value,
+        toDate: nextToDate,
+      };
+    });
+  };
+
+  const handleToDateChange = (value) => {
+    setFormError("");
+    setFormData((previous) => ({
+      ...previous,
+      toDate: value,
+      // If fromDate is not yet set, default it to the chosen date
+      fromDate: previous.fromDate || value,
     }));
   };
 
@@ -40,9 +66,9 @@ const ApplyLeaveModal = ({
 
     const difference = end.getTime() - start.getTime();
 
-    return Math.floor(difference / (1000 * 60 * 60 * 24)) + 1;
+    return Math.round(difference / (1000 * 60 * 60 * 24)) + 1;
   };
-  const today = new Date().toISOString().split("T")[0];
+
   const days = calculateDays();
 
   const selectedPolicy = options.find(
@@ -51,16 +77,30 @@ const ApplyLeaveModal = ({
 
   const handleSubmit = (event) => {
     event.preventDefault();
+    setFormError("");
 
     if (!formData.leavePolicyId) {
+      setFormError("Please select a leave type.");
       return;
     }
 
-    if (!formData.fromDate || !formData.toDate) {
+    if (!formData.fromDate) {
+      setFormError("Please select a From Date.");
+      return;
+    }
+
+    if (!formData.toDate) {
+      setFormError("Please select a To Date.");
       return;
     }
 
     if (days <= 0) {
+      setFormError("To Date cannot be earlier than From Date.");
+      return;
+    }
+
+    if (!formData.reason.trim()) {
+      setFormError("Please enter a reason for your leave request.");
       return;
     }
 
@@ -144,15 +184,9 @@ const ApplyLeaveModal = ({
               <label>From Date</label>
 
               <DatePicker
-                value={formData.toDate}
-                onChange={(value) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    toDate: value,
-                  }))
-                }
-                minDate={formData.fromDate || today}
-                placeholder="Select end date"
+                value={formData.fromDate}
+                onChange={handleFromDateChange}
+                placeholder="Select start date"
                 disabled={submitting}
               />
             </div>
@@ -162,12 +196,7 @@ const ApplyLeaveModal = ({
 
               <DatePicker
                 value={formData.toDate}
-                onChange={(value) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    toDate: value,
-                  }))
-                }
+                onChange={handleToDateChange}
                 minDate={formData.fromDate || undefined}
                 placeholder="Select end date"
                 disabled={submitting}
@@ -196,6 +225,13 @@ const ApplyLeaveModal = ({
               disabled={submitting}
             />
           </div>
+
+          {formError && (
+            <div className="apply-leave-error-banner">
+              <AlertCircle size={15} />
+              <span>{formError}</span>
+            </div>
+          )}
 
           <div className="apply-leave-modal__actions">
             <button

@@ -290,10 +290,17 @@ const usedLeave = useMemo(
 
       await fetchMyLeaveData();
     } catch (error) {
-      notify.error(
-        error?.response?.data?.detail ||
-          "Failed to submit leave request."
-      );
+      const errorData = error?.response?.data;
+      const msg =
+        errorData?.message ||
+        errorData?.detail ||
+        (errorData && typeof errorData === "object"
+          ? Object.entries(errorData)
+              .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(", ") : val}`)
+              .join(" | ")
+          : null) ||
+        "Failed to submit leave request.";
+      notify.error(msg);
     } finally {
       setSubmitting(false);
     }
